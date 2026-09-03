@@ -43,8 +43,8 @@ async function htmlAnteprimaFile(fileId){
   const u=await urlFile(m.hash); if(!u) return html`<div class="anteprima-nessuna">${icona('attenzione')} Il contenuto di «${m.nome}» non è nell'archivio del browser (forse manca dal backup ripristinato).</div>`;
   if(eImmagine(m.mime,m.nome)) return html`<img class="anteprima-img" src="${u}" alt="${m.nome}" data-azione="immagine-zoom" data-src="${u}">`;
   if(ePdf(m.mime,m.nome)){
-    if(eIos()) return html`<div class="anteprima-nessuna">${icona('pdf')}<p>Su iPhone e iPad l'anteprima incorporata mostra solo la prima pagina.</p><a class="pulsante primario" href="${u}" target="_blank" rel="noopener">Apri a schermo intero</a><div class="mt"><iframe class="anteprima-doc" src="${u}" title="${m.nome}" style="min-height:40vh"></iframe></div></div>`;
-    return html`<iframe class="anteprima-doc" src="${u}" title="${m.nome}"></iframe>`;
+    if(eIos()) return html`<div class="anteprima-nessuna">${icona('pdf')}<p>Su iPhone e iPad l'anteprima incorporata mostra solo la prima pagina.</p><a class="pulsante primario" href="${u}" target="_blank" rel="noopener">Apri a schermo intero</a><div class="mt"><iframe class="anteprima-doc" src="${u}#toolbar=0&navpanes=0" title="${m.nome}" style="min-height:40vh"></iframe></div></div>`;
+    return html`<iframe class="anteprima-doc" src="${u}#toolbar=0&navpanes=0&statusbar=0" title="${m.nome}"></iframe>`;
   }
   return html`<div class="anteprima-nessuna">${icona('file')}<p>Anteprima non disponibile per questo tipo di file (${m.mime||estensioneDi(m.nome)}).</p><button class="pulsante" data-azione="file-scarica" data-id="${m.id}">${icona('scarica')}Scarica</button></div>`;
 }
@@ -90,7 +90,7 @@ window.addEventListener('drop',async e=>{
   if(z.dataset.dropDoc) return allegaFilesADocumento(z.dataset.dropDoc,files);
   const [tipo,id]=z.dataset.dropSoggetto.split(':'); dialogoDocumento({soggettoTipo:tipo,soggettoId:id},files);
 },true);
-window.addEventListener('dragover',e=>{const z=e.target.closest&&(e.target.closest('[data-drop-doc]')||e.target.closest('[data-drop-soggetto]')||e.target.closest('.zona-drop'));tutti('.zona-drop.sopra').forEach(x=>x.classList.remove('sopra'));if(z){z.classList.add('sopra')}});
+window.addEventListener('dragover',e=>{const z=e.target.closest&&(e.target.closest('[data-drop-doc]')||e.target.closest('[data-drop-soggetto]')||e.target.closest('.zona-drop'));tutti('.zona-drop.sopra').forEach(x=>x.classList.remove('sopra'));if(z){z.classList.add('sopra');if(e.dataTransfer)e.dataTransfer.dropEffect='copy'}});
 async function allegaFilesADocumento(docId,files){
   const esiti=await acquisisciConAnteprima(files); if(!esiti) return;
   esegui('Allegati '+esiti.length+' file',s=>{const doc=s.documenti.find(x=>x.id===docId);for(const e of esiti){if(!doc.file.includes(e.rec.id))doc.file.push(e.rec.id)}},{senzaRender:true});
@@ -159,7 +159,7 @@ async function dialogoDocumento(d,filesIniziali){
     const rinfresca=()=>{v.querySelector('#dlg-file-lista').outerHTML=listaFile().s.match(/<ul[\s\S]*<\/ul>/)[0];tutti('[data-togli-nuovo]',v).forEach(b=>b.onclick=()=>{filesNuovi.splice(+b.dataset.togliNuovo,1);rinfresca()})};
     tutti('[data-togli-nuovo]',v).forEach(b=>b.onclick=()=>{filesNuovi.splice(+b.dataset.togliNuovo,1);rinfresca()});
     zona.addEventListener('click',async()=>{const fs=await scegliFile({accetta:'.pdf,image/*'});filesNuovi.push(...fs);rinfresca()});
-    zona.addEventListener('dragover',e=>{e.preventDefault();zona.classList.add('sopra')});zona.addEventListener('dragleave',()=>zona.classList.remove('sopra'));
+    zona.addEventListener('dragover',e=>{e.preventDefault();zona.classList.add('sopra');if(e.dataTransfer)e.dataTransfer.dropEffect='copy'});zona.addEventListener('dragleave',()=>zona.classList.remove('sopra'));
     zona.addEventListener('drop',async e=>{e.preventDefault();e.stopPropagation();zona.classList.remove('sopra');const fs=await fileDaDrop(e.dataTransfer);filesNuovi.push(...fs);rinfresca()});
   },validaTutto:v=>{if(v.dataEmissione&&v.dataScadenza&&v.dataScadenza<v.dataEmissione)return 'La scadenza precede l\'emissione';const t=tipoDoc(v.tipoId);if(t&&v.soggetto&&t.ambito!==ambitoDi(v.soggetto)&&!(ambitoDi(v.soggetto)==='cliente'))return 'Il tipo «'+t.nome+'» non è adatto a questo soggetto';return null}});
   if(!ris) return;

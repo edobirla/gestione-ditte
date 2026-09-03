@@ -75,18 +75,30 @@ VISTE.cantieri=function(r){
     const senza=stato.cantieri.filter(c=>!c.dataInizio&&c.stato!=='archiviato');
     return html`${testa}<div class="scheda"><h3>Diagramma temporale</h3><p class="secondario piccolo">Ogni barra è un cantiere sull'asse dei mesi; la linea rossa è oggi. Le sovrapposizioni mostrano dove la squadra è impegnata due volte.</p>${graficoTemporale(righe.filter(r=>r.inizio))}<div class="legenda"><span><i></i>attivo</span><span><i class="s4"></i>chiuso</span><span><i class="s3"></i>sospeso</span></div>${senza.length?html`<div class="sezione-titolo">Senza date</div><div class="chip-lista">${senza.map(c=>html`<a class="chip" href="#/cantieri/${c.id}">${c.nome} <span class="secondario piccolo">${c.periodoTesto||'date da compilare'}</span></a>`)}</div>`:''}</div>`;
   }
+  const CHIUSI=['chiuso','archiviato'];
+  const f=Object.assign({stato:'attivi',anno:'',comune:''},ui.filtri.cantieri);
+  let cantieriF=stato.cantieri.slice();
+  if(f.stato==='attivi') cantieriF=cantieriF.filter(c=>!CHIUSI.includes(c.stato));
+  if(f.stato==='chiusi') cantieriF=cantieriF.filter(c=>CHIUSI.includes(c.stato));
+  if(f.anno) cantieriF=cantieriF.filter(c=>String(c.anno)===f.anno);
+  if(f.comune) cantieriF=cantieriF.filter(c=>(c.indirizzo&&c.indirizzo.comune||'')===f.comune);
+  const anni=[...new Set(stato.cantieri.map(c=>c.anno).filter(Boolean))].sort((a,b)=>b-a);
+  const comuni=[...new Set(stato.cantieri.map(c=>c.indirizzo&&c.indirizzo.comune).filter(Boolean))].sort();
+  const barra=html`<div class="strumenti-tabella"><div class="gruppo-pulsanti">${[['attivi','In corso'],['chiusi','Chiusi'],['tutti','Tutti']].map(([v,t])=>html`<button class="pulsante piccolo ${f.stato===v?'attivo':''}" data-azione="filtro-cantieri-stato" data-valore="${v}">${t}</button>`)}</div><select data-cambio="filtro-cantieri" data-campo="anno" aria-label="Anno"><option value="">Tutti gli anni</option>${anni.map(a=>html`<option value="${a}" ${String(a)===f.anno?'selected':''}>${a}</option>`)}</select><select data-cambio="filtro-cantieri" data-campo="comune" aria-label="Località"><option value="">Tutte le località</option>${comuni.map(cm=>html`<option value="${cm}" ${cm===f.comune?'selected':''}>${cm}</option>`)}</select><span class="conteggio">${cantieriF.length} cantieri</span></div>`;
   const gruppi=['attivo','sospeso','preventivo','chiuso','archiviato'];
-  const righe=stato.cantieri.map(c=>{const ck=checklistCantiere(c);const eco=economiaCantiere(c.id,stato.movimenti);return {c,ck,eco}});
-  return html`${testa}${gruppi.map(g=>{const rr=righe.filter(x=>x.c.stato===g);if(!rr.length)return '';return html`<div class="sezione-titolo">${STATI_CANTIERE[g]} · ${rr.length}</div>${tabella({id:'cant'+g,righe:rr,href:x=>'#/cantieri/'+x.c.id,colonne:[
+  const righe=cantieriF.map(c=>{const ck=checklistCantiere(c);const eco=economiaCantiere(c.id,stato.movimenti);return {c,ck,eco}});
+  return html`${testa}${barra}${gruppi.map(g=>{const rr=righe.filter(x=>x.c.stato===g);if(!rr.length)return '';return html`<div class="sezione-titolo">${STATI_CANTIERE[g]} · ${rr.length}</div>${tabella({id:'cant'+g,righe:rr,href:x=>'#/cantieri/'+x.c.id,colonne:[
     {chiave:'nome',titolo:'Cantiere',principale:true,valore:x=>x.c.nome,formatta:x=>html`<b>${x.c.nome}</b><br><span class="piccolo secondario">${[x.c.indirizzo.comune,x.c.indirizzo.provincia?'('+x.c.indirizzo.provincia+')':''].filter(Boolean).join(' ')||''}</span>`},
     {chiave:'comm',titolo:'Committente / affidataria',formatta:x=>html`${nomeCliente(x.c.committenteId)||daCompilare()}<br><span class="piccolo secondario">${nomeCliente(x.c.affidatariaId)||''}</span>`},
     {chiave:'periodo',titolo:'Periodo',valore:x=>x.c.dataInizio||'',formatta:x=>x.c.dataInizio?html`${fData(x.c.dataInizio)} → ${x.c.dataFine?fData(x.c.dataFine):'…'}`:html`<span class="secondario">${x.c.periodoTesto||daCompilare()}</span>`},
     {chiave:'operai',titolo:'Squadra',formatta:x=>(x.c.operai||[]).length?html`${x.c.operai.length} operai${x.c.prepostoId?html` · preposto ${nomePersona(persona(x.c.prepostoId)).split(' ')[0]}`:''}`:html`<span class="silenzioso">—</span>`},
     {chiave:'doc',titolo:'Documenti',formatta:x=>html`${x.ck.pronti}/${x.ck.totale}${x.ck.urgenti.length?html` <span class="pillola scaduto">${icona('attenzione','piccola')}${x.ck.urgenti.length}</span>`:''}`},
     {chiave:'margine',titolo:'Margine',num:true,valore:x=>x.eco.margine,formatta:x=>(x.eco.entrate||x.eco.uscite)?html`<span class="${x.eco.margine<0?'da-compilare':''}">${fEuro(x.eco.margine,0)}</span>`:html`<span class="silenzioso">—</span>`},
-  ]})}`})}${stato.cantieri.length?'':vuoto({icona:'cantieri',titolo:'Nessun cantiere',testo:'Crea il primo cantiere: da lì partono POS, checklist e pacchetto per la committenza.',azione:{testo:'Nuovo cantiere',azione:'cantiere-nuovo'}})}`;
+  ]})}`})}${stato.cantieri.length?(cantieriF.length?'':vuoto({icona:'cantieri',titolo:'Nessun cantiere con questi filtri',testo:'Prova a cambiare stato, anno o località.'})):vuoto({icona:'cantieri',titolo:'Nessun cantiere',testo:'Crea il primo cantiere: da lì partono POS, checklist e pacchetto per la committenza.',azione:{testo:'Nuovo cantiere',azione:'cantiere-nuovo'}})}`;
 };
 AZIONI['cantieri-vista']=d=>{ui.filtri.cantieriVista=d.valore;render()};
+AZIONI['filtro-cantieri-stato']=d=>{ui.filtri.cantieri=Object.assign({stato:'attivi',anno:'',comune:''},ui.filtri.cantieri,{stato:d.valore});render()};
+AZIONI['filtro-cantieri']=(d,t)=>{ui.filtri.cantieri=Object.assign({stato:'attivi',anno:'',comune:''},ui.filtri.cantieri,{[d.campo]:t.value});render()};
 AZIONI['cantiere-nuovo']=()=>dialogoCantiere(null);
 AZIONI['cantiere-modifica']=d=>dialogoCantiere(cantiere(d.id));
 

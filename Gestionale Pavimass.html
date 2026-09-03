@@ -245,7 +245,8 @@ table.tabella .principale{font-weight:600;color:var(--testo)}
 table.tabella.densa th,table.tabella.densa td{padding:5px 8px}
 .gruppo-riga td{background:var(--superficie-2);font-weight:650;font-size:var(--t-xs);text-transform:uppercase;letter-spacing:.04em;color:var(--testo-2)}
 .strumenti-tabella{display:flex;gap:var(--sp-2);align-items:center;flex-wrap:wrap;margin-bottom:var(--sp-3)}
-.strumenti-tabella input[type=search]{min-width:200px}
+.strumenti-tabella input,.strumenti-tabella select{width:auto;flex:0 0 auto}
+.strumenti-tabella input[type=search]{flex:1 1 180px;min-width:140px}
 .conteggio{font-size:var(--t-sm);color:var(--testo-3);margin-left:auto}
 @media (max-width:760px){
   /* Su telefono le tabelle reattive diventano schede impilate: niente scorrimento orizzontale */
@@ -316,8 +317,8 @@ body.trascinamento::after{content:"Rilascia qui i documenti";position:fixed;inse
 #velo-pannello{position:fixed;inset:0;background:rgba(10,10,30,.25);z-index:44;display:none}
 #velo-pannello.aperto{display:block}
 @media (min-width:1280px){ #velo-pannello.aperto{display:none} body.con-pannello #contenuto{padding-right:calc(560px + var(--sp-5))} body.con-pannello.pannello-largo #contenuto{padding-right:calc(860px + var(--sp-5))} }
-.anteprima-doc{width:100%;height:100%;min-height:60vh;border:0;background:var(--superficie-2)}
-.anteprima-img{max-height:70vh;margin:0 auto;object-fit:contain;cursor:zoom-in}
+.anteprima-doc{width:100%;height:100%;min-height:60vh;max-height:70vh;border:0;background:var(--superficie-2)}
+.anteprima-img{max-height:70vh;max-width:100%;margin:0 auto;display:block;object-fit:contain;cursor:zoom-in}
 .anteprima-nessuna{padding:var(--sp-6);text-align:center;color:var(--testo-2)}
 
 /* ---- dialoghi ---- */
@@ -656,6 +657,7 @@ body.trascinamento::after{content:"Rilascia qui i documenti";position:fixed;inse
 
 <div id="app">
   <header class="barra" role="banner">
+    <button class="pulsante discreto icona nascosto" id="btn-indietro" data-azione="pagina-indietro" title="Indietro" aria-label="Torna indietro"><svg class="ic"><use href="#i-indietro"/></svg></button>
     <a class="marchio" href="#/dashboard" aria-label="Gestionale Pavimass, vai alla dashboard"><img id="marchio-logo" alt=""><span>Gestionale Pavimass</span></a>
     <div class="cerca-globale" role="search">
       <svg class="ic"><use href="#i-cerca"/></svg>
@@ -2147,6 +2149,7 @@ function render(){
   if(!stato) return;
   const r=leggiRotta(); ui.rotta=r;
   disegnaMenu();
+  const bi=el('#btn-indietro'); if(bi){ if(r.id){bi.classList.remove('nascosto');bi.dataset.genitore=r.sezione}else bi.classList.add('nascosto') }
   const cont=el('#contenuto');
   const fn=VISTE[r.sezione];
   const scrollPrima=cont.scrollTop;
@@ -2163,7 +2166,7 @@ function render(){
 }
 function dopoRender(fn){(ui.montaggi=ui.montaggi||[]).push(fn)}
 function titoloPagina(r){const m=MENU.find(x=>x.id===r.sezione);return (m?m.testo+' · ':'')+'Gestionale Pavimass'}
-window.addEventListener('hashchange',()=>{chiudiPannello();chiudiRicerca();render();el('#contenuto').scrollTop=0;window.scrollTo(0,0)});
+window.addEventListener('hashchange',()=>{ui.storicoProfondita=(ui.storicoProfondita||0)+1;chiudiPannello();chiudiRicerca();render();el('#contenuto').scrollTop=0;window.scrollTo(0,0)});
 
 // ---- tema: sistema / chiaro / scuro, ricordato ----
 function applicaTema(t){
@@ -2265,6 +2268,7 @@ AZIONI['menu-altro']=()=>{
 };
 AZIONI['vai']=d=>vai(d.href);
 AZIONI['indietro']=()=>history.back();
+AZIONI['pagina-indietro']=d=>{if(ui.storicoProfondita>0)history.back();else vai(d.genitore||'dashboard')};
 AZIONI['chiudi-pannello']=()=>chiudiPannello();
 AZIONI['copia']=d=>copiaNegliAppunti(d.testo).then(()=>avviso('Copiato negli appunti'));
 
@@ -2272,7 +2276,7 @@ AZIONI['copia']=d=>copiaNegliAppunti(d.testo).then(()=>avviso('Copiato negli app
 let contatoreDrag=0;
 window.addEventListener('dragenter',e=>{if(e.dataTransfer&&Array.from(e.dataTransfer.types).includes('Files')){contatoreDrag++;document.body.classList.add('trascinamento')}});
 window.addEventListener('dragleave',e=>{contatoreDrag--;if(contatoreDrag<=0){contatoreDrag=0;document.body.classList.remove('trascinamento')}});
-window.addEventListener('dragover',e=>{if(e.dataTransfer&&Array.from(e.dataTransfer.types).includes('Files'))e.preventDefault()});
+window.addEventListener('dragover',e=>{if(e.dataTransfer&&Array.from(e.dataTransfer.types).includes('Files')){e.preventDefault();e.dataTransfer.dropEffect='copy'}});
 window.addEventListener('drop',async e=>{
   contatoreDrag=0;document.body.classList.remove('trascinamento');
   if(!e.dataTransfer||!e.dataTransfer.files||!e.dataTransfer.files.length) return;
@@ -2730,18 +2734,30 @@ VISTE.cantieri=function(r){
     const senza=stato.cantieri.filter(c=>!c.dataInizio&&c.stato!=='archiviato');
     return html`${testa}<div class="scheda"><h3>Diagramma temporale</h3><p class="secondario piccolo">Ogni barra è un cantiere sull'asse dei mesi; la linea rossa è oggi. Le sovrapposizioni mostrano dove la squadra è impegnata due volte.</p>${graficoTemporale(righe.filter(r=>r.inizio))}<div class="legenda"><span><i></i>attivo</span><span><i class="s4"></i>chiuso</span><span><i class="s3"></i>sospeso</span></div>${senza.length?html`<div class="sezione-titolo">Senza date</div><div class="chip-lista">${senza.map(c=>html`<a class="chip" href="#/cantieri/${c.id}">${c.nome} <span class="secondario piccolo">${c.periodoTesto||'date da compilare'}</span></a>`)}</div>`:''}</div>`;
   }
+  const CHIUSI=['chiuso','archiviato'];
+  const f=Object.assign({stato:'attivi',anno:'',comune:''},ui.filtri.cantieri);
+  let cantieriF=stato.cantieri.slice();
+  if(f.stato==='attivi') cantieriF=cantieriF.filter(c=>!CHIUSI.includes(c.stato));
+  if(f.stato==='chiusi') cantieriF=cantieriF.filter(c=>CHIUSI.includes(c.stato));
+  if(f.anno) cantieriF=cantieriF.filter(c=>String(c.anno)===f.anno);
+  if(f.comune) cantieriF=cantieriF.filter(c=>(c.indirizzo&&c.indirizzo.comune||'')===f.comune);
+  const anni=[...new Set(stato.cantieri.map(c=>c.anno).filter(Boolean))].sort((a,b)=>b-a);
+  const comuni=[...new Set(stato.cantieri.map(c=>c.indirizzo&&c.indirizzo.comune).filter(Boolean))].sort();
+  const barra=html`<div class="strumenti-tabella"><div class="gruppo-pulsanti">${[['attivi','In corso'],['chiusi','Chiusi'],['tutti','Tutti']].map(([v,t])=>html`<button class="pulsante piccolo ${f.stato===v?'attivo':''}" data-azione="filtro-cantieri-stato" data-valore="${v}">${t}</button>`)}</div><select data-cambio="filtro-cantieri" data-campo="anno" aria-label="Anno"><option value="">Tutti gli anni</option>${anni.map(a=>html`<option value="${a}" ${String(a)===f.anno?'selected':''}>${a}</option>`)}</select><select data-cambio="filtro-cantieri" data-campo="comune" aria-label="Località"><option value="">Tutte le località</option>${comuni.map(cm=>html`<option value="${cm}" ${cm===f.comune?'selected':''}>${cm}</option>`)}</select><span class="conteggio">${cantieriF.length} cantieri</span></div>`;
   const gruppi=['attivo','sospeso','preventivo','chiuso','archiviato'];
-  const righe=stato.cantieri.map(c=>{const ck=checklistCantiere(c);const eco=economiaCantiere(c.id,stato.movimenti);return {c,ck,eco}});
-  return html`${testa}${gruppi.map(g=>{const rr=righe.filter(x=>x.c.stato===g);if(!rr.length)return '';return html`<div class="sezione-titolo">${STATI_CANTIERE[g]} · ${rr.length}</div>${tabella({id:'cant'+g,righe:rr,href:x=>'#/cantieri/'+x.c.id,colonne:[
+  const righe=cantieriF.map(c=>{const ck=checklistCantiere(c);const eco=economiaCantiere(c.id,stato.movimenti);return {c,ck,eco}});
+  return html`${testa}${barra}${gruppi.map(g=>{const rr=righe.filter(x=>x.c.stato===g);if(!rr.length)return '';return html`<div class="sezione-titolo">${STATI_CANTIERE[g]} · ${rr.length}</div>${tabella({id:'cant'+g,righe:rr,href:x=>'#/cantieri/'+x.c.id,colonne:[
     {chiave:'nome',titolo:'Cantiere',principale:true,valore:x=>x.c.nome,formatta:x=>html`<b>${x.c.nome}</b><br><span class="piccolo secondario">${[x.c.indirizzo.comune,x.c.indirizzo.provincia?'('+x.c.indirizzo.provincia+')':''].filter(Boolean).join(' ')||''}</span>`},
     {chiave:'comm',titolo:'Committente / affidataria',formatta:x=>html`${nomeCliente(x.c.committenteId)||daCompilare()}<br><span class="piccolo secondario">${nomeCliente(x.c.affidatariaId)||''}</span>`},
     {chiave:'periodo',titolo:'Periodo',valore:x=>x.c.dataInizio||'',formatta:x=>x.c.dataInizio?html`${fData(x.c.dataInizio)} → ${x.c.dataFine?fData(x.c.dataFine):'…'}`:html`<span class="secondario">${x.c.periodoTesto||daCompilare()}</span>`},
     {chiave:'operai',titolo:'Squadra',formatta:x=>(x.c.operai||[]).length?html`${x.c.operai.length} operai${x.c.prepostoId?html` · preposto ${nomePersona(persona(x.c.prepostoId)).split(' ')[0]}`:''}`:html`<span class="silenzioso">—</span>`},
     {chiave:'doc',titolo:'Documenti',formatta:x=>html`${x.ck.pronti}/${x.ck.totale}${x.ck.urgenti.length?html` <span class="pillola scaduto">${icona('attenzione','piccola')}${x.ck.urgenti.length}</span>`:''}`},
     {chiave:'margine',titolo:'Margine',num:true,valore:x=>x.eco.margine,formatta:x=>(x.eco.entrate||x.eco.uscite)?html`<span class="${x.eco.margine<0?'da-compilare':''}">${fEuro(x.eco.margine,0)}</span>`:html`<span class="silenzioso">—</span>`},
-  ]})}`})}${stato.cantieri.length?'':vuoto({icona:'cantieri',titolo:'Nessun cantiere',testo:'Crea il primo cantiere: da lì partono POS, checklist e pacchetto per la committenza.',azione:{testo:'Nuovo cantiere',azione:'cantiere-nuovo'}})}`;
+  ]})}`})}${stato.cantieri.length?(cantieriF.length?'':vuoto({icona:'cantieri',titolo:'Nessun cantiere con questi filtri',testo:'Prova a cambiare stato, anno o località.'})):vuoto({icona:'cantieri',titolo:'Nessun cantiere',testo:'Crea il primo cantiere: da lì partono POS, checklist e pacchetto per la committenza.',azione:{testo:'Nuovo cantiere',azione:'cantiere-nuovo'}})}`;
 };
 AZIONI['cantieri-vista']=d=>{ui.filtri.cantieriVista=d.valore;render()};
+AZIONI['filtro-cantieri-stato']=d=>{ui.filtri.cantieri=Object.assign({stato:'attivi',anno:'',comune:''},ui.filtri.cantieri,{stato:d.valore});render()};
+AZIONI['filtro-cantieri']=(d,t)=>{ui.filtri.cantieri=Object.assign({stato:'attivi',anno:'',comune:''},ui.filtri.cantieri,{[d.campo]:t.value});render()};
 AZIONI['cantiere-nuovo']=()=>dialogoCantiere(null);
 AZIONI['cantiere-modifica']=d=>dialogoCantiere(cantiere(d.id));
 
@@ -3448,8 +3464,8 @@ async function htmlAnteprimaFile(fileId){
   const u=await urlFile(m.hash); if(!u) return html`<div class="anteprima-nessuna">${icona('attenzione')} Il contenuto di «${m.nome}» non è nell'archivio del browser (forse manca dal backup ripristinato).</div>`;
   if(eImmagine(m.mime,m.nome)) return html`<img class="anteprima-img" src="${u}" alt="${m.nome}" data-azione="immagine-zoom" data-src="${u}">`;
   if(ePdf(m.mime,m.nome)){
-    if(eIos()) return html`<div class="anteprima-nessuna">${icona('pdf')}<p>Su iPhone e iPad l'anteprima incorporata mostra solo la prima pagina.</p><a class="pulsante primario" href="${u}" target="_blank" rel="noopener">Apri a schermo intero</a><div class="mt"><iframe class="anteprima-doc" src="${u}" title="${m.nome}" style="min-height:40vh"></iframe></div></div>`;
-    return html`<iframe class="anteprima-doc" src="${u}" title="${m.nome}"></iframe>`;
+    if(eIos()) return html`<div class="anteprima-nessuna">${icona('pdf')}<p>Su iPhone e iPad l'anteprima incorporata mostra solo la prima pagina.</p><a class="pulsante primario" href="${u}" target="_blank" rel="noopener">Apri a schermo intero</a><div class="mt"><iframe class="anteprima-doc" src="${u}#toolbar=0&navpanes=0" title="${m.nome}" style="min-height:40vh"></iframe></div></div>`;
+    return html`<iframe class="anteprima-doc" src="${u}#toolbar=0&navpanes=0&statusbar=0" title="${m.nome}"></iframe>`;
   }
   return html`<div class="anteprima-nessuna">${icona('file')}<p>Anteprima non disponibile per questo tipo di file (${m.mime||estensioneDi(m.nome)}).</p><button class="pulsante" data-azione="file-scarica" data-id="${m.id}">${icona('scarica')}Scarica</button></div>`;
 }
@@ -3495,7 +3511,7 @@ window.addEventListener('drop',async e=>{
   if(z.dataset.dropDoc) return allegaFilesADocumento(z.dataset.dropDoc,files);
   const [tipo,id]=z.dataset.dropSoggetto.split(':'); dialogoDocumento({soggettoTipo:tipo,soggettoId:id},files);
 },true);
-window.addEventListener('dragover',e=>{const z=e.target.closest&&(e.target.closest('[data-drop-doc]')||e.target.closest('[data-drop-soggetto]')||e.target.closest('.zona-drop'));tutti('.zona-drop.sopra').forEach(x=>x.classList.remove('sopra'));if(z){z.classList.add('sopra')}});
+window.addEventListener('dragover',e=>{const z=e.target.closest&&(e.target.closest('[data-drop-doc]')||e.target.closest('[data-drop-soggetto]')||e.target.closest('.zona-drop'));tutti('.zona-drop.sopra').forEach(x=>x.classList.remove('sopra'));if(z){z.classList.add('sopra');if(e.dataTransfer)e.dataTransfer.dropEffect='copy'}});
 async function allegaFilesADocumento(docId,files){
   const esiti=await acquisisciConAnteprima(files); if(!esiti) return;
   esegui('Allegati '+esiti.length+' file',s=>{const doc=s.documenti.find(x=>x.id===docId);for(const e of esiti){if(!doc.file.includes(e.rec.id))doc.file.push(e.rec.id)}},{senzaRender:true});
@@ -3564,7 +3580,7 @@ async function dialogoDocumento(d,filesIniziali){
     const rinfresca=()=>{v.querySelector('#dlg-file-lista').outerHTML=listaFile().s.match(/<ul[\s\S]*<\/ul>/)[0];tutti('[data-togli-nuovo]',v).forEach(b=>b.onclick=()=>{filesNuovi.splice(+b.dataset.togliNuovo,1);rinfresca()})};
     tutti('[data-togli-nuovo]',v).forEach(b=>b.onclick=()=>{filesNuovi.splice(+b.dataset.togliNuovo,1);rinfresca()});
     zona.addEventListener('click',async()=>{const fs=await scegliFile({accetta:'.pdf,image/*'});filesNuovi.push(...fs);rinfresca()});
-    zona.addEventListener('dragover',e=>{e.preventDefault();zona.classList.add('sopra')});zona.addEventListener('dragleave',()=>zona.classList.remove('sopra'));
+    zona.addEventListener('dragover',e=>{e.preventDefault();zona.classList.add('sopra');if(e.dataTransfer)e.dataTransfer.dropEffect='copy'});zona.addEventListener('dragleave',()=>zona.classList.remove('sopra'));
     zona.addEventListener('drop',async e=>{e.preventDefault();e.stopPropagation();zona.classList.remove('sopra');const fs=await fileDaDrop(e.dataTransfer);filesNuovi.push(...fs);rinfresca()});
   },validaTutto:v=>{if(v.dataEmissione&&v.dataScadenza&&v.dataScadenza<v.dataEmissione)return 'La scadenza precede l\'emissione';const t=tipoDoc(v.tipoId);if(t&&v.soggetto&&t.ambito!==ambitoDi(v.soggetto)&&!(ambitoDi(v.soggetto)==='cliente'))return 'Il tipo «'+t.nome+'» non è adatto a questo soggetto';return null}});
   if(!ris) return;

@@ -36,6 +36,7 @@ function render(){
   if(!stato) return;
   const r=leggiRotta(); ui.rotta=r;
   disegnaMenu();
+  const bi=el('#btn-indietro'); if(bi){ if(r.id){bi.classList.remove('nascosto');bi.dataset.genitore=r.sezione}else bi.classList.add('nascosto') }
   const cont=el('#contenuto');
   const fn=VISTE[r.sezione];
   const scrollPrima=cont.scrollTop;
@@ -52,7 +53,7 @@ function render(){
 }
 function dopoRender(fn){(ui.montaggi=ui.montaggi||[]).push(fn)}
 function titoloPagina(r){const m=MENU.find(x=>x.id===r.sezione);return (m?m.testo+' · ':'')+'Gestionale Pavimass'}
-window.addEventListener('hashchange',()=>{chiudiPannello();chiudiRicerca();render();el('#contenuto').scrollTop=0;window.scrollTo(0,0)});
+window.addEventListener('hashchange',()=>{ui.storicoProfondita=(ui.storicoProfondita||0)+1;chiudiPannello();chiudiRicerca();render();el('#contenuto').scrollTop=0;window.scrollTo(0,0)});
 
 // ---- tema: sistema / chiaro / scuro, ricordato ----
 function applicaTema(t){
@@ -154,6 +155,7 @@ AZIONI['menu-altro']=()=>{
 };
 AZIONI['vai']=d=>vai(d.href);
 AZIONI['indietro']=()=>history.back();
+AZIONI['pagina-indietro']=d=>{if(ui.storicoProfondita>0)history.back();else vai(d.genitore||'dashboard')};
 AZIONI['chiudi-pannello']=()=>chiudiPannello();
 AZIONI['copia']=d=>copiaNegliAppunti(d.testo).then(()=>avviso('Copiato negli appunti'));
 
@@ -161,7 +163,7 @@ AZIONI['copia']=d=>copiaNegliAppunti(d.testo).then(()=>avviso('Copiato negli app
 let contatoreDrag=0;
 window.addEventListener('dragenter',e=>{if(e.dataTransfer&&Array.from(e.dataTransfer.types).includes('Files')){contatoreDrag++;document.body.classList.add('trascinamento')}});
 window.addEventListener('dragleave',e=>{contatoreDrag--;if(contatoreDrag<=0){contatoreDrag=0;document.body.classList.remove('trascinamento')}});
-window.addEventListener('dragover',e=>{if(e.dataTransfer&&Array.from(e.dataTransfer.types).includes('Files'))e.preventDefault()});
+window.addEventListener('dragover',e=>{if(e.dataTransfer&&Array.from(e.dataTransfer.types).includes('Files')){e.preventDefault();e.dataTransfer.dropEffect='copy'}});
 window.addEventListener('drop',async e=>{
   contatoreDrag=0;document.body.classList.remove('trascinamento');
   if(!e.dataTransfer||!e.dataTransfer.files||!e.dataTransfer.files.length) return;
