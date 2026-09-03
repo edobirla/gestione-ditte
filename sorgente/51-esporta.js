@@ -76,15 +76,15 @@ async function esportaPresenzeXlsx(anno){
 }
 function esportaPresenzeCsv(anno,mese){
   const m=meseP(anno,mese)||{persone:{}};const persone=personePresenze(anno,mese);const n=giorniNelMese(anno,mese);
-  const righe=[['Persona','Riga',...Array.from({length:n},(_,i)=>i+1),'Ore griglia','Ore dichiarate','Importo']];
+  const righe=[['Persona','Riga',...Array.from({length:n},(_,i)=>i+1),'Ore','Importo']];
   for(const p of persone){const mp=m.persone[p.id]||{giorni:{}};const calc=calcolaMesePersona(mp,p);const rr=riga=>Array.from({length:n},(_,i)=>{const c=(mp.giorni||{})[String(i+1)]||{};if(riga==='ore'){const v=valoreCella(c);return v==null?'':v}return c[riga]||''});
-    if(p.soloTrasferte)righe.push([nomePersona(p),'trasferte',...rr('trasferta'),'','',calc.importo]);else{righe.push([nomePersona(p),'ore',...rr('ore'),calc.oreGriglia,calc.oreDichiarate,calc.importo]);righe.push(['','cantiere',...rr('cantiere')]);righe.push(['','committente',...rr('committente')])}}
+    if(p.soloTrasferte)righe.push([nomePersona(p),'trasferte',...rr('trasferta'),'',calc.importo]);else{righe.push([nomePersona(p),'ore',...rr('ore'),calc.oreGriglia,calc.importo]);righe.push(['','cantiere',...rr('cantiere')]);righe.push(['','committente',...rr('committente')])}}
   scaricaCsv(righe,nomeFileData('Presenze '+capitalizza(nomeMese(mese))+' '+anno,'csv'));
 }
 function riepilogoPresenzeMarkdown(anno,mese){
   const rie=riepilogoMese(anno,mese);
-  let t=`# Riepilogo presenze ${capitalizza(nomeMese(mese))} ${anno}\n*Last updated: ${oggi()}*\n\n| Operaio | Ore griglia | Ore dichiarate | M | I | PE | FS | FE | AS | CI | Importo |\n|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|\n`;
-  for(const x of rie.perPersona){const c=x.calc;t+=`| ${nomePersona(x.p)} | ${x.p.soloTrasferte?'—':fOre(c.oreGriglia)} | ${c.oreDichiarate!=null?fOre(c.oreDichiarate):'—'} | ${['M','I','PE','FS','FE','AS','CI'].map(k=>c.perCodice[k]||0).join(' | ')} | ${fEuro(c.importo||0,0)} |\n`}
+  let t=`# Riepilogo presenze ${capitalizza(nomeMese(mese))} ${anno}\n*Last updated: ${oggi()}*\n\n| Operaio | Ore | M | I | PE | FS | FE | AS | CI | Importo |\n|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|\n`;
+  for(const x of rie.perPersona){const c=x.calc;t+=`| ${nomePersona(x.p)} | ${x.p.soloTrasferte?'—':fOre(c.oreGriglia)} | ${['M','I','PE','FS','FE','AS','CI'].map(k=>c.perCodice[k]||0).join(' | ')} | ${fEuro(c.importo||0,0)} |\n`}
   t+=`\n**Totale ore in griglia:** ${fOre(rie.oreTotali)} · **Importo complessivo:** ${fEuro(rie.importoTotale,0)}\n\nCodici: M malattia · I infortunio · PE permesso · FS festività · FE ferie · AS assenza · CI cassa integrazione. Importi arrotondati a multipli di 10 secondo la regola aziendale.\n`;
   return t;
 }

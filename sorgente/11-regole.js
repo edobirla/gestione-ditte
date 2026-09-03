@@ -114,7 +114,7 @@ function statoPeggiore(stati){
 
 // ---------------------------------------------------------------------
 // Presenze: calcolo del mese di una persona
-// mese = {giorni:{ '1':{ore:8|codice:'FE', cantiere, committente} }, oreDichiarate, aggiustamenti:[{sigla,importo}], importoForzato, importoManuale}
+// mese = {giorni:{ '1':{ore:8|codice:'FE', cantiere, committente} }, aggiustamenti:[{sigla,importo}], importoForzato, importoManuale, note}
 // persona.retribuzione = {tipo:'oraria'|'fissa'|'mista', tariffaOraria, importoFisso}
 // ---------------------------------------------------------------------
 const CODICI_ASSENZA={M:{nome:'Malattia'},I:{nome:'Infortunio'},PE:{nome:'Permesso',massimaleOreAnno:88},FS:{nome:'Festività'},FE:{nome:'Ferie',massimaleGiorniAnno:20},AS:{nome:'Assenza'},CI:{nome:'Cassa integrazione'}};
@@ -129,13 +129,11 @@ function calcolaMesePersona(mese,persona){
   }
   const r=persona&&persona.retribuzione||{};
   const tariffa=+r.tariffaOraria||0; const fisso=+r.importoFisso||0;
-  const oreDichiarate=(mese&&mese.oreDichiarate!=null&&mese.oreDichiarate!=='')?+mese.oreDichiarate:null;
-  const oreBase=oreDichiarate!=null?oreDichiarate:oreGriglia;
   const aggiustamenti=somma((mese&&mese.aggiustamenti)||[],a=>+a.importo||0);
-  const importoBase=tariffa*oreBase;
+  const importoBase=tariffa*oreGriglia;
   const importoCalcolato=arrotondaAziendale(importoBase+aggiustamenti+fisso);
   const importo=(mese&&mese.importoForzato&&mese.importoManuale!=null)?+mese.importoManuale:importoCalcolato;
-  return {oreGriglia,oreDichiarate,oreBase,giorniLavorati,perCodice,tariffa,fisso,aggiustamenti,importoBase,importoCalcolato,importo,differenzaOre:oreDichiarate!=null?arrotonda2(oreDichiarate-oreGriglia):0};
+  return {oreGriglia,giorniLavorati,perCodice,tariffa,fisso,aggiustamenti,importoBase,importoCalcolato,importo};
 }
 // Ore da scrivere in un giorno per una persona: 8 salvo schema orario personale
 function oreStandardGiorno(persona,iso){
@@ -229,11 +227,10 @@ function autoverifica(){
   t('idoneità: RLS mancante blocca',idon.idonea===false&&idon.motivi[0].includes('RLS'));
   t('extraUE applicabile',tipoApplicabile({ambito:'persona',obbligatorio:'extraUE'},persona)===true);
   t('extraUE non applicabile a Romania',tipoApplicabile({ambito:'persona',obbligatorio:'extraUE'},{nazionalita:'Romania'})===false);
-  const mese={giorni:{'1':{ore:8},'2':{ore:8},'3':{codice:'FE'},'4':{ore:8}},oreDichiarate:26,aggiustamenti:[{sigla:'brc',importo:15}]};
+  const mese={giorni:{'1':{ore:8},'2':{ore:8},'3':{codice:'FE'},'4':{ore:8}},aggiustamenti:[{sigla:'brc',importo:15}]};
   const calc=calcolaMesePersona(mese,persona);
   t('presenze ore griglia 24',calc.oreGriglia===24);
-  t('presenze differenza 2',calc.differenzaOre===2);
-  t('presenze importo 26*17+15=457→460',calc.importo===460);
+  t('presenze importo 24*17+15=423→420',calc.importo===420);
   t('presenze ferie contate',calc.perCodice.FE===1);
   const eco=economiaCantiere('c1',[{tipo:'entrata',imponibile:1000,quote:[{cantiereId:'c1',importo:600},{cantiereId:'c2',importo:400}]},{tipo:'uscita',imponibile:200,cantiereId:'c1'},{tipo:'nota_credito',imponibile:50,cantiereId:'c1'}]);
   t('economia cantiere margine 350',eco.margine===350);

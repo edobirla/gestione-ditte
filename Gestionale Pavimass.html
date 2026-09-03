@@ -1009,7 +1009,7 @@ function statoPeggiore(stati){
 
 // ---------------------------------------------------------------------
 // Presenze: calcolo del mese di una persona
-// mese = {giorni:{ '1':{ore:8|codice:'FE', cantiere, committente} }, oreDichiarate, aggiustamenti:[{sigla,importo}], importoForzato, importoManuale}
+// mese = {giorni:{ '1':{ore:8|codice:'FE', cantiere, committente} }, aggiustamenti:[{sigla,importo}], importoForzato, importoManuale, note}
 // persona.retribuzione = {tipo:'oraria'|'fissa'|'mista', tariffaOraria, importoFisso}
 // ---------------------------------------------------------------------
 const CODICI_ASSENZA={M:{nome:'Malattia'},I:{nome:'Infortunio'},PE:{nome:'Permesso',massimaleOreAnno:88},FS:{nome:'Festività'},FE:{nome:'Ferie',massimaleGiorniAnno:20},AS:{nome:'Assenza'},CI:{nome:'Cassa integrazione'}};
@@ -1024,13 +1024,11 @@ function calcolaMesePersona(mese,persona){
   }
   const r=persona&&persona.retribuzione||{};
   const tariffa=+r.tariffaOraria||0; const fisso=+r.importoFisso||0;
-  const oreDichiarate=(mese&&mese.oreDichiarate!=null&&mese.oreDichiarate!=='')?+mese.oreDichiarate:null;
-  const oreBase=oreDichiarate!=null?oreDichiarate:oreGriglia;
   const aggiustamenti=somma((mese&&mese.aggiustamenti)||[],a=>+a.importo||0);
-  const importoBase=tariffa*oreBase;
+  const importoBase=tariffa*oreGriglia;
   const importoCalcolato=arrotondaAziendale(importoBase+aggiustamenti+fisso);
   const importo=(mese&&mese.importoForzato&&mese.importoManuale!=null)?+mese.importoManuale:importoCalcolato;
-  return {oreGriglia,oreDichiarate,oreBase,giorniLavorati,perCodice,tariffa,fisso,aggiustamenti,importoBase,importoCalcolato,importo,differenzaOre:oreDichiarate!=null?arrotonda2(oreDichiarate-oreGriglia):0};
+  return {oreGriglia,giorniLavorati,perCodice,tariffa,fisso,aggiustamenti,importoBase,importoCalcolato,importo};
 }
 // Ore da scrivere in un giorno per una persona: 8 salvo schema orario personale
 function oreStandardGiorno(persona,iso){
@@ -1124,11 +1122,10 @@ function autoverifica(){
   t('idoneità: RLS mancante blocca',idon.idonea===false&&idon.motivi[0].includes('RLS'));
   t('extraUE applicabile',tipoApplicabile({ambito:'persona',obbligatorio:'extraUE'},persona)===true);
   t('extraUE non applicabile a Romania',tipoApplicabile({ambito:'persona',obbligatorio:'extraUE'},{nazionalita:'Romania'})===false);
-  const mese={giorni:{'1':{ore:8},'2':{ore:8},'3':{codice:'FE'},'4':{ore:8}},oreDichiarate:26,aggiustamenti:[{sigla:'brc',importo:15}]};
+  const mese={giorni:{'1':{ore:8},'2':{ore:8},'3':{codice:'FE'},'4':{ore:8}},aggiustamenti:[{sigla:'brc',importo:15}]};
   const calc=calcolaMesePersona(mese,persona);
   t('presenze ore griglia 24',calc.oreGriglia===24);
-  t('presenze differenza 2',calc.differenzaOre===2);
-  t('presenze importo 26*17+15=457→460',calc.importo===460);
+  t('presenze importo 24*17+15=423→420',calc.importo===420);
   t('presenze ferie contate',calc.perCodice.FE===1);
   const eco=economiaCantiere('c1',[{tipo:'entrata',imponibile:1000,quote:[{cantiereId:'c1',importo:600},{cantiereId:'c2',importo:400}]},{tipo:'uscita',imponibile:200,cantiereId:'c1'},{tipo:'nota_credito',imponibile:50,cantiereId:'c1'}]);
   t('economia cantiere margine 350',eco.margine===350);
@@ -1759,7 +1756,7 @@ Un backup con versione precedente viene migrato all'apertura (\`migrazioni\` nel
 | \`cantieri[]\` | cantieri con figure, squadra, PSC, denuncia, invii, diario | |
 | \`pos[]\` | POS generati (dati congelati per la ristampa identica) | |
 | \`modelli\` | dichiarazioni (testo con segnaposto), testo POS personalizzato | |
-| \`presenze\` | oggetto \`{"AAAA-MM": {persone: {personaId: {giorni:{"1":{ore|codice,cantiere,committente}}, oreDichiarate, aggiustamenti, importoForzato, importoManuale, foglioOreId, note}}}}\` | |
+| \`presenze\` | oggetto \`{"AAAA-MM": {persone: {personaId: {giorni:{"1":{ore|codice,cantiere,committente}}, aggiustamenti, importoForzato, importoManuale, foglioOreId, note}}}}\` | |
 | \`bustePaga[]\`, \`regoleBuste[]\` | buste per persona/anno/mese; regole apprese nome file → persona | |
 | \`listino[]\`, \`preventivi[]\` | listino e preventivi con righe | |
 | \`movimenti[]\` | entrate/uscite/note di credito con quote per cantiere | |
@@ -1811,7 +1808,7 @@ ${campione(s.preventivi)}
 ${(()=>{const k=Object.keys(s.presenze||{})[0];if(!k)return '(nessun mese)';const m=s.presenze[k];const pid=Object.keys(m.persone)[0];const mp=m.persone[pid];const gg=Object.keys(mp.giorni).slice(0,2);return es({[k]:{persone:{[pid]:{...mp,giorni:Object.fromEntries(gg.map(g=>[g,mp.giorni[g]]))}}}})})()}
 \`\`\`
 Codici di assenza: M malattia, I infortunio, PE permesso (max 88 ore/anno), FS festività (solo in giorno feriale), FE ferie (max 20 giorni/anno), AS assenza, CI cassa integrazione.
-Importo mensile = arrotondaAziendale(oreDichiarate × tariffaOraria + Σ aggiustamenti + importoFisso); arrotondamento a multipli di 10 con resto 0–3 per difetto, 4–9 per eccesso.
+Importo mensile = arrotondaAziendale(ore in griglia × tariffaOraria + Σ aggiustamenti + importoFisso); arrotondamento a multipli di 10 con resto 0–3 per difetto, 4–9 per eccesso.
 ### impostazioni
 \`\`\`json
 ${es(Object.fromEntries(Object.entries(s.impostazioni).filter(([k])=>k!=='chiaveApi')))}
@@ -2580,8 +2577,7 @@ function schedaOrePersona(p){
   for(let i=0;i<12;i++){const d=new Date(oggiD.getFullYear(),oggiD.getMonth()-i,1);const anno=d.getFullYear(),mese=d.getMonth()+1;const m=meseP(anno,mese);const mp=m&&m.persone[p.id];const calc=mp?calcolaMesePersona(mp,p):null;righe.push({anno,mese,mp,calc})}
   return html`<div class="scheda"><h3>Ore negli ultimi dodici mesi</h3>${tabella({righe,colonne:[
     {chiave:'mese',titolo:'Mese',principale:true,formatta:r=>html`<a href="#/presenze/${r.anno}-${pad2(r.mese)}">${fMeseAnno(r.anno,r.mese)}</a>`},
-    {chiave:'ore',titolo:'Ore in griglia',num:true,formatta:r=>r.calc?fOre(r.calc.oreGriglia):html`<span class="silenzioso">—</span>`},
-    {chiave:'dich',titolo:'Ore dichiarate',num:true,formatta:r=>r.calc&&r.calc.oreDichiarate!=null?html`${fOre(r.calc.oreDichiarate)}${r.calc.differenzaOre?html` <span class="piccolo ${r.calc.differenzaOre>0?'secondario':'da-compilare'}">(${r.calc.differenzaOre>0?'+':''}${fOre(r.calc.differenzaOre)})</span>`:''}`:html`<span class="silenzioso">—</span>`},
+    {chiave:'ore',titolo:'Ore',num:true,formatta:r=>r.calc?fOre(r.calc.oreGriglia):html`<span class="silenzioso">—</span>`},
     {chiave:'assenze',titolo:'Assenze',formatta:r=>r.calc?Object.entries(r.calc.perCodice).map(([c,n])=>html`<span class="etichetta-tag" title="${CODICI_ASSENZA[c]?CODICI_ASSENZA[c].nome:c}">${c} ${n}</span> `):''},
     {chiave:'importo',titolo:'Importo',num:true,formatta:r=>r.calc?html`${fEuro(r.calc.importo,0)}${r.mp.importoForzato?html` <span class="piccolo secondario" title="Importo forzato a mano">✎</span>`:''}`:html`<span class="silenzioso">—</span>`},
     {chiave:'foglio',titolo:'Foglio ore',formatta:r=>r.mp&&r.mp.foglioOreId?html`<button class="pulsante piccolo" data-azione="file-apri" data-id="${r.mp.foglioOreId}">${icona('immagine','piccola')}Vedi</button>`:html`<span class="silenzioso">—</span>`},
@@ -2597,8 +2593,8 @@ function schedaRetribuzione(p){
   const righe=mesi.map(k=>{const {anno,mese}=daChiaveMese(k);const mp=stato.presenze[k].persone[p.id];const calc=calcolaMesePersona(mp,p);return {k,anno,mese,calc,mp}});
   return html`<div class="griglia due"><div class="scheda"><h3>Retribuzione <span class="azioni"><button class="pulsante piccolo" data-azione="persona-modifica" data-id="${p.id}">${icona('modifica')}Modifica</button></span></h3>
     <div class="campi"><div class="campo"><span class="etichetta-campo">Tipo</span><div>${{oraria:'Oraria',fissa:'Fissa mensile',mista:'Oraria + fisso'}[r.tipo]||daCompilare()}</div></div><div class="campo"><span class="etichetta-campo">Tariffa oraria</span><div>${r.tariffaOraria?fNum(r.tariffaOraria,2)+' €/h':html`<span class="silenzioso">—</span>`}</div></div><div class="campo"><span class="etichetta-campo">Importo fisso</span><div>${r.importoFisso?fEuro(r.importoFisso)+'/mese':html`<span class="silenzioso">—</span>`}</div></div></div>
-    <p class="piccolo secondario mt">Importo mensile = arrotondamento aziendale (ore dichiarate × tariffa + aggiustamenti + fisso). L'arrotondamento è a multipli di 10: resto 0–3 per difetto, 4–9 per eccesso.</p></div>
-  <div class="scheda"><h3>Storico importi mensili</h3>${righe.length?html`${graficoBarre(righe.slice().reverse().map(x=>({etichetta:NOMI_MESI_BREVI[x.mese-1]+' '+String(x.anno).slice(2),valore:x.calc.importo||0})),{formatta:v=>fNum(v,0),altezza:180})}${tabella({righe,colonne:[{chiave:'k',titolo:'Mese',principale:true,formatta:x=>html`<a href="#/presenze/${x.k}">${fMeseAnno(x.anno,x.mese)}</a>`},{chiave:'ore',titolo:'Ore',num:true,formatta:x=>fOre(x.calc.oreBase)},{chiave:'imp',titolo:'Importo',num:true,formatta:x=>fEuro(x.calc.importo,0)}]})}`:html`<p class="secondario">Nessun mese registrato.</p>`}</div></div>`;
+    <p class="piccolo secondario mt">Importo mensile = arrotondamento aziendale (ore in griglia × tariffa + aggiustamenti + fisso). L'arrotondamento è a multipli di 10: resto 0–3 per difetto, 4–9 per eccesso.</p></div>
+  <div class="scheda"><h3>Storico importi mensili</h3>${righe.length?html`${graficoBarre(righe.slice().reverse().map(x=>({etichetta:NOMI_MESI_BREVI[x.mese-1]+' '+String(x.anno).slice(2),valore:x.calc.importo||0})),{formatta:v=>fNum(v,0),altezza:180})}${tabella({righe,colonne:[{chiave:'k',titolo:'Mese',principale:true,formatta:x=>html`<a href="#/presenze/${x.k}">${fMeseAnno(x.anno,x.mese)}</a>`},{chiave:'ore',titolo:'Ore',num:true,formatta:x=>fOre(x.calc.oreGriglia)},{chiave:'imp',titolo:'Importo',num:true,formatta:x=>fEuro(x.calc.importo,0)}]})}`:html`<p class="secondario">Nessun mese registrato.</p>`}</div></div>`;
 }
 // ---- dialogo persona ----
 function dialogoPersona(p){
@@ -3060,9 +3056,9 @@ VISTE.presenze=function(r){
   const prev=mesePrecedente(anno,mese),succ=meseSuccessivo(anno,mese);
   const compatta=ui.filtri.presenzeCompatta;
   const rie=riepilogoMese(anno,mese);
-  // avvisi: massimali annui, differenze fra dichiarate e griglia
+  // avvisi: massimali annui, giorni letti con incertezza
   const avvisi=[];
-  for(const p of persone){const mesiAnno=Object.keys(stato.presenze).filter(x=>x.startsWith(anno+'-')).map(x=>stato.presenze[x].persone[p.id]).filter(Boolean);const mx=controllaMassimali(mesiAnno);for(const a of mx.avvisi)avvisi.push(nomePersona(p)+': '+a);const mp=m.persone[p.id];if(mp){const c=calcolaMesePersona(mp,p);if(c.differenzaOre)avvisi.push(`${nomePersona(p)}: ore dichiarate ${fOre(c.oreDichiarate)} contro ${fOre(c.oreGriglia)} in griglia (${c.differenzaOre>0?'+':''}${fOre(c.differenzaOre)})`);if(mp.incerti&&mp.incerti.length)avvisi.push(`${nomePersona(p)}: ${mp.incerti.length} giorni letti con incertezza da confermare (${mp.incerti.join(', ')})`)}}
+  for(const p of persone){const mesiAnno=Object.keys(stato.presenze).filter(x=>x.startsWith(anno+'-')).map(x=>stato.presenze[x].persone[p.id]).filter(Boolean);const mx=controllaMassimali(mesiAnno);for(const a of mx.avvisi)avvisi.push(nomePersona(p)+': '+a);const mp=m.persone[p.id];if(mp){if(mp.incerti&&mp.incerti.length)avvisi.push(`${nomePersona(p)}: ${mp.incerti.length} giorni letti con incertezza da confermare (${mp.incerti.join(', ')})`)}}
   const sezioni=[['soci','Soci'],['dipendenti','Dipendenti']];
   dopoRender(montaGriglia);
   return html`<div class="testata"><div class="riga stretta"><a class="pulsante icona" href="#/presenze/${chiaveMese(prev.anno,prev.mese)}" aria-label="Mese precedente">${icona('sinistra')}</a><h1 style="min-width:220px;text-align:center">${fMeseAnno(anno,mese)}</h1><a class="pulsante icona" href="#/presenze/${chiaveMese(succ.anno,succ.mese)}" aria-label="Mese successivo">${icona('destra')}</a><a class="pulsante piccolo discreto" href="#/presenze">Oggi</a></div>
@@ -3071,8 +3067,8 @@ VISTE.presenze=function(r){
   ${avvisi.length?html`<div class="avviso-inline attenzione">${icona('attenzione')}<div class="corpo">${avvisi.map(a=>html`${a}<br>`)}</div></div>`:''}
   <div class="strumenti-tabella"><label class="spunta piccolo"><input type="checkbox" data-cambio="presenze-compatta" ${compatta?'checked':''}> Nascondi righe cantiere e committente</label><span class="conteggio">Frecce per muoversi · digita per inserire · ⇧+frecce seleziona · Canc svuota</span></div>
   <div class="presenze-griglia desktop ${compatta?'compatta':''}" id="presenze-griglia" tabindex="0" data-k="${k}"><table>
-    <thead><tr><th class="fisso">Persona</th><th class="fisso2"></th>${giorni.map(d=>html`<th class="${d.we?'fine-settimana':''} ${d.festivo?'festivo':''}" title="${fData(d.iso)}${d.festivo?' · festività':''}" ${d.oggi?'style="outline:2px solid var(--blu);outline-offset:-2px"':''}><span class="gs">${NOMI_GIORNI_BREVI[d.gs]}</span>${d.g}</th>`)}<th>Ore</th><th>Dichiarate</th><th>Importo</th></tr></thead>
-    <tbody>${sezioni.map(([sz,tit])=>{const pp=persone.filter(p=>(p.sezionePresenze||'dipendenti')===sz);if(!pp.length)return '';return html`<tr class="sezione"><td colspan="${n+5}">${tit}</td></tr>${pp.map(p=>righePersona(p,m.persone[p.id]||{giorni:{}},giorni,k))}`})}</tbody></table></div>
+    <thead><tr><th class="fisso">Persona</th><th class="fisso2"></th>${giorni.map(d=>html`<th class="${d.we?'fine-settimana':''} ${d.festivo?'festivo':''}" title="${fData(d.iso)}${d.festivo?' · festività':''}" ${d.oggi?'style="outline:2px solid var(--blu);outline-offset:-2px"':''}><span class="gs">${NOMI_GIORNI_BREVI[d.gs]}</span>${d.g}</th>`)}<th>Ore</th><th>Importo</th></tr></thead>
+    <tbody>${sezioni.map(([sz,tit])=>{const pp=persone.filter(p=>(p.sezionePresenze||'dipendenti')===sz);if(!pp.length)return '';return html`<tr class="sezione"><td colspan="${n+4}">${tit}</td></tr>${pp.map(p=>righePersona(p,m.persone[p.id]||{giorni:{}},giorni,k))}`})}</tbody></table></div>
   <div class="presenze-mobile">${vistaPresenzeMobile(persone,m,giorni,k)}</div>`;
 };
 function righePersona(p,mp,giorni,k){
@@ -3084,11 +3080,11 @@ function righePersona(p,mp,giorni,k){
     const incerto=(mp.incerti||[]).includes(d.g);
     return html`<td class="cella ${cls} ${bloccata?'bloccata':''} ${d.we?'fine-settimana':''} ${d.festivo?'festivo':''} ${incerto?'riga-scadenza':''}" data-pid="${p.id}" data-riga="${riga}" data-giorno="${d.g}" title="${bloccata?'Sabato e domenica non si compilano':(d.festivo?'Festività':'')+(incerto?' · letto con incertezza':'')}">${v}</td>`};
   if(p.soloTrasferte){
-    return html`<tr><td class="fisso"><a href="#/operai/${p.id}">${nomePersona(p)}</a></td><td class="fisso2">trasferte</td>${giorni.map(d=>cella(d,'trasferta'))}<td class="totale">—</td><td class="totale">—</td><td class="totale num" data-azione="presenze-persona" data-k="${k}" data-pid="${p.id}" style="cursor:pointer" title="Apri il riepilogo">${fEuro(calc.importo,0)}${mp.importoForzato?' ✎':''}</td></tr>`;
+    return html`<tr><td class="fisso"><a href="#/operai/${p.id}">${nomePersona(p)}</a></td><td class="fisso2">trasferte</td>${giorni.map(d=>cella(d,'trasferta'))}<td class="totale">—</td><td class="totale num" data-azione="presenze-persona" data-k="${k}" data-pid="${p.id}" style="cursor:pointer" title="Apri il riepilogo">${fEuro(calc.importo,0)}${mp.importoForzato?' ✎':''}</td></tr>`;
   }
-  return html`<tr><td class="fisso"><a href="#/operai/${p.id}">${nomePersona(p)}</a></td><td class="fisso2">ore</td>${giorni.map(d=>cella(d,'ore'))}<td class="totale num">${fOre(calc.oreGriglia)}</td><td class="totale num ${calc.differenzaOre?'da-compilare':''}" data-azione="presenze-persona" data-k="${k}" data-pid="${p.id}" style="cursor:pointer" title="Ore dichiarate sul foglio cartaceo">${calc.oreDichiarate!=null?fOre(calc.oreDichiarate):'—'}</td><td class="totale num" data-azione="presenze-persona" data-k="${k}" data-pid="${p.id}" style="cursor:pointer" title="Apri il riepilogo della persona">${calc.importo!=null?fEuro(calc.importo,0):'—'}${mp.importoForzato?' ✎':''}</td></tr>
-  <tr class="riga-secondaria"><td class="fisso"></td><td class="fisso2">cantiere</td>${giorni.map(d=>cella(d,'cantiere'))}<td class="totale" colspan="3">${Object.entries(calc.perCodice).map(([c,nn])=>html`<span class="etichetta-tag" title="${(CODICI_ASSENZA[c]||{}).nome||c}">${c} ${nn}</span> `)}</td></tr>
-  <tr class="riga-secondaria"><td class="fisso"></td><td class="fisso2">committente</td>${giorni.map(d=>cella(d,'committente'))}<td class="totale" colspan="3">${mp.foglioOreId?html`<button class="pulsante piccolo" data-azione="file-apri" data-id="${mp.foglioOreId}">${icona('immagine','piccola')}foglio</button>`:''}${(mp.aggiustamenti||[]).length?html` <span class="piccolo secondario">${mp.aggiustamenti.map(a=>a.sigla+' '+fEuro(a.importo,0)).join(', ')}</span>`:''}</td></tr>`;
+  return html`<tr><td class="fisso"><a href="#/operai/${p.id}">${nomePersona(p)}</a></td><td class="fisso2">ore</td>${giorni.map(d=>cella(d,'ore'))}<td class="totale num">${fOre(calc.oreGriglia)}</td><td class="totale num" data-azione="presenze-persona" data-k="${k}" data-pid="${p.id}" style="cursor:pointer" title="Apri il riepilogo della persona">${calc.importo!=null?fEuro(calc.importo,0):'—'}${mp.importoForzato?' ✎':''}${mp.note?' '+icona('info','piccola'):''}</td></tr>
+  <tr class="riga-secondaria"><td class="fisso"></td><td class="fisso2">cantiere</td>${giorni.map(d=>cella(d,'cantiere'))}<td class="totale" colspan="2">${Object.entries(calc.perCodice).map(([c,nn])=>html`<span class="etichetta-tag" title="${(CODICI_ASSENZA[c]||{}).nome||c}">${c} ${nn}</span> `)}</td></tr>
+  <tr class="riga-secondaria"><td class="fisso"></td><td class="fisso2">committente</td>${giorni.map(d=>cella(d,'committente'))}<td class="totale" colspan="2">${mp.foglioOreId?html`<button class="pulsante piccolo" data-azione="file-apri" data-id="${mp.foglioOreId}">${icona('immagine','piccola')}foglio</button>`:''}${(mp.aggiustamenti||[]).length?html` <span class="piccolo secondario">${mp.aggiustamenti.map(a=>a.sigla+' '+fEuro(a.importo,0)).join(', ')}</span>`:''}</td></tr>`;
 }
 AZIONI['presenze-compatta']=(d,t)=>{ui.filtri.presenzeCompatta=t.checked;render()};
 // ---- vista telefono: una persona alla volta ----
@@ -3096,7 +3092,7 @@ function vistaPresenzeMobile(persone,m,giorni,k){
   const pid=ui.filtri.presenzePersonaMobile||(persone[0]||{}).id;const p=persona(pid);if(!p)return '';
   const mp=m.persone[p.id]||{giorni:{}};const calc=calcolaMesePersona(mp,p);
   return html`<div class="scheda"><select data-cambio="presenze-persona-mobile" aria-label="Persona">${persone.map(x=>html`<option value="${x.id}" ${x.id===pid?'selected':''}>${nomePersona(x)}</option>`)}</select>
-  <div class="riga mt-s"><span>Ore: <b>${fOre(calc.oreGriglia)}</b></span><span>Dich.: <b>${calc.oreDichiarate!=null?fOre(calc.oreDichiarate):'—'}</b></span><span class="spazio"></span><b>${fEuro(calc.importo,0)}</b><button class="pulsante piccolo" data-azione="presenze-persona" data-k="${k}" data-pid="${p.id}">Riepilogo</button></div>
+  <div class="riga mt-s"><span>Ore: <b>${fOre(calc.oreGriglia)}</b></span><span class="spazio"></span><b>${fEuro(calc.importo,0)}</b><button class="pulsante piccolo" data-azione="presenze-persona" data-k="${k}" data-pid="${p.id}">Riepilogo${mp.note?' '+icona('info','piccola'):''}</button></div>
   <div class="mt">${giorni.map(d=>{const c=(mp.giorni||{})[String(d.g)]||{};const v=valoreCella(c);return html`<div class="giorno-card ${d.we?'fine-settimana':''} ${d.festivo?'festivo':''}"><div class="g">${d.g}<small>${NOMI_GIORNI_BREVI[d.gs]}</small></div>${d.we?html`<div class="piccolo">non si compila</div>`:p.soloTrasferte?html`<input type="text" value="${c.trasferta||''}" placeholder="trasferta" data-mob="trasferta" data-pid="${p.id}" data-giorno="${d.g}" data-k="${k}">`:html`<div class="campi-g"><input type="text" value="${v==null?'':typeof v==='number'?fOre(v):v}" placeholder="ore" data-mob="ore" data-pid="${p.id}" data-giorno="${d.g}" data-k="${k}" style="text-align:center"><input type="text" value="${c.cantiere||''}" placeholder="cantiere" data-mob="cantiere" data-pid="${p.id}" data-giorno="${d.g}" data-k="${k}"><input type="text" value="${c.committente||''}" placeholder="committente" data-mob="committente" data-pid="${p.id}" data-giorno="${d.g}" data-k="${k}"></div>`}</div>`})}</div></div>`;
 }
 AZIONI['presenze-persona-mobile']=(d,t)=>{ui.filtri.presenzePersonaMobile=t.value;render()};
@@ -3223,7 +3219,7 @@ function applicaBlocco(anno,mese,pids,g1,g2,riga,valore,opz){
   },{senzaRender:opz.senzaRender});
   return true;
 }
-AZIONI['presenze-aiuto']=()=>informa('Presenze: tasti e regole',html`<div class="tasti-aiuto"><span class="kbd">← → ↑ ↓</span><span>muoversi fra le celle (il fine settimana si salta)</span><span class="kbd">8</span><span>digita per inserire; Invio conferma e scende, Tab conferma e va a destra</span><span class="kbd">⇧ + ← →</span><span>seleziona un intervallo di giorni: poi digita il valore e Invio per applicarlo a tutti</span><span class="kbd">Canc</span><span>svuota la cella o l'intervallo</span><span class="kbd">FE M I PE FS AS CI</span><span>codici di assenza (FS solo nei giorni di festività feriale)</span></div><div class="sezione-titolo">Regole dell'azienda</div><ul class="piccolo"><li>Nei giorni lavorati si scrive sempre 8, salvo schema orario personale.</li><li>Mai ore di sabato e domenica: le celle sono bloccate. Il lavoro nel fine settimana conta nelle <b>ore dichiarate</b> del foglio cartaceo, non in griglia.</li><li>FE = giorno feriale non lavorato. I giorni non segnati sul foglio restano vuoti: non si indovina.</li><li>Scegliendo il cantiere il committente si propone da solo, prendendo l'impresa affidataria del cantiere (LGC, non Lidl).</li><li>Importo = arrotondamento aziendale a multipli di 10 di (ore dichiarate × tariffa + aggiustamenti + fisso): resto 0–3 per difetto, 4–9 per eccesso.</li></ul>`);
+AZIONI['presenze-aiuto']=()=>informa('Presenze: tasti e regole',html`<div class="tasti-aiuto"><span class="kbd">← → ↑ ↓</span><span>muoversi fra le celle (il fine settimana si salta)</span><span class="kbd">8</span><span>digita per inserire; Invio conferma e scende, Tab conferma e va a destra</span><span class="kbd">⇧ + ← →</span><span>seleziona un intervallo di giorni: poi digita il valore e Invio per applicarlo a tutti</span><span class="kbd">Canc</span><span>svuota la cella o l'intervallo</span><span class="kbd">FE M I PE FS AS CI</span><span>codici di assenza (FS solo nei giorni di festività feriale)</span></div><div class="sezione-titolo">Regole dell'azienda</div><ul class="piccolo"><li>Nei giorni lavorati si scrive sempre 8, salvo schema orario personale.</li><li>Mai ore di sabato e domenica: le celle sono bloccate. Il lavoro eventuale nel fine settimana si conta come aggiustamento in euro nel riepilogo della persona, non in griglia.</li><li>FE = giorno feriale non lavorato. I giorni non segnati sul foglio restano vuoti: non si indovina.</li><li>Scegliendo il cantiere il committente si propone da solo, prendendo l'impresa affidataria del cantiere (LGC, non Lidl).</li><li>Importo = arrotondamento aziendale a multipli di 10 di (ore in griglia × tariffa + aggiustamenti + fisso): resto 0–3 per difetto, 4–9 per eccesso.</li></ul>`);
 // ---- strumenti rapidi ----
 AZIONI['presenze-strumenti']=async d=>{
   const {anno,mese}=daChiaveMese(d.k);const persone=personePresenze(anno,mese);
@@ -3287,20 +3283,19 @@ function localitaTrasferte(s){
   const loc=Array.from(cnt.entries()).sort((a,b)=>b[1]-a[1]).map(x=>x[0]);
   return loc.length?loc:['arezzo','firenze','siena','bibbiena','poppi','capolona','rassina','anghiari','sansepolcro','prato','empoli','perugia'];
 }
-// ---- riepilogo persona: ore dichiarate, aggiustamenti, importo forzato, foglio ore, note ----
+// ---- riepilogo persona: aggiustamenti, importo forzato, foglio ore, note ----
 AZIONI['presenze-persona']=async d=>{
   const {anno,mese}=daChiaveMese(d.k);const p=persona(d.pid);const mp=(meseP(anno,mese)||{persone:{}}).persone[p.id]||{giorni:{},aggiustamenti:[]};
   const calc=calcolaMesePersona(mp,p);
   const agg=(mp.aggiustamenti||[]).map(a=>a.sigla+' '+(a.importo>=0?'+':'')+a.importo).join('\n');
   const v=await dialogoModulo(nomePersona(p)+' · '+fMeseAnno(anno,mese),[
-    {nome:'oreDichiarate',etichetta:'Ore realmente dichiarate sul foglio',tipo:'ore',aiuto:'Il totale scritto a mano in fondo al foglio. Può differire dalla griglia ('+fOre(calc.oreGriglia)+'): il lavoro nel fine settimana conta qui, non in griglia.'},
-    {nome:'aggiustamentiTesto',etichetta:'Aggiustamenti (una riga: sigla importo)',tipo:'textarea',segnaposto:'brc 50\nmt -20',aiuto:'Anche negativi. Contano solo gli importi.'},
+    {nome:'aggiustamentiTesto',etichetta:'Aggiustamenti (una riga: sigla importo)',tipo:'textarea',segnaposto:'brc 50\nmt -20',aiuto:'Anche negativi. Contano solo gli importi. Per ore lavorate nel fine settimana (non inseribili in griglia), aggiungi qui l\'importo corrispondente.'},
     {nome:'importoForzato',tipo:'spunta',testo:'Forza l\'importo a mano'},{nome:'importoManuale',etichetta:'Importo forzato',tipo:'euro'},
-    {nome:'note',etichetta:'Note',tipo:'textarea',largo:true},
-  ],{oreDichiarate:mp.oreDichiarate,aggiustamentiTesto:agg,importoForzato:!!mp.importoForzato,importoManuale:mp.importoManuale,note:mp.note||''},{intro:html`<div class="griglia tre mb"><div class="indicatore" style="cursor:default"><span class="etichetta">Ore in griglia</span><span class="valore md">${fOre(calc.oreGriglia)}</span></div><div class="indicatore" style="cursor:default"><span class="etichetta">Importo calcolato</span><span class="valore md">${fEuro(calc.importoCalcolato,0)}</span><span class="nota">${calc.tariffa?fOre(calc.oreBase)+' h × '+fNum(calc.tariffa,2)+' € = '+fEuro(calc.importoBase):''}${calc.fisso?' + fisso '+fEuro(calc.fisso,0):''}${calc.aggiustamenti?' + agg. '+fEuro(calc.aggiustamenti,0):''}</span></div><div class="indicatore" style="cursor:default"><span class="etichetta">Foglio ore</span><span class="valore md" style="font-size:14px">${mp.foglioOreId?html`<button class="pulsante piccolo" data-azione="file-apri" data-id="${mp.foglioOreId}">${icona('immagine','piccola')}Vedi</button>`:html`<span class="secondario">nessuno</span>`} <button class="pulsante piccolo" data-azione="presenze-foglio-carica" data-k="${d.k}" data-pid="${p.id}">${icona('fotocamera','piccola')}Foto</button></span></div></div>`});
+    {nome:'note',etichetta:'Note',tipo:'textarea',largo:true,aiuto:'Compaiono nel libro presenze stampato, sotto il nome; se lasci vuoto non compare nulla.'},
+  ],{aggiustamentiTesto:agg,importoForzato:!!mp.importoForzato,importoManuale:mp.importoManuale,note:mp.note||''},{intro:html`<div class="griglia tre mb"><div class="indicatore" style="cursor:default"><span class="etichetta">Ore in griglia</span><span class="valore md">${fOre(calc.oreGriglia)}</span></div><div class="indicatore" style="cursor:default"><span class="etichetta">Importo calcolato</span><span class="valore md">${fEuro(calc.importoCalcolato,0)}</span><span class="nota">${calc.tariffa?fOre(calc.oreGriglia)+' h × '+fNum(calc.tariffa,2)+' € = '+fEuro(calc.importoBase):''}${calc.fisso?' + fisso '+fEuro(calc.fisso,0):''}${calc.aggiustamenti?' + agg. '+fEuro(calc.aggiustamenti,0):''}</span></div><div class="indicatore" style="cursor:default"><span class="etichetta">Foglio ore</span><span class="valore md" style="font-size:14px">${mp.foglioOreId?html`<button class="pulsante piccolo" data-azione="file-apri" data-id="${mp.foglioOreId}">${icona('immagine','piccola')}Vedi</button>`:html`<span class="secondario">nessuno</span>`} <button class="pulsante piccolo" data-azione="presenze-foglio-carica" data-k="${d.k}" data-pid="${p.id}">${icona('fotocamera','piccola')}Foto</button></span></div></div>`});
   if(!v) return;
   const aggiustamenti=(v.aggiustamentiTesto||'').split('\n').map(x=>x.trim()).filter(Boolean).map(x=>{const m=/^(.*?)\s*([+-]?\s*[\d.,]+)\s*€?$/.exec(x);if(!m)return {sigla:x,importo:0};return {sigla:m[1].trim()||'agg',importo:leggiNumero(m[2].replace(/\s/g,''))||0}});
-  esegui('Riepilogo '+nomePersona(p)+' '+fMeseAnno(anno,mese),s=>{const x=assicuraMesePersona(s,anno,mese,p.id);x.oreDichiarate=v.oreDichiarate;x.aggiustamenti=aggiustamenti;x.importoForzato=!!v.importoForzato;x.importoManuale=v.importoForzato?v.importoManuale:null;x.note=v.note});
+  esegui('Riepilogo '+nomePersona(p)+' '+fMeseAnno(anno,mese),s=>{const x=assicuraMesePersona(s,anno,mese,p.id);x.aggiustamenti=aggiustamenti;x.importoForzato=!!v.importoForzato;x.importoManuale=v.importoForzato?v.importoManuale:null;x.note=v.note});
 };
 AZIONI['presenze-foglio-carica']=async d=>{const fs=await scegliFile({multipli:false,accetta:'image/*,.pdf'});if(!fs.length)return;const es=await acquisisciConAnteprima(fs);if(!es||!es.length)return;const {anno,mese}=daChiaveMese(d.k);esegui('Allegato foglio ore',s=>{assicuraMesePersona(s,anno,mese,d.pid).foglioOreId=es[0].rec.id})};
 // ---- postazione di trascrizione ----
@@ -3317,13 +3312,13 @@ async function leggiFoglioConAi(fileId,anno,mese){
   const imp=stato.impostazioni;if(!imp.chiaveApi)throw new Error('chiave API non inserita');
   const blob=await leggiFile(fileId);if(!blob)throw new Error('foto del foglio non trovata');
   const b64=await new Promise((ok,ko)=>{const r=new FileReader();r.onload=()=>ok(String(r.result).split(',')[1]);r.onerror=()=>ko(r.error);r.readAsDataURL(blob)});
-  const richiesta=`Questa è la foto di un foglio ore scritto a mano di un operaio edile per ${NOMI_MESI[mese-1]} ${anno}. Trascrivi solo ciò che leggi con certezza, senza inventare nulla. Rispondi con un solo oggetto JSON, senza testo attorno, nella forma {"giorni":{"1":{"ore":8,"cantiere":"nome scritto"},"2":{"codice":"FE"}},"oreDichiarate":168}. Codici ammessi: M (malattia), I (infortunio), PE (permesso), FS (festività), FE (ferie), AS (assenza), CI (cassa integrazione). Ometti i giorni vuoti o illeggibili, i sabati e le domeniche. Ometti oreDichiarate se sul foglio non c'è un totale scritto.`;
+  const richiesta=`Questa è la foto di un foglio ore scritto a mano di un operaio edile per ${NOMI_MESI[mese-1]} ${anno}. Trascrivi solo ciò che leggi con certezza, senza inventare nulla. Rispondi con un solo oggetto JSON, senza testo attorno, nella forma {"giorni":{"1":{"ore":8,"cantiere":"nome scritto"},"2":{"codice":"FE"}}}. Codici ammessi: M (malattia), I (infortunio), PE (permesso), FS (festività), FE (ferie), AS (assenza), CI (cassa integrazione). Ometti i giorni vuoti o illeggibili, i sabati e le domeniche.`;
   const risposta=await fetch(imp.urlApi||'https://api.anthropic.com/v1/messages',{method:'POST',headers:{'content-type':'application/json','x-api-key':imp.chiaveApi,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:imp.modelloApi||'claude-sonnet-5',max_tokens:2000,messages:[{role:'user',content:[{type:'image',source:{type:'base64',media_type:blob.type||'image/jpeg',data:b64}},{type:'text',text:richiesta}]}]})});
   if(!risposta.ok)throw new Error('il servizio ha risposto '+risposta.status+' '+(await risposta.text()).slice(0,300));
   const json=await risposta.json();const testo=(json.content||[]).map(c=>c.text||'').join('');
   const m=/\{[\s\S]*\}/.exec(testo);if(!m)throw new Error('risposta non in formato JSON: '+testo.slice(0,200));
   const dati=JSON.parse(m[0]);
-  return {giorni:dati.giorni&&typeof dati.giorni==='object'?dati.giorni:{},oreDichiarate:dati.oreDichiarate!=null&&isFinite(+dati.oreDichiarate)?+dati.oreDichiarate:null};
+  return {giorni:dati.giorni&&typeof dati.giorni==='object'?dati.giorni:{}};
 }
 async function apriTrascrizione(anno,mese,pid){
   const p=persona(pid);const k=chiaveMese(anno,mese);
@@ -3333,7 +3328,7 @@ async function apriTrascrizione(anno,mese,pid){
   const righe=Array.from({length:n},(_,i)=>{const g=i+1;const iso=k+'-'+pad2(g);const gs=giornoSettimana(anno,mese,g);const c=mp.giorni[String(g)]||{};const v=valoreCella(c);return {g,gs,we:gs===0||gs===6,fest:fest.has(iso),ore:v==null?'':typeof v==='number'?fOre(v):v,cantiere:c.cantiere||'',committente:c.committente||'',incerto:(mp.incerti||[]).includes(g)}});
   const corpo=html`<div class="trascrizione"><div class="foto" id="tr-foto">${fotoUrl?html`<img src="${fotoUrl}" alt="Foglio ore" id="tr-img">`:html`<div class="anteprima-nessuna">${icona('fotocamera')}<p>Nessuna foto del foglio per questo mese.</p><button class="pulsante" id="tr-carica">Carica la foto</button></div>`}<div class="comandi"><button class="pulsante piccolo icona" id="tr-zoom-piu" title="Ingrandisci">${icona('zoom-piu','piccola')}</button><button class="pulsante piccolo icona" id="tr-zoom-meno" title="Riduci">${icona('zoom-meno','piccola')}</button><button class="pulsante piccolo" id="tr-adatta">Adatta</button>${fotoUrl&&stato.impostazioni.chiaveApi?html`<button class="pulsante piccolo" id="tr-ai" title="Invia la foto del foglio al servizio AI configurato nelle Impostazioni">${icona('chiave','piccola')}Leggi con AI</button>`:''}</div></div>
   <div class="griglia-t"><table><thead><tr><th>G</th><th>Ore/cod.</th><th>Cantiere</th><th>Committente</th><th title="Letto con incertezza">?</th></tr></thead><tbody>${righe.map(r=>html`<tr class="${r.we?'fine-settimana':''} ${r.fest?'festivo':''}" data-g="${r.g}"><td><b>${r.g}</b> <span class="piccolo">${NOMI_GIORNI_BREVI[r.gs]}</span></td>${r.we?html`<td colspan="4" class="piccolo secondario">fine settimana: non si compila</td>`:html`<td><input type="text" data-tr="ore" data-g="${r.g}" value="${r.ore}" style="width:64px;text-align:center" placeholder="${r.fest?'FS':'8'}"></td><td><input type="text" data-tr="cantiere" data-g="${r.g}" value="${r.cantiere}"></td><td><input type="text" data-tr="committente" data-g="${r.g}" value="${r.committente}"></td><td><input type="checkbox" data-tr="incerto" data-g="${r.g}" ${r.incerto?'checked':''} aria-label="Incerto"></td>`}</tr>`)}</tbody></table></div></div>
-  <div class="riga mt-s piccolo secondario"><span class="kbd">Invio</span> giù nella stessa colonna · <span class="kbd">Tab</span> a destra · <span class="kbd">⌘D</span> copia dalla riga sopra · <span class="kbd">⌘↓</span> riempi in giù fino a fine mese · <span class="kbd">?</span> segna incerto</span><span class="spazio"></span><label class="riga stretta">Ore dichiarate sul foglio <input type="text" id="tr-dich" value="${mp.oreDichiarate!=null?fOre(mp.oreDichiarate):''}" style="width:80px" inputmode="decimal"></label></div>`;
+  <div class="riga mt-s piccolo secondario"><span class="kbd">Invio</span> giù nella stessa colonna · <span class="kbd">Tab</span> a destra · <span class="kbd">⌘D</span> copia dalla riga sopra · <span class="kbd">⌘↓</span> riempi in giù fino a fine mese · <span class="kbd">?</span> segna incerto</span></div>`;
   const ris=await dialogo({titolo:'Trascrizione · '+nomePersona(p)+' · '+fMeseAnno(anno,mese),enorme:true,corpo,senzaFocus:true,valoreEscape:null,pulsanti:[{testo:'Annulla',valore:null},{testo:'Applica',classe:'primario',primario:true,fn:v=>leggiTrascrizione(v)}],alMontaggio:v=>{
     // foto: zoom e spostamento
     const foto=v.querySelector('#tr-foto');const img=v.querySelector('#tr-img');
@@ -3344,7 +3339,7 @@ async function apriTrascrizione(anno,mese,pid){
     }
     const car=v.querySelector('#tr-carica');if(car)car.onclick=async()=>{const fs=await scegliFile({multipli:false,accetta:'image/*'});if(!fs.length)return;const es=await acquisisciConAnteprima(fs);if(!es||!es.length)return;esegui('Allegato foglio ore',s=>{assicuraMesePersona(s,anno,mese,pid).foglioOreId=es[0].rec.id},{senzaRender:true});v.chiudi(null);apriTrascrizione(anno,mese,pid)};
     // Lettura assistita: il pulsante esiste solo con la chiave inserita (unica funzione che usa la rete). Le proposte entrano nella griglia segnate come incerte: niente viene salvato finché non si preme Applica.
-    const ai=v.querySelector('#tr-ai');if(ai)ai.onclick=async()=>{ai.disabled=true;const ih=ai.innerHTML;ai.textContent='Lettura in corso…';try{const prop=await leggiFoglioConAi(mp.foglioOreId,anno,mese);let n=0;for(const [g,c] of Object.entries(prop.giorni||{})){const ore=v.querySelector(`input[data-tr="ore"][data-g="${g}"]`);if(!ore||!c)continue;const val=c.codice?String(c.codice).toUpperCase():(c.ore!=null&&isFinite(+c.ore)?fOre(+c.ore):'');if(!val)continue;ore.value=val;const ca=v.querySelector(`input[data-tr="cantiere"][data-g="${g}"]`);if(ca&&c.cantiere)ca.value=String(c.cantiere);const inc=v.querySelector(`input[data-tr="incerto"][data-g="${g}"]`);if(inc)inc.checked=true;n++}const dich=v.querySelector('#tr-dich');if(prop.oreDichiarate!=null&&!dich.value)dich.value=fOre(prop.oreDichiarate);avviso(n?`Proposte AI per ${n} giorni, tutte segnate come incerte: confrontale con la foto prima di applicare`:'Il servizio non ha riconosciuto giorni compilabili',{tipo:'attenzione'})}catch(e){avviso('Lettura assistita non riuscita: '+String(e&&e.message||e),{tipo:'errore'})}finally{ai.disabled=false;ai.innerHTML=ih}};
+    const ai=v.querySelector('#tr-ai');if(ai)ai.onclick=async()=>{ai.disabled=true;const ih=ai.innerHTML;ai.textContent='Lettura in corso…';try{const prop=await leggiFoglioConAi(mp.foglioOreId,anno,mese);let n=0;for(const [g,c] of Object.entries(prop.giorni||{})){const ore=v.querySelector(`input[data-tr="ore"][data-g="${g}"]`);if(!ore||!c)continue;const val=c.codice?String(c.codice).toUpperCase():(c.ore!=null&&isFinite(+c.ore)?fOre(+c.ore):'');if(!val)continue;ore.value=val;const ca=v.querySelector(`input[data-tr="cantiere"][data-g="${g}"]`);if(ca&&c.cantiere)ca.value=String(c.cantiere);const inc=v.querySelector(`input[data-tr="incerto"][data-g="${g}"]`);if(inc)inc.checked=true;n++}avviso(n?`Proposte AI per ${n} giorni, tutte segnate come incerte: confrontale con la foto prima di applicare`:'Il servizio non ha riconosciuto giorni compilabili',{tipo:'attenzione'})}catch(e){avviso('Lettura assistita non riuscita: '+String(e&&e.message||e),{tipo:'errore'})}finally{ai.disabled=false;ai.innerHTML=ih}};
     // tastiera nella griglia
     const inputs=()=>tutti('input[data-tr]',v);
     const primo=v.querySelector('input[data-tr="ore"]');if(primo)primo.focus();
@@ -3371,20 +3366,18 @@ async function apriTrascrizione(anno,mese,pid){
     for(const r of ris.righe){const c={};if(r.ore){const cod=r.ore.toUpperCase();if(CODICI_ASSENZA[cod]){if(cod==='FS'&&!fest.has(k+'-'+pad2(r.g))){errori.push('giorno '+r.g+': FS non ammesso (non è festività)');}else c.codice=cod}else{const nn=leggiNumero(r.ore);if(nn===null||nn<0||nn>24)errori.push('giorno '+r.g+': valore «'+r.ore+'» non valido');else c.ore=nn}}
       if(r.cantiere)c.cantiere=r.cantiere;if(r.committente)c.committente=r.committente;else if(c.cantiere){const pr=committenteProposto(c.cantiere);if(pr)c.committente=pr}
       if(Object.keys(c).length)x.giorni[String(r.g)]=c;if(r.incerto)x.incerti.push(r.g)}
-    x.oreDichiarate=ris.dichiarate;
   });
   if(errori.length) informa('Alcuni valori non sono stati applicati',errori.join('\n'));
 }
 function leggiTrascrizione(v){
   const righe={};
   for(const i of tutti('input[data-tr]',v)){const g=+i.dataset.g;righe[g]=righe[g]||{g};righe[g][i.dataset.tr]=i.type==='checkbox'?i.checked:i.value.trim()}
-  const d=v.querySelector('#tr-dich').value.trim();
-  return {righe:Object.values(righe),dichiarate:d?leggiNumero(d):null};
+  return {righe:Object.values(righe)};
 }
 // ---- incolla dati strutturati ----
 AZIONI['presenze-incolla']=async d=>{
   const {anno,mese}=daChiaveMese(d.k);const persone=personePresenze(anno,mese).filter(p=>!p.soloTrasferte);
-  const v=await dialogoModulo('Incolla dati strutturati',[{nome:'pid',etichetta:'Operaio',tipo:'select',obbligatorio:true,opzioni:persone.map(p=>({v:p.id,t:nomePersona(p)}))},{nome:'testo',etichetta:'Dati',tipo:'textarea',righe:12,largo:true,obbligatorio:true,segnaposto:'3; 8; firenze; fabbri services\n4; FE\n5; 8; firenze'},{nome:'dichiarate',etichetta:'Ore dichiarate sul foglio (facoltativo)',tipo:'ore'}],{},{ok:'Anteprima',intro:html`<p class="piccolo secondario">Una riga per giorno: <span class="mono">giorno; ore o codice; cantiere; committente</span> (separatori ; , tab). Accetto anche un elenco JSON <span class="mono">[{"giorno":3,"ore":8,"cantiere":"…"}]</span>. Vedrai le differenze rispetto a quanto già inserito prima di applicare.</p>`});
+  const v=await dialogoModulo('Incolla dati strutturati',[{nome:'pid',etichetta:'Operaio',tipo:'select',obbligatorio:true,opzioni:persone.map(p=>({v:p.id,t:nomePersona(p)}))},{nome:'testo',etichetta:'Dati',tipo:'textarea',righe:12,largo:true,obbligatorio:true,segnaposto:'3; 8; firenze; fabbri services\n4; FE\n5; 8; firenze'}],{},{ok:'Anteprima',intro:html`<p class="piccolo secondario">Una riga per giorno: <span class="mono">giorno; ore o codice; cantiere; committente</span> (separatori ; , tab). Accetto anche un elenco JSON <span class="mono">[{"giorno":3,"ore":8,"cantiere":"…"}]</span>. Vedrai le differenze rispetto a quanto già inserito prima di applicare.</p>`});
   if(!v) return;
   let righe=[];
   const t=v.testo.trim();
@@ -3396,7 +3389,7 @@ AZIONI['presenze-incolla']=async d=>{
   const ok=await dialogo({titolo:'Anteprima delle differenze · '+nomePersona(persona(v.pid)),largo:true,corpo:html`<table class="tabella densa"><thead><tr><th>Giorno</th><th>Ora in griglia</th><th>Nuovo</th><th>Cantiere</th><th>Committente</th></tr></thead><tbody>${diff.map(x=>html`<tr class="${x.we?'silenzioso':x.cambia?(x.curT||x.c.cantiere?'diff-modifica':'diff-aggiunta'):''}"><td>${x.r.g}${x.we?' (fine settimana: ignorato)':''}</td><td>${x.curT}${x.c.cantiere?' · '+x.c.cantiere:''}</td><td><b>${x.nuovo}</b></td><td>${x.r.cantiere}</td><td>${x.comm}</td></tr>`)}</tbody></table><p class="piccolo secondario mt-s">${diff.filter(x=>x.cambia).length} giorni cambiano. I giorni del mese non presenti nei dati non vengono toccati.</p>`,pulsanti:[{testo:'Annulla',valore:false},{testo:'Applica',classe:'primario',primario:true,valore:true}]});
   if(!ok) return;
   const errori=[];
-  esegui('Incollati dati presenze per '+nomePersona(persona(v.pid)),s=>{const x=assicuraMesePersona(s,anno,mese,v.pid);x.incerti=x.incerti||[];for(const d2 of diff){if(d2.we)continue;const c={};if(d2.nuovo){if(CODICI_ASSENZA[d2.nuovo]){if(d2.nuovo==='FS'&&!eFestivo(chiaveMese(anno,mese)+'-'+pad2(d2.r.g),s.impostazioni.festivitaLocali)){errori.push('giorno '+d2.r.g+': FS non ammesso');continue}c.codice=d2.nuovo}else{const nn=leggiNumero(d2.nuovo);if(nn===null||nn<0||nn>24){errori.push('giorno '+d2.r.g+': «'+d2.nuovo+'» non valido');continue}c.ore=nn}}if(d2.r.cantiere)c.cantiere=d2.r.cantiere;if(d2.comm)c.committente=d2.comm;if(Object.keys(c).length)x.giorni[String(d2.r.g)]=c;else delete x.giorni[String(d2.r.g)];if(d2.r.incerto&&!x.incerti.includes(d2.r.g))x.incerti.push(d2.r.g)}if(v.dichiarate!=null)x.oreDichiarate=v.dichiarate});
+  esegui('Incollati dati presenze per '+nomePersona(persona(v.pid)),s=>{const x=assicuraMesePersona(s,anno,mese,v.pid);x.incerti=x.incerti||[];for(const d2 of diff){if(d2.we)continue;const c={};if(d2.nuovo){if(CODICI_ASSENZA[d2.nuovo]){if(d2.nuovo==='FS'&&!eFestivo(chiaveMese(anno,mese)+'-'+pad2(d2.r.g),s.impostazioni.festivitaLocali)){errori.push('giorno '+d2.r.g+': FS non ammesso');continue}c.codice=d2.nuovo}else{const nn=leggiNumero(d2.nuovo);if(nn===null||nn<0||nn>24){errori.push('giorno '+d2.r.g+': «'+d2.nuovo+'» non valido');continue}c.ore=nn}}if(d2.r.cantiere)c.cantiere=d2.r.cantiere;if(d2.comm)c.committente=d2.comm;if(Object.keys(c).length)x.giorni[String(d2.r.g)]=c;else delete x.giorni[String(d2.r.g)];if(d2.r.incerto&&!x.incerti.includes(d2.r.g))x.incerti.push(d2.r.g)}});
   if(errori.length) informa('Valori non applicati',errori.join('\n'));
 };
 // ---- uscite ----
@@ -4464,16 +4457,17 @@ function docLibroPresenze(anno,mese){
   const m=meseP(anno,mese)||{persone:{}};const persone=personePresenze(anno,mese);const n=giorniNelMese(anno,mese);const fest=festivitaAnno(anno,stato.impostazioni.festivitaLocali);const k=chiaveMese(anno,mese);
   const giorni=Array.from({length:n},(_,i)=>i+1);
   const cls=g=>eFineSettimana(anno,mese,g)?'ws':fest.has(k+'-'+pad2(g))?'fest':'';
-  const testa=`<thead><tr><th style="width:26mm">Persona</th><th style="width:16mm"></th>${giorni.map(g=>`<th class="${cls(g)}">${g}<br><span style="font-weight:400">${NOMI_GIORNI_BREVI[giornoSettimana(anno,mese,g)].slice(0,1)}</span></th>`).join('')}<th style="width:10mm">Ore</th><th style="width:12mm">Dich.</th><th style="width:14mm">Importo</th></tr></thead>`;
+  const testa=`<thead><tr><th style="width:26mm">Persona</th><th style="width:16mm"></th>${giorni.map(g=>`<th class="${cls(g)}">${g}<br><span style="font-weight:400">${NOMI_GIORNI_BREVI[giornoSettimana(anno,mese,g)].slice(0,1)}</span></th>`).join('')}<th style="width:10mm">Ore</th><th style="width:14mm">Importo</th></tr></thead>`;
   const righe=[];
-  for(const sz of ['soci','dipendenti']){const pp=persone.filter(p=>(p.sezionePresenze||'dipendenti')===sz);if(!pp.length)continue;righe.push(`<tr><td colspan="${n+5}" style="background:#D9D9D9;font-weight:700;text-align:left">${sz==='soci'?'Soci':'Dipendenti'}</td></tr>`);
+  for(const sz of ['soci','dipendenti']){const pp=persone.filter(p=>(p.sezionePresenze||'dipendenti')===sz);if(!pp.length)continue;righe.push(`<tr><td colspan="${n+4}" style="background:#D9D9D9;font-weight:700;text-align:left">${sz==='soci'?'Soci':'Dipendenti'}</td></tr>`);
     for(const p of pp){const mp=m.persone[p.id]||{giorni:{}};const calc=calcolaMesePersona(mp,p);const cella=(g,riga)=>{const c=mp.giorni[String(g)]||{};if(riga==='ore'){const v=valoreCella(c);return v==null?'':typeof v==='number'?fOre(v):v}return c[riga]||''};
-      if(p.soloTrasferte){righe.push(`<tr><td class="nome">${h(nomePersona(p))}</td><td class="sub">trasferte</td>${giorni.map(g=>`<td class="${cls(g)}">${h(cella(g,'trasferta'))}</td>`).join('')}<td></td><td></td><td class="num">${h(fEuro(calc.importo,0))}</td></tr>`);continue}
-      righe.push(`<tr><td class="nome">${h(nomePersona(p))}</td><td class="sub">ore</td>${giorni.map(g=>`<td class="${cls(g)}"><b>${h(cella(g,'ore'))}</b></td>`).join('')}<td class="num">${h(fOre(calc.oreGriglia))}</td><td class="num">${calc.oreDichiarate!=null?h(fOre(calc.oreDichiarate)):''}</td><td class="num">${calc.importo!=null?h(fEuro(calc.importo,0)):''}</td></tr>`);
-      righe.push(`<tr><td></td><td class="sub">cantiere</td>${giorni.map(g=>`<td class="${cls(g)}">${h(tronca(cella(g,'cantiere'),9))}</td>`).join('')}<td colspan="3" class="sub">${h(Object.entries(calc.perCodice).map(([c,nn])=>c+' '+nn).join(' '))}</td></tr>`);
-      righe.push(`<tr><td></td><td class="sub">committente</td>${giorni.map(g=>`<td class="${cls(g)}">${h(tronca(cella(g,'committente'),9))}</td>`).join('')}<td colspan="3"></td></tr>`);}}
+      if(p.soloTrasferte){righe.push(`<tr><td class="nome">${h(nomePersona(p))}</td><td class="sub">trasferte</td>${giorni.map(g=>`<td class="${cls(g)}">${h(cella(g,'trasferta'))}</td>`).join('')}<td></td><td class="num">${h(fEuro(calc.importo,0))}</td></tr>`);continue}
+      righe.push(`<tr><td class="nome">${h(nomePersona(p))}</td><td class="sub">ore</td>${giorni.map(g=>`<td class="${cls(g)}"><b>${h(cella(g,'ore'))}</b></td>`).join('')}<td class="num">${h(fOre(calc.oreGriglia))}</td><td class="num">${calc.importo!=null?h(fEuro(calc.importo,0)):''}</td></tr>`);
+      righe.push(`<tr><td></td><td class="sub">cantiere</td>${giorni.map(g=>`<td class="${cls(g)}">${h(tronca(cella(g,'cantiere'),9))}</td>`).join('')}<td colspan="2" class="sub">${h(Object.entries(calc.perCodice).map(([c,nn])=>c+' '+nn).join(' '))}</td></tr>`);
+      righe.push(`<tr><td></td><td class="sub">committente</td>${giorni.map(g=>`<td class="${cls(g)}">${h(tronca(cella(g,'committente'),9))}</td>`).join('')}<td colspan="2"></td></tr>`);
+      if(mp.note)righe.push(`<tr><td></td><td class="sub">note</td><td colspan="${n+2}" class="sub" style="text-align:left;white-space:normal">${h(mp.note)}</td></tr>`);}}
   const rie=riepilogoMese(anno,mese);
-  const blocchi=[`<h1 class="sx">Libro presenze — ${h(fMeseAnno(anno,mese))}</h1>`,`<table class="libro-presenze">${testa}<tbody>${righe.join('')}</tbody></table>`,`<p class="mini sx">Codici: M malattia · I infortunio · PE permesso · FS festività · FE ferie · AS assenza · CI cassa integrazione. Sabato e domenica non si compilano. «Dich.» = ore dichiarate sul foglio cartaceo. Totale ore in griglia ${h(fOre(rie.oreTotali))} · importo complessivo ${h(fEuro(rie.importoTotale,0))}.</p>`];
+  const blocchi=[`<h1 class="sx">Libro presenze — ${h(fMeseAnno(anno,mese))}</h1>`,`<table class="libro-presenze">${testa}<tbody>${righe.join('')}</tbody></table>`,`<p class="mini sx">Codici: M malattia · I infortunio · PE permesso · FS festività · FE ferie · AS assenza · CI cassa integrazione. Sabato e domenica non si compilano. Totale ore in griglia ${h(fOre(rie.oreTotali))} · importo complessivo ${h(fEuro(rie.importoTotale,0))}.</p>`];
   return {titolo:'Libro presenze '+capitalizza(nomeMese(mese))+' '+anno,orientamento:'orizzontale',cartaIntestata:true,blocchi};
 }
 function stampaLibroPresenze(anno,mese){anteprimaStampa({titolo:'Libro presenze '+capitalizza(nomeMese(mese))+' '+anno,doc:docLibroPresenze(anno,mese),orientamento:'orizzontale'})}
@@ -4578,15 +4572,15 @@ async function esportaPresenzeXlsx(anno){
 }
 function esportaPresenzeCsv(anno,mese){
   const m=meseP(anno,mese)||{persone:{}};const persone=personePresenze(anno,mese);const n=giorniNelMese(anno,mese);
-  const righe=[['Persona','Riga',...Array.from({length:n},(_,i)=>i+1),'Ore griglia','Ore dichiarate','Importo']];
+  const righe=[['Persona','Riga',...Array.from({length:n},(_,i)=>i+1),'Ore','Importo']];
   for(const p of persone){const mp=m.persone[p.id]||{giorni:{}};const calc=calcolaMesePersona(mp,p);const rr=riga=>Array.from({length:n},(_,i)=>{const c=(mp.giorni||{})[String(i+1)]||{};if(riga==='ore'){const v=valoreCella(c);return v==null?'':v}return c[riga]||''});
-    if(p.soloTrasferte)righe.push([nomePersona(p),'trasferte',...rr('trasferta'),'','',calc.importo]);else{righe.push([nomePersona(p),'ore',...rr('ore'),calc.oreGriglia,calc.oreDichiarate,calc.importo]);righe.push(['','cantiere',...rr('cantiere')]);righe.push(['','committente',...rr('committente')])}}
+    if(p.soloTrasferte)righe.push([nomePersona(p),'trasferte',...rr('trasferta'),'',calc.importo]);else{righe.push([nomePersona(p),'ore',...rr('ore'),calc.oreGriglia,calc.importo]);righe.push(['','cantiere',...rr('cantiere')]);righe.push(['','committente',...rr('committente')])}}
   scaricaCsv(righe,nomeFileData('Presenze '+capitalizza(nomeMese(mese))+' '+anno,'csv'));
 }
 function riepilogoPresenzeMarkdown(anno,mese){
   const rie=riepilogoMese(anno,mese);
-  let t=`# Riepilogo presenze ${capitalizza(nomeMese(mese))} ${anno}\n*Last updated: ${oggi()}*\n\n| Operaio | Ore griglia | Ore dichiarate | M | I | PE | FS | FE | AS | CI | Importo |\n|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|\n`;
-  for(const x of rie.perPersona){const c=x.calc;t+=`| ${nomePersona(x.p)} | ${x.p.soloTrasferte?'—':fOre(c.oreGriglia)} | ${c.oreDichiarate!=null?fOre(c.oreDichiarate):'—'} | ${['M','I','PE','FS','FE','AS','CI'].map(k=>c.perCodice[k]||0).join(' | ')} | ${fEuro(c.importo||0,0)} |\n`}
+  let t=`# Riepilogo presenze ${capitalizza(nomeMese(mese))} ${anno}\n*Last updated: ${oggi()}*\n\n| Operaio | Ore | M | I | PE | FS | FE | AS | CI | Importo |\n|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|\n`;
+  for(const x of rie.perPersona){const c=x.calc;t+=`| ${nomePersona(x.p)} | ${x.p.soloTrasferte?'—':fOre(c.oreGriglia)} | ${['M','I','PE','FS','FE','AS','CI'].map(k=>c.perCodice[k]||0).join(' | ')} | ${fEuro(c.importo||0,0)} |\n`}
   t+=`\n**Totale ore in griglia:** ${fOre(rie.oreTotali)} · **Importo complessivo:** ${fEuro(rie.importoTotale,0)}\n\nCodici: M malattia · I infortunio · PE permesso · FS festività · FE ferie · AS assenza · CI cassa integrazione. Importi arrotondati a multipli di 10 secondo la regola aziendale.\n`;
   return t;
 }

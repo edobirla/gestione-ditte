@@ -214,7 +214,7 @@ Un backup con versione precedente viene migrato all'apertura (\`migrazioni\` nel
 | \`cantieri[]\` | cantieri con figure, squadra, PSC, denuncia, invii, diario | |
 | \`pos[]\` | POS generati (dati congelati per la ristampa identica) | |
 | \`modelli\` | dichiarazioni (testo con segnaposto), testo POS personalizzato | |
-| \`presenze\` | oggetto \`{"AAAA-MM": {persone: {personaId: {giorni:{"1":{ore|codice,cantiere,committente}}, oreDichiarate, aggiustamenti, importoForzato, importoManuale, foglioOreId, note}}}}\` | |
+| \`presenze\` | oggetto \`{"AAAA-MM": {persone: {personaId: {giorni:{"1":{ore|codice,cantiere,committente}}, aggiustamenti, importoForzato, importoManuale, foglioOreId, note}}}}\` | |
 | \`bustePaga[]\`, \`regoleBuste[]\` | buste per persona/anno/mese; regole apprese nome file → persona | |
 | \`listino[]\`, \`preventivi[]\` | listino e preventivi con righe | |
 | \`movimenti[]\` | entrate/uscite/note di credito con quote per cantiere | |
@@ -266,7 +266,7 @@ ${campione(s.preventivi)}
 ${(()=>{const k=Object.keys(s.presenze||{})[0];if(!k)return '(nessun mese)';const m=s.presenze[k];const pid=Object.keys(m.persone)[0];const mp=m.persone[pid];const gg=Object.keys(mp.giorni).slice(0,2);return es({[k]:{persone:{[pid]:{...mp,giorni:Object.fromEntries(gg.map(g=>[g,mp.giorni[g]]))}}}})})()}
 \`\`\`
 Codici di assenza: M malattia, I infortunio, PE permesso (max 88 ore/anno), FS festività (solo in giorno feriale), FE ferie (max 20 giorni/anno), AS assenza, CI cassa integrazione.
-Importo mensile = arrotondaAziendale(oreDichiarate × tariffaOraria + Σ aggiustamenti + importoFisso); arrotondamento a multipli di 10 con resto 0–3 per difetto, 4–9 per eccesso.
+Importo mensile = arrotondaAziendale(ore in griglia × tariffaOraria + Σ aggiustamenti + importoFisso); arrotondamento a multipli di 10 con resto 0–3 per difetto, 4–9 per eccesso.
 ### impostazioni
 \`\`\`json
 ${es(Object.fromEntries(Object.entries(s.impostazioni).filter(([k])=>k!=='chiaveApi')))}
