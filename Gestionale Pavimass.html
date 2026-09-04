@@ -3955,7 +3955,7 @@ VISTE.budget=function(r){
   const vista=r.id||'movimenti';
   const anni=unici(stato.movimenti.map(m=>(m.data||'').slice(0,4)).filter(Boolean).concat([String(new Date().getFullYear())])).sort().reverse();
   const anno=ui.filtri.budgetAnno||anni[0];
-  const testa=html`<div class="testata"><div><h1>Budget</h1><div class="sotto">${stato.movimenti.length} movimenti · si lavora sempre sull'<b>imponibile</b>, mai sul totale documento</div></div><div class="azioni"><select data-cambio="budget-anno" aria-label="Anno" style="width:auto">${anni.map(a=>html`<option value="${a}" ${a===anno?'selected':''}>${a}</option>`)}</select><button class="pulsante" data-azione="budget-stampa" data-anno="${anno}">${icona('stampa')}Stampa</button><button class="pulsante" data-azione="budget-csv" data-anno="${anno}">${icona('scarica')}CSV</button><button class="pulsante primario" data-azione="movimento-nuovo">${icona('piu')}Nuovo movimento</button></div></div>
+  const testa=html`<div class="testata"><div><h1>Budget</h1><div class="sotto">${stato.movimenti.length} movimenti · si lavora sempre sull'<b>imponibile</b>, mai sul totale documento</div></div><div class="azioni"><select data-cambio="budget-anno" aria-label="Anno" style="width:auto">${anni.map(a=>html`<option value="${a}" ${a===anno?'selected':''}>${a}</option>`)}</select><button class="pulsante" data-azione="budget-importa-xml" title="Importa fatture elettroniche in formato XML (FatturaPA)">${icona('carica')}Importa XML</button><button class="pulsante" data-azione="budget-stampa" data-anno="${anno}">${icona('stampa')}Stampa</button><button class="pulsante" data-azione="budget-csv" data-anno="${anno}">${icona('scarica')}CSV</button><button class="pulsante primario" data-azione="movimento-nuovo">${icona('piu')}Nuovo movimento</button></div></div>
   ${linguette('budget',[{id:'movimenti',testo:'Movimenti',icona:'elenco'},{id:'cantieri',testo:'Per cantiere',icona:'cantieri'},{id:'clienti',testo:'Per cliente',icona:'clienti'},{id:'annuale',testo:'Riepilogo annuale',icona:'budget'}],vista)}`;
   return html`${testa}${vista==='cantieri'?budgetPerCantiere(anno):vista==='clienti'?budgetPerCliente(anno):vista==='annuale'?budgetAnnuale(anno):budgetMovimenti(anno,r)}`;
 };
@@ -4044,6 +4044,57 @@ async function dialogoMovimento(m,cantierePre){
   else esegui('Modificato movimento '+(v.numero||''),s=>{Object.assign(s.movimenti.find(x=>x.id===m.id),v)});
 }
 AZIONI['budget-csv']=d=>{const righe=[['Data','Tipo','Numero','Controparte','Cliente','Categoria','Imponibile','Cantieri (quote)','Data incasso','Da verificare','Note']];for(const m of stato.movimenti.filter(m=>(m.data||'').startsWith(d.anno)))righe.push([fData(m.data),TIPI_MOVIMENTO[m.tipo],m.numero||'',m.controparte||'',nomeCliente(m.clienteId),CATEGORIE_MOVIMENTO[m.categoria]||'',m.imponibile,quoteMovimentoPerCantiere(m).map(q=>nomeCantiere(q.cantiereId)+' '+fNum(q.importo,2)).join(' | '),fData(m.dataIncasso),m.daVerificare?'sì':'',m.note||'']);scaricaCsv(righe,nomeFileData('Movimenti '+d.anno,'csv'))};
+
+// ---- importazione fatture elettroniche XML (FatturaPA) ----
+// Formato scelto perché è quello con cui i software di fatturazione (es. SimplyFatt) esportano
+// le fatture in modo strutturato: niente da rileggere a occhio, i dati sono già nei campi giusti.
+function estraiFatturaXml(testo){
+  const doc=new DOMParser().parseFromString(testo,'application/xml');
+  if(doc.querySelector('parsererror')) throw new Error('XML non valido o non leggibile');
+  const pick=(root,tag)=>{if(!root)return'';const e=root.querySelector('*|'+tag);return e?(e.textContent||'').trim():''};
+  const header=doc.querySelector('*|FatturaElettronicaHeader');
+  const cedente=header&&header.querySelector('*|CedentePrestatore');
+  const cessionario=header&&header.querySelector('*|CessionarioCommittente');
+  const anagrafica=el=>el&&el.querySelector('*|Anagrafica');
+  const nomeSoggetto=el=>pick(anagrafica(el),'Denominazione')||[pick(anagrafica(el),'Nome'),pick(anagrafica(el),'Cognome')].filter(Boolean).join(' ');
+  const pivaCedente=pick(cedente&&cedente.querySelector('*|IdFiscaleIVA'),'IdCodice');
+  const denomCedente=nomeSoggetto(cedente);
+  const denomCessionario=nomeSoggetto(cessionario);
+  const bodies=Array.from(doc.querySelectorAll('*|FatturaElettronicaBody'));
+  if(!bodies.length) throw new Error('Nessun corpo fattura (FatturaElettronicaBody) trovato');
+  return bodies.map(body=>{
+    const datiGen=body.querySelector('*|DatiGeneraliDocumento');
+    const numero=pick(datiGen,'Numero'),data=pick(datiGen,'Data');
+    const riepiloghi=Array.from(body.querySelectorAll('*|DatiRiepilogo'));
+    const imponibile=arrotonda2(somma(riepiloghi,r=>parseFloat(pick(r,'ImponibileImporto'))||0));
+    return {numero,data,imponibile,pivaCedente,denomCedente,denomCessionario};
+  });
+}
+AZIONI['budget-importa-xml']=async()=>{
+  const fs=await scegliFile({accetta:'.xml'});
+  if(!fs.length) return;
+  const nostraPiva=normalizzaTesto(stato.azienda.piva);
+  const nuovi=[];let duplicate=0,errori=0;
+  for(const f of fs){
+    try{
+      const fatture=estraiFatturaXml(await leggiComeTesto(f));
+      for(const ft of fatture){
+        if(!ft.numero||!ft.data){errori++;continue}
+        const xmlId=[ft.pivaCedente,ft.numero,ft.data].join('|');
+        if(stato.movimenti.some(m=>m.fatturaXmlId===xmlId)){duplicate++;continue}
+        const nostra=!!ft.pivaCedente&&normalizzaTesto(ft.pivaCedente)===nostraPiva;
+        const tipo=nostra?'entrata':'uscita';
+        const controparte=nostra?ft.denomCessionario:ft.denomCedente;
+        let fornitoreId=null,clienteId=null;
+        if(!nostra&&controparte){const q=normalizzaTesto(controparte);const fo=stato.fornitori.find(x=>normalizzaTesto(x.ragioneSociale)===q);if(fo)fornitoreId=fo.id}
+        if(nostra&&controparte){const q=normalizzaTesto(controparte);const cl=stato.clienti.find(x=>normalizzaTesto(x.ragioneSociale)===q);if(cl)clienteId=cl.id}
+        nuovi.push({id:nuovoId('m'),tipo,numero:ft.numero,data:ft.data,controparte,clienteId,fornitoreId,imponibile:ft.imponibile,categoria:'materiali',quote:[],daVerificare:true,fatturaXmlId:xmlId,note:'Importata da fattura XML: '+f.name});
+      }
+    }catch(e){errori++}
+  }
+  if(nuovi.length) esegui(`Importate ${nuovi.length} fatture da XML`,s=>{s.movimenti.push(...nuovi)});
+  avviso(`${nuovi.length} fatture importate${duplicate?', '+duplicate+' già presenti':''}${errori?', '+errori+' con errori':''}. Sono segnate «da verificare»: assegna categoria e cantiere.`,{tipo:!nuovi.length&&errori?'errore':undefined,durata:6000});
+};
 AZIONI['budget-stampa']=d=>stampaBudget(d.anno);
 
 
