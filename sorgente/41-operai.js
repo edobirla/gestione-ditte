@@ -136,19 +136,29 @@ function schedaDocumentiPersona(p,idn){
 function schedaAnagrafica(p){
   const cfv=p.cf?validaCodiceFiscale(p.cf):null;
   const campo=(et,v,fmt)=>html`<div class="campo"><span class="etichetta-campo">${et}</span><div>${valoreODaCompilare(v,fmt)}</div></div>`;
-  return html`<div class="scheda"><h3>Anagrafica <span class="azioni"><button class="pulsante piccolo" data-azione="persona-modifica" data-id="${p.id}">${icona('modifica')}Modifica</button></span></h3><div class="campi">
-    ${campo('Cognome',p.cognome)}${campo('Nome',p.nome)}${campo('Tipo',TIPI_PERSONA[p.tipo])}${campo('Mansione',p.mansione)}
+  return html`<div class="griglia due">
+  <div class="scheda"><h3>${icona('persona')}Dati anagrafici</h3><div class="campi">
+    ${campo('Cognome',p.cognome)}${campo('Nome',p.nome)}
     <div class="campo"><span class="etichetta-campo">Codice fiscale</span><div class="mono">${valoreODaCompilare(p.cf)} ${cfv&&!cfv.ok?html`<span class="da-compilare piccolo">${cfv.errore}</span>`:''}</div></div>
-    ${campo('Data di nascita',p.dataNascita,fData)}${campo('Luogo di nascita',p.luogoNascita)}${campo('Nazionalità',p.nazionalita)}${campo('Residenza',p.residenza)}
+    ${campo('Data di nascita',p.dataNascita,fData)}${campo('Luogo di nascita',p.luogoNascita)}${campo('Nazionalità',p.nazionalita)}
+    <div class="campo largo"><span class="etichetta-campo">Residenza</span><div>${valoreODaCompilare(p.residenza)}</div></div>
+  </div></div>
+  <div class="scheda"><h3>${icona('telefono')}Contatti</h3><div class="campi">
     <div class="campo"><span class="etichetta-campo">Telefono</span><div>${p.telefono?contattoCliccabile('tel',p.telefono):daCompilare()}</div></div>
     <div class="campo"><span class="etichetta-campo">Email</span><div>${p.email?contattoCliccabile('mail',p.email):daCompilare()}</div></div>
+  </div>
+  <h3 class="mt">${icona('cantieri')}Rapporto di lavoro</h3><div class="campi">
+    ${campo('Tipo',TIPI_PERSONA[p.tipo])}${campo('Mansione',p.mansione)}
     ${campo('Assunzione',p.dataAssunzione,fData)}${campo('Cessazione',p.dataCessazione||(p.attivo?'in forza':null),v=>v==='in forza'?v:fData(v))}
-    <div class="campo"><span class="etichetta-campo">Qualifiche</span><div>${(p.qualifiche||[]).length?p.qualifiche.map(q=>html`<span class="etichetta-tag">${QUALIFICHE[q]||q}</span> `):html`<span class="silenzioso">nessuna</span>`}</div></div>
+    <div class="campo largo"><span class="etichetta-campo">Qualifiche</span><div>${(p.qualifiche||[]).length?p.qualifiche.map(q=>html`<span class="etichetta-tag">${QUALIFICHE[q]||q}</span> `):html`<span class="silenzioso">nessuna</span>`}</div></div>
+  </div></div>
+  <div class="scheda"><h3>${icona('presenze')}Presenze e cantiere</h3><div class="campi">
     <div class="campo"><span class="etichetta-campo">Libro presenze</span><div>${p.inLibroPresenze?html`sì, sezione ${p.sezionePresenze}${p.soloTrasferte?' (solo riga trasferte)':''}`:'no'}</div></div>
     <div class="campo"><span class="etichetta-campo">Va in cantiere</span><div>${p.inCantiere!==false?'sì':'no'}</div></div>
-    ${p.schemaOrario?html`<div class="campo"><span class="etichetta-campo">Schema orario</span><div>${['lun','mar','mer','gio','ven'].map(g=>g+' '+(p.schemaOrario[g]||0)).join(' · ')}</div></div>`:''}
-    <div class="campo largo"><span class="etichetta-campo">Note</span><div>${p.note||html`<span class="silenzioso">—</span>`}</div></div>
-  </div></div>`;
+    ${p.schemaOrario?html`<div class="campo largo"><span class="etichetta-campo">Schema orario personale</span><div>${['lun','mar','mer','gio','ven'].map(g=>g+' '+(p.schemaOrario[g]||0)).join(' · ')}</div></div>`:''}
+  </div></div>
+  ${p.note?html`<div class="scheda"><h3>${icona('info')}Note</h3><p>${p.note}</p></div>`:''}
+  </div>`;
 }
 function schedaBustePersona(p){
   const buste=stato.bustePaga.filter(b=>b.personaId===p.id);

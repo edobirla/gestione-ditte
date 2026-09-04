@@ -2582,19 +2582,29 @@ function schedaDocumentiPersona(p,idn){
 function schedaAnagrafica(p){
   const cfv=p.cf?validaCodiceFiscale(p.cf):null;
   const campo=(et,v,fmt)=>html`<div class="campo"><span class="etichetta-campo">${et}</span><div>${valoreODaCompilare(v,fmt)}</div></div>`;
-  return html`<div class="scheda"><h3>Anagrafica <span class="azioni"><button class="pulsante piccolo" data-azione="persona-modifica" data-id="${p.id}">${icona('modifica')}Modifica</button></span></h3><div class="campi">
-    ${campo('Cognome',p.cognome)}${campo('Nome',p.nome)}${campo('Tipo',TIPI_PERSONA[p.tipo])}${campo('Mansione',p.mansione)}
+  return html`<div class="griglia due">
+  <div class="scheda"><h3>${icona('persona')}Dati anagrafici</h3><div class="campi">
+    ${campo('Cognome',p.cognome)}${campo('Nome',p.nome)}
     <div class="campo"><span class="etichetta-campo">Codice fiscale</span><div class="mono">${valoreODaCompilare(p.cf)} ${cfv&&!cfv.ok?html`<span class="da-compilare piccolo">${cfv.errore}</span>`:''}</div></div>
-    ${campo('Data di nascita',p.dataNascita,fData)}${campo('Luogo di nascita',p.luogoNascita)}${campo('Nazionalità',p.nazionalita)}${campo('Residenza',p.residenza)}
+    ${campo('Data di nascita',p.dataNascita,fData)}${campo('Luogo di nascita',p.luogoNascita)}${campo('Nazionalità',p.nazionalita)}
+    <div class="campo largo"><span class="etichetta-campo">Residenza</span><div>${valoreODaCompilare(p.residenza)}</div></div>
+  </div></div>
+  <div class="scheda"><h3>${icona('telefono')}Contatti</h3><div class="campi">
     <div class="campo"><span class="etichetta-campo">Telefono</span><div>${p.telefono?contattoCliccabile('tel',p.telefono):daCompilare()}</div></div>
     <div class="campo"><span class="etichetta-campo">Email</span><div>${p.email?contattoCliccabile('mail',p.email):daCompilare()}</div></div>
+  </div>
+  <h3 class="mt">${icona('cantieri')}Rapporto di lavoro</h3><div class="campi">
+    ${campo('Tipo',TIPI_PERSONA[p.tipo])}${campo('Mansione',p.mansione)}
     ${campo('Assunzione',p.dataAssunzione,fData)}${campo('Cessazione',p.dataCessazione||(p.attivo?'in forza':null),v=>v==='in forza'?v:fData(v))}
-    <div class="campo"><span class="etichetta-campo">Qualifiche</span><div>${(p.qualifiche||[]).length?p.qualifiche.map(q=>html`<span class="etichetta-tag">${QUALIFICHE[q]||q}</span> `):html`<span class="silenzioso">nessuna</span>`}</div></div>
+    <div class="campo largo"><span class="etichetta-campo">Qualifiche</span><div>${(p.qualifiche||[]).length?p.qualifiche.map(q=>html`<span class="etichetta-tag">${QUALIFICHE[q]||q}</span> `):html`<span class="silenzioso">nessuna</span>`}</div></div>
+  </div></div>
+  <div class="scheda"><h3>${icona('presenze')}Presenze e cantiere</h3><div class="campi">
     <div class="campo"><span class="etichetta-campo">Libro presenze</span><div>${p.inLibroPresenze?html`sì, sezione ${p.sezionePresenze}${p.soloTrasferte?' (solo riga trasferte)':''}`:'no'}</div></div>
     <div class="campo"><span class="etichetta-campo">Va in cantiere</span><div>${p.inCantiere!==false?'sì':'no'}</div></div>
-    ${p.schemaOrario?html`<div class="campo"><span class="etichetta-campo">Schema orario</span><div>${['lun','mar','mer','gio','ven'].map(g=>g+' '+(p.schemaOrario[g]||0)).join(' · ')}</div></div>`:''}
-    <div class="campo largo"><span class="etichetta-campo">Note</span><div>${p.note||html`<span class="silenzioso">—</span>`}</div></div>
-  </div></div>`;
+    ${p.schemaOrario?html`<div class="campo largo"><span class="etichetta-campo">Schema orario personale</span><div>${['lun','mar','mer','gio','ven'].map(g=>g+' '+(p.schemaOrario[g]||0)).join(' · ')}</div></div>`:''}
+  </div></div>
+  ${p.note?html`<div class="scheda"><h3>${icona('info')}Note</h3><p>${p.note}</p></div>`:''}
+  </div>`;
 }
 function schedaBustePersona(p){
   const buste=stato.bustePaga.filter(b=>b.personaId===p.id);
@@ -3040,9 +3050,17 @@ const campiInterazione=()=>[{nome:'data',etichetta:'Data',tipo:'data',obbligator
 AZIONI['interazione-nuova']=async d=>{const v=await dialogoModulo('Nuova interazione',campiInterazione(),{data:oggi(),tipo:'mail'});if(!v)return;esegui('Registrata interazione',s=>{s.clienti.find(x=>x.id===d.id).interazioni.push(Object.assign({id:nuovoId('in')},v))})};
 AZIONI['interazione-modifica']=async d=>{const c=cliente(d.id);const i=c.interazioni[+d.i];const v=await dialogoModulo('Interazione',campiInterazione(),i,{pulsantiExtra:[{testo:'Elimina',classe:'pericolo',sinistra:true,fn:()=>{esegui('Eliminata interazione',s=>{s.clienti.find(x=>x.id===d.id).interazioni.splice(+d.i,1)});return null}}]});if(!v)return;esegui('Modificata interazione',s=>{Object.assign(s.clienti.find(x=>x.id===d.id).interazioni[+d.i],v)})};
 // ---- professionisti ----
+const RUOLI_SOLO_CANTIERE=['progettista','direttoreLavori','cse','csp'];
 function vistaProfessionisti(){
-  return html`<div class="scheda"><h3>Professionisti <span class="azioni"><button class="pulsante piccolo" data-azione="professionista-nuovo">${icona('piu','piccola')}Nuovo</button></span></h3><p class="secondario piccolo">Progettisti, direttori dei lavori, coordinatori per la sicurezza, medico competente: le figure che entrano nelle sei figure del cantiere e nel POS.</p>${tabella({righe:stato.professionisti,onRiga:p=>dialogoProfessionista(p),colonne:[{chiave:'nome',titolo:'Nome',principale:true,formatta:p=>html`<b>${[p.titolo,p.nome].filter(Boolean).join(' ')}</b>`},{chiave:'ruoli',titolo:'Ruoli',formatta:p=>(p.ruoli||[]).map(r=>html`<span class="etichetta-tag">${RUOLI_PROFESSIONISTA[r]||r}</span> `)},{chiave:'ind',titolo:'Sede',formatta:p=>indirizzoTesto(p.indirizzo)},{chiave:'con',titolo:'Contatti',formatta:p=>html`${(p.telefoni||[]).map(t=>html`${contattoCliccabile('tel',t)} `)}${p.email?contattoCliccabile('mail',p.email):''}`},{chiave:'cant',titolo:'Cantieri',num:true,formatta:p=>stato.cantieri.filter(c=>[c.progettistaId,c.direttoreLavoriId,c.cseId,c.cspId].includes(p.id)).length}]})}</div>`;
+  const mostraTutti=!!ui.filtri.professionistiTutti;
+  const tutti=stato.professionisti;
+  const visibili=mostraTutti?tutti:tutti.filter(p=>!(p.ruoli||[]).length||p.ruoli.some(r=>!RUOLI_SOLO_CANTIERE.includes(r)));
+  const nascosti=tutti.length-visibili.length;
+  return html`<div class="scheda"><h3>Professionisti <span class="azioni"><button class="pulsante piccolo" data-azione="professionista-nuovo">${icona('piu','piccola')}Nuovo</button></span></h3><p class="secondario piccolo">Figure generiche come medico competente, formatori, consulenti sicurezza. Progettista, direttore dei lavori, CSE e CSP sono legati a un cantiere specifico: si trovano nella scheda del cantiere, nelle sei figure.</p>
+  ${nascosti?html`<label class="spunta piccolo mb-s"><input type="checkbox" data-cambio="professionisti-tutti" ${mostraTutti?'checked':''}> Mostra anche ${plurale(nascosti,'quello legato solo a un cantiere','quelli legati solo a un cantiere')} (${nascosti})</label>`:''}
+  ${tabella({righe:visibili,onRiga:p=>dialogoProfessionista(p),colonne:[{chiave:'nome',titolo:'Nome',principale:true,formatta:p=>html`<b>${[p.titolo,p.nome].filter(Boolean).join(' ')}</b>`},{chiave:'ruoli',titolo:'Ruoli',formatta:p=>(p.ruoli||[]).map(r=>html`<span class="etichetta-tag">${RUOLI_PROFESSIONISTA[r]||r}</span> `)},{chiave:'ind',titolo:'Sede',formatta:p=>indirizzoTesto(p.indirizzo)},{chiave:'con',titolo:'Contatti',formatta:p=>html`${(p.telefoni||[]).map(t=>html`${contattoCliccabile('tel',t)} `)}${p.email?contattoCliccabile('mail',p.email):''}`},{chiave:'cant',titolo:'Cantieri',num:true,formatta:p=>stato.cantieri.filter(c=>[c.progettistaId,c.direttoreLavoriId,c.cseId,c.cspId].includes(p.id)).length}]})}</div>`;
 }
+AZIONI['professionisti-tutti']=(d,t)=>{ui.filtri.professionistiTutti=t.checked;render()};
 AZIONI['professionista-nuovo']=()=>dialogoProfessionista(null);
 function dialogoProfessionista(p){
   const nuovo=!p; p=p||{ruoli:[],indirizzo:{},telefoni:[]};
