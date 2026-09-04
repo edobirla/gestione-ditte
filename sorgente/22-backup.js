@@ -269,7 +269,7 @@ Codici di assenza: M malattia, I infortunio, PE permesso (max 88 ore/anno), FS f
 Importo mensile = arrotondaAziendale(ore in griglia × tariffaOraria + Σ aggiustamenti + importoFisso); arrotondamento a multipli di 10 con resto 0–3 per difetto, 4–9 per eccesso.
 ### impostazioni
 \`\`\`json
-${es(Object.fromEntries(Object.entries(s.impostazioni).filter(([k])=>k!=='chiaveApi')))}
+${es(s.impostazioni)}
 \`\`\`
 `;
 }

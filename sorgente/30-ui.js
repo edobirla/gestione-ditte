@@ -275,9 +275,15 @@ function graficoTemporale(righe,opz){
 document.addEventListener('click',e=>{const g=e.target.closest('svg g[data-href]');if(g)location.hash=g.dataset.href});
 // Completamento automatico semplice su input (data-suggerimenti="nome elenco")
 function attivaSuggerimenti(input,fonte){
+  // fonte() può restituire stringhe, oppure {v,t} quando il valore da scrivere differisce dall'etichetta mostrata
   let box=null,idx=-1,voci=[];
   const chiudi=()=>{if(box){box.remove();box=null}idx=-1};
-  const mostra=()=>{const q=normalizzaTesto(input.value);voci=unici(fonte()).filter(v=>v&&(!q||normalizzaTesto(v).includes(q))).slice(0,8);chiudi();if(!voci.length)return;box=creaEl(html`<div class="suggerimenti">${voci.map(v=>html`<div>${v}</div>`)}</div>`);const r=input.getBoundingClientRect();box.style.position='fixed';box.style.left=r.left+'px';box.style.top=(r.bottom+2)+'px';box.style.minWidth=r.width+'px';document.body.appendChild(box);tutti('div',box).forEach((d,i)=>d.onmousedown=ev=>{ev.preventDefault();input.value=voci[i];input.dispatchEvent(new Event('change',{bubbles:true}));chiudi()})};
+  const mostra=()=>{
+    const q=normalizzaTesto(input.value);
+    const grezze=fonte().map(x=>typeof x==='object'?x:{v:x,t:x}).filter(x=>x.v);
+    const viste=new Set();voci=grezze.filter(x=>{if(viste.has(x.v))return false;viste.add(x.v);return !q||normalizzaTesto(x.v).includes(q)||normalizzaTesto(x.t).includes(q)}).slice(0,10);
+    chiudi();if(!voci.length)return;
+    box=creaEl(html`<div class="suggerimenti">${voci.map(x=>html`<div>${x.t}</div>`)}</div>`);const r=input.getBoundingClientRect();box.style.position='fixed';box.style.left=r.left+'px';box.style.top=(r.bottom+2)+'px';box.style.minWidth=r.width+'px';document.body.appendChild(box);tutti('div',box).forEach((d,i)=>d.onmousedown=ev=>{ev.preventDefault();input.value=voci[i].v;input.dispatchEvent(new Event('change',{bubbles:true}));chiudi()})};
   input.addEventListener('input',mostra);input.addEventListener('focus',mostra);input.addEventListener('blur',()=>setTimeout(chiudi,120));
-  input.addEventListener('keydown',e=>{if(!box)return;const k=e.key||({13:'Enter',27:'Escape',38:'ArrowUp',40:'ArrowDown'})[e.keyCode]||'';if(k==='ArrowDown'){e.preventDefault();idx=Math.min(voci.length-1,idx+1)}else if(k==='ArrowUp'){e.preventDefault();idx=Math.max(0,idx-1)}else if(k==='Enter'&&idx>=0){e.preventDefault();input.value=voci[idx];input.dispatchEvent(new Event('change',{bubbles:true}));chiudi();return}else if(k==='Escape'){chiudi();return}else return;tutti('div',box).forEach((d,i)=>d.classList.toggle('attivo',i===idx))});
+  input.addEventListener('keydown',e=>{if(!box)return;const k=e.key||({13:'Enter',27:'Escape',38:'ArrowUp',40:'ArrowDown'})[e.keyCode]||'';if(k==='ArrowDown'){e.preventDefault();idx=Math.min(voci.length-1,idx+1)}else if(k==='ArrowUp'){e.preventDefault();idx=Math.max(0,idx-1)}else if(k==='Enter'&&idx>=0){e.preventDefault();input.value=voci[idx].v;input.dispatchEvent(new Event('change',{bubbles:true}));chiudi();return}else if(k==='Escape'){chiudi();return}else return;tutti('div',box).forEach((d,i)=>d.classList.toggle('attivo',i===idx))});
 }

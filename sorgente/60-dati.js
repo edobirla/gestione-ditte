@@ -23,7 +23,7 @@ function datiIniziali(soloStruttura){
     persone:[],tipiDocumento:[],documenti:[],file:[],clienti:[],professionisti:[],lavorazioni:[],cantieri:[],pos:[],
     modelli:{dichiarazioni:[],posTesto:null,posMacchine:null,posDpiDotazione:null},
     presenze:{},bustePaga:[],regoleBuste:[],listino:[],preventivi:[],movimenti:[],generati:[],cestino:[],
-    impostazioni:{nomeUtente:'Edoardo Birla',dispositivo:'',tema:'sistema',ultimoBackup:null,modificheDopoBackup:0,ultimaModifica:null,soglie:Object.assign({},SOGLIE_PREDEFINITE),densita:'normale',festivitaLocali:[],arrotondamento:'aziendale',chiaveApi:'',modelloApi:'',compressioneImmagini:true,obiettivoKb:300,avvisaPdfMb:2,creato:new Date().toISOString()},
+    impostazioni:{nomeUtente:'Edoardo Birla',dispositivo:'',tema:'sistema',ultimoBackup:null,modificheDopoBackup:0,ultimaModifica:null,soglie:Object.assign({},SOGLIE_PREDEFINITE),densita:'normale',festivitaLocali:[],arrotondamento:'aziendale',compressioneImmagini:true,obiettivoKb:300,avvisaPdfMb:2,creato:new Date().toISOString()},
   };
   s.lavorazioni=LAVORAZIONI_PAVIMASS.map(l=>Object.assign({},l));
   s.tipiDocumento=TIPI_DOCUMENTO_INIZIALI.map(t=>Object.assign({},t));

@@ -40,7 +40,7 @@ VISTE.presenze=function(r){
   const sezioni=[['soci','Soci'],['dipendenti','Dipendenti']];
   dopoRender(montaGriglia);
   return html`<div class="testata"><div class="riga stretta"><a class="pulsante icona" href="#/presenze/${chiaveMese(prev.anno,prev.mese)}" aria-label="Mese precedente">${icona('sinistra')}</a><h1 style="min-width:220px;text-align:center">${fMeseAnno(anno,mese)}</h1><a class="pulsante icona" href="#/presenze/${chiaveMese(succ.anno,succ.mese)}" aria-label="Mese successivo">${icona('destra')}</a><a class="pulsante piccolo discreto" href="#/presenze">Oggi</a></div>
-    <div class="azioni"><button class="pulsante" data-azione="presenze-strumenti" data-k="${k}">${icona('magia')}Strumenti</button><button class="pulsante" data-azione="presenze-trascrizione" data-k="${k}">${icona('tastiera')}Trascrizione</button><button class="pulsante" data-azione="presenze-incolla" data-k="${k}">${icona('incolla')}Incolla dati</button><button class="pulsante" data-azione="presenze-uscite" data-k="${k}">${icona('scarica')}Uscite</button><button class="pulsante icona" data-azione="presenze-aiuto" title="Tasti e regole">${icona('info')}</button></div></div>
+    <div class="azioni"><button class="pulsante" data-azione="presenze-strumenti" data-k="${k}">${icona('magia')}Strumenti</button><button class="pulsante" data-azione="presenze-uscite" data-k="${k}">${icona('scarica')}Uscite</button><button class="pulsante icona" data-azione="presenze-aiuto" title="Tasti e regole">${icona('info')}</button></div></div>
   <div class="griglia quattro mb"><div class="indicatore" style="cursor:default"><span class="etichetta">Ore in griglia</span><span class="valore md">${fOre(rie.oreTotali)}</span></div><div class="indicatore" style="cursor:default"><span class="etichetta">Importo del mese</span><span class="valore md">${fEuro(rie.importoTotale,0)}</span></div><div class="indicatore ${rie.giorniDaCompilare?'attenzione':''}" style="cursor:default"><span class="etichetta">Giorni-persona da compilare</span><span class="valore md">${rie.giorniDaCompilare}</span></div><div class="indicatore" style="cursor:default"><span class="etichetta">Giorni lavorativi</span><span class="valore md">${giorniLavorativiMese(anno,mese,stato.impostazioni.festivitaLocali).length}</span><span class="nota">${giorni.filter(x=>x.festivo&&!x.we).map(x=>'FS '+x.g).join(', ')||'nessuna festività feriale'}</span></div></div>
   ${avvisi.length?html`<div class="avviso-inline attenzione">${icona('attenzione')}<div class="corpo">${avvisi.map(a=>html`${a}<br>`)}</div></div>`:''}
   <div class="strumenti-tabella"><label class="spunta piccolo"><input type="checkbox" data-cambio="presenze-compatta" ${compatta?'checked':''}> Nascondi righe cantiere e committente</label><span class="conteggio">Frecce per muoversi · digita per inserire · ⇧+frecce seleziona · Canc svuota</span></div>
@@ -62,7 +62,7 @@ function righePersona(p,mp,giorni,k){
   }
   return html`<tr><td class="fisso"><a href="#/operai/${p.id}">${nomePersona(p)}</a></td><td class="fisso2">ore</td>${giorni.map(d=>cella(d,'ore'))}<td class="totale num">${fOre(calc.oreGriglia)}</td><td class="totale num" data-azione="presenze-persona" data-k="${k}" data-pid="${p.id}" style="cursor:pointer" title="Apri il riepilogo della persona">${calc.importo!=null?fEuro(calc.importo,0):'—'}${mp.importoForzato?' ✎':''}${mp.note?' '+icona('info','piccola'):''}</td></tr>
   <tr class="riga-secondaria"><td class="fisso"></td><td class="fisso2">cantiere</td>${giorni.map(d=>cella(d,'cantiere'))}<td class="totale" colspan="2">${Object.entries(calc.perCodice).map(([c,nn])=>html`<span class="etichetta-tag" title="${(CODICI_ASSENZA[c]||{}).nome||c}">${c} ${nn}</span> `)}</td></tr>
-  <tr class="riga-secondaria"><td class="fisso"></td><td class="fisso2">committente</td>${giorni.map(d=>cella(d,'committente'))}<td class="totale" colspan="2">${mp.foglioOreId?html`<button class="pulsante piccolo" data-azione="file-apri" data-id="${mp.foglioOreId}">${icona('immagine','piccola')}foglio</button>`:''}${(mp.aggiustamenti||[]).length?html` <span class="piccolo secondario">${mp.aggiustamenti.map(a=>a.sigla+' '+fEuro(a.importo,0)).join(', ')}</span>`:''}</td></tr>`;
+  <tr class="riga-secondaria"><td class="fisso"></td><td class="fisso2">committente</td>${giorni.map(d=>cella(d,'committente'))}<td class="totale" colspan="2">${(mp.aggiustamenti||[]).length?html`<span class="piccolo secondario">${mp.aggiustamenti.map(a=>a.sigla+' '+fEuro(a.importo,0)).join(', ')}</span>`:''}</td></tr>`;
 }
 AZIONI['presenze-compatta']=(d,t)=>{ui.filtri.presenzeCompatta=t.checked;render()};
 // ---- vista telefono: una persona alla volta ----
@@ -130,8 +130,9 @@ function montaGriglia(){
     const riga=td.dataset.riga;const val=iniziale!==undefined?iniziale:td.textContent;
     const inp=document.createElement('input');inp.type='text';inp.value=val;inp.setAttribute('aria-label','Valore');
     td.textContent='';td.appendChild(inp);editor={td,inp,riga};
-    inp.focus();if(iniziale===undefined)inp.select();else inp.setSelectionRange(inp.value.length,inp.value.length);
     if(riga==='cantiere'||riga==='committente'||riga==='trasferta') attivaSuggerimenti(inp,()=>valoriUsati(riga==='trasferta'?'trasferta':riga));
+    if(riga==='ore') attivaSuggerimenti(inp,()=>[{v:'8',t:'8 ore'},{v:'4',t:'4 ore'},...Object.entries(CODICI_ASSENZA).map(([c,x])=>({v:c,t:c+' — '+x.nome}))]);
+    inp.focus();if(iniziale===undefined)inp.select();else inp.setSelectionRange(inp.value.length,inp.value.length);
     inp.addEventListener('keydown',e=>{
       const k=nomeTasto(e);
       if(k==='Enter'){e.preventDefault();e.stopPropagation();commit();muovi(0,1)}
@@ -270,105 +271,10 @@ AZIONI['presenze-persona']=async d=>{
     {nome:'aggiustamentiTesto',etichetta:'Aggiustamenti (una riga: sigla importo)',tipo:'textarea',segnaposto:'brc 50\nmt -20',aiuto:'Anche negativi. Contano solo gli importi. Per ore lavorate nel fine settimana (non inseribili in griglia), aggiungi qui l\'importo corrispondente.'},
     {nome:'importoForzato',tipo:'spunta',testo:'Forza l\'importo a mano'},{nome:'importoManuale',etichetta:'Importo forzato',tipo:'euro'},
     {nome:'note',etichetta:'Note',tipo:'textarea',largo:true,aiuto:'Compaiono nel libro presenze stampato, sotto il nome; se lasci vuoto non compare nulla.'},
-  ],{aggiustamentiTesto:agg,importoForzato:!!mp.importoForzato,importoManuale:mp.importoManuale,note:mp.note||''},{intro:html`<div class="griglia tre mb"><div class="indicatore" style="cursor:default"><span class="etichetta">Ore in griglia</span><span class="valore md">${fOre(calc.oreGriglia)}</span></div><div class="indicatore" style="cursor:default"><span class="etichetta">Importo calcolato</span><span class="valore md">${fEuro(calc.importoCalcolato,0)}</span><span class="nota">${calc.tariffa?fOre(calc.oreGriglia)+' h × '+fNum(calc.tariffa,2)+' € = '+fEuro(calc.importoBase):''}${calc.fisso?' + fisso '+fEuro(calc.fisso,0):''}${calc.aggiustamenti?' + agg. '+fEuro(calc.aggiustamenti,0):''}</span></div><div class="indicatore" style="cursor:default"><span class="etichetta">Foglio ore</span><span class="valore md" style="font-size:14px">${mp.foglioOreId?html`<button class="pulsante piccolo" data-azione="file-apri" data-id="${mp.foglioOreId}">${icona('immagine','piccola')}Vedi</button>`:html`<span class="secondario">nessuno</span>`} <button class="pulsante piccolo" data-azione="presenze-foglio-carica" data-k="${d.k}" data-pid="${p.id}">${icona('fotocamera','piccola')}Foto</button></span></div></div>`});
+  ],{aggiustamentiTesto:agg,importoForzato:!!mp.importoForzato,importoManuale:mp.importoManuale,note:mp.note||''},{intro:html`<div class="griglia due mb"><div class="indicatore" style="cursor:default"><span class="etichetta">Ore in griglia</span><span class="valore md">${fOre(calc.oreGriglia)}</span></div><div class="indicatore" style="cursor:default"><span class="etichetta">Importo calcolato</span><span class="valore md">${fEuro(calc.importoCalcolato,0)}</span><span class="nota">${calc.tariffa?fOre(calc.oreGriglia)+' h × '+fNum(calc.tariffa,2)+' € = '+fEuro(calc.importoBase):''}${calc.fisso?' + fisso '+fEuro(calc.fisso,0):''}${calc.aggiustamenti?' + agg. '+fEuro(calc.aggiustamenti,0):''}</span></div></div>`});
   if(!v) return;
   const aggiustamenti=(v.aggiustamentiTesto||'').split('\n').map(x=>x.trim()).filter(Boolean).map(x=>{const m=/^(.*?)\s*([+-]?\s*[\d.,]+)\s*€?$/.exec(x);if(!m)return {sigla:x,importo:0};return {sigla:m[1].trim()||'agg',importo:leggiNumero(m[2].replace(/\s/g,''))||0}});
   esegui('Riepilogo '+nomePersona(p)+' '+fMeseAnno(anno,mese),s=>{const x=assicuraMesePersona(s,anno,mese,p.id);x.aggiustamenti=aggiustamenti;x.importoForzato=!!v.importoForzato;x.importoManuale=v.importoForzato?v.importoManuale:null;x.note=v.note});
-};
-AZIONI['presenze-foglio-carica']=async d=>{const fs=await scegliFile({multipli:false,accetta:'image/*,.pdf'});if(!fs.length)return;const es=await acquisisciConAnteprima(fs);if(!es||!es.length)return;const {anno,mese}=daChiaveMese(d.k);esegui('Allegato foglio ore',s=>{assicuraMesePersona(s,anno,mese,d.pid).foglioOreId=es[0].rec.id})};
-// ---- postazione di trascrizione ----
-AZIONI['presenze-trascrizione']=async d=>{
-  const {anno,mese}=daChiaveMese(d.k);const persone=personePresenze(anno,mese).filter(p=>!p.soloTrasferte);
-  const scelta=await dialogoModulo('Trascrizione del foglio ore',[{nome:'pid',etichetta:'Operaio',tipo:'select',obbligatorio:true,opzioni:persone.map(p=>({v:p.id,t:nomePersona(p)}))}],{pid:ui.filtri.ultimaTrascrizione||persone[0].id},{ok:'Apri la postazione',intro:html`<p class="piccolo secondario">Senza rete e senza librerie non è possibile leggere la grafia: la trascrizione è manuale, ma è pensata per farsi in meno di un minuto per operaio, tutta da tastiera. La foto resta allegata al mese.</p>`});
-  if(!scelta) return;
-  ui.filtri.ultimaTrascrizione=scelta.pid;
-  apriTrascrizione(anno,mese,scelta.pid);
-};
-// Lettura assistita del foglio ore: l'UNICA funzione dell'applicazione che usa la rete. Parte solo da un clic dell'utente, solo con la chiave inserita.
-// Perché il formato Messages di Anthropic: è il servizio predefinito; endpoint e modello sono modificabili nelle Impostazioni per servizi compatibili.
-async function leggiFoglioConAi(fileId,anno,mese){
-  const imp=stato.impostazioni;if(!imp.chiaveApi)throw new Error('chiave API non inserita');
-  const blob=await leggiFile(fileId);if(!blob)throw new Error('foto del foglio non trovata');
-  const b64=await new Promise((ok,ko)=>{const r=new FileReader();r.onload=()=>ok(String(r.result).split(',')[1]);r.onerror=()=>ko(r.error);r.readAsDataURL(blob)});
-  const richiesta=`Questa è la foto di un foglio ore scritto a mano di un operaio edile per ${NOMI_MESI[mese-1]} ${anno}. Trascrivi solo ciò che leggi con certezza, senza inventare nulla. Rispondi con un solo oggetto JSON, senza testo attorno, nella forma {"giorni":{"1":{"ore":8,"cantiere":"nome scritto"},"2":{"codice":"FE"}}}. Codici ammessi: M (malattia), I (infortunio), PE (permesso), FS (festività), FE (ferie), AS (assenza), CI (cassa integrazione). Ometti i giorni vuoti o illeggibili, i sabati e le domeniche.`;
-  const risposta=await fetch(imp.urlApi||'https://api.anthropic.com/v1/messages',{method:'POST',headers:{'content-type':'application/json','x-api-key':imp.chiaveApi,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:imp.modelloApi||'claude-sonnet-5',max_tokens:2000,messages:[{role:'user',content:[{type:'image',source:{type:'base64',media_type:blob.type||'image/jpeg',data:b64}},{type:'text',text:richiesta}]}]})});
-  if(!risposta.ok)throw new Error('il servizio ha risposto '+risposta.status+' '+(await risposta.text()).slice(0,300));
-  const json=await risposta.json();const testo=(json.content||[]).map(c=>c.text||'').join('');
-  const m=/\{[\s\S]*\}/.exec(testo);if(!m)throw new Error('risposta non in formato JSON: '+testo.slice(0,200));
-  const dati=JSON.parse(m[0]);
-  return {giorni:dati.giorni&&typeof dati.giorni==='object'?dati.giorni:{}};
-}
-async function apriTrascrizione(anno,mese,pid){
-  const p=persona(pid);const k=chiaveMese(anno,mese);
-  let mp=clona(((meseP(anno,mese)||{persone:{}}).persone[pid])||{giorni:{},aggiustamenti:[]});
-  const n=giorniNelMese(anno,mese);const fest=festivitaAnno(anno,stato.impostazioni.festivitaLocali);
-  const fotoUrl=mp.foglioOreId?await urlFile(mp.foglioOreId):null;
-  const righe=Array.from({length:n},(_,i)=>{const g=i+1;const iso=k+'-'+pad2(g);const gs=giornoSettimana(anno,mese,g);const c=mp.giorni[String(g)]||{};const v=valoreCella(c);return {g,gs,we:gs===0||gs===6,fest:fest.has(iso),ore:v==null?'':typeof v==='number'?fOre(v):v,cantiere:c.cantiere||'',committente:c.committente||'',incerto:(mp.incerti||[]).includes(g)}});
-  const corpo=html`<div class="trascrizione"><div class="foto" id="tr-foto">${fotoUrl?html`<img src="${fotoUrl}" alt="Foglio ore" id="tr-img">`:html`<div class="anteprima-nessuna">${icona('fotocamera')}<p>Nessuna foto del foglio per questo mese.</p><button class="pulsante" id="tr-carica">Carica la foto</button></div>`}<div class="comandi"><button class="pulsante piccolo icona" id="tr-zoom-piu" title="Ingrandisci">${icona('zoom-piu','piccola')}</button><button class="pulsante piccolo icona" id="tr-zoom-meno" title="Riduci">${icona('zoom-meno','piccola')}</button><button class="pulsante piccolo" id="tr-adatta">Adatta</button>${fotoUrl&&stato.impostazioni.chiaveApi?html`<button class="pulsante piccolo" id="tr-ai" title="Invia la foto del foglio al servizio AI configurato nelle Impostazioni">${icona('chiave','piccola')}Leggi con AI</button>`:''}</div></div>
-  <div class="griglia-t"><table><thead><tr><th>G</th><th>Ore/cod.</th><th>Cantiere</th><th>Committente</th><th title="Letto con incertezza">?</th></tr></thead><tbody>${righe.map(r=>html`<tr class="${r.we?'fine-settimana':''} ${r.fest?'festivo':''}" data-g="${r.g}"><td><b>${r.g}</b> <span class="piccolo">${NOMI_GIORNI_BREVI[r.gs]}</span></td>${r.we?html`<td colspan="4" class="piccolo secondario">fine settimana: non si compila</td>`:html`<td><input type="text" data-tr="ore" data-g="${r.g}" value="${r.ore}" style="width:64px;text-align:center" placeholder="${r.fest?'FS':'8'}"></td><td><input type="text" data-tr="cantiere" data-g="${r.g}" value="${r.cantiere}"></td><td><input type="text" data-tr="committente" data-g="${r.g}" value="${r.committente}"></td><td><input type="checkbox" data-tr="incerto" data-g="${r.g}" ${r.incerto?'checked':''} aria-label="Incerto"></td>`}</tr>`)}</tbody></table></div></div>
-  <div class="riga mt-s piccolo secondario"><span class="kbd">Invio</span> giù nella stessa colonna · <span class="kbd">Tab</span> a destra · <span class="kbd">⌘D</span> copia dalla riga sopra · <span class="kbd">⌘↓</span> riempi in giù fino a fine mese · <span class="kbd">?</span> segna incerto</span></div>`;
-  const ris=await dialogo({titolo:'Trascrizione · '+nomePersona(p)+' · '+fMeseAnno(anno,mese),enorme:true,corpo,senzaFocus:true,valoreEscape:null,pulsanti:[{testo:'Annulla',valore:null},{testo:'Applica',classe:'primario',primario:true,fn:v=>leggiTrascrizione(v)}],alMontaggio:v=>{
-    // foto: zoom e spostamento
-    const foto=v.querySelector('#tr-foto');const img=v.querySelector('#tr-img');
-    if(img){let sc=1,ox=0,oy=0,drag=null;const applica=()=>{img.style.transform=`translate(${ox}px,${oy}px) scale(${sc})`};const adatta=()=>{const r=foto.getBoundingClientRect();sc=Math.min(r.width/img.naturalWidth,r.height/img.naturalHeight)||1;ox=(r.width-img.naturalWidth*sc)/2;oy=0;applica()};img.onload=adatta;if(img.complete)adatta();
-      v.querySelector('#tr-zoom-piu').onclick=()=>{sc*=1.25;applica()};v.querySelector('#tr-zoom-meno').onclick=()=>{sc/=1.25;applica()};v.querySelector('#tr-adatta').onclick=adatta;
-      foto.addEventListener('wheel',e=>{e.preventDefault();const r=foto.getBoundingClientRect();const mx=e.clientX-r.left,my=e.clientY-r.top;const f=e.deltaY<0?1.1:1/1.1;ox=mx-(mx-ox)*f;oy=my-(my-oy)*f;sc*=f;applica()},{passive:false});
-      foto.addEventListener('pointerdown',e=>{drag={x:e.clientX-ox,y:e.clientY-oy};foto.setPointerCapture(e.pointerId)});foto.addEventListener('pointermove',e=>{if(drag){ox=e.clientX-drag.x;oy=e.clientY-drag.y;applica()}});foto.addEventListener('pointerup',()=>drag=null);foto.addEventListener('pointercancel',()=>drag=null);
-    }
-    const car=v.querySelector('#tr-carica');if(car)car.onclick=async()=>{const fs=await scegliFile({multipli:false,accetta:'image/*'});if(!fs.length)return;const es=await acquisisciConAnteprima(fs);if(!es||!es.length)return;esegui('Allegato foglio ore',s=>{assicuraMesePersona(s,anno,mese,pid).foglioOreId=es[0].rec.id},{senzaRender:true});v.chiudi(null);apriTrascrizione(anno,mese,pid)};
-    // Lettura assistita: il pulsante esiste solo con la chiave inserita (unica funzione che usa la rete). Le proposte entrano nella griglia segnate come incerte: niente viene salvato finché non si preme Applica.
-    const ai=v.querySelector('#tr-ai');if(ai)ai.onclick=async()=>{ai.disabled=true;const ih=ai.innerHTML;ai.textContent='Lettura in corso…';try{const prop=await leggiFoglioConAi(mp.foglioOreId,anno,mese);let n=0;for(const [g,c] of Object.entries(prop.giorni||{})){const ore=v.querySelector(`input[data-tr="ore"][data-g="${g}"]`);if(!ore||!c)continue;const val=c.codice?String(c.codice).toUpperCase():(c.ore!=null&&isFinite(+c.ore)?fOre(+c.ore):'');if(!val)continue;ore.value=val;const ca=v.querySelector(`input[data-tr="cantiere"][data-g="${g}"]`);if(ca&&c.cantiere)ca.value=String(c.cantiere);const inc=v.querySelector(`input[data-tr="incerto"][data-g="${g}"]`);if(inc)inc.checked=true;n++}avviso(n?`Proposte AI per ${n} giorni, tutte segnate come incerte: confrontale con la foto prima di applicare`:'Il servizio non ha riconosciuto giorni compilabili',{tipo:'attenzione'})}catch(e){avviso('Lettura assistita non riuscita: '+String(e&&e.message||e),{tipo:'errore'})}finally{ai.disabled=false;ai.innerHTML=ih}};
-    // tastiera nella griglia
-    const inputs=()=>tutti('input[data-tr]',v);
-    const primo=v.querySelector('input[data-tr="ore"]');if(primo)primo.focus();
-    tutti('input[data-tr="cantiere"],input[data-tr="committente"]',v).forEach(i=>attivaSuggerimenti(i,()=>valoriUsati(i.dataset.tr)));
-    v.addEventListener('keydown',e=>{
-      const t=e.target;if(!t.dataset||!t.dataset.tr)return;const col=t.dataset.tr,g=+t.dataset.g;const kk=nomeTasto(e);
-      const trovaInput=(gg,c)=>v.querySelector(`input[data-tr="${c}"][data-g="${gg}"]`);
-      const prossimo=(dir)=>{let gg=g+dir;while(gg>=1&&gg<=n){const i=trovaInput(gg,col);if(i)return i;gg+=dir}return null};
-      if(kk==='Enter'){e.preventDefault();const nx=prossimo(1);if(nx){nx.focus();nx.select()}}
-      else if(kk==='ArrowDown'&&!(e.metaKey||e.ctrlKey)){if(t.tagName==='INPUT'&&t.type==='text'&&t.value&&col!=='ore'&&document.querySelector('.suggerimenti'))return;e.preventDefault();const nx=prossimo(1);if(nx){nx.focus();nx.select()}}
-      else if(kk==='ArrowUp'){e.preventDefault();const nx=prossimo(-1);if(nx){nx.focus();nx.select()}}
-      else if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='d'){e.preventDefault();const pr=prossimo(-1);if(pr&&t.type==='text'){t.value=pr.value;t.dispatchEvent(new Event('change'))}}
-      else if((e.metaKey||e.ctrlKey)&&kk==='ArrowDown'){e.preventDefault();let gg=g+1;while(gg<=n){const i=trovaInput(gg,col);if(i&&i.type==='text'&&!i.value)i.value=t.value;gg++}}
-      else if(e.key==='?'&&col!=='incerto'){e.preventDefault();const cb=trovaInput(g,'incerto');if(cb)cb.checked=!cb.checked}
-      else if(col==='cantiere'&&kk==='Tab'&&!e.shiftKey){const com=trovaInput(g,'committente');if(com&&!com.value&&t.value){const pr=committenteProposto(t.value);if(pr)com.value=pr}}
-    });
-    v.addEventListener('change',e=>{const t=e.target;if(t.dataset&&t.dataset.tr==='cantiere'&&t.value){const com=v.querySelector(`input[data-tr="committente"][data-g="${t.dataset.g}"]`);if(com&&!com.value){const pr=committenteProposto(t.value);if(pr)com.value=pr}}});
-  }});
-  if(!ris) return;
-  // applica
-  const errori=[];
-  esegui('Trascrizione '+nomePersona(p)+' '+fMeseAnno(anno,mese),s=>{
-    const x=assicuraMesePersona(s,anno,mese,pid);x.giorni={};x.incerti=[];
-    for(const r of ris.righe){const c={};if(r.ore){const cod=r.ore.toUpperCase();if(CODICI_ASSENZA[cod]){if(cod==='FS'&&!fest.has(k+'-'+pad2(r.g))){errori.push('giorno '+r.g+': FS non ammesso (non è festività)');}else c.codice=cod}else{const nn=leggiNumero(r.ore);if(nn===null||nn<0||nn>24)errori.push('giorno '+r.g+': valore «'+r.ore+'» non valido');else c.ore=nn}}
-      if(r.cantiere)c.cantiere=r.cantiere;if(r.committente)c.committente=r.committente;else if(c.cantiere){const pr=committenteProposto(c.cantiere);if(pr)c.committente=pr}
-      if(Object.keys(c).length)x.giorni[String(r.g)]=c;if(r.incerto)x.incerti.push(r.g)}
-  });
-  if(errori.length) informa('Alcuni valori non sono stati applicati',errori.join('\n'));
-}
-function leggiTrascrizione(v){
-  const righe={};
-  for(const i of tutti('input[data-tr]',v)){const g=+i.dataset.g;righe[g]=righe[g]||{g};righe[g][i.dataset.tr]=i.type==='checkbox'?i.checked:i.value.trim()}
-  return {righe:Object.values(righe)};
-}
-// ---- incolla dati strutturati ----
-AZIONI['presenze-incolla']=async d=>{
-  const {anno,mese}=daChiaveMese(d.k);const persone=personePresenze(anno,mese).filter(p=>!p.soloTrasferte);
-  const v=await dialogoModulo('Incolla dati strutturati',[{nome:'pid',etichetta:'Operaio',tipo:'select',obbligatorio:true,opzioni:persone.map(p=>({v:p.id,t:nomePersona(p)}))},{nome:'testo',etichetta:'Dati',tipo:'textarea',righe:12,largo:true,obbligatorio:true,segnaposto:'3; 8; firenze; fabbri services\n4; FE\n5; 8; firenze'}],{},{ok:'Anteprima',intro:html`<p class="piccolo secondario">Una riga per giorno: <span class="mono">giorno; ore o codice; cantiere; committente</span> (separatori ; , tab). Accetto anche un elenco JSON <span class="mono">[{"giorno":3,"ore":8,"cantiere":"…"}]</span>. Vedrai le differenze rispetto a quanto già inserito prima di applicare.</p>`});
-  if(!v) return;
-  let righe=[];
-  const t=v.testo.trim();
-  try{ if(t.startsWith('[')||t.startsWith('{')){const j=JSON.parse(t);righe=(Array.isArray(j)?j:j.giorni||[]).map(x=>({g:+x.giorno||+x.g,ore:x.codice||x.ore,cantiere:x.cantiere||'',committente:x.committente||'',incerto:!!x.incerto}))} else { for(const l of t.split('\n')){const parti=l.split(/[;\t,]/).map(x=>x.trim());if(!parti[0]||!/^\d{1,2}$/.test(parti[0]))continue;righe.push({g:+parti[0],ore:parti[1]||'',cantiere:parti[2]||'',committente:parti[3]||'',incerto:/\?/.test(l)})} } }catch(e){return avviso('Dati non leggibili: '+e.message,{tipo:'errore'})}
-  righe=righe.filter(r=>r.g>=1&&r.g<=giorniNelMese(anno,mese));
-  if(!righe.length) return avviso('Nessuna riga valida trovata',{tipo:'errore'});
-  const mp=((meseP(anno,mese)||{persone:{}}).persone[v.pid])||{giorni:{}};
-  const diff=righe.map(r=>{const c=mp.giorni[String(r.g)]||{};const cur=valoreCella(c);const curT=cur==null?'':typeof cur==='number'?fOre(cur):cur;const we=eFineSettimana(anno,mese,r.g);const nuovo=String(r.ore==null?'':r.ore).toUpperCase().trim();const comm=r.committente||(r.cantiere?committenteProposto(r.cantiere)||'':'');const cambia=!we&&(curT!==(isNaN(leggiNumero(nuovo))?nuovo:fOre(leggiNumero(nuovo)))||(c.cantiere||'')!==r.cantiere||(c.committente||'')!==comm);return {r,c,curT,we,nuovo,comm,cambia}});
-  const ok=await dialogo({titolo:'Anteprima delle differenze · '+nomePersona(persona(v.pid)),largo:true,corpo:html`<table class="tabella densa"><thead><tr><th>Giorno</th><th>Ora in griglia</th><th>Nuovo</th><th>Cantiere</th><th>Committente</th></tr></thead><tbody>${diff.map(x=>html`<tr class="${x.we?'silenzioso':x.cambia?(x.curT||x.c.cantiere?'diff-modifica':'diff-aggiunta'):''}"><td>${x.r.g}${x.we?' (fine settimana: ignorato)':''}</td><td>${x.curT}${x.c.cantiere?' · '+x.c.cantiere:''}</td><td><b>${x.nuovo}</b></td><td>${x.r.cantiere}</td><td>${x.comm}</td></tr>`)}</tbody></table><p class="piccolo secondario mt-s">${diff.filter(x=>x.cambia).length} giorni cambiano. I giorni del mese non presenti nei dati non vengono toccati.</p>`,pulsanti:[{testo:'Annulla',valore:false},{testo:'Applica',classe:'primario',primario:true,valore:true}]});
-  if(!ok) return;
-  const errori=[];
-  esegui('Incollati dati presenze per '+nomePersona(persona(v.pid)),s=>{const x=assicuraMesePersona(s,anno,mese,v.pid);x.incerti=x.incerti||[];for(const d2 of diff){if(d2.we)continue;const c={};if(d2.nuovo){if(CODICI_ASSENZA[d2.nuovo]){if(d2.nuovo==='FS'&&!eFestivo(chiaveMese(anno,mese)+'-'+pad2(d2.r.g),s.impostazioni.festivitaLocali)){errori.push('giorno '+d2.r.g+': FS non ammesso');continue}c.codice=d2.nuovo}else{const nn=leggiNumero(d2.nuovo);if(nn===null||nn<0||nn>24){errori.push('giorno '+d2.r.g+': «'+d2.nuovo+'» non valido');continue}c.ore=nn}}if(d2.r.cantiere)c.cantiere=d2.r.cantiere;if(d2.comm)c.committente=d2.comm;if(Object.keys(c).length)x.giorni[String(d2.r.g)]=c;else delete x.giorni[String(d2.r.g)];if(d2.r.incerto&&!x.incerti.includes(d2.r.g))x.incerti.push(d2.r.g)}});
-  if(errori.length) informa('Valori non applicati',errori.join('\n'));
 };
 // ---- uscite ----
 AZIONI['presenze-uscite']=async d=>{

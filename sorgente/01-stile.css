@@ -337,19 +337,6 @@ input[type=checkbox],input[type=radio]{width:18px;height:18px;accent-color:var(-
 .presenze-griglia tr.riga-secondaria td{height:22px;color:var(--testo-3)}
 .presenze-griglia tr.riga-secondaria td.fisso{font-weight:400;color:var(--testo-3)}
 .presenze-griglia.compatta tr.riga-secondaria{display:none}
-.trascrizione{display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-3);height:calc(100dvh - 140px)}
-.trascrizione .foto{position:relative;overflow:hidden;background:var(--superficie-3);border-radius:var(--raggio);touch-action:none;cursor:grab}
-.trascrizione .foto img{position:absolute;left:0;top:0;transform-origin:0 0;max-width:none;user-select:none;-webkit-user-drag:none}
-.trascrizione .foto .comandi{position:absolute;right:8px;top:8px;display:flex;gap:4px;z-index:2}
-.trascrizione .griglia-t{overflow:auto;border:1px solid var(--bordo);border-radius:var(--raggio);background:var(--superficie)}
-.trascrizione table{width:100%;border-collapse:collapse;font-size:var(--t-sm)}
-.trascrizione td,.trascrizione th{border-bottom:1px solid var(--bordo);padding:2px 4px}
-.trascrizione th{font-size:var(--t-xs);color:var(--testo-2);text-transform:uppercase;position:sticky;top:0;background:var(--superficie-2)}
-.trascrizione input{min-height:30px;padding:2px 6px;border-radius:4px}
-.trascrizione tr.fine-settimana td{background:var(--superficie-3);color:var(--testo-3)}
-.trascrizione tr.festivo td{background:var(--giallo-chiaro)}
-.trascrizione tr.attiva td{background:var(--blu-tenue)}
-@media (max-width:900px){.trascrizione{grid-template-columns:1fr;grid-template-rows:40vh 1fr;height:auto}}
 .presenze-mobile{display:none}
 @media (max-width:760px){ .presenze-griglia.desktop{display:none} .presenze-mobile{display:block} }
 .giorno-card{display:grid;grid-template-columns:58px 1fr;gap:var(--sp-2);align-items:center;padding:8px;border-bottom:1px solid var(--bordo)}
