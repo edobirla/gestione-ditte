@@ -63,6 +63,7 @@ function riferimentiFile(fileId){
   for(const d of stato.documenti) if((d.file||[]).includes(fileId)) out.push({tipo:'documento',id:d.id});
   for(const b of stato.bustePaga) if(b.fileId===fileId) out.push({tipo:'busta',id:b.id});
   for(const m of stato.movimenti) if(m.fileId===fileId) out.push({tipo:'movimento',id:m.id});
+  for(const b of stato.bonifici) if(b.fileId===fileId) out.push({tipo:'bonifico',id:b.id});
   for(const c of stato.cantieri){ if(c.psc&&c.psc.fileId===fileId) out.push({tipo:'cantiere',id:c.id}); for(const dp of c.documentiProdotti||[]) if(dp.fileId===fileId) out.push({tipo:'cantiere',id:c.id}); }
   for(const k of Object.keys(stato.presenze||{})) for(const pid of Object.keys(stato.presenze[k].persone||{})) if(stato.presenze[k].persone[pid].foglioOreId===fileId) out.push({tipo:'presenze',id:k});
   for(const p of stato.persone){ if(p.fotoId===fileId||p.firmaId===fileId) out.push({tipo:'persona',id:p.id}); }
@@ -161,9 +162,10 @@ function pesoArchivio(){
     let sogg='Altro',tipo='Altro';
     const r=refs[0];
     if(r){
-      if(r.tipo==='documento'){const d=perId('documenti',r.id);if(d){sogg=d.soggettoTipo==='azienda'?'Azienda':d.soggettoTipo==='persona'?nomePersona(persona(d.soggettoId)):d.soggettoTipo==='cantiere'?'Cantiere '+nomeCantiere(d.soggettoId):'Cliente '+nomeCliente(d.soggettoId);const t=tipoDoc(d.tipoId);tipo=t?t.nome:'Documento'}}
+      if(r.tipo==='documento'){const d=perId('documenti',r.id);if(d){sogg=d.soggettoTipo==='azienda'?'Azienda':d.soggettoTipo==='persona'?nomePersona(persona(d.soggettoId)):d.soggettoTipo==='cantiere'?'Cantiere '+nomeCantiere(d.soggettoId):d.soggettoTipo==='mezzo'?'Mezzo '+nomeMezzo(perId('mezzi',d.soggettoId)):'Cliente '+nomeCliente(d.soggettoId);const t=tipoDoc(d.tipoId);tipo=t?t.nome:'Documento'}}
       else if(r.tipo==='busta'){const b=perId('bustePaga',r.id);sogg=b?nomePersona(persona(b.personaId)):'Buste paga';tipo='Busta paga'}
       else if(r.tipo==='movimento'){sogg='Budget';tipo='Fattura'}
+      else if(r.tipo==='bonifico'){sogg='Bonifici';tipo='Conferma bonifico'}
       else if(r.tipo==='cantiere'){sogg='Cantiere '+nomeCantiere(r.id);tipo='Documento di cantiere'}
       else if(r.tipo==='presenze'){sogg='Presenze';tipo='Foglio ore'}
       else if(r.tipo==='persona'){sogg=nomePersona(persona(r.id));tipo='Foto/firma'}

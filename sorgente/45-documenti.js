@@ -20,7 +20,7 @@ function vistaArchivio(){
   if(f.anno) docs=docs.filter(x=>(x.d.dataEmissione||'').startsWith(f.anno)||(x.info.data||'').startsWith(f.anno));
   if(f.stato) docs=docs.filter(x=>x.info.stato===f.stato);
   if(f.cerca){const q=normalizzaTesto(f.cerca);docs=docs.filter(x=>normalizzaTesto([x.tipo&&x.tipo.nome,x.d.titolo,x.d.note,nomeSoggettoDoc(x.d),...(x.d.file||[]).map(id=>(fileMeta(id)||{}).nome)].join(' ')).includes(q))}
-  const soggetti=[{v:'azienda',t:stato.azienda.ragioneSociale},...stato.persone.map(p=>({v:'persona:'+p.id,t:nomePersona(p)})),...stato.cantieri.map(c=>({v:'cantiere:'+c.id,t:'Cantiere '+c.nome}))];
+  const soggetti=[{v:'azienda',t:stato.azienda.ragioneSociale},...stato.persone.map(p=>({v:'persona:'+p.id,t:nomePersona(p)})),...stato.cantieri.map(c=>({v:'cantiere:'+c.id,t:'Cantiere '+c.nome})),...stato.mezzi.map(m=>({v:'mezzo:'+m.id,t:'Mezzo '+nomeMezzo(m)}))];
   const anni=unici(stato.documenti.flatMap(d=>[(d.dataEmissione||'').slice(0,4),(d.dataScadenza||'').slice(0,4)]).filter(Boolean)).sort().reverse();
   const sel=(nome,opz,val,etic)=>html`<select data-cambio="filtro-archivio" data-campo="${nome}" aria-label="${etic}"><option value="">${etic}</option>${opz.map(o=>html`<option value="${o.v}" ${o.v===val?'selected':''}>${o.t}</option>`)}</select>`;
   return html`<div class="strumenti-tabella"><input type="search" placeholder="Cerca nel nome, titolo, note" value="${f.cerca||''}" data-cambio="filtro-archivio" data-campo="cerca" aria-label="Cerca documenti">${sel('soggetto',soggetti,f.soggetto,'Tutti i soggetti')}${sel('tipo',stato.tipiDocumento.map(t=>({v:t.id,t:t.nome})),f.tipo,'Tutti i tipi')}${sel('anno',anni.map(a=>({v:a,t:a})),f.anno,'Anno')}${sel('stato',Object.entries(STATI_DOC).map(([v,x])=>({v,t:x.etichetta})),f.stato,'Validità')}${pulsanteCancellaFiltri(!!(f.cerca||f.soggetto||f.tipo||f.anno||f.stato),'filtro-archivio-reset')}<span class="conteggio">${docs.length} documenti</span></div>
@@ -123,11 +123,11 @@ async function dialogoDocumento(d,filesIniziali){
   const nuovo=!d.id;
   d=Object.assign({soggettoTipo:null,soggettoId:null,tipoId:null,titolo:'',dataEmissione:null,dataScadenza:null,senzaScadenza:false,verificato:false,note:'',file:[]},d);
   const soggettoFisso=!!(d.soggettoTipo&&d.soggettoId)&&!nuovo?true:false;
-  const soggetti=[{v:'azienda:azienda',t:stato.azienda.ragioneSociale},...stato.persone.filter(p=>p.attivo||p.id===d.soggettoId).map(p=>({v:'persona:'+p.id,t:nomePersona(p)})),...stato.cantieri.map(c=>({v:'cantiere:'+c.id,t:'Cantiere '+c.nome})),...stato.clienti.map(c=>({v:'cliente:'+c.id,t:'Cliente '+c.ragioneSociale}))];
+  const soggetti=[{v:'azienda:azienda',t:stato.azienda.ragioneSociale},...stato.persone.filter(p=>p.attivo||p.id===d.soggettoId).map(p=>({v:'persona:'+p.id,t:nomePersona(p)})),...stato.cantieri.map(c=>({v:'cantiere:'+c.id,t:'Cantiere '+c.nome})),...stato.clienti.map(c=>({v:'cliente:'+c.id,t:'Cliente '+c.ragioneSociale})),...stato.mezzi.map(m=>({v:'mezzo:'+m.id,t:'Mezzo '+nomeMezzo(m)}))];
   const filesNuovi=filesIniziali?Array.from(filesIniziali):[];
   // proposta di tipo dai nomi file
   if(!d.tipoId&&filesNuovi.length){const prop=classificaFile(filesNuovi[0].percorso||filesNuovi[0].name);if(prop.tipoId)d.tipoId=prop.tipoId;if(prop.data&&!d.dataEmissione)d.dataEmissione=prop.data;if(!d.soggettoId&&prop.personaId){d.soggettoTipo='persona';d.soggettoId=prop.personaId}if(!d.soggettoId&&prop.azienda){d.soggettoTipo='azienda';d.soggettoId='azienda'}}
-  const ambitoDi=k=>k.startsWith('persona')?'persona':k.startsWith('azienda')?'azienda':k.startsWith('cantiere')?'cantiere':'cliente';
+  const ambitoDi=k=>k.startsWith('persona')?'persona':k.startsWith('azienda')?'azienda':k.startsWith('cantiere')?'cantiere':k.startsWith('mezzo')?'mezzo':'cliente';
   const campi=[
     {nome:'soggetto',etichetta:'Soggetto',tipo:'select',obbligatorio:true,opzioni:soggetti,sola:soggettoFisso},
     {nome:'tipoId',etichetta:'Tipo di documento',tipo:'select',obbligatorio:true,opzioni:stato.tipiDocumento.map(t=>({v:t.id,t:t.nome+(t.ambito==='persona'?'':' ('+t.ambito+')')}))},

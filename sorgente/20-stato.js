@@ -194,6 +194,7 @@ function personeAttive(){return stato.persone.filter(p=>p.attivo)}
 function nomeCliente(id){const c=cliente(id);return c?c.ragioneSociale:''}
 function nomeCantiere(id){const c=cantiere(id);return c?c.nome:''}
 function nomeProfessionista(id){const p=professionista(id);return p?[p.titolo,p.nome].filter(Boolean).join(' '):''}
+function nomeMezzo(m){if(!m)return'[mezzo eliminato]';return [m.targa,[m.marca,m.modello].filter(Boolean).join(' ')].filter(Boolean).join(' · ')}
 function soglie(){return stato.impostazioni.soglie||SOGLIE_PREDEFINITE}
 function meseP(anno,mese){return (stato.presenze||{})[chiaveMese(anno,mese)]||null}
 function assicuraMese(s,anno,mese){const k=chiaveMese(anno,mese);s.presenze[k]=s.presenze[k]||{persone:{}};return s.presenze[k]}

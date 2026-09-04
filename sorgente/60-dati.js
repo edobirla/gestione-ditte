@@ -23,6 +23,7 @@ function datiIniziali(soloStruttura){
     persone:[],tipiDocumento:[],documenti:[],file:[],clienti:[],professionisti:[],lavorazioni:[],cantieri:[],pos:[],
     modelli:{dichiarazioni:[],posTesto:null,posMacchine:null,posDpiDotazione:null},
     presenze:{},bustePaga:[],regoleBuste:[],listino:[],preventivi:[],movimenti:[],generati:[],cestino:[],
+    mezzi:[],fornitori:[],bonifici:[],
     impostazioni:{nomeUtente:'Edoardo Birla',dispositivo:'',tema:'sistema',ultimoBackup:null,modificheDopoBackup:0,ultimaModifica:null,soglie:Object.assign({},SOGLIE_PREDEFINITE),densita:'normale',festivitaLocali:[],arrotondamento:'aziendale',compressioneImmagini:true,obiettivoKb:300,avvisaPdfMb:2,creato:new Date().toISOString()},
   };
   s.lavorazioni=LAVORAZIONI_PAVIMASS.map(l=>Object.assign({},l));
@@ -163,6 +164,16 @@ function datiIniziali(soloStruttura){
   ];
   // ---- presenze reali 2026 (da Excel) ----
   s.presenze=clona(PRESENZE_INIZIALI);
+  // ---- mezzi, fornitori, bonifici: dati d'esempio, da sostituire con quelli reali ----
+  s.mezzi=[
+    {id:'mz1',targa:'AB123CD',tipo:'Furgone',marca:'Fiat',modello:'Ducato',anno:2019,assegnatoA:null,note:'Esempio: sostituire con il parco mezzi reale.'},
+    {id:'mz2',targa:'EF456GH',tipo:'Autocarro',marca:'Iveco',modello:'Daily',anno:2021,assegnatoA:null,note:'Esempio: sostituire con il parco mezzi reale.'},
+  ];
+  s.fornitori=[
+    {id:'fr1',ragioneSociale:'Esempio Materiali Edili S.r.l.',cosaFornisce:'Materiali edili e massetti',piva:null,telefono:null,email:null,note:'Dato d\'esempio: da sostituire con l\'elenco reale dei fornitori.'},
+    {id:'fr2',ragioneSociale:'Esempio Noleggi S.r.l.',cosaFornisce:'Noleggio attrezzature e mezzi',piva:null,telefono:null,email:null,note:'Dato d\'esempio: da sostituire con l\'elenco reale dei fornitori.'},
+  ];
+  s.bonifici=[];
   return s;
 }
 
@@ -182,7 +193,7 @@ const RUOLI_PROFESSIONISTA={progettista:'Progettista',direttoreLavori:'Direttore
 const STATI_CANTIERE={preventivo:'In preventivo',attivo:'Attivo',sospeso:'Sospeso',chiuso:'Chiuso',archiviato:'Archiviato'};
 const STATI_CLIENTE={potenziale:'Potenziale',attivo:'Attivo',dormiente:'Dormiente',chiuso:'Chiuso'};
 const CATEGORIE_MOVIMENTO={materiali:'Materiali',subappalto:'Subappalto',trasporti:'Trasporti',noleggi:'Noleggi',spese_generali:'Spese generali',manodopera:'Manodopera',altro:'Altro'};
-const CATEGORIE_TIPO_DOC={identita:'Identità',contratto:'Contratto',sanitario:'Sanitario',formazione:'Formazione',nomina:'Nomina',impresa:'Impresa',sicurezza:'Sicurezza',amministrativo:'Amministrativo',cantiere:'Cantiere'};
+const CATEGORIE_TIPO_DOC={identita:'Identità',contratto:'Contratto',sanitario:'Sanitario',formazione:'Formazione',nomina:'Nomina',impresa:'Impresa',sicurezza:'Sicurezza',amministrativo:'Amministrativo',cantiere:'Cantiere',mezzo:'Mezzo'};
 
 // Catalogo tipi di documento. obbligatorio: vedi tipoApplicabile() nelle REGOLE.
 // bloccaIdoneita: se mancante/scaduto impedisce l'ingresso in cantiere; gli altri obbligatori entrano solo nella checklist.
@@ -222,6 +233,11 @@ const TIPI_DOCUMENTO_INIZIALI=[
   {id:'denuncia_apertura',nome:'Denuncia apertura cantiere',ambito:'cantiere',validitaMesi:null,obbligatorio:'no',bloccaIdoneita:false,categoria:'cantiere',sinonimi:['apertura cantiere','denuncia','notifica preliminare']},
   {id:'dichiarazione',nome:'Dichiarazione / autocertificazione',ambito:'cantiere',validitaMesi:null,obbligatorio:'no',bloccaIdoneita:false,categoria:'cantiere',sinonimi:['dichiarazione','autocertificazione']},
   {id:'altro_cantiere',nome:'Altro documento di cantiere',ambito:'cantiere',validitaMesi:null,obbligatorio:'no',bloccaIdoneita:false,categoria:'cantiere',sinonimi:[]},
+  {id:'mezzo_assicurazione',nome:'Assicurazione',ambito:'mezzo',validitaMesi:null,obbligatorio:'si',bloccaIdoneita:false,categoria:'mezzo',sinonimi:['assicurazione','rca','polizza mezzo']},
+  {id:'mezzo_revisione',nome:'Revisione',ambito:'mezzo',validitaMesi:null,obbligatorio:'si',bloccaIdoneita:false,categoria:'mezzo',sinonimi:['revisione','revisione periodica']},
+  {id:'mezzo_bollo',nome:'Bollo',ambito:'mezzo',validitaMesi:12,obbligatorio:'si',bloccaIdoneita:false,categoria:'mezzo',sinonimi:['bollo','tassa automobilistica']},
+  {id:'mezzo_libretto',nome:'Libretto di circolazione',ambito:'mezzo',validitaMesi:null,obbligatorio:'si',bloccaIdoneita:false,categoria:'mezzo',sinonimi:['libretto','carta di circolazione']},
+  {id:'altro_mezzo',nome:'Altro documento del mezzo',ambito:'mezzo',validitaMesi:null,obbligatorio:'no',bloccaIdoneita:false,categoria:'mezzo',sinonimi:[]},
 ];
 
 // Modelli di dichiarazione. I segnaposto {{...}} si riempiono dai dati del cantiere selezionato.

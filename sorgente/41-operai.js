@@ -18,9 +18,10 @@ function nomeSoggettoDoc(d){
   if(d.soggettoTipo==='persona') return nomePersona(persona(d.soggettoId))||'[persona eliminata]';
   if(d.soggettoTipo==='cantiere') return 'Cantiere '+nomeCantiere(d.soggettoId);
   if(d.soggettoTipo==='cliente') return nomeCliente(d.soggettoId);
+  if(d.soggettoTipo==='mezzo') return 'Mezzo '+nomeMezzo(perId('mezzi',d.soggettoId));
   return '';
 }
-function hrefSoggettoDoc(d){return d.soggettoTipo==='persona'?'#/operai/'+d.soggettoId:d.soggettoTipo==='cantiere'?'#/cantieri/'+d.soggettoId:d.soggettoTipo==='cliente'?'#/clienti/'+d.soggettoId:'#/impostazioni'}
+function hrefSoggettoDoc(d){return d.soggettoTipo==='persona'?'#/operai/'+d.soggettoId:d.soggettoTipo==='cantiere'?'#/cantieri/'+d.soggettoId:d.soggettoTipo==='cliente'?'#/clienti/'+d.soggettoId:d.soggettoTipo==='mezzo'?'#/mezzi/'+d.soggettoId:'#/impostazioni'}
 // Riepilogo scadenze su tutte le persone attive (che vanno in cantiere) e sull'azienda
 function riepilogoScadenze(){
   const righe=[];const mancanti=[];
@@ -36,6 +37,7 @@ function riepilogoScadenze(){
     }
   }
   for(const d of documentiAzienda()){righe.push({doc:d,info:infoDocumento(d),soggetto:stato.azienda.ragioneSociale,persona:null,tipo:tipoDoc(d.tipoId)})}
+  for(const m of stato.mezzi){for(const d of documentiDi('mezzo',m.id)){righe.push({doc:d,info:infoDocumento(d),soggetto:'Mezzo '+nomeMezzo(m),persona:null,tipo:tipoDoc(d.tipoId)})}}
   const conData=righe.filter(r=>r.info.data);
   const s=soglie();
   return {
@@ -232,7 +234,7 @@ function vistaScadenzario(r){
   const visibili=filtro==='tutti'?conData:filtro==='critici'?conData.filter(x=>['scaduto','scadenza','pianificare'].includes(x.info.stato)):conData.filter(x=>x.info.stato===filtro);
   const gruppiV=raggruppa(visibili,x=>x.info.data.slice(0,7));
   return html`<div class="briciole"><a href="#/operai">Operai</a> › Scadenzario</div>
-  <div class="testata"><div><h1>Scadenzario</h1><div class="sotto">Tutte le scadenze di persone e azienda, in ordine cronologico. Aggiornato a oggi ${fData(sc.oggi)}.</div></div>
+  <div class="testata"><div><h1>Scadenzario</h1><div class="sotto">Tutte le scadenze di persone, azienda e mezzi, in ordine cronologico. Aggiornato a oggi ${fData(sc.oggi)}.</div></div>
   <div class="azioni"><button class="pulsante" data-azione="stampa-scadenzario">${icona('stampa')}Stampa</button><button class="pulsante" data-azione="esporta-scadenzario-md">${icona('scarica')}Markdown</button><button class="pulsante" data-azione="esporta-scadenzario-csv">${icona('scarica')}CSV</button></div></div>
   <div class="griglia quattro mb">
     <div class="indicatore critico" data-azione="filtro-scadenzario" data-valore="scaduto"><span class="etichetta">${icona('errore')}Scaduti</span><span class="valore">${sc.scaduti.length}</span></div>

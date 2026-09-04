@@ -10,6 +10,9 @@ const MENU=[
   {id:'documenti',testo:'Documenti',icona:'documenti',soloDesktop:true},
   {id:'preventivi',testo:'Preventivi',icona:'preventivi',soloDesktop:true},
   {id:'budget',testo:'Budget',icona:'budget',soloDesktop:true},
+  {id:'mezzi',testo:'Mezzi',icona:'mezzo',soloDesktop:true},
+  {id:'fornitori',testo:'Fornitori',icona:'fornitori',soloDesktop:true},
+  {id:'bonifici',testo:'Bonifici',icona:'bonifici',soloDesktop:true},
   {id:'impostazioni',testo:'Impostazioni',icona:'impostazioni',soloDesktop:true},
 ];
 function leggiRotta(){
@@ -77,8 +80,11 @@ function indiceRicerca(){
   for(const b of stato.bustePaga) voci.push({gruppo:'Buste paga',testo:'Busta paga '+fMeseAnno(b.anno,b.mese),sotto:nomePersona(persona(b.personaId)),href:'documenti/buste?persona='+b.personaId});
   for(const p of stato.preventivi) voci.push({gruppo:'Preventivi',testo:'Preventivo '+(p.numero||'')+'/'+(p.anno||'')+' '+(p.oggetto||''),sotto:nomeCliente(p.clienteId),href:'preventivi/'+p.id});
   for(const m of stato.movimenti) voci.push({gruppo:'Movimenti',testo:(m.numero||'')+' '+(m.controparte||''),sotto:fData(m.data)+' · '+fEuro(m.imponibile),href:'budget?movimento='+m.id});
+  for(const m of stato.mezzi) voci.push({gruppo:'Mezzi',testo:'Mezzo '+nomeMezzo(m),sotto:m.tipo||'',href:'mezzi/'+m.id,chiavi:[m.targa,m.marca,m.modello]});
+  for(const f of stato.fornitori) voci.push({gruppo:'Fornitori',testo:f.ragioneSociale,sotto:f.cosaFornisce||'',href:'fornitori/'+f.id});
+  for(const b of stato.bonifici) voci.push({gruppo:'Bonifici',testo:'Bonifico '+(b.controparte||''),sotto:fData(b.data)+' · '+fEuro(b.importo),href:'bonifici?bonifico='+b.id});
   const azioni=[
-    {testo:'Nuovo operaio',href:'operai?nuovo=1'},{testo:'Nuovo cantiere',href:'cantieri?nuovo=1'},{testo:'Nuovo cliente',href:'clienti?nuovo=1'},{testo:'Nuovo preventivo',href:'preventivi?nuovo=1'},{testo:'Nuovo movimento',href:'budget?nuovo=1'},
+    {testo:'Nuovo operaio',href:'operai?nuovo=1'},{testo:'Nuovo cantiere',href:'cantieri?nuovo=1'},{testo:'Nuovo cliente',href:'clienti?nuovo=1'},{testo:'Nuovo preventivo',href:'preventivi?nuovo=1'},{testo:'Nuovo movimento',href:'budget?nuovo=1'},{testo:'Nuovo mezzo',href:'mezzi?nuovo=1'},{testo:'Nuovo fornitore',href:'fornitori?nuovo=1'},
     {testo:'Scadenzario',href:'operai/scadenzario'},{testo:'Presenze del mese',href:'presenze'},{testo:'Fai il backup',href:'impostazioni?backup=1'},{testo:'Caricamento iniziale documenti',href:'documenti/caricamento'},{testo:'Buste paga',href:'documenti/buste'},{testo:'Peso dell\'archivio',href:'impostazioni/peso'},{testo:'Cambia tema',azione:'tema'},{testo:'Diagramma temporale cantieri',href:'cantieri?vista=tempo'},{testo:'Confronto clienti',href:'clienti?vista=confronto'},
   ];
   for(const a of azioni) voci.push({gruppo:'Azioni',testo:a.testo,href:a.href,azione:a.azione,sotto:''});

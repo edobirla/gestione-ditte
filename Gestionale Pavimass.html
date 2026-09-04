@@ -564,6 +564,9 @@ input[type=checkbox],input[type=radio]{width:18px;height:18px;accent-color:var(-
   <symbol id="i-dashboard" viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="5" rx="1.5"/><rect x="13" y="12" width="8" height="9" rx="1.5"/><rect x="3" y="15" width="8" height="6" rx="1.5"/></symbol>
   <symbol id="i-operai" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14.5c3 0 5.5 2 5.5 5"/></symbol>
   <symbol id="i-cantieri" viewBox="0 0 24 24"><path d="M3 21h18"/><path d="M5 21V9l7-5 7 5v12"/><path d="M9 21v-5h6v5"/><path d="M9 12h2M13 12h2"/></symbol>
+  <symbol id="i-mezzo" viewBox="0 0 24 24"><path d="M2 16V7a1 1 0 0 1 1-1h10v10"/><path d="M13 10h5l3 3v3h-2"/><path d="M2 13h11"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/><path d="M9 18h6"/></symbol>
+  <symbol id="i-fornitori" viewBox="0 0 24 24"><path d="M3 9l2-5h14l2 5"/><path d="M4 9h16v10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/><path d="M9 13h6"/></symbol>
+  <symbol id="i-bonifici" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/><path d="M7 15h4"/></symbol>
   <symbol id="i-elmetto" viewBox="0 0 24 24"><path d="M3 16a9 9 0 0 1 18 0"/><path d="M2 16h20v2H2z"/><path d="M10 7v5M14 7v5"/></symbol>
   <symbol id="i-clienti" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M3 12h18"/></symbol>
   <symbol id="i-presenze" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/><path d="M12 12v3l2 1.5"/></symbol>
@@ -1323,6 +1326,7 @@ function personeAttive(){return stato.persone.filter(p=>p.attivo)}
 function nomeCliente(id){const c=cliente(id);return c?c.ragioneSociale:''}
 function nomeCantiere(id){const c=cantiere(id);return c?c.nome:''}
 function nomeProfessionista(id){const p=professionista(id);return p?[p.titolo,p.nome].filter(Boolean).join(' '):''}
+function nomeMezzo(m){if(!m)return'[mezzo eliminato]';return [m.targa,[m.marca,m.modello].filter(Boolean).join(' ')].filter(Boolean).join(' · ')}
 function soglie(){return stato.impostazioni.soglie||SOGLIE_PREDEFINITE}
 function meseP(anno,mese){return (stato.presenze||{})[chiaveMese(anno,mese)]||null}
 function assicuraMese(s,anno,mese){const k=chiaveMese(anno,mese);s.presenze[k]=s.presenze[k]||{persone:{}};return s.presenze[k]}
@@ -1406,6 +1410,7 @@ function riferimentiFile(fileId){
   for(const d of stato.documenti) if((d.file||[]).includes(fileId)) out.push({tipo:'documento',id:d.id});
   for(const b of stato.bustePaga) if(b.fileId===fileId) out.push({tipo:'busta',id:b.id});
   for(const m of stato.movimenti) if(m.fileId===fileId) out.push({tipo:'movimento',id:m.id});
+  for(const b of stato.bonifici) if(b.fileId===fileId) out.push({tipo:'bonifico',id:b.id});
   for(const c of stato.cantieri){ if(c.psc&&c.psc.fileId===fileId) out.push({tipo:'cantiere',id:c.id}); for(const dp of c.documentiProdotti||[]) if(dp.fileId===fileId) out.push({tipo:'cantiere',id:c.id}); }
   for(const k of Object.keys(stato.presenze||{})) for(const pid of Object.keys(stato.presenze[k].persone||{})) if(stato.presenze[k].persone[pid].foglioOreId===fileId) out.push({tipo:'presenze',id:k});
   for(const p of stato.persone){ if(p.fotoId===fileId||p.firmaId===fileId) out.push({tipo:'persona',id:p.id}); }
@@ -1504,9 +1509,10 @@ function pesoArchivio(){
     let sogg='Altro',tipo='Altro';
     const r=refs[0];
     if(r){
-      if(r.tipo==='documento'){const d=perId('documenti',r.id);if(d){sogg=d.soggettoTipo==='azienda'?'Azienda':d.soggettoTipo==='persona'?nomePersona(persona(d.soggettoId)):d.soggettoTipo==='cantiere'?'Cantiere '+nomeCantiere(d.soggettoId):'Cliente '+nomeCliente(d.soggettoId);const t=tipoDoc(d.tipoId);tipo=t?t.nome:'Documento'}}
+      if(r.tipo==='documento'){const d=perId('documenti',r.id);if(d){sogg=d.soggettoTipo==='azienda'?'Azienda':d.soggettoTipo==='persona'?nomePersona(persona(d.soggettoId)):d.soggettoTipo==='cantiere'?'Cantiere '+nomeCantiere(d.soggettoId):d.soggettoTipo==='mezzo'?'Mezzo '+nomeMezzo(perId('mezzi',d.soggettoId)):'Cliente '+nomeCliente(d.soggettoId);const t=tipoDoc(d.tipoId);tipo=t?t.nome:'Documento'}}
       else if(r.tipo==='busta'){const b=perId('bustePaga',r.id);sogg=b?nomePersona(persona(b.personaId)):'Buste paga';tipo='Busta paga'}
       else if(r.tipo==='movimento'){sogg='Budget';tipo='Fattura'}
+      else if(r.tipo==='bonifico'){sogg='Bonifici';tipo='Conferma bonifico'}
       else if(r.tipo==='cantiere'){sogg='Cantiere '+nomeCantiere(r.id);tipo='Documento di cantiere'}
       else if(r.tipo==='presenze'){sogg='Presenze';tipo='Foglio ore'}
       else if(r.tipo==='persona'){sogg=nomePersona(persona(r.id));tipo='Foto/firma'}
@@ -2118,6 +2124,9 @@ const MENU=[
   {id:'documenti',testo:'Documenti',icona:'documenti',soloDesktop:true},
   {id:'preventivi',testo:'Preventivi',icona:'preventivi',soloDesktop:true},
   {id:'budget',testo:'Budget',icona:'budget',soloDesktop:true},
+  {id:'mezzi',testo:'Mezzi',icona:'mezzo',soloDesktop:true},
+  {id:'fornitori',testo:'Fornitori',icona:'fornitori',soloDesktop:true},
+  {id:'bonifici',testo:'Bonifici',icona:'bonifici',soloDesktop:true},
   {id:'impostazioni',testo:'Impostazioni',icona:'impostazioni',soloDesktop:true},
 ];
 function leggiRotta(){
@@ -2185,8 +2194,11 @@ function indiceRicerca(){
   for(const b of stato.bustePaga) voci.push({gruppo:'Buste paga',testo:'Busta paga '+fMeseAnno(b.anno,b.mese),sotto:nomePersona(persona(b.personaId)),href:'documenti/buste?persona='+b.personaId});
   for(const p of stato.preventivi) voci.push({gruppo:'Preventivi',testo:'Preventivo '+(p.numero||'')+'/'+(p.anno||'')+' '+(p.oggetto||''),sotto:nomeCliente(p.clienteId),href:'preventivi/'+p.id});
   for(const m of stato.movimenti) voci.push({gruppo:'Movimenti',testo:(m.numero||'')+' '+(m.controparte||''),sotto:fData(m.data)+' · '+fEuro(m.imponibile),href:'budget?movimento='+m.id});
+  for(const m of stato.mezzi) voci.push({gruppo:'Mezzi',testo:'Mezzo '+nomeMezzo(m),sotto:m.tipo||'',href:'mezzi/'+m.id,chiavi:[m.targa,m.marca,m.modello]});
+  for(const f of stato.fornitori) voci.push({gruppo:'Fornitori',testo:f.ragioneSociale,sotto:f.cosaFornisce||'',href:'fornitori/'+f.id});
+  for(const b of stato.bonifici) voci.push({gruppo:'Bonifici',testo:'Bonifico '+(b.controparte||''),sotto:fData(b.data)+' · '+fEuro(b.importo),href:'bonifici?bonifico='+b.id});
   const azioni=[
-    {testo:'Nuovo operaio',href:'operai?nuovo=1'},{testo:'Nuovo cantiere',href:'cantieri?nuovo=1'},{testo:'Nuovo cliente',href:'clienti?nuovo=1'},{testo:'Nuovo preventivo',href:'preventivi?nuovo=1'},{testo:'Nuovo movimento',href:'budget?nuovo=1'},
+    {testo:'Nuovo operaio',href:'operai?nuovo=1'},{testo:'Nuovo cantiere',href:'cantieri?nuovo=1'},{testo:'Nuovo cliente',href:'clienti?nuovo=1'},{testo:'Nuovo preventivo',href:'preventivi?nuovo=1'},{testo:'Nuovo movimento',href:'budget?nuovo=1'},{testo:'Nuovo mezzo',href:'mezzi?nuovo=1'},{testo:'Nuovo fornitore',href:'fornitori?nuovo=1'},
     {testo:'Scadenzario',href:'operai/scadenzario'},{testo:'Presenze del mese',href:'presenze'},{testo:'Fai il backup',href:'impostazioni?backup=1'},{testo:'Caricamento iniziale documenti',href:'documenti/caricamento'},{testo:'Buste paga',href:'documenti/buste'},{testo:'Peso dell\'archivio',href:'impostazioni/peso'},{testo:'Cambia tema',azione:'tema'},{testo:'Diagramma temporale cantieri',href:'cantieri?vista=tempo'},{testo:'Confronto clienti',href:'clienti?vista=confronto'},
   ];
   for(const a of azioni) voci.push({gruppo:'Azioni',testo:a.testo,href:a.href,azione:a.azione,sotto:''});
@@ -2465,9 +2477,10 @@ function nomeSoggettoDoc(d){
   if(d.soggettoTipo==='persona') return nomePersona(persona(d.soggettoId))||'[persona eliminata]';
   if(d.soggettoTipo==='cantiere') return 'Cantiere '+nomeCantiere(d.soggettoId);
   if(d.soggettoTipo==='cliente') return nomeCliente(d.soggettoId);
+  if(d.soggettoTipo==='mezzo') return 'Mezzo '+nomeMezzo(perId('mezzi',d.soggettoId));
   return '';
 }
-function hrefSoggettoDoc(d){return d.soggettoTipo==='persona'?'#/operai/'+d.soggettoId:d.soggettoTipo==='cantiere'?'#/cantieri/'+d.soggettoId:d.soggettoTipo==='cliente'?'#/clienti/'+d.soggettoId:'#/impostazioni'}
+function hrefSoggettoDoc(d){return d.soggettoTipo==='persona'?'#/operai/'+d.soggettoId:d.soggettoTipo==='cantiere'?'#/cantieri/'+d.soggettoId:d.soggettoTipo==='cliente'?'#/clienti/'+d.soggettoId:d.soggettoTipo==='mezzo'?'#/mezzi/'+d.soggettoId:'#/impostazioni'}
 // Riepilogo scadenze su tutte le persone attive (che vanno in cantiere) e sull'azienda
 function riepilogoScadenze(){
   const righe=[];const mancanti=[];
@@ -2483,6 +2496,7 @@ function riepilogoScadenze(){
     }
   }
   for(const d of documentiAzienda()){righe.push({doc:d,info:infoDocumento(d),soggetto:stato.azienda.ragioneSociale,persona:null,tipo:tipoDoc(d.tipoId)})}
+  for(const m of stato.mezzi){for(const d of documentiDi('mezzo',m.id)){righe.push({doc:d,info:infoDocumento(d),soggetto:'Mezzo '+nomeMezzo(m),persona:null,tipo:tipoDoc(d.tipoId)})}}
   const conData=righe.filter(r=>r.info.data);
   const s=soglie();
   return {
@@ -2679,7 +2693,7 @@ function vistaScadenzario(r){
   const visibili=filtro==='tutti'?conData:filtro==='critici'?conData.filter(x=>['scaduto','scadenza','pianificare'].includes(x.info.stato)):conData.filter(x=>x.info.stato===filtro);
   const gruppiV=raggruppa(visibili,x=>x.info.data.slice(0,7));
   return html`<div class="briciole"><a href="#/operai">Operai</a> › Scadenzario</div>
-  <div class="testata"><div><h1>Scadenzario</h1><div class="sotto">Tutte le scadenze di persone e azienda, in ordine cronologico. Aggiornato a oggi ${fData(sc.oggi)}.</div></div>
+  <div class="testata"><div><h1>Scadenzario</h1><div class="sotto">Tutte le scadenze di persone, azienda e mezzi, in ordine cronologico. Aggiornato a oggi ${fData(sc.oggi)}.</div></div>
   <div class="azioni"><button class="pulsante" data-azione="stampa-scadenzario">${icona('stampa')}Stampa</button><button class="pulsante" data-azione="esporta-scadenzario-md">${icona('scarica')}Markdown</button><button class="pulsante" data-azione="esporta-scadenzario-csv">${icona('scarica')}CSV</button></div></div>
   <div class="griglia quattro mb">
     <div class="indicatore critico" data-azione="filtro-scadenzario" data-valore="scaduto"><span class="etichetta">${icona('errore')}Scaduti</span><span class="valore">${sc.scaduti.length}</span></div>
@@ -3394,7 +3408,7 @@ function vistaArchivio(){
   if(f.anno) docs=docs.filter(x=>(x.d.dataEmissione||'').startsWith(f.anno)||(x.info.data||'').startsWith(f.anno));
   if(f.stato) docs=docs.filter(x=>x.info.stato===f.stato);
   if(f.cerca){const q=normalizzaTesto(f.cerca);docs=docs.filter(x=>normalizzaTesto([x.tipo&&x.tipo.nome,x.d.titolo,x.d.note,nomeSoggettoDoc(x.d),...(x.d.file||[]).map(id=>(fileMeta(id)||{}).nome)].join(' ')).includes(q))}
-  const soggetti=[{v:'azienda',t:stato.azienda.ragioneSociale},...stato.persone.map(p=>({v:'persona:'+p.id,t:nomePersona(p)})),...stato.cantieri.map(c=>({v:'cantiere:'+c.id,t:'Cantiere '+c.nome}))];
+  const soggetti=[{v:'azienda',t:stato.azienda.ragioneSociale},...stato.persone.map(p=>({v:'persona:'+p.id,t:nomePersona(p)})),...stato.cantieri.map(c=>({v:'cantiere:'+c.id,t:'Cantiere '+c.nome})),...stato.mezzi.map(m=>({v:'mezzo:'+m.id,t:'Mezzo '+nomeMezzo(m)}))];
   const anni=unici(stato.documenti.flatMap(d=>[(d.dataEmissione||'').slice(0,4),(d.dataScadenza||'').slice(0,4)]).filter(Boolean)).sort().reverse();
   const sel=(nome,opz,val,etic)=>html`<select data-cambio="filtro-archivio" data-campo="${nome}" aria-label="${etic}"><option value="">${etic}</option>${opz.map(o=>html`<option value="${o.v}" ${o.v===val?'selected':''}>${o.t}</option>`)}</select>`;
   return html`<div class="strumenti-tabella"><input type="search" placeholder="Cerca nel nome, titolo, note" value="${f.cerca||''}" data-cambio="filtro-archivio" data-campo="cerca" aria-label="Cerca documenti">${sel('soggetto',soggetti,f.soggetto,'Tutti i soggetti')}${sel('tipo',stato.tipiDocumento.map(t=>({v:t.id,t:t.nome})),f.tipo,'Tutti i tipi')}${sel('anno',anni.map(a=>({v:a,t:a})),f.anno,'Anno')}${sel('stato',Object.entries(STATI_DOC).map(([v,x])=>({v,t:x.etichetta})),f.stato,'Validità')}${pulsanteCancellaFiltri(!!(f.cerca||f.soggetto||f.tipo||f.anno||f.stato),'filtro-archivio-reset')}<span class="conteggio">${docs.length} documenti</span></div>
@@ -3497,11 +3511,11 @@ async function dialogoDocumento(d,filesIniziali){
   const nuovo=!d.id;
   d=Object.assign({soggettoTipo:null,soggettoId:null,tipoId:null,titolo:'',dataEmissione:null,dataScadenza:null,senzaScadenza:false,verificato:false,note:'',file:[]},d);
   const soggettoFisso=!!(d.soggettoTipo&&d.soggettoId)&&!nuovo?true:false;
-  const soggetti=[{v:'azienda:azienda',t:stato.azienda.ragioneSociale},...stato.persone.filter(p=>p.attivo||p.id===d.soggettoId).map(p=>({v:'persona:'+p.id,t:nomePersona(p)})),...stato.cantieri.map(c=>({v:'cantiere:'+c.id,t:'Cantiere '+c.nome})),...stato.clienti.map(c=>({v:'cliente:'+c.id,t:'Cliente '+c.ragioneSociale}))];
+  const soggetti=[{v:'azienda:azienda',t:stato.azienda.ragioneSociale},...stato.persone.filter(p=>p.attivo||p.id===d.soggettoId).map(p=>({v:'persona:'+p.id,t:nomePersona(p)})),...stato.cantieri.map(c=>({v:'cantiere:'+c.id,t:'Cantiere '+c.nome})),...stato.clienti.map(c=>({v:'cliente:'+c.id,t:'Cliente '+c.ragioneSociale})),...stato.mezzi.map(m=>({v:'mezzo:'+m.id,t:'Mezzo '+nomeMezzo(m)}))];
   const filesNuovi=filesIniziali?Array.from(filesIniziali):[];
   // proposta di tipo dai nomi file
   if(!d.tipoId&&filesNuovi.length){const prop=classificaFile(filesNuovi[0].percorso||filesNuovi[0].name);if(prop.tipoId)d.tipoId=prop.tipoId;if(prop.data&&!d.dataEmissione)d.dataEmissione=prop.data;if(!d.soggettoId&&prop.personaId){d.soggettoTipo='persona';d.soggettoId=prop.personaId}if(!d.soggettoId&&prop.azienda){d.soggettoTipo='azienda';d.soggettoId='azienda'}}
-  const ambitoDi=k=>k.startsWith('persona')?'persona':k.startsWith('azienda')?'azienda':k.startsWith('cantiere')?'cantiere':'cliente';
+  const ambitoDi=k=>k.startsWith('persona')?'persona':k.startsWith('azienda')?'azienda':k.startsWith('cantiere')?'cantiere':k.startsWith('mezzo')?'mezzo':'cliente';
   const campi=[
     {nome:'soggetto',etichetta:'Soggetto',tipo:'select',obbligatorio:true,opzioni:soggetti,sola:soggettoFisso},
     {nome:'tipoId',etichetta:'Tipo di documento',tipo:'select',obbligatorio:true,opzioni:stato.tipiDocumento.map(t=>({v:t.id,t:t.nome+(t.ambito==='persona'?'':' ('+t.ambito+')')}))},
@@ -3974,7 +3988,7 @@ async function dialogoMovimento(m,cantierePre){
   const nuovo=!m; m=m||{tipo:'uscita',data:oggi(),categoria:'materiali',quote:cantierePre?[{cantiereId:cantierePre,importo:null}]:[],daVerificare:false};
   const quote=clona(m.quote||[]);
   const listaQuote=()=>html`<div id="quote-box"><div class="sezione-titolo">Assegnazione a cantieri</div><p class="piccolo secondario">Una fattura può essere divisa fra più cantieri: la somma delle quote deve tornare all'imponibile. Le spese generali non si assegnano.</p>${quote.map((q,i)=>html`<div class="riga mb-s"><select data-quota="cantiereId" data-i="${i}" style="flex:2"><option value="">— cantiere —</option>${stato.cantieri.map(c=>html`<option value="${c.id}" ${c.id===q.cantiereId?'selected':''}>${c.nome} (${c.anno})</option>`)}</select><input type="text" inputmode="decimal" class="num-input" data-quota="importo" data-i="${i}" value="${q.importo!=null?fNum(q.importo,2):''}" placeholder="importo" style="flex:1"><button class="pulsante piccolo icona" data-quota-togli="${i}" aria-label="Togli">${icona('chiudi','piccola')}</button></div>`)}<div class="riga"><button class="pulsante piccolo" id="quota-aggiungi">${icona('piu','piccola')}Aggiungi quota</button><button class="pulsante piccolo" id="quota-tutto">Tutto a un cantiere</button><span class="spazio"></span><span id="quota-diff" class="piccolo"></span></div></div>`;
-  const campi=[{nome:'tipo',etichetta:'Tipo',tipo:'select',vuoto:false,opzioni:Object.entries(TIPI_MOVIMENTO).map(([v,t])=>({v,t}))},{nome:'numero',etichetta:'Numero fattura'},{nome:'data',etichetta:'Data fattura',tipo:'data',obbligatorio:true},{nome:'controparte',etichetta:'Controparte (fornitore / cliente)'},{nome:'clienteId',etichetta:'Cliente collegato',tipo:'select',opzioni:stato.clienti.map(c=>({v:c.id,t:c.ragioneSociale}))},{nome:'imponibile',etichetta:'Imponibile (NON il totale documento)',tipo:'euro',obbligatorio:true,aiuto:'In reverse charge coincide col totale; sulle fatture ordinarie al 22% no'},{nome:'categoria',etichetta:'Categoria',tipo:'select',vuoto:false,opzioni:Object.entries(CATEGORIE_MOVIMENTO).map(([v,t])=>({v,t}))},{nome:'notaSu',etichetta:'Nota di credito su',tipo:'select',opzioni:[{v:'entrata',t:'una nostra fattura (riduce le entrate)'},{v:'uscita',t:'una fattura ricevuta (riduce le uscite)'}]},{nome:'dataIncasso',etichetta:'Data di incasso / pagamento',tipo:'data',aiuto:'Se non la registri, i tempi di pagamento non si calcolano: non si stima'},{nome:'daVerificare',tipo:'spunta',testo:'Da verificare (cantiere non chiaro: mai indovinare)'},{nome:'note',etichetta:'Note',tipo:'textarea',largo:true}];
+  const campi=[{nome:'tipo',etichetta:'Tipo',tipo:'select',vuoto:false,opzioni:Object.entries(TIPI_MOVIMENTO).map(([v,t])=>({v,t}))},{nome:'numero',etichetta:'Numero fattura'},{nome:'data',etichetta:'Data fattura',tipo:'data',obbligatorio:true},{nome:'controparte',etichetta:'Controparte (fornitore / cliente)'},{nome:'clienteId',etichetta:'Cliente collegato',tipo:'select',opzioni:stato.clienti.map(c=>({v:c.id,t:c.ragioneSociale}))},{nome:'fornitoreId',etichetta:'Fornitore collegato',tipo:'select',opzioni:stato.fornitori.map(f=>({v:f.id,t:f.ragioneSociale}))},{nome:'imponibile',etichetta:'Imponibile (NON il totale documento)',tipo:'euro',obbligatorio:true,aiuto:'In reverse charge coincide col totale; sulle fatture ordinarie al 22% no'},{nome:'categoria',etichetta:'Categoria',tipo:'select',vuoto:false,opzioni:Object.entries(CATEGORIE_MOVIMENTO).map(([v,t])=>({v,t}))},{nome:'notaSu',etichetta:'Nota di credito su',tipo:'select',opzioni:[{v:'entrata',t:'una nostra fattura (riduce le entrate)'},{v:'uscita',t:'una fattura ricevuta (riduce le uscite)'}]},{nome:'dataIncasso',etichetta:'Data di incasso / pagamento',tipo:'data',aiuto:'Se non la registri, i tempi di pagamento non si calcolano: non si stima'},{nome:'daVerificare',tipo:'spunta',testo:'Da verificare (cantiere non chiaro: mai indovinare)'},{nome:'note',etichetta:'Note',tipo:'textarea',largo:true}];
   const v=await dialogoModulo(nuovo?'Nuovo movimento':'Movimento '+(m.numero||''),campi,m,{coda:listaQuote(),alMontaggio:vv=>{
     const box=()=>vv.querySelector('#quote-box');
     const rinfresca=()=>{box().outerHTML=listaQuote().s;lega()};
@@ -4168,6 +4182,82 @@ AZIONI['sys-azzera']=async()=>{
   stato=migraStato(datiIniziali());delete stato.__migrato;storia.annulla.length=0;storia.ripristina.length=0;await salvaSubito();
   vai('dashboard');render();avviso('Archivio azzerato: dati iniziali ripristinati');
 };
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   SEZIONE JS · MEZZI
+   ═══════════════════════════════════════════════════════════════════ */
+// ---------------------------------------------------------------------
+// MEZZI: parco automezzi con documenti a scadenza (assicurazione, revisione, bollo, libretto).
+// I documenti vivono nell'archivio trasversale (soggettoTipo 'mezzo'), come per persone e cantieri.
+// ---------------------------------------------------------------------
+const TIPI_MEZZO=['Furgone','Autocarro','Auto','Rimorchio','Macchina operatrice','Altro'];
+function documentoPiuCriticoMezzo(m){
+  const docs=documentiDi('mezzo',m.id).map(d=>({d,info:infoDocumento(d)}));
+  const ord=['scaduto','scadenza','pianificare','valido','riferimento'];
+  docs.sort((a,b)=>ord.indexOf(a.info.stato)-ord.indexOf(b.info.stato)||(a.info.giorni||0)-(b.info.giorni||0));
+  const peggio=docs[0];
+  if(!peggio) return {stato:'riferimento',testo:'Nessun documento'};
+  const t=tipoDoc(peggio.d.tipoId);
+  return {stato:peggio.info.stato,testo:(t?t.nome:'')+(peggio.info.data?' · '+fData(peggio.info.data):''),info:peggio.info,doc:peggio.d};
+}
+VISTE.mezzi=function(r){
+  if(r.query.nuovo){setTimeout(()=>dialogoMezzo(null),0);history.replaceState(null,'','#/mezzi')}
+  if(r.id) return vistaMezzo(r.id);
+  const righe=stato.mezzi.map(m=>({m,crit:documentoPiuCriticoMezzo(m)}));
+  return html`<div class="testata"><div><h1>Mezzi</h1><div class="sotto">${plurale(stato.mezzi.length,'mezzo','mezzi')} · ${righe.filter(r=>r.crit.stato==='scaduto').length} con documenti scaduti</div></div>
+    <div class="azioni"><button class="pulsante primario" data-azione="mezzo-nuovo">${icona('piu')}Nuovo mezzo</button></div></div>
+  ${tabella({id:'mezzi',righe,chiaveOrd:'targa',href:r=>'#/mezzi/'+r.m.id,classeRiga:r=>'riga-'+r.crit.stato,colonne:[
+    {chiave:'targa',titolo:'Targa',principale:true,formatta:r=>html`<b>${r.m.targa||daCompilare()}</b>`},
+    {chiave:'tipo',titolo:'Tipo',valore:r=>r.m.tipo||''},
+    {chiave:'modello',titolo:'Marca e modello',valore:r=>[r.m.marca,r.m.modello].filter(Boolean).join(' ')},
+    {chiave:'assegnato',titolo:'Assegnato a',formatta:r=>r.m.assegnatoA?nomePersona(persona(r.m.assegnatoA)):html`<span class="silenzioso">—</span>`},
+    {chiave:'critico',titolo:'Documento più critico',valore:r=>STATI_DOC[r.crit.stato]?STATI_DOC[r.crit.stato].ordine:9,formatta:r=>html`${pillola(r.crit.stato,undefined,{stimata:r.crit.info&&r.crit.info.stimata})}<br><span class="piccolo secondario">${r.crit.testo}</span>`},
+  ],vuoto:vuoto({icona:'mezzo',titolo:'Nessun mezzo',testo:'Aggiungi i mezzi aziendali per seguire assicurazione, revisione e bollo.',azione:{testo:'Nuovo mezzo',azione:'mezzo-nuovo'}})})}`;
+};
+AZIONI['mezzo-nuovo']=()=>dialogoMezzo(null);
+AZIONI['mezzo-modifica']=d=>dialogoMezzo(perId('mezzi',d.id));
+function vistaMezzo(id){
+  const m=perId('mezzi',id); if(!m) return html`<div class="vuoto">${icona('attenzione')}<h3>Mezzo non trovato</h3><a class="pulsante" href="#/mezzi">Torna all'elenco</a></div>`;
+  const ling=linguettaAttiva('mezzo:'+m.id,'documenti');
+  const docs=documentiDi('mezzo',m.id);
+  const nDocCritici=docs.filter(d=>['scaduto','scadenza'].includes(infoDocumento(d).stato)).length;
+  return html`<div class="briciole"><a href="#/mezzi">Mezzi</a> › ${nomeMezzo(m)}</div>
+  <div class="testata"><div><h1>${nomeMezzo(m)}</h1><div class="sotto">${m.tipo||''}${m.assegnatoA?' · assegnato a '+nomePersona(persona(m.assegnatoA)):''}</div></div>
+    <div class="azioni"><button class="pulsante" data-azione="documento-nuovo" data-soggetto-tipo="mezzo" data-soggetto-id="${m.id}">${icona('allega')}Aggiungi documento</button><button class="pulsante" data-azione="mezzo-modifica" data-id="${m.id}">${icona('modifica')}Modifica</button></div></div>
+  ${linguette('mezzo:'+m.id,[{id:'documenti',testo:'Documenti',icona:'documenti',contatore:nDocCritici||null,critico:nDocCritici>0},{id:'dati',testo:'Dati',icona:'mezzo'}],ling)}
+  ${ling==='documenti'?schedaDocumentiMezzo(m):schedaDatiMezzo(m)}`;
+}
+function schedaDocumentiMezzo(m){
+  const docs=documentiDi('mezzo',m.id).map(d=>({d,info:infoDocumento(d),tipo:tipoDoc(d.tipoId)}));
+  const ord=['scaduto','scadenza','pianificare','valido','riferimento'];
+  docs.sort((a,b)=>ord.indexOf(a.info.stato)-ord.indexOf(b.info.stato)||(a.info.giorni||0)-(b.info.giorni||0));
+  return html`<div class="zona-drop mb" data-azione="documento-nuovo" data-soggetto-tipo="mezzo" data-soggetto-id="${m.id}" data-drop-soggetto="mezzo:${m.id}">${icona('carica')}Trascina qui una scansione o un PDF, oppure clicca per aggiungere un documento</div>
+  ${tabella({id:'docmezzo',righe:docs,onRiga:r=>apriDocumento(r.d.id),classeRiga:r=>'riga-'+r.info.stato,colonne:[
+    {chiave:'tipo',titolo:'Documento',principale:true,valore:r=>r.tipo?r.tipo.nome:'',formatta:r=>html`<b>${r.tipo?r.tipo.nome:'[tipo?]'}</b>${r.d.titolo?html`<br><span class="piccolo secondario">${r.d.titolo}</span>`:''}${!(r.d.file||[]).length?html`<br><span class="piccolo da-compilare">nessun file allegato</span>`:''}`},
+    {chiave:'emissione',titolo:'Emissione',valore:r=>r.d.dataEmissione||'',formatta:r=>r.d.dataEmissione?fData(r.d.dataEmissione):html`<span class="silenzioso">—</span>`},
+    {chiave:'scadenza',titolo:'Scadenza',valore:r=>r.info.data||'',formatta:r=>r.info.data?html`<span class="${r.info.stimata?'stimata':''}">${fData(r.info.data)}${r.info.stimata?' ~':''}</span>`:r.d.senzaScadenza?html`<span class="silenzioso">nessuna</span>`:daCompilare('data?')},
+    {chiave:'stato',titolo:'Stato',valore:r=>ord.indexOf(r.info.stato),formatta:r=>pillolaDocumento(r.info)},
+    {chiave:'file',titolo:'File',valore:r=>(r.d.file||[]).length,formatta:r=>html`${(r.d.file||[]).map(f=>{const mm=fileMeta(f);return mm?html`<span class="etichetta-tag" title="${mm.nome}">${icona(ePdf(mm.mime,mm.nome)?'pdf':'immagine','piccola')} ${fPeso(mm.dimensione)}</span> `:''})}`},
+  ],vuoto:vuoto({icona:'documenti',titolo:'Nessun documento',testo:'Trascina qui le scansioni o aggiungi il primo documento.',azione:{testo:'Aggiungi documento',azione:'documento-nuovo',dati:{'soggetto-tipo':'mezzo','soggetto-id':m.id}}})})}`;
+}
+function schedaDatiMezzo(m){
+  const campo=(et,v,fmt)=>html`<div class="campo"><span class="etichetta-campo">${et}</span><div>${valoreODaCompilare(v,fmt)}</div></div>`;
+  return html`<div class="scheda"><h3>${icona('mezzo')}Dati del mezzo</h3><div class="campi">
+    ${campo('Targa',m.targa)}${campo('Tipo',m.tipo)}${campo('Marca',m.marca)}${campo('Modello',m.modello)}${campo('Anno',m.anno)}
+    <div class="campo"><span class="etichetta-campo">Assegnato a</span><div>${m.assegnatoA?nomePersona(persona(m.assegnatoA)):daCompilare('nessuno')}</div></div>
+  </div></div>
+  ${m.note?html`<div class="scheda mt"><h3>${icona('info')}Note</h3><p>${m.note}</p></div>`:''}`;
+}
+function dialogoMezzo(m){
+  const nuovo=!m; m=m||{tipo:'Furgone'};
+  const campi=[{nome:'targa',etichetta:'Targa',obbligatorio:true,maiuscolo:true},{nome:'tipo',etichetta:'Tipo',tipo:'select',vuoto:false,opzioni:TIPI_MEZZO.map(t=>({v:t,t}))},{nome:'marca',etichetta:'Marca'},{nome:'modello',etichetta:'Modello'},{nome:'anno',etichetta:'Anno immatricolazione',tipo:'numero'},{nome:'assegnatoA',etichetta:'Assegnato a',tipo:'select',opzioni:personeAttive().map(p=>({v:p.id,t:nomePersona(p)}))},{nome:'note',etichetta:'Note',tipo:'textarea',largo:true}];
+  return dialogoModulo(nuovo?'Nuovo mezzo':'Modifica '+nomeMezzo(m),campi,m,{pulsantiExtra:nuovo?[]:[{testo:'Elimina',classe:'pericolo',sinistra:true,fn:async()=>{if(await conferma('Eliminare il mezzo '+nomeMezzo(m)+'? I documenti collegati restano nell\'archivio, ma senza mezzo.',{pericolo:true})){esegui('Eliminato mezzo '+nomeMezzo(m),s=>{s.mezzi=s.mezzi.filter(x=>x.id!==m.id)});vai('mezzi');return null}return false}}]}).then(v=>{
+    if(!v)return;if(v.anno)v.anno=+v.anno;
+    if(nuovo){const id=nuovoId('mz');esegui('Nuovo mezzo '+v.targa,s=>{s.mezzi.push(Object.assign({id},v))});vai('mezzi/'+id)}
+    else esegui('Modificato mezzo '+v.targa,s=>{Object.assign(s.mezzi.find(x=>x.id===m.id),v)});
+  });
+}
 
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -4930,6 +5020,70 @@ function renderTabellaPos(b,dinamico){
 
 
 /* ═══════════════════════════════════════════════════════════════════
+   SEZIONE JS · FORNITORI
+   ═══════════════════════════════════════════════════════════════════ */
+// ---------------------------------------------------------------------
+// FORNITORI: anagrafica fornitori e spesa collegata dai movimenti di budget.
+// Esclude sempre gli operai, anche se compaiono come controparte nelle fatture.
+// ---------------------------------------------------------------------
+function movimentiFornitore(f){
+  const q=normalizzaTesto(f.ragioneSociale);
+  return stato.movimenti.filter(m=>m.tipo==='uscita'&&m.categoria!=='manodopera'&&(m.fornitoreId===f.id||(!m.fornitoreId&&q&&normalizzaTesto(m.controparte).includes(q))));
+}
+VISTE.fornitori=function(r){
+  if(r.query.nuovo){setTimeout(()=>dialogoFornitore(null),0);history.replaceState(null,'','#/fornitori')}
+  if(r.id) return vistaFornitore(r.id);
+  const righe=stato.fornitori.map(f=>{const mov=movimentiFornitore(f);return {f,mov,speso:somma(mov,m=>+m.imponibile||0)}});
+  return html`<div class="testata"><div><h1>Fornitori</h1><div class="sotto">${plurale(stato.fornitori.length,'fornitore','fornitori')} · esclusi gli operai</div></div>
+    <div class="azioni"><button class="pulsante primario" data-azione="fornitore-nuovo">${icona('piu')}Nuovo fornitore</button></div></div>
+  ${tabella({id:'fornitori',righe,chiaveOrd:'nome',href:r=>'#/fornitori/'+r.f.id,colonne:[
+    {chiave:'nome',titolo:'Ragione sociale',principale:true,valore:r=>r.f.ragioneSociale},
+    {chiave:'cosa',titolo:'Cosa fornisce',valore:r=>r.f.cosaFornisce||''},
+    {chiave:'con',titolo:'Contatti',formatta:r=>html`${r.f.telefono?contattoCliccabile('tel',r.f.telefono):''} ${r.f.email?contattoCliccabile('mail',r.f.email):''}`},
+    {chiave:'fatture',titolo:'Fatture',num:true,valore:r=>r.mov.length},
+    {chiave:'speso',titolo:'Speso',num:true,valore:r=>r.speso,formatta:r=>fEuro(r.speso,0)},
+  ],vuoto:vuoto({icona:'fornitori',titolo:'Nessun fornitore',testo:'Aggiungi i fornitori dell\'azienda per vedere la spesa collegata dal budget.',azione:{testo:'Nuovo fornitore',azione:'fornitore-nuovo'}})})}`;
+};
+AZIONI['fornitore-nuovo']=()=>dialogoFornitore(null);
+AZIONI['fornitore-modifica']=d=>dialogoFornitore(perId('fornitori',d.id));
+function vistaFornitore(id){
+  const f=perId('fornitori',id); if(!f) return html`<div class="vuoto">${icona('attenzione')}<h3>Fornitore non trovato</h3><a class="pulsante" href="#/fornitori">Torna all'elenco</a></div>`;
+  const mov=movimentiFornitore(f).sort((a,b)=>a.data<b.data?1:-1);
+  const speso=somma(mov,m=>+m.imponibile||0);
+  return html`<div class="briciole"><a href="#/fornitori">Fornitori</a> › ${f.ragioneSociale}</div>
+  <div class="testata"><div><h1>${f.ragioneSociale}</h1><div class="sotto">${f.cosaFornisce||''}</div></div>
+    <div class="azioni"><button class="pulsante" data-azione="fornitore-modifica" data-id="${f.id}">${icona('modifica')}Modifica</button></div></div>
+  <div class="griglia due mb">
+    <div class="scheda"><h3>${icona('fornitori')}Dati</h3><div class="campi">
+      <div class="campo"><span class="etichetta-campo">Partita IVA</span><div>${valoreODaCompilare(f.piva)}</div></div>
+      <div class="campo"><span class="etichetta-campo">Telefono</span><div>${f.telefono?contattoCliccabile('tel',f.telefono):daCompilare()}</div></div>
+      <div class="campo"><span class="etichetta-campo">Email</span><div>${f.email?contattoCliccabile('mail',f.email):daCompilare()}</div></div>
+    </div>${f.note?html`<p class="piccolo secondario mt-s">${f.note}</p>`:''}</div>
+    <div class="scheda"><h3>${icona('euro')}Spesa</h3><div class="campi">
+      <div class="campo"><span class="etichetta-campo">Totale imponibile</span><div><b>${fEuro(speso,0)}</b></div></div>
+      <div class="campo"><span class="etichetta-campo">Fatture</span><div>${mov.length}</div></div>
+    </div></div>
+  </div>
+  ${tabella({id:'movfornitore',righe:mov,onRiga:m=>vai('budget?movimento='+m.id),colonne:[
+    {chiave:'data',titolo:'Data',principale:true,formatta:m=>fData(m.data)},
+    {chiave:'numero',titolo:'Numero',valore:m=>m.numero||''},
+    {chiave:'cat',titolo:'Categoria',valore:m=>CATEGORIE_MOVIMENTO[m.categoria]||''},
+    {chiave:'cant',titolo:'Cantiere',formatta:m=>quoteMovimentoPerCantiere(m).map(q=>html`<span class="etichetta-tag">${nomeCantiere(q.cantiereId)}</span> `)},
+    {chiave:'imp',titolo:'Imponibile',num:true,formatta:m=>fEuro(m.imponibile,0)},
+  ],vuoto:vuoto({icona:'euro',titolo:'Nessun movimento collegato',testo:'Collega le fatture da Budget scegliendo questo fornitore, oppure scrivendo il suo nome nella controparte.'})})}`;
+}
+function dialogoFornitore(f){
+  const nuovo=!f; f=f||{};
+  const campi=[{nome:'ragioneSociale',etichetta:'Ragione sociale',obbligatorio:true,largo:true},{nome:'cosaFornisce',etichetta:'Cosa fornisce',largo:true,segnaposto:'es. materiali edili, noleggio mezzi, trasporti'},{nome:'piva',etichetta:'Partita IVA',valida:validatorePIVA},{nome:'telefono',etichetta:'Telefono',tipo:'tel'},{nome:'email',etichetta:'Email',tipo:'email',valida:validatoreEmail},{nome:'note',etichetta:'Note',tipo:'textarea',largo:true}];
+  return dialogoModulo(nuovo?'Nuovo fornitore':'Modifica '+f.ragioneSociale,campi,f,{pulsantiExtra:nuovo?[]:[{testo:'Elimina',classe:'pericolo',sinistra:true,fn:async()=>{if(await conferma('Eliminare il fornitore '+f.ragioneSociale+'?',{pericolo:true})){esegui('Eliminato fornitore '+f.ragioneSociale,s=>{s.fornitori=s.fornitori.filter(x=>x.id!==f.id)});vai('fornitori');return null}return false}}]}).then(v=>{
+    if(!v)return;
+    if(nuovo){const id=nuovoId('fr');esegui('Nuovo fornitore '+v.ragioneSociale,s=>{s.fornitori.push(Object.assign({id},v))});vai('fornitori/'+id)}
+    else esegui('Modificato fornitore '+v.ragioneSociale,s=>{Object.assign(s.fornitori.find(x=>x.id===f.id),v)});
+  });
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════
    SEZIONE JS · PDF
    ═══════════════════════════════════════════════════════════════════ */
 // ---------------------------------------------------------------------
@@ -5058,6 +5212,58 @@ function proponiDatiDaPsc(testo){
 
 
 /* ═══════════════════════════════════════════════════════════════════
+   SEZIONE JS · BONIFICI
+   ═══════════════════════════════════════════════════════════════════ */
+// ---------------------------------------------------------------------
+// BONIFICI: archivio delle conferme di bonifico, ricercabile e filtrabile.
+// ---------------------------------------------------------------------
+VISTE.bonifici=function(r){
+  if(r.query.nuovo){setTimeout(()=>dialogoBonifico(null),0);history.replaceState(null,'','#/bonifici')}
+  if(r.query.bonifico){setTimeout(()=>dialogoBonifico(perId('bonifici',r.query.bonifico)),0);history.replaceState(null,'','#/bonifici')}
+  const f=ui.filtri.bonifici||{};
+  let righe=stato.bonifici.slice();
+  if(f.cerca){const q=normalizzaTesto(f.cerca);righe=righe.filter(b=>normalizzaTesto([b.controparte,b.causale,b.note].join(' ')).includes(q))}
+  if(f.anno) righe=righe.filter(b=>(b.data||'').startsWith(f.anno));
+  righe.sort((a,b)=>(b.data||'')<(a.data||'')?-1:1);
+  const anni=unici(stato.bonifici.map(b=>(b.data||'').slice(0,4)).filter(Boolean)).sort().reverse();
+  return html`<div class="testata"><div><h1>Bonifici</h1><div class="sotto">${plurale(stato.bonifici.length,'conferma di bonifico','conferme di bonifico')}</div></div>
+    <div class="azioni"><button class="pulsante primario" data-azione="bonifico-nuovo">${icona('piu')}Nuovo bonifico</button></div></div>
+  <div class="strumenti-tabella"><input type="search" placeholder="Cerca per controparte, causale, note" value="${f.cerca||''}" data-cambio="filtro-bonifici" data-campo="cerca" aria-label="Cerca bonifici"><select data-cambio="filtro-bonifici" data-campo="anno"><option value="">Tutti gli anni</option>${anni.map(a=>html`<option value="${a}" ${f.anno===a?'selected':''}>${a}</option>`)}</select>${pulsanteCancellaFiltri(!!(f.cerca||f.anno),'filtro-bonifici-reset')}<span class="conteggio">${righe.length} bonifici · ${fEuro(somma(righe,b=>+b.importo||0),0)}</span></div>
+  ${tabella({id:'bonifici',righe,onRiga:b=>dialogoBonifico(b),colonne:[
+    {chiave:'data',titolo:'Data',principale:true,formatta:b=>fData(b.data)},
+    {chiave:'controparte',titolo:'Controparte',valore:b=>b.controparte||''},
+    {chiave:'causale',titolo:'Causale',valore:b=>b.causale||''},
+    {chiave:'importo',titolo:'Importo',num:true,formatta:b=>fEuro(b.importo,2)},
+    {chiave:'file',titolo:'Ricevuta',formatta:b=>b.fileId?icona('allega','piccola'):html`<span class="da-compilare piccolo">nessuna</span>`},
+  ],vuoto:vuoto({icona:'bonifici',titolo:'Nessun bonifico',testo:'Carica qui le conferme di bonifico per tenerle ricercabili in un unico posto.',azione:{testo:'Nuovo bonifico',azione:'bonifico-nuovo'}})})}`;
+};
+AZIONI['filtro-bonifici']=(d,t)=>{ui.filtri.bonifici=Object.assign({},ui.filtri.bonifici,{[d.campo]:t.value});render();if(d.campo==='cerca')setTimeout(()=>{const i=el('[data-cambio="filtro-bonifici"][data-campo="cerca"]');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}},0)};
+AZIONI['filtro-bonifici-reset']=()=>{ui.filtri.bonifici={};render()};
+document.addEventListener('input',debounce(e=>{const t=e.target;if(t.matches&&t.matches('[data-cambio="filtro-bonifici"][data-campo="cerca"]'))AZIONI['filtro-bonifici']({campo:'cerca'},t)},250));
+AZIONI['bonifico-nuovo']=()=>dialogoBonifico(null);
+async function dialogoBonifico(b){
+  const nuovo=!b; b=b||{data:oggi()};
+  let fileNuovo=null;
+  const campi=[{nome:'data',etichetta:'Data',tipo:'data',obbligatorio:true},{nome:'importo',etichetta:'Importo',tipo:'euro',obbligatorio:true},{nome:'controparte',etichetta:'Controparte'},{nome:'causale',etichetta:'Causale',largo:true},{nome:'note',etichetta:'Note',tipo:'textarea',largo:true}];
+  const testoZona=()=>html`${icona('carica')}${fileNuovo?fileNuovo.name:'Trascina qui o clicca per aggiungere la ricevuta'}`;
+  const zonaFile=()=>html`<div class="sezione-titolo">Ricevuta</div>${b.fileId?html`<div class="riga stretta mb-s"><span class="spazio taglia">${(fileMeta(b.fileId)||{}).nome||'file'}</span><button class="pulsante piccolo" data-azione="file-apri" data-id="${b.fileId}">${icona('occhio','piccola')}Apri</button></div>`:''}<div class="zona-drop" id="dlg-bonifico-drop" data-drop-locale>${testoZona()}</div>`;
+  const v=await dialogoModulo(nuovo?'Nuovo bonifico':'Bonifico '+(b.controparte||''),campi,b,{coda:zonaFile(),alMontaggio:v=>{
+    const zona=v.querySelector('#dlg-bonifico-drop');
+    const rinfresca=()=>{zona.innerHTML=testoZona();};
+    zona.addEventListener('click',async()=>{const fs=await scegliFile({multipli:false,accetta:'.pdf,image/*'});if(fs.length){fileNuovo=fs[0];rinfresca()}});
+    zona.addEventListener('dragover',e=>{e.preventDefault();zona.classList.add('sopra');if(e.dataTransfer)e.dataTransfer.dropEffect='copy'});
+    zona.addEventListener('dragleave',()=>zona.classList.remove('sopra'));
+    zona.addEventListener('drop',async e=>{e.preventDefault();e.stopPropagation();zona.classList.remove('sopra');const fs=await fileDaDrop(e.dataTransfer);if(fs.length){fileNuovo=fs[0];rinfresca()}});
+  },pulsantiExtra:nuovo?[]:[{testo:'Elimina',classe:'pericolo',sinistra:true,fn:async()=>{if(await conferma('Eliminare questo bonifico?',{pericolo:true})){esegui('Eliminato bonifico',s=>{s.bonifici=s.bonifici.filter(x=>x.id!==b.id);cestinaFileOrfani(s)});return null}return false}}]});
+  if(!v) return;
+  let fileId=b.fileId||null;
+  if(fileNuovo){const es=await acquisisciFile(fileNuovo,{});fileId=es.rec.id}
+  if(nuovo) esegui('Nuovo bonifico',s=>{s.bonifici.push(Object.assign({id:nuovoId('bo'),fileId},v))});
+  else esegui('Modificato bonifico',s=>{Object.assign(s.bonifici.find(x=>x.id===b.id),v,{fileId})});
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════
    SEZIONE JS · DATI
    ═══════════════════════════════════════════════════════════════════ */
 // ---------------------------------------------------------------------
@@ -5085,6 +5291,7 @@ function datiIniziali(soloStruttura){
     persone:[],tipiDocumento:[],documenti:[],file:[],clienti:[],professionisti:[],lavorazioni:[],cantieri:[],pos:[],
     modelli:{dichiarazioni:[],posTesto:null,posMacchine:null,posDpiDotazione:null},
     presenze:{},bustePaga:[],regoleBuste:[],listino:[],preventivi:[],movimenti:[],generati:[],cestino:[],
+    mezzi:[],fornitori:[],bonifici:[],
     impostazioni:{nomeUtente:'Edoardo Birla',dispositivo:'',tema:'sistema',ultimoBackup:null,modificheDopoBackup:0,ultimaModifica:null,soglie:Object.assign({},SOGLIE_PREDEFINITE),densita:'normale',festivitaLocali:[],arrotondamento:'aziendale',compressioneImmagini:true,obiettivoKb:300,avvisaPdfMb:2,creato:new Date().toISOString()},
   };
   s.lavorazioni=LAVORAZIONI_PAVIMASS.map(l=>Object.assign({},l));
@@ -5225,6 +5432,16 @@ function datiIniziali(soloStruttura){
   ];
   // ---- presenze reali 2026 (da Excel) ----
   s.presenze=clona(PRESENZE_INIZIALI);
+  // ---- mezzi, fornitori, bonifici: dati d'esempio, da sostituire con quelli reali ----
+  s.mezzi=[
+    {id:'mz1',targa:'AB123CD',tipo:'Furgone',marca:'Fiat',modello:'Ducato',anno:2019,assegnatoA:null,note:'Esempio: sostituire con il parco mezzi reale.'},
+    {id:'mz2',targa:'EF456GH',tipo:'Autocarro',marca:'Iveco',modello:'Daily',anno:2021,assegnatoA:null,note:'Esempio: sostituire con il parco mezzi reale.'},
+  ];
+  s.fornitori=[
+    {id:'fr1',ragioneSociale:'Esempio Materiali Edili S.r.l.',cosaFornisce:'Materiali edili e massetti',piva:null,telefono:null,email:null,note:'Dato d\'esempio: da sostituire con l\'elenco reale dei fornitori.'},
+    {id:'fr2',ragioneSociale:'Esempio Noleggi S.r.l.',cosaFornisce:'Noleggio attrezzature e mezzi',piva:null,telefono:null,email:null,note:'Dato d\'esempio: da sostituire con l\'elenco reale dei fornitori.'},
+  ];
+  s.bonifici=[];
   return s;
 }
 
@@ -5244,7 +5461,7 @@ const RUOLI_PROFESSIONISTA={progettista:'Progettista',direttoreLavori:'Direttore
 const STATI_CANTIERE={preventivo:'In preventivo',attivo:'Attivo',sospeso:'Sospeso',chiuso:'Chiuso',archiviato:'Archiviato'};
 const STATI_CLIENTE={potenziale:'Potenziale',attivo:'Attivo',dormiente:'Dormiente',chiuso:'Chiuso'};
 const CATEGORIE_MOVIMENTO={materiali:'Materiali',subappalto:'Subappalto',trasporti:'Trasporti',noleggi:'Noleggi',spese_generali:'Spese generali',manodopera:'Manodopera',altro:'Altro'};
-const CATEGORIE_TIPO_DOC={identita:'Identità',contratto:'Contratto',sanitario:'Sanitario',formazione:'Formazione',nomina:'Nomina',impresa:'Impresa',sicurezza:'Sicurezza',amministrativo:'Amministrativo',cantiere:'Cantiere'};
+const CATEGORIE_TIPO_DOC={identita:'Identità',contratto:'Contratto',sanitario:'Sanitario',formazione:'Formazione',nomina:'Nomina',impresa:'Impresa',sicurezza:'Sicurezza',amministrativo:'Amministrativo',cantiere:'Cantiere',mezzo:'Mezzo'};
 
 // Catalogo tipi di documento. obbligatorio: vedi tipoApplicabile() nelle REGOLE.
 // bloccaIdoneita: se mancante/scaduto impedisce l'ingresso in cantiere; gli altri obbligatori entrano solo nella checklist.
@@ -5284,6 +5501,11 @@ const TIPI_DOCUMENTO_INIZIALI=[
   {id:'denuncia_apertura',nome:'Denuncia apertura cantiere',ambito:'cantiere',validitaMesi:null,obbligatorio:'no',bloccaIdoneita:false,categoria:'cantiere',sinonimi:['apertura cantiere','denuncia','notifica preliminare']},
   {id:'dichiarazione',nome:'Dichiarazione / autocertificazione',ambito:'cantiere',validitaMesi:null,obbligatorio:'no',bloccaIdoneita:false,categoria:'cantiere',sinonimi:['dichiarazione','autocertificazione']},
   {id:'altro_cantiere',nome:'Altro documento di cantiere',ambito:'cantiere',validitaMesi:null,obbligatorio:'no',bloccaIdoneita:false,categoria:'cantiere',sinonimi:[]},
+  {id:'mezzo_assicurazione',nome:'Assicurazione',ambito:'mezzo',validitaMesi:null,obbligatorio:'si',bloccaIdoneita:false,categoria:'mezzo',sinonimi:['assicurazione','rca','polizza mezzo']},
+  {id:'mezzo_revisione',nome:'Revisione',ambito:'mezzo',validitaMesi:null,obbligatorio:'si',bloccaIdoneita:false,categoria:'mezzo',sinonimi:['revisione','revisione periodica']},
+  {id:'mezzo_bollo',nome:'Bollo',ambito:'mezzo',validitaMesi:12,obbligatorio:'si',bloccaIdoneita:false,categoria:'mezzo',sinonimi:['bollo','tassa automobilistica']},
+  {id:'mezzo_libretto',nome:'Libretto di circolazione',ambito:'mezzo',validitaMesi:null,obbligatorio:'si',bloccaIdoneita:false,categoria:'mezzo',sinonimi:['libretto','carta di circolazione']},
+  {id:'altro_mezzo',nome:'Altro documento del mezzo',ambito:'mezzo',validitaMesi:null,obbligatorio:'no',bloccaIdoneita:false,categoria:'mezzo',sinonimi:[]},
 ];
 
 // Modelli di dichiarazione. I segnaposto {{...}} si riempiono dai dati del cantiere selezionato.
