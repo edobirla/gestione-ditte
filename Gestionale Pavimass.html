@@ -2873,7 +2873,7 @@ AZIONI['cantiere-prodotto-elimina']=async d=>{if(!(await conferma('Eliminare que
 
 function schedaCantiereChecklist(c,ck){
   const gruppi=raggruppa(ck.voci,v=>v.gruppo);
-  return html`<div class="scheda"><h3>Checklist della committenza <span class="azioni"><button class="pulsante piccolo" data-azione="checklist-lista-incolla" data-id="${c.id}">${icona('incolla','piccola')}Incolla lista ricevuta</button><button class="pulsante piccolo" data-azione="checklist-voce-nuova" data-id="${c.id}">${icona('piu','piccola')}Voce</button><button class="pulsante piccolo" data-azione="checklist-copia" data-id="${c.id}">${icona('copia','piccola')}Copia testo</button><button class="pulsante piccolo" data-azione="checklist-stampa" data-id="${c.id}">${icona('stampa','piccola')}Stampa</button></span></h3>
+  return html`<div class="scheda"><h3>Checklist della committenza <span class="azioni"><button class="pulsante piccolo" data-azione="checklist-lista-incolla" data-id="${c.id}">${icona('incolla','piccola')}Incolla lista ricevuta</button><button class="pulsante piccolo" data-azione="checklist-lista-carica" data-id="${c.id}" title="Carica un PDF o un file di testo con la lista">${icona('carica','piccola')}Carica lista (PDF)</button><button class="pulsante piccolo" data-azione="checklist-voce-nuova" data-id="${c.id}">${icona('piu','piccola')}Voce</button><button class="pulsante piccolo" data-azione="checklist-copia" data-id="${c.id}">${icona('copia','piccola')}Copia testo</button><button class="pulsante piccolo" data-azione="checklist-stampa" data-id="${c.id}">${icona('stampa','piccola')}Stampa</button></span></h3>
   <p class="secondario piccolo">Generata dai documenti d'impresa obbligatori e dai documenti obbligatori per ciascun operaio assegnato, più sicurezza e dichiarazioni. <b>${ck.pronti}</b> su ${ck.totale} pronti.</p>
   <div class="progresso mb"><div style="width:${ck.totale?Math.round(ck.pronti/ck.totale*100):0}%"></div></div>
   ${Array.from(gruppi.entries()).map(([g,voci])=>html`<div class="sezione-titolo">${g} · ${voci.filter(v=>v.stato==='ok').length}/${voci.filter(v=>v.stato!=='na').length}</div>${voci.map(v=>{const st=STATI_CHECKLIST[v.stato];return html`<div class="checklist-voce"><span class="pillola ${st.cl}">${icona(st.ic,'piccola')}${st.t}</span><span><b>${v.nome}</b> <span class="secondario">· ${v.soggetto}</span>${v.info&&v.info.data?html` <span class="piccolo ${v.info.stato==='scaduto'?'da-compilare':'secondario'}">${v.info.stato==='scaduto'?'scaduto il':'scade il'} ${fData(v.info.data)}</span>`:''}${v.motivo?html`<br><span class="piccolo secondario">${v.motivo}</span>`:''}</span><span>${v.doc?html`<button class="pulsante piccolo" data-azione="doc-apri" data-id="${v.doc.id}">${icona('occhio','piccola')}</button>`:v.azione==='pos'?html`<a class="pulsante piccolo" href="#/cantieri/${c.id}/pos">Genera</a>`:v.azione&&v.azione.startsWith('dichiarazione:')?html`<button class="pulsante piccolo" data-azione="dichiarazione-compila" data-cantiere="${c.id}" data-modello="${v.azione.split(':')[1]}">Compila</button>`:v.persona?html`<a class="pulsante piccolo" href="#/operai/${v.persona.id}">Vai</a>`:''}${v.extra?html`<button class="pulsante piccolo icona pericolo" data-azione="checklist-voce-elimina" data-id="${c.id}" data-voce="${v.id}" aria-label="Togli">${icona('chiudi','piccola')}</button>`:''}</span></div>`})}`)}</div>`;
@@ -2893,14 +2893,29 @@ function riconosciVoceLista(riga){
 AZIONI['checklist-lista-incolla']=async d=>{
   const testo=await chiediTesto('Incolla la lista ricevuta dalla committenza',{multiriga:true,aiuto:'Una richiesta per riga. Riconosco i sinonimi: "idoneità sanitaria" = visita medica, "formazione generale e specifica" = corsi sicurezza, "UNILAV" = comunicazione di assunzione, "DICO" = conformità impianto elettrico, "patente a crediti" = patente edilizia.',ok:'Analizza'});
   if(!testo) return;
+  await elaboraListaCommittenza(d.id,testo);
+};
+AZIONI['checklist-lista-carica']=async d=>{
+  const fs=await scegliFile({multipli:false,accetta:'.pdf,.txt'});
+  if(!fs.length) return;
+  const f=fs[0];
+  let testo='';
+  try{
+    if(/\.pdf$/i.test(f.name)) testo=(await estraiTestoPdf(f)).testo;
+    else testo=await leggiComeTesto(f);
+  }catch(e){ return segnalaErrore(e,'Non sono riuscito a leggere il file'); }
+  if(!testo||testo.replace(/\s/g,'').length<5) return avviso('Non ho trovato testo leggibile in questo file (se è una scansione, incolla la lista a mano)',{tipo:'errore'});
+  await elaboraListaCommittenza(d.id,testo);
+};
+async function elaboraListaCommittenza(cantiereId,testo){
   const righe=testo.split(/\n|;|•/).map(x=>x.replace(/^[\s\-–*\d.)]+/,'').trim()).filter(x=>x.length>2);
   const ric=righe.map(riconosciVoceLista).filter(Boolean);
-  const c=cantiere(d.id);const ck=checklistCantiere(c);
+  const c=cantiere(cantiereId);const ck=checklistCantiere(c);
   const corpo=html`<p>${ric.length} richieste lette. Per ciascuna: come l'ho interpretata e se è già coperta dalla checklist.</p><table class="tabella densa"><thead><tr><th>Richiesta</th><th>Interpretazione</th><th>Coperta</th><th>Aggiungi</th></tr></thead><tbody>${ric.map((x,i)=>{const cop=x.tipo?ck.voci.find(v=>v.tipo&&v.tipo.id===x.tipo.id):x.modello?ck.voci.find(v=>v.modelloId===x.modello):null;return html`<tr><td>${x.testo}</td><td>${x.tipo?html`<span class="pillola valido">${x.tipo.nome}</span>`:x.modello?html`<span class="pillola valido">Dichiarazione: ${(stato.modelli.dichiarazioni.find(m=>m.id===x.modello)||{}).nome||x.modello}</span>`:html`<span class="pillola pianificare">non riconosciuta</span>`}</td><td>${cop?html`<span class="pillola ${STATI_CHECKLIST[cop.stato].cl}">${STATI_CHECKLIST[cop.stato].t}</span>`:html`<span class="secondario">no</span>`}</td><td><input type="checkbox" data-agg="${i}" ${cop?'':'checked'}></td></tr>`})}</tbody></table>`;
   const scelte=await dialogo({titolo:'Lista della committenza',largo:true,corpo,pulsanti:[{testo:'Annulla',valore:null},{testo:'Aggiungi le voci selezionate',classe:'primario',primario:true,fn:v=>tutti('[data-agg]:checked',v).map(x=>ric[+x.dataset.agg])}]});
   if(!scelte||!scelte.length) return;
-  esegui('Aggiunte '+scelte.length+' voci dalla lista della committenza',s=>{const cc=s.cantieri.find(x=>x.id===d.id);for(const x of scelte)cc.checklistExtra.push({id:nuovoId('ck'),nome:x.testo,tipoId:x.tipo?x.tipo.id:null,soggetto:x.tipo&&x.tipo.ambito==='persona'?'ogni operaio':'',stato:x.modello?'preparare':'richiedere',motivo:x.modello?'dichiarazione da compilare':(x.tipo?'':'voce non riconosciuta: da valutare')})});
-};
+  esegui('Aggiunte '+scelte.length+' voci dalla lista della committenza',s=>{const cc=s.cantieri.find(x=>x.id===cantiereId);for(const x of scelte)cc.checklistExtra.push({id:nuovoId('ck'),nome:x.testo,tipoId:x.tipo?x.tipo.id:null,soggetto:x.tipo&&x.tipo.ambito==='persona'?'ogni operaio':'',stato:x.modello?'preparare':'richiedere',motivo:x.modello?'dichiarazione da compilare':(x.tipo?'':'voce non riconosciuta: da valutare')})});
+}
 AZIONI['checklist-copia']=d=>{copiaNegliAppunti(checklistTesto(cantiere(d.id))).then(()=>avviso('Checklist copiata: incollala nella mail'))};
 function checklistTesto(c){const ck=checklistCantiere(c);const g=raggruppa(ck.voci,v=>v.gruppo);let t=`Checklist documenti — ${c.nome}\nCommittente: ${nomeCliente(c.committenteId)||'[DA COMPILARE]'} · Impresa affidataria: ${nomeCliente(c.affidatariaId)||'[DA COMPILARE]'}\nAggiornata al ${fData(oggi())} — ${ck.pronti} su ${ck.totale} pronti\n\n`;for(const [gr,voci] of g){t+=`${gr.toUpperCase()}\n`;for(const v of voci){t+=`  [${v.stato==='ok'?'x':' '}] ${v.nome} — ${v.soggetto} — ${STATI_CHECKLIST[v.stato].t}${v.info&&v.info.data?' ('+(v.info.stato==='scaduto'?'scaduto il ':'scade il ')+fData(v.info.data)+')':''}${v.motivo?' — '+v.motivo:''}\n`}t+='\n'}return t}
 function schedaCantiereEconomia(c){
