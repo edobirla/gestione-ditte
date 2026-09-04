@@ -91,6 +91,8 @@ function pillolaGenerica(testo,classe,iconaNome){return html`<span class="pillol
 
 // ---- tabelle ----
 // tabella({colonne:[{chiave, titolo, classe, num, formatta(riga), ordina:fn|bool, etichetta}], righe, chiaveOrd, dir, onRiga(riga), classeRiga(riga), vuoto, piede, reattiva:true, id})
+// Chip "× Cancella filtri": da mettere in fondo a una .strumenti-tabella, visibile solo se qualcosa è filtrato
+function pulsanteCancellaFiltri(attivo,azione){return attivo?html`<button class="pulsante piccolo discreto" data-azione="${azione}" title="Cancella tutti i filtri">${icona('chiudi','piccola')}Filtri</button>`:''}
 function tabella(opz){
   const righe=opz.righe||[];
   if(!righe.length&&opz.vuoto) return typeof opz.vuoto==='string'?html`<div class="vuoto">${opz.vuoto}</div>`:opz.vuoto;

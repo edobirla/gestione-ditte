@@ -23,7 +23,7 @@ function vistaArchivio(){
   const soggetti=[{v:'azienda',t:stato.azienda.ragioneSociale},...stato.persone.map(p=>({v:'persona:'+p.id,t:nomePersona(p)})),...stato.cantieri.map(c=>({v:'cantiere:'+c.id,t:'Cantiere '+c.nome}))];
   const anni=unici(stato.documenti.flatMap(d=>[(d.dataEmissione||'').slice(0,4),(d.dataScadenza||'').slice(0,4)]).filter(Boolean)).sort().reverse();
   const sel=(nome,opz,val,etic)=>html`<select data-cambio="filtro-archivio" data-campo="${nome}" aria-label="${etic}"><option value="">${etic}</option>${opz.map(o=>html`<option value="${o.v}" ${o.v===val?'selected':''}>${o.t}</option>`)}</select>`;
-  return html`<div class="strumenti-tabella"><input type="search" placeholder="Cerca nel nome, titolo, note" value="${f.cerca||''}" data-cambio="filtro-archivio" data-campo="cerca" aria-label="Cerca documenti">${sel('soggetto',soggetti,f.soggetto,'Tutti i soggetti')}${sel('tipo',stato.tipiDocumento.map(t=>({v:t.id,t:t.nome})),f.tipo,'Tutti i tipi')}${sel('anno',anni.map(a=>({v:a,t:a})),f.anno,'Anno')}${sel('stato',Object.entries(STATI_DOC).map(([v,x])=>({v,t:x.etichetta})),f.stato,'Validità')}<span class="conteggio">${docs.length} documenti</span></div>
+  return html`<div class="strumenti-tabella"><input type="search" placeholder="Cerca nel nome, titolo, note" value="${f.cerca||''}" data-cambio="filtro-archivio" data-campo="cerca" aria-label="Cerca documenti">${sel('soggetto',soggetti,f.soggetto,'Tutti i soggetti')}${sel('tipo',stato.tipiDocumento.map(t=>({v:t.id,t:t.nome})),f.tipo,'Tutti i tipi')}${sel('anno',anni.map(a=>({v:a,t:a})),f.anno,'Anno')}${sel('stato',Object.entries(STATI_DOC).map(([v,x])=>({v,t:x.etichetta})),f.stato,'Validità')}${pulsanteCancellaFiltri(!!(f.cerca||f.soggetto||f.tipo||f.anno||f.stato),'filtro-archivio-reset')}<span class="conteggio">${docs.length} documenti</span></div>
   ${tabella({id:'archivio',righe:docs,chiaveOrd:'stato',onRiga:x=>apriDocumento(x.d.id),classeRiga:x=>'riga-'+x.info.stato,colonne:[
     {chiave:'sogg',titolo:'Soggetto',principale:true,valore:x=>nomeSoggettoDoc(x.d)},
     {chiave:'tipo',titolo:'Documento',valore:x=>x.tipo?x.tipo.nome:'',formatta:x=>html`<b>${x.tipo?x.tipo.nome:'[tipo?]'}</b>${x.d.titolo?html`<br><span class="piccolo secondario">${x.d.titolo}</span>`:''}`},
@@ -34,6 +34,7 @@ function vistaArchivio(){
   ],vuoto:vuoto({icona:'documenti',titolo:'Nessun documento con questi filtri',testo:'Prova ad allargare i filtri o aggiungi un documento.'})})}`;
 }
 AZIONI['filtro-archivio']=(d,t)=>{ui.filtri.archivio=Object.assign({},ui.filtri.archivio,{[d.campo]:t.value});render();if(d.campo==='cerca')setTimeout(()=>{const i=el('[data-cambio="filtro-archivio"][data-campo="cerca"]');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}},0)};
+AZIONI['filtro-archivio-reset']=()=>{ui.filtri.archivio={};render()};
 document.addEventListener('input',debounce(e=>{const t=e.target;if(t.matches&&t.matches('[data-cambio="filtro-archivio"][data-campo="cerca"]'))AZIONI['filtro-archivio']({campo:'cerca'},t)},250));
 
 // ---- anteprima file ----

@@ -6,14 +6,17 @@ VISTE.dashboard=function(){
   const riquadro=(fn)=>{try{return fn()}catch(e){console.error(e);return html`<div class="avviso-inline critico">${icona('errore')}<div class="corpo">Riquadro non disponibile: ${e.message}</div></div>`}};
   return html`<div class="testata"><div><h1>Buongiorno</h1><div class="sotto">${capitalizza(NOMI_GIORNI[new Date().getDay()])} ${fDataLunga(oggi())}</div></div></div>
   ${riquadro(riquadroSemaforo)}
-  <div class="griglia due mt">${riquadro(riquadroIdoneita)}${riquadro(riquadroAzioni)}</div>
+  <div class="mt">${riquadro(riquadroAzioni)}</div>
+  <div class="mt">${riquadro(riquadroIdoneita)}</div>
   <div class="mt">${riquadro(riquadroCantieri)}</div>
   <div class="griglia due mt">${riquadro(riquadroMese)}${riquadro(riquadroClienti)}</div>
   <div class="griglia due mt">${riquadro(riquadroMargini)}${riquadro(riquadroOreCantiere)}</div>`;
 };
 function riquadroSemaforo(){
   const sc=riepilogoScadenze();
-  return html`<div class="griglia quattro">
+  const entro30=sc.righe.filter(r=>r.info.data&&r.info.giorni!=null&&r.info.giorni>=0&&r.info.giorni<=30);
+  return html`${entro30.length?html`<div class="avviso-inline attenzione mb-s" data-azione="vai" data-href="operai/scadenzario" style="cursor:pointer">${icona('attenzione')}<div class="corpo"><b>${plurale(entro30.length,'documento scade','documenti scadono')} entro 30 giorni:</b> ${tronca(entro30[0].soggetto+': '+(entro30[0].tipo||{}).nome,50)}${entro30.length>1?' e altri '+(entro30.length-1):''}</div></div>`:''}
+  <div class="griglia quattro">
     <a class="indicatore critico" href="#/operai/scadenzario"><span class="etichetta">${icona('errore')}Scaduti</span><span class="valore">${sc.scaduti.length}</span><span class="nota">${sc.mancanti.filter(m=>m.bloccante).length} mancanti bloccanti</span></a>
     <a class="indicatore attenzione" href="#/operai/scadenzario"><span class="etichetta">${icona('attenzione')}Entro ${sc.soglie.scadenza} giorni</span><span class="valore">${sc.entro60.length}</span><span class="nota">${sc.entro60[0]?tronca(sc.entro60[0].soggetto+': '+(sc.entro60[0].tipo||{}).nome,36):''}</span></a>
     <a class="indicatore" href="#/operai/scadenzario"><span class="etichetta">${icona('calendario')}Entro ${sc.soglie.pianificare} giorni</span><span class="valore">${sc.entro90.length}</span><span class="nota">da pianificare</span></a>
@@ -85,7 +88,10 @@ function azioniConsigliate(){
   for(const c of stato.cantieri){
     if(c.stato==='attivo'&&c.dataFine&&c.dataFine<oggiIso) out.push({p:2,livello:'scadenza',testo:`Cantiere ${c.nome}: fine prevista il ${fData(c.dataFine)} ma ancora attivo`,href:'cantieri/'+c.id});
     if(c.stato==='attivo'&&!stato.pos.find(p=>p.cantiereId===c.id)&&!(c.documentiProdotti||[]).find(d=>d.tipo==='POS')) out.push({p:2,livello:'pianificare',testo:`Cantiere ${c.nome} attivo senza POS`,href:'cantieri/'+c.id+'/pos'});
+    if(c.stato==='attivo'||c.stato==='sospeso'){const ck=checklistCantiere(c);if(ck.urgenti.length) out.push({p:1,livello:'scadenza',testo:`Cantiere ${c.nome}: ${plurale(ck.urgenti.length,'documento mancante o scaduto','documenti mancanti o scaduti')} nella checklist`,href:'cantieri/'+c.id})}
   }
+  // Promemoria fisso: documenti/ore per il commercialista entro il 12 del mese
+  if(+oggiIso.slice(8,10)<=12){const meseScorso=mesePrecedente(+oggiIso.slice(0,4),+oggiIso.slice(5,7));out.push({p:2,livello:'pianificare',testo:`Preparare presenze e documenti per il commercialista (entro il 12)`,href:'presenze/'+chiaveMese(meseScorso.anno,meseScorso.mese)})}
   const d=new Date();const prec=mesePrecedente(d.getFullYear(),d.getMonth()+1);
   const rp=riepilogoMese(prec.anno,prec.mese);
   if(rp.giorniDaCompilare>0) out.push({p:2,livello:'scadenza',testo:`Presenze di ${fMeseAnno(prec.anno,prec.mese)} incomplete: ${rp.giorniDaCompilare} giorni-persona da compilare`,href:'presenze/'+chiaveMese(prec.anno,prec.mese)});

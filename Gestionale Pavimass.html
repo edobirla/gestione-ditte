@@ -1902,6 +1902,8 @@ function pillolaGenerica(testo,classe,iconaNome){return html`<span class="pillol
 
 // ---- tabelle ----
 // tabella({colonne:[{chiave, titolo, classe, num, formatta(riga), ordina:fn|bool, etichetta}], righe, chiaveOrd, dir, onRiga(riga), classeRiga(riga), vuoto, piede, reattiva:true, id})
+// Chip "× Cancella filtri": da mettere in fondo a una .strumenti-tabella, visibile solo se qualcosa è filtrato
+function pulsanteCancellaFiltri(attivo,azione){return attivo?html`<button class="pulsante piccolo discreto" data-azione="${azione}" title="Cancella tutti i filtri">${icona('chiudi','piccola')}Filtri</button>`:''}
 function tabella(opz){
   const righe=opz.righe||[];
   if(!righe.length&&opz.vuoto) return typeof opz.vuoto==='string'?html`<div class="vuoto">${opz.vuoto}</div>`:opz.vuoto;
@@ -2338,14 +2340,17 @@ VISTE.dashboard=function(){
   const riquadro=(fn)=>{try{return fn()}catch(e){console.error(e);return html`<div class="avviso-inline critico">${icona('errore')}<div class="corpo">Riquadro non disponibile: ${e.message}</div></div>`}};
   return html`<div class="testata"><div><h1>Buongiorno</h1><div class="sotto">${capitalizza(NOMI_GIORNI[new Date().getDay()])} ${fDataLunga(oggi())}</div></div></div>
   ${riquadro(riquadroSemaforo)}
-  <div class="griglia due mt">${riquadro(riquadroIdoneita)}${riquadro(riquadroAzioni)}</div>
+  <div class="mt">${riquadro(riquadroAzioni)}</div>
+  <div class="mt">${riquadro(riquadroIdoneita)}</div>
   <div class="mt">${riquadro(riquadroCantieri)}</div>
   <div class="griglia due mt">${riquadro(riquadroMese)}${riquadro(riquadroClienti)}</div>
   <div class="griglia due mt">${riquadro(riquadroMargini)}${riquadro(riquadroOreCantiere)}</div>`;
 };
 function riquadroSemaforo(){
   const sc=riepilogoScadenze();
-  return html`<div class="griglia quattro">
+  const entro30=sc.righe.filter(r=>r.info.data&&r.info.giorni!=null&&r.info.giorni>=0&&r.info.giorni<=30);
+  return html`${entro30.length?html`<div class="avviso-inline attenzione mb-s" data-azione="vai" data-href="operai/scadenzario" style="cursor:pointer">${icona('attenzione')}<div class="corpo"><b>${plurale(entro30.length,'documento scade','documenti scadono')} entro 30 giorni:</b> ${tronca(entro30[0].soggetto+': '+(entro30[0].tipo||{}).nome,50)}${entro30.length>1?' e altri '+(entro30.length-1):''}</div></div>`:''}
+  <div class="griglia quattro">
     <a class="indicatore critico" href="#/operai/scadenzario"><span class="etichetta">${icona('errore')}Scaduti</span><span class="valore">${sc.scaduti.length}</span><span class="nota">${sc.mancanti.filter(m=>m.bloccante).length} mancanti bloccanti</span></a>
     <a class="indicatore attenzione" href="#/operai/scadenzario"><span class="etichetta">${icona('attenzione')}Entro ${sc.soglie.scadenza} giorni</span><span class="valore">${sc.entro60.length}</span><span class="nota">${sc.entro60[0]?tronca(sc.entro60[0].soggetto+': '+(sc.entro60[0].tipo||{}).nome,36):''}</span></a>
     <a class="indicatore" href="#/operai/scadenzario"><span class="etichetta">${icona('calendario')}Entro ${sc.soglie.pianificare} giorni</span><span class="valore">${sc.entro90.length}</span><span class="nota">da pianificare</span></a>
@@ -2417,7 +2422,10 @@ function azioniConsigliate(){
   for(const c of stato.cantieri){
     if(c.stato==='attivo'&&c.dataFine&&c.dataFine<oggiIso) out.push({p:2,livello:'scadenza',testo:`Cantiere ${c.nome}: fine prevista il ${fData(c.dataFine)} ma ancora attivo`,href:'cantieri/'+c.id});
     if(c.stato==='attivo'&&!stato.pos.find(p=>p.cantiereId===c.id)&&!(c.documentiProdotti||[]).find(d=>d.tipo==='POS')) out.push({p:2,livello:'pianificare',testo:`Cantiere ${c.nome} attivo senza POS`,href:'cantieri/'+c.id+'/pos'});
+    if(c.stato==='attivo'||c.stato==='sospeso'){const ck=checklistCantiere(c);if(ck.urgenti.length) out.push({p:1,livello:'scadenza',testo:`Cantiere ${c.nome}: ${plurale(ck.urgenti.length,'documento mancante o scaduto','documenti mancanti o scaduti')} nella checklist`,href:'cantieri/'+c.id})}
   }
+  // Promemoria fisso: documenti/ore per il commercialista entro il 12 del mese
+  if(+oggiIso.slice(8,10)<=12){const meseScorso=mesePrecedente(+oggiIso.slice(0,4),+oggiIso.slice(5,7));out.push({p:2,livello:'pianificare',testo:`Preparare presenze e documenti per il commercialista (entro il 12)`,href:'presenze/'+chiaveMese(meseScorso.anno,meseScorso.mese)})}
   const d=new Date();const prec=mesePrecedente(d.getFullYear(),d.getMonth()+1);
   const rp=riepilogoMese(prec.anno,prec.mese);
   if(rp.giorniDaCompilare>0) out.push({p:2,livello:'scadenza',testo:`Presenze di ${fMeseAnno(prec.anno,prec.mese)} incomplete: ${rp.giorniDaCompilare} giorni-persona da compilare`,href:'presenze/'+chiaveMese(prec.anno,prec.mese)});
@@ -2513,7 +2521,7 @@ VISTE.operai=function(r){
   const sc=riepilogoScadenze();
   return html`<div class="testata"><div><h1>Operai</h1><div class="sotto">${plurale(stato.persone.filter(p=>p.attivo).length,'persona attiva','persone attive')} · ${sc.scaduti.length} documenti scaduti · ${sc.mancanti.filter(m=>m.bloccante).length} mancanti bloccanti</div></div>
     <div class="azioni"><a class="pulsante" href="#/operai/scadenzario">${icona('calendario')}Scadenzario</a><button class="pulsante primario" data-azione="persona-nuova">${icona('piu')}Nuova persona</button></div></div>
-  <div class="strumenti-tabella"><input type="search" placeholder="Cerca per nome, mansione, codice fiscale" value="${filtro.cerca}" data-cambio="filtro-operai" data-campo="cerca" aria-label="Cerca persone"><div class="gruppo-pulsanti">${['attivi','tutti','cessati'].map(s=>html`<button class="pulsante piccolo ${filtro.stato===s?'attivo':''}" data-azione="filtro-operai-stato" data-valore="${s}">${capitalizza(s)}</button>`)}</div><span class="conteggio">${righe.length} persone</span></div>
+  <div class="strumenti-tabella"><input type="search" placeholder="Cerca per nome, mansione, codice fiscale" value="${filtro.cerca}" data-cambio="filtro-operai" data-campo="cerca" aria-label="Cerca persone"><div class="gruppo-pulsanti">${['attivi','tutti','cessati'].map(s=>html`<button class="pulsante piccolo ${filtro.stato===s?'attivo':''}" data-azione="filtro-operai-stato" data-valore="${s}">${capitalizza(s)}</button>`)}</div>${pulsanteCancellaFiltri(!!filtro.cerca||filtro.stato!=='attivi','filtro-operai-reset')}<span class="conteggio">${righe.length} persone</span></div>
   ${tabella({id:'operai',righe,chiaveOrd:'nome',href:r=>'#/operai/'+r.p.id,classeRiga:r=>'riga-'+r.crit.stato,colonne:[
     {chiave:'nome',titolo:'Persona',principale:true,valore:r=>nomePersona(r.p),formatta:r=>html`<span class="riga stretta">${avatar(r.p)}<span><b>${nomePersona(r.p)}</b><br><span class="piccolo secondario">${r.p.mansione||''}${r.p.attivo?'':' · cessato'}</span></span></span>`},
     {chiave:'tipo',titolo:'Tipo',valore:r=>TIPI_PERSONA[r.p.tipo]||r.p.tipo},
@@ -2527,6 +2535,7 @@ function testoRetribuzione(p){const r=p.retribuzione||{};const parti=[];if(r.tar
 AZIONI['filtro-operai']=(d,t)=>{ui.filtri.operai=Object.assign({stato:'attivi',cerca:''},ui.filtri.operai,{[d.campo]:t.value});render();setTimeout(()=>{const i=el('.strumenti-tabella input[type=search]');if(i&&d.campo==='cerca'){i.focus();i.setSelectionRange(i.value.length,i.value.length)}},0)};
 document.addEventListener('input',debounce(e=>{const t=e.target;if(t.matches&&t.matches('[data-cambio="filtro-operai"]')){AZIONI['filtro-operai']({campo:t.dataset.campo},t)}},250));
 AZIONI['filtro-operai-stato']=d=>{ui.filtri.operai=Object.assign({stato:'attivi',cerca:''},ui.filtri.operai,{stato:d.valore});render()};
+AZIONI['filtro-operai-reset']=()=>{ui.filtri.operai={stato:'attivi',cerca:''};render()};
 AZIONI['persona-nuova']=()=>dialogoPersona(null);
 AZIONI['persona-modifica']=d=>dialogoPersona(persona(d.id));
 AZIONI['persona-cessa']=async d=>{
@@ -2764,7 +2773,7 @@ VISTE.cantieri=function(r){
   if(f.comune) cantieriF=cantieriF.filter(c=>(c.indirizzo&&c.indirizzo.comune||'')===f.comune);
   const anni=[...new Set(stato.cantieri.map(c=>c.anno).filter(Boolean))].sort((a,b)=>b-a);
   const comuni=[...new Set(stato.cantieri.map(c=>c.indirizzo&&c.indirizzo.comune).filter(Boolean))].sort();
-  const barra=html`<div class="strumenti-tabella"><div class="gruppo-pulsanti">${[['attivi','In corso'],['chiusi','Chiusi'],['tutti','Tutti']].map(([v,t])=>html`<button class="pulsante piccolo ${f.stato===v?'attivo':''}" data-azione="filtro-cantieri-stato" data-valore="${v}">${t}</button>`)}</div><select data-cambio="filtro-cantieri" data-campo="anno" aria-label="Anno"><option value="">Tutti gli anni</option>${anni.map(a=>html`<option value="${a}" ${String(a)===f.anno?'selected':''}>${a}</option>`)}</select><select data-cambio="filtro-cantieri" data-campo="comune" aria-label="Località"><option value="">Tutte le località</option>${comuni.map(cm=>html`<option value="${cm}" ${cm===f.comune?'selected':''}>${cm}</option>`)}</select><span class="conteggio">${cantieriF.length} cantieri</span></div>`;
+  const barra=html`<div class="strumenti-tabella"><div class="gruppo-pulsanti">${[['attivi','In corso'],['chiusi','Chiusi'],['tutti','Tutti']].map(([v,t])=>html`<button class="pulsante piccolo ${f.stato===v?'attivo':''}" data-azione="filtro-cantieri-stato" data-valore="${v}">${t}</button>`)}</div><select data-cambio="filtro-cantieri" data-campo="anno" aria-label="Anno"><option value="">Tutti gli anni</option>${anni.map(a=>html`<option value="${a}" ${String(a)===f.anno?'selected':''}>${a}</option>`)}</select><select data-cambio="filtro-cantieri" data-campo="comune" aria-label="Località"><option value="">Tutte le località</option>${comuni.map(cm=>html`<option value="${cm}" ${cm===f.comune?'selected':''}>${cm}</option>`)}</select>${pulsanteCancellaFiltri(f.stato!=='attivi'||!!f.anno||!!f.comune,'filtro-cantieri-reset')}<span class="conteggio">${cantieriF.length} cantieri</span></div>`;
   const gruppi=['attivo','sospeso','preventivo','chiuso','archiviato'];
   const righe=cantieriF.map(c=>{const ck=checklistCantiere(c);const eco=economiaCantiere(c.id,stato.movimenti);return {c,ck,eco}});
   return html`${testa}${barra}${gruppi.map(g=>{const rr=righe.filter(x=>x.c.stato===g);if(!rr.length)return '';return html`<div class="sezione-titolo">${STATI_CANTIERE[g]} · ${rr.length}</div>${tabella({id:'cant'+g,righe:rr,href:x=>'#/cantieri/'+x.c.id,colonne:[
@@ -2779,6 +2788,7 @@ VISTE.cantieri=function(r){
 AZIONI['cantieri-vista']=d=>{ui.filtri.cantieriVista=d.valore;render()};
 AZIONI['filtro-cantieri-stato']=d=>{ui.filtri.cantieri=Object.assign({stato:'attivi',anno:'',comune:''},ui.filtri.cantieri,{stato:d.valore});render()};
 AZIONI['filtro-cantieri']=(d,t)=>{ui.filtri.cantieri=Object.assign({stato:'attivi',anno:'',comune:''},ui.filtri.cantieri,{[d.campo]:t.value});render()};
+AZIONI['filtro-cantieri-reset']=()=>{ui.filtri.cantieri={stato:'attivi',anno:'',comune:''};render()};
 AZIONI['cantiere-nuovo']=()=>dialogoCantiere(null);
 AZIONI['cantiere-modifica']=d=>dialogoCantiere(cantiere(d.id));
 
@@ -3368,7 +3378,7 @@ function vistaArchivio(){
   const soggetti=[{v:'azienda',t:stato.azienda.ragioneSociale},...stato.persone.map(p=>({v:'persona:'+p.id,t:nomePersona(p)})),...stato.cantieri.map(c=>({v:'cantiere:'+c.id,t:'Cantiere '+c.nome}))];
   const anni=unici(stato.documenti.flatMap(d=>[(d.dataEmissione||'').slice(0,4),(d.dataScadenza||'').slice(0,4)]).filter(Boolean)).sort().reverse();
   const sel=(nome,opz,val,etic)=>html`<select data-cambio="filtro-archivio" data-campo="${nome}" aria-label="${etic}"><option value="">${etic}</option>${opz.map(o=>html`<option value="${o.v}" ${o.v===val?'selected':''}>${o.t}</option>`)}</select>`;
-  return html`<div class="strumenti-tabella"><input type="search" placeholder="Cerca nel nome, titolo, note" value="${f.cerca||''}" data-cambio="filtro-archivio" data-campo="cerca" aria-label="Cerca documenti">${sel('soggetto',soggetti,f.soggetto,'Tutti i soggetti')}${sel('tipo',stato.tipiDocumento.map(t=>({v:t.id,t:t.nome})),f.tipo,'Tutti i tipi')}${sel('anno',anni.map(a=>({v:a,t:a})),f.anno,'Anno')}${sel('stato',Object.entries(STATI_DOC).map(([v,x])=>({v,t:x.etichetta})),f.stato,'Validità')}<span class="conteggio">${docs.length} documenti</span></div>
+  return html`<div class="strumenti-tabella"><input type="search" placeholder="Cerca nel nome, titolo, note" value="${f.cerca||''}" data-cambio="filtro-archivio" data-campo="cerca" aria-label="Cerca documenti">${sel('soggetto',soggetti,f.soggetto,'Tutti i soggetti')}${sel('tipo',stato.tipiDocumento.map(t=>({v:t.id,t:t.nome})),f.tipo,'Tutti i tipi')}${sel('anno',anni.map(a=>({v:a,t:a})),f.anno,'Anno')}${sel('stato',Object.entries(STATI_DOC).map(([v,x])=>({v,t:x.etichetta})),f.stato,'Validità')}${pulsanteCancellaFiltri(!!(f.cerca||f.soggetto||f.tipo||f.anno||f.stato),'filtro-archivio-reset')}<span class="conteggio">${docs.length} documenti</span></div>
   ${tabella({id:'archivio',righe:docs,chiaveOrd:'stato',onRiga:x=>apriDocumento(x.d.id),classeRiga:x=>'riga-'+x.info.stato,colonne:[
     {chiave:'sogg',titolo:'Soggetto',principale:true,valore:x=>nomeSoggettoDoc(x.d)},
     {chiave:'tipo',titolo:'Documento',valore:x=>x.tipo?x.tipo.nome:'',formatta:x=>html`<b>${x.tipo?x.tipo.nome:'[tipo?]'}</b>${x.d.titolo?html`<br><span class="piccolo secondario">${x.d.titolo}</span>`:''}`},
@@ -3379,6 +3389,7 @@ function vistaArchivio(){
   ],vuoto:vuoto({icona:'documenti',titolo:'Nessun documento con questi filtri',testo:'Prova ad allargare i filtri o aggiungi un documento.'})})}`;
 }
 AZIONI['filtro-archivio']=(d,t)=>{ui.filtri.archivio=Object.assign({},ui.filtri.archivio,{[d.campo]:t.value});render();if(d.campo==='cerca')setTimeout(()=>{const i=el('[data-cambio="filtro-archivio"][data-campo="cerca"]');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}},0)};
+AZIONI['filtro-archivio-reset']=()=>{ui.filtri.archivio={};render()};
 document.addEventListener('input',debounce(e=>{const t=e.target;if(t.matches&&t.matches('[data-cambio="filtro-archivio"][data-campo="cerca"]'))AZIONI['filtro-archivio']({campo:'cerca'},t)},250));
 
 // ---- anteprima file ----
@@ -3894,7 +3905,7 @@ function budgetMovimenti(anno,r){
   if(f.categoria) mov=mov.filter(m=>m.categoria===f.categoria);
   if(f.cerca){const q=normalizzaTesto(f.cerca);mov=mov.filter(m=>normalizzaTesto([m.numero,m.controparte,m.note,nomeCliente(m.clienteId)].join(' ')).includes(q))}
   const tot={entrate:somma(mov.filter(m=>m.tipo==='entrata'),m=>+m.imponibile||0),uscite:somma(mov.filter(m=>m.tipo==='uscita'),m=>+m.imponibile||0),note:somma(mov.filter(m=>m.tipo==='nota_credito'),m=>+m.imponibile||0)};
-  return html`<div class="strumenti-tabella"><input type="search" placeholder="Cerca numero, controparte, note" value="${f.cerca||''}" data-cambio="budget-filtro" data-campo="cerca"><select data-cambio="budget-filtro" data-campo="tipo"><option value="">Tutti i tipi</option>${Object.entries(TIPI_MOVIMENTO).map(([v,t])=>html`<option value="${v}" ${f.tipo===v?'selected':''}>${t}</option>`)}</select><select data-cambio="budget-filtro" data-campo="categoria"><option value="">Tutte le categorie</option>${Object.entries(CATEGORIE_MOVIMENTO).map(([v,t])=>html`<option value="${v}" ${f.categoria===v?'selected':''}>${t}</option>`)}</select><div class="gruppo-pulsanti"><button class="pulsante piccolo ${!f.filtro?'attivo':''}" data-azione="budget-filtro-rapido" data-valore="">Anno ${anno}</button><button class="pulsante piccolo ${f.filtro==='nonassegnate'?'attivo':''}" data-azione="budget-filtro-rapido" data-valore="nonassegnate">Non assegnate</button><button class="pulsante piccolo ${f.filtro==='daverificare'?'attivo':''}" data-azione="budget-filtro-rapido" data-valore="daverificare">Da verificare</button></div><span class="conteggio">${mov.length} movimenti · entrate ${fEuro(tot.entrate,0)} · uscite ${fEuro(tot.uscite,0)}${tot.note?' · note di credito '+fEuro(tot.note,0):''}</span></div>
+  return html`<div class="strumenti-tabella"><input type="search" placeholder="Cerca numero, controparte, note" value="${f.cerca||''}" data-cambio="budget-filtro" data-campo="cerca"><select data-cambio="budget-filtro" data-campo="tipo"><option value="">Tutti i tipi</option>${Object.entries(TIPI_MOVIMENTO).map(([v,t])=>html`<option value="${v}" ${f.tipo===v?'selected':''}>${t}</option>`)}</select><select data-cambio="budget-filtro" data-campo="categoria"><option value="">Tutte le categorie</option>${Object.entries(CATEGORIE_MOVIMENTO).map(([v,t])=>html`<option value="${v}" ${f.categoria===v?'selected':''}>${t}</option>`)}</select><div class="gruppo-pulsanti"><button class="pulsante piccolo ${!f.filtro?'attivo':''}" data-azione="budget-filtro-rapido" data-valore="">Anno ${anno}</button><button class="pulsante piccolo ${f.filtro==='nonassegnate'?'attivo':''}" data-azione="budget-filtro-rapido" data-valore="nonassegnate">Non assegnate</button><button class="pulsante piccolo ${f.filtro==='daverificare'?'attivo':''}" data-azione="budget-filtro-rapido" data-valore="daverificare">Da verificare</button></div>${pulsanteCancellaFiltri(!!(f.cerca||f.tipo||f.categoria),'budget-filtro-reset')}<span class="conteggio">${mov.length} movimenti · entrate ${fEuro(tot.entrate,0)} · uscite ${fEuro(tot.uscite,0)}${tot.note?' · note di credito '+fEuro(tot.note,0):''}</span></div>
   ${tabella({id:'movimenti',righe:mov,chiaveOrd:'data',dir:'desc',onRiga:m=>dialogoMovimento(m),classeRiga:m=>m.daVerificare?'riga-scadenza':m.tipo==='nota_credito'?'riga-pianificare':'',colonne:[
     {chiave:'data',titolo:'Data',principale:true,formatta:m=>html`<b>${fData(m.data)}</b>${m.daVerificare?html` <span class="pillola scadenza">${icona('attenzione','piccola')}da verificare</span>`:''}`},
     {chiave:'tipo',titolo:'Tipo',formatta:m=>m.tipo==='nota_credito'?html`<span class="pillola pianificare">${icona('meno','piccola')}Nota di credito</span>`:TIPI_MOVIMENTO[m.tipo]},
@@ -3908,6 +3919,7 @@ function budgetMovimenti(anno,r){
   ],vuoto:vuoto({icona:'budget',titolo:'Nessun movimento',testo:'Registra entrate e uscite con l\'imponibile e assegnale ai cantieri: da qui nascono margini e report.',azione:{testo:'Nuovo movimento',azione:'movimento-nuovo'}})})}`;
 }
 AZIONI['budget-filtro']=(d,t)=>{ui.filtri.budget=Object.assign({},ui.filtri.budget,{[d.campo]:t.value});render();if(d.campo==='cerca')setTimeout(()=>{const i=el('[data-cambio="budget-filtro"][data-campo="cerca"]');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}},0)};
+AZIONI['budget-filtro-reset']=()=>{ui.filtri.budget={};render()};
 document.addEventListener('input',debounce(e=>{const t=e.target;if(t.matches&&t.matches('[data-cambio="budget-filtro"][data-campo="cerca"]'))AZIONI['budget-filtro']({campo:'cerca'},t)},250));
 AZIONI['budget-filtro-rapido']=d=>{ui.filtri.budget=Object.assign({},ui.filtri.budget,{filtro:d.valore});history.replaceState(null,'','#/budget');render()};
 function budgetPerCantiere(anno){
