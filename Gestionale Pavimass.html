@@ -3531,6 +3531,11 @@ async function dialogoDocumento(d,filesIniziali){
   const filesNuovi=filesIniziali?Array.from(filesIniziali):[];
   // proposta di tipo dai nomi file
   if(!d.tipoId&&filesNuovi.length){const prop=classificaFile(filesNuovi[0].percorso||filesNuovi[0].name);if(prop.tipoId)d.tipoId=prop.tipoId;if(prop.data&&!d.dataEmissione)d.dataEmissione=prop.data;if(!d.soggettoId&&prop.personaId){d.soggettoTipo='persona';d.soggettoId=prop.personaId}if(!d.soggettoId&&prop.azienda){d.soggettoTipo='azienda';d.soggettoId='azienda'}}
+  // proposta di date lette nel testo del documento (es. "scade il ..."): mai inventate, solo trovate scritte
+  if(filesNuovi.length===1&&(!d.dataScadenza||!d.dataEmissione)){
+    const proposte=await proponiDateDaFile(filesNuovi[0]);
+    if(proposte){ if(proposte.dataScadenza&&!d.dataScadenza)d.dataScadenza=proposte.dataScadenza; if(proposte.dataEmissione&&!d.dataEmissione)d.dataEmissione=proposte.dataEmissione; }
+  }
   const ambitoDi=k=>k.startsWith('persona')?'persona':k.startsWith('azienda')?'azienda':k.startsWith('cantiere')?'cantiere':k.startsWith('mezzo')?'mezzo':'cliente';
   const campi=[
     {nome:'soggetto',etichetta:'Soggetto',tipo:'select',obbligatorio:true,opzioni:soggetti,sola:soggettoFisso},
@@ -3622,6 +3627,32 @@ function classificaFile(percorso){
   if(!out.tipoId){out.motivi.push('tipo non riconosciuto')}
   out.fiducia=Math.max(0,Math.min(1,fidPersona*0.5+fidTipo*0.5));
   return out;
+}
+
+// Cerca una data vicino a una parola chiave nel testo di un documento (es. "scade il 31/12/2026").
+// Restituisce la prima trovata, o null: non si inventa mai, si propone solo quello che è scritto.
+function estraiDataDaTesto(testo,parole){
+  if(!testo) return null;
+  const dataRe=/(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/;
+  for(const parola of parole){
+    const re=new RegExp(parola,'gi'); let m;
+    while((m=re.exec(testo))){
+      const finestra=testo.slice(m.index,m.index+60);
+      const dm=dataRe.exec(finestra);
+      if(dm){ const data=interpretaData(dm[0]); if(data) return data; }
+    }
+  }
+  return null;
+}
+async function proponiDateDaFile(file){
+  if(!ePdf(file.type,file.name)) return null;
+  try{
+    const testo=(await estraiTestoPdf(file)).testo;
+    return {
+      dataScadenza:estraiDataDaTesto(testo,['scaden\\w*','valid[oa]\\s+(?:fino|sino)','validit[aà]\\s+(?:fino|sino)']),
+      dataEmissione:estraiDataDaTesto(testo,['emess[oa]\\s+il','rilasciat[oa]\\s+il','data\\s+di\\s+emissione']),
+    };
+  }catch(e){ return null; }
 }
 
 // ---- caricamento iniziale ----
