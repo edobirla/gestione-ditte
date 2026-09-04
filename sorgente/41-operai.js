@@ -91,19 +91,30 @@ document.addEventListener('input',debounce(e=>{const t=e.target;if(t.matches&&t.
 AZIONI['filtro-operai-stato']=d=>{ui.filtri.operai=Object.assign({stato:'attivi',cerca:''},ui.filtri.operai,{stato:d.valore});render()};
 AZIONI['persona-nuova']=()=>dialogoPersona(null);
 AZIONI['persona-modifica']=d=>dialogoPersona(persona(d.id));
+AZIONI['persona-cessa']=async d=>{
+  const p=persona(d.id);
+  const v=await dialogoModulo('Cessa '+nomePersona(p),[{nome:'dataCessazione',etichetta:'Data di cessazione',tipo:'data',obbligatorio:true}],{dataCessazione:oggi()},{ok:'Cessa',intro:html`<p class="piccolo secondario">Non risulterà più attiva: sparisce da nuove assegnazioni in cantiere, dalle presenze future e dallo scadenzario. Resta nello storico e si può riattivare in ogni momento.</p>`});
+  if(!v)return;
+  esegui('Cessato '+nomePersona(p),s=>{const x=s.persone.find(x=>x.id===p.id);x.attivo=false;x.dataCessazione=v.dataCessazione});
+};
+AZIONI['persona-riattiva']=async d=>{
+  const p=persona(d.id);
+  if(!(await conferma('Riattivare '+nomePersona(p)+'? Torna attiva e assegnabile ai cantieri.')))return;
+  esegui('Riattivato '+nomePersona(p),s=>{const x=s.persone.find(x=>x.id===p.id);x.attivo=true;x.dataCessazione=null});
+};
 
 // ---- scheda persona ----
 function vistaPersona(id,r){
   const p=persona(id); if(!p) return html`<div class="vuoto">${icona('attenzione')}<h3>Persona non trovata</h3><a class="pulsante" href="#/operai">Torna all'elenco</a></div>`;
   const idn=p.inCantiere!==false?idoneita(p):null;
-  const ling=linguettaAttiva('persona','documenti');
+  const ling=linguettaAttiva('persona:'+p.id,'documenti');
   const docs=documentiPersona(p.id);
   const nDocCritici=docs.filter(d=>['scaduto','scadenza'].includes(infoDocumento(d).stato)).length+(idn?idn.dettagliTutti.filter(x=>x.stato==='mancante').length:0);
   return html`<div class="briciole"><a href="#/operai">Operai</a> › ${nomePersona(p)}</div>
   <div class="testata"><div class="riga stretta" style="gap:14px">${avatar(p,true)}<div><h1>${nomePersona(p)}</h1><div class="sotto">${p.mansione||''} · ${TIPI_PERSONA[p.tipo]||p.tipo}${p.attivo?'':' · cessato il '+fData(p.dataCessazione)}${(p.qualifiche||[]).length?' · '+p.qualifiche.map(q=>QUALIFICHE[q]||q).join(', '):''}</div></div></div>
-    <div class="azioni"><button class="pulsante" data-azione="documento-nuovo" data-soggetto-tipo="persona" data-soggetto-id="${p.id}">${icona('allega')}Aggiungi documento</button><button class="pulsante" data-azione="persona-modifica" data-id="${p.id}">${icona('modifica')}Modifica</button></div></div>
+    <div class="azioni"><button class="pulsante" data-azione="documento-nuovo" data-soggetto-tipo="persona" data-soggetto-id="${p.id}">${icona('allega')}Aggiungi documento</button><button class="pulsante" data-azione="persona-modifica" data-id="${p.id}">${icona('modifica')}Modifica</button>${p.attivo?html`<button class="pulsante pericolo" data-azione="persona-cessa" data-id="${p.id}">${icona('elimina')}Cessa</button>`:html`<button class="pulsante" data-azione="persona-riattiva" data-id="${p.id}">${icona('aggiorna')}Riattiva</button>`}</div></div>
   ${idn?html`<div class="mb">${idn.idonea?html`<span class="idoneita si">${icona('ok')}Può entrare in cantiere oggi</span>`:html`<span class="idoneita no">${icona('blocco')}Non può entrare in cantiere: ${idn.motivi.join('; ')}</span>`}${idn.avvisi.length?html`<div class="piccolo secondario mt-s">Da regolarizzare (richiesti dalle committenze, non bloccanti): ${idn.avvisi.join('; ')}</div>`:''}</div>`:html`<div class="mb piccolo secondario">Questa persona non va in cantiere: l'idoneità non viene calcolata.</div>`}
-  ${linguette('persona',[{id:'documenti',testo:'Documenti',icona:'documenti',contatore:nDocCritici||null,critico:nDocCritici>0},{id:'anagrafica',testo:'Anagrafica',icona:'persona'},{id:'buste',testo:'Buste paga',icona:'busta-paga'},{id:'ore',testo:'Ore',icona:'presenze'},{id:'cantieri',testo:'Cantieri',icona:'cantieri'},{id:'retribuzione',testo:'Retribuzione',icona:'euro'}],ling)}
+  ${linguette('persona:'+p.id,[{id:'documenti',testo:'Documenti',icona:'documenti',contatore:nDocCritici||null,critico:nDocCritici>0},{id:'anagrafica',testo:'Anagrafica',icona:'persona'},{id:'buste',testo:'Buste paga',icona:'busta-paga'},{id:'ore',testo:'Ore',icona:'presenze'},{id:'cantieri',testo:'Cantieri',icona:'cantieri'},{id:'retribuzione',testo:'Retribuzione',icona:'euro'}],ling)}
   ${ling==='documenti'?schedaDocumentiPersona(p,idn):ling==='anagrafica'?schedaAnagrafica(p):ling==='buste'?schedaBustePersona(p):ling==='ore'?schedaOrePersona(p):ling==='cantieri'?schedaCantieriPersona(p):schedaRetribuzione(p)}`;
 }
 function schedaDocumentiPersona(p,idn){
@@ -183,11 +194,13 @@ function dialogoPersona(p){
     {nome:'retribuzione.tipo',etichetta:'Retribuzione',tipo:'select',vuoto:false,opzioni:[{v:'oraria',t:'Oraria'},{v:'fissa',t:'Fissa mensile'},{v:'mista',t:'Oraria + fisso mensile'}]},
     {nome:'retribuzione.tariffaOraria',etichetta:'Tariffa oraria',tipo:'euro'},{nome:'retribuzione.importoFisso',etichetta:'Importo fisso mensile',tipo:'euro'},
     {nome:'attivo',tipo:'spunta',testo:'In forza (attivo)'},{nome:'inCantiere',tipo:'spunta',testo:'Va in cantiere (calcola idoneità)'},{nome:'inLibroPresenze',tipo:'spunta',testo:'Compare nel libro presenze'},
+  ];
+  if(!nuovo) campi.push(
     {nome:'sezionePresenze',etichetta:'Sezione presenze',tipo:'select',vuoto:false,opzioni:[{v:'soci',t:'Soci'},{v:'dipendenti',t:'Dipendenti'}]},{nome:'soloTrasferte',tipo:'spunta',testo:'Solo riga trasferte (niente ore)'},
     {nome:'schemaOrarioAttivo',tipo:'spunta',testo:'Schema orario settimanale personale'},
     ...['lun','mar','mer','gio','ven'].map(g=>({nome:'schemaOrario.'+g,etichetta:'Ore '+g,tipo:'ore',decimali:0})),
     {nome:'note',etichetta:'Note',tipo:'textarea',largo:true},
-  ];
+  );
   const val=clona(p);val.schemaOrarioAttivo=!!p.schemaOrario;if(!val.schemaOrario)val.schemaOrario={};
   return dialogoModulo(nuovo?'Nuova persona':'Modifica '+nomePersona(p),campi,val,{validaTutto:v=>{if(v.dataAssunzione&&v.dataCessazione&&v.dataCessazione<v.dataAssunzione)return 'La cessazione non può precedere l\'assunzione';return null}}).then(v=>{
     if(!v) return;
@@ -216,9 +229,9 @@ function vistaScadenzario(r){
     <div class="indicatore attenzione" data-azione="filtro-scadenzario" data-valore="scadenza"><span class="etichetta">${icona('attenzione')}Entro ${sc.soglie.scadenza} giorni</span><span class="valore">${sc.entro60.length}</span></div>
     <div class="indicatore" data-azione="filtro-scadenzario" data-valore="pianificare"><span class="etichetta">${icona('calendario')}Entro ${sc.soglie.pianificare} giorni</span><span class="valore">${sc.entro90.length}</span></div>
   </div>
+  ${filtro!=='mancanti'?html`<div class="strumenti-tabella"><div class="gruppo-pulsanti">${[['tutti','Tutti'],['critici','Da fare'],['scaduto','Scaduti'],['scadenza','In scadenza'],['pianificare','Da pianificare'],['valido','Validi']].map(([v,t])=>html`<button class="pulsante piccolo ${filtro===v?'attivo':''}" data-azione="filtro-scadenzario" data-valore="${v}">${t}</button>`)}</div><span class="conteggio">${visibili.length} scadenze</span></div>`:''}
   ${sc.mancanti.length&&(filtro==='tutti'||filtro==='mancanti')?html`<div class="scheda mb"><h3>${icona('blocco')}Documenti mancanti</h3>${tabella({righe:sc.mancanti,href:m=>'#/operai/'+m.persona.id,colonne:[{chiave:'p',titolo:'Persona',principale:true,formatta:m=>nomePersona(m.persona)},{chiave:'d',titolo:'Documento',formatta:m=>m.nome},{chiave:'b',titolo:'Effetto',formatta:m=>m.bloccante?html`<span class="pillola scaduto">${icona('blocco')}Blocca l'ingresso in cantiere</span>`:html`<span class="pillola pianificare">${icona('info')}Richiesto dalle committenze</span>`}]})}</div>`:''}
-  ${filtro!=='mancanti'?html`<div class="strumenti-tabella"><div class="gruppo-pulsanti">${[['tutti','Tutti'],['critici','Da fare'],['scaduto','Scaduti'],['scadenza','In scadenza'],['pianificare','Da pianificare'],['valido','Validi']].map(([v,t])=>html`<button class="pulsante piccolo ${filtro===v?'attivo':''}" data-azione="filtro-scadenzario" data-valore="${v}">${t}</button>`)}</div><span class="conteggio">${visibili.length} scadenze</span></div>
-  ${Array.from(gruppiV.entries()).length?Array.from(gruppiV.entries()).map(([k,righe])=>{const {anno,mese}=daChiaveMese(k);return html`<div class="sezione-titolo">${fMeseAnno(anno,mese)} · ${righe.length}</div>${tabella({righe,onRiga:x=>apriDocumento(x.doc.id),classeRiga:x=>'riga-'+x.info.stato,colonne:[{chiave:'data',titolo:'Scadenza',principale:true,formatta:x=>html`<b class="${x.info.stimata?'stimata':''}">${fData(x.info.data)}${x.info.stimata?' ~':''}</b> <span class="piccolo secondario">${fGiorni(x.info.giorni)}</span>`},{chiave:'sogg',titolo:'Chi',formatta:x=>x.soggetto},{chiave:'doc',titolo:'Documento',formatta:x=>html`${x.tipo?x.tipo.nome:''}${x.doc.titolo?html` <span class="piccolo secondario">${x.doc.titolo}</span>`:''}`},{chiave:'stato',titolo:'Stato',formatta:x=>pillolaDocumento(x.info,{breve:true})},{chiave:'file',titolo:'File',formatta:x=>(x.doc.file||[]).length?icona('allega','piccola'):html`<span class="da-compilare piccolo">nessuno</span>`}]})}`}):html`<div class="vuoto">${icona('ok')}<h3>Niente in questo filtro</h3></div>`}`:''}
+  ${filtro!=='mancanti'?html`${Array.from(gruppiV.entries()).length?Array.from(gruppiV.entries()).map(([k,righe])=>{const {anno,mese}=daChiaveMese(k);return html`<div class="sezione-titolo">${fMeseAnno(anno,mese)} · ${righe.length}</div>${tabella({righe,onRiga:x=>apriDocumento(x.doc.id),classeRiga:x=>'riga-'+x.info.stato,colonne:[{chiave:'data',titolo:'Scadenza',principale:true,formatta:x=>html`<b class="${x.info.stimata?'stimata':''}">${fData(x.info.data)}${x.info.stimata?' ~':''}</b> <span class="piccolo secondario">${fGiorni(x.info.giorni)}</span>`},{chiave:'sogg',titolo:'Chi',formatta:x=>x.soggetto},{chiave:'doc',titolo:'Documento',formatta:x=>html`${x.tipo?x.tipo.nome:''}${x.doc.titolo?html` <span class="piccolo secondario">${x.doc.titolo}</span>`:''}`},{chiave:'stato',titolo:'Stato',formatta:x=>pillolaDocumento(x.info,{breve:true})},{chiave:'file',titolo:'File',formatta:x=>(x.doc.file||[]).length?icona('allega','piccola'):html`<span class="da-compilare piccolo">nessuno</span>`}]})}`}):html`<div class="vuoto">${icona('ok')}<h3>Niente in questo filtro</h3></div>`}`:''}
   ${filtro==='tutti'&&sc.senzaScadenza.length?html`<div class="sezione-titolo">Senza scadenza (riferimento) · ${sc.senzaScadenza.length}</div>${tabella({righe:sc.senzaScadenza,onRiga:x=>apriDocumento(x.doc.id),colonne:[{chiave:'sogg',titolo:'Chi',principale:true,formatta:x=>x.soggetto},{chiave:'doc',titolo:'Documento',formatta:x=>html`${x.tipo?x.tipo.nome:''}${x.doc.titolo?html` <span class="piccolo secondario">${x.doc.titolo}</span>`:''}`},{chiave:'em',titolo:'Emissione',formatta:x=>x.doc.dataEmissione?fData(x.doc.dataEmissione):html`<span class="silenzioso">—</span>`},{chiave:'file',titolo:'File',formatta:x=>(x.doc.file||[]).length?icona('allega','piccola'):html`<span class="da-compilare piccolo">nessuno</span>`}]})}`:''}`;
 }
 AZIONI['filtro-scadenzario']=d=>{ui.filtri.scadenzario=ui.filtri.scadenzario===d.valore?'tutti':d.valore;render()};

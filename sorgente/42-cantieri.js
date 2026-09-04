@@ -104,13 +104,13 @@ AZIONI['cantiere-modifica']=d=>dialogoCantiere(cantiere(d.id));
 
 function vistaCantiere(id,r){
   const c=cantiere(id); if(!c) return html`<div class="vuoto">${icona('attenzione')}<h3>Cantiere non trovato</h3><a class="pulsante" href="#/cantieri">Elenco</a></div>`;
-  const ling=linguettaAttiva('cantiere','scheda');
+  const ling=linguettaAttiva('cantiere:'+c.id,'scheda');
   const ck=checklistCantiere(c);
   return html`<div class="briciole"><a href="#/cantieri">Cantieri</a> › ${c.nome}</div>
   <div class="testata"><div><h1>${c.nome}</h1><div class="sotto">${pillolaGenerica(STATI_CANTIERE[c.stato]||c.stato,c.stato==='attivo'?'valido':'neutro')} ${c.anno} · ${indirizzoTesto(c.indirizzo)||daCompilare('indirizzo')}</div></div>
     <div class="azioni"><a class="pulsante" href="#/cantieri/${c.id}/pos">${icona('scudo')}Genera POS</a><a class="pulsante" href="#/cantieri/${c.id}/pacchetto">${icona('pacchetto')}Pacchetto committenza</a><button class="pulsante primario" data-azione="cantiere-modifica" data-id="${c.id}">${icona('modifica')}Modifica</button></div></div>
   ${ck.urgenti.length?html`<div class="avviso-inline critico">${icona('errore')}<div class="corpo"><b>Prima dell'ingresso in cantiere:</b> ${ck.urgenti.map(v=>html`${v.soggetto}: ${v.nome}${v.motivo?' ('+v.motivo+')':''}`).reduce((a,b)=>html`${a} · ${b}`)}</div></div>`:''}
-  ${linguette('cantiere',[{id:'scheda',testo:'Scheda',icona:'cantieri'},{id:'squadra',testo:'Squadra e lavorazioni',icona:'operai'},{id:'documenti',testo:'Documenti',icona:'documenti'},{id:'checklist',testo:'Checklist committenza',icona:'spunta',contatore:ck.totale-ck.pronti||null,critico:ck.urgenti.length>0},{id:'economia',testo:'Economia',icona:'euro'},{id:'diario',testo:'Diario e invii',icona:'orologio'}],ling)}
+  ${linguette('cantiere:'+c.id,[{id:'scheda',testo:'Scheda',icona:'cantieri'},{id:'squadra',testo:'Squadra e lavorazioni',icona:'operai'},{id:'documenti',testo:'Documenti',icona:'documenti'},{id:'checklist',testo:'Checklist committenza',icona:'spunta',contatore:ck.totale-ck.pronti||null,critico:ck.urgenti.length>0},{id:'economia',testo:'Economia',icona:'euro'},{id:'diario',testo:'Diario e invii',icona:'orologio'}],ling)}
   ${ling==='scheda'?schedaCantiereAnagrafica(c):ling==='squadra'?schedaCantiereSquadra(c):ling==='documenti'?schedaCantiereDocumenti(c):ling==='checklist'?schedaCantiereChecklist(c,ck):ling==='economia'?schedaCantiereEconomia(c):schedaCantiereDiario(c)}`;
 }
 function schedaCantiereAnagrafica(c){

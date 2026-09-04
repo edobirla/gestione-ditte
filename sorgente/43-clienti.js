@@ -53,7 +53,7 @@ AZIONI['cliente-modifica']=d=>dialogoCliente(cliente(d.id));
 function vistaCliente(id){
   const c=cliente(id); if(!c) return html`<div class="vuoto">${icona('attenzione')}<h3>Cliente non trovato</h3><a class="pulsante" href="#/clienti">Elenco</a></div>`;
   const st=statisticheCliente(id);
-  const ling=linguettaAttiva('cliente','scheda');
+  const ling=linguettaAttiva('cliente:'+c.id,'scheda');
   return html`<div class="briciole"><a href="#/clienti">Clienti</a> › ${c.ragioneSociale}</div>
   <div class="testata"><div><h1>${c.ragioneSociale}</h1><div class="sotto">${(c.ruoli||[]).map(r=>RUOLI_CLIENTE[r]||r).join(', ')||''} · ${STATI_CLIENTE[c.stato]||''}${c.piva?' · P.IVA '+c.piva:''}</div></div><div class="azioni"><button class="pulsante" data-azione="interazione-nuova" data-id="${c.id}">${icona('piu')}Interazione</button><button class="pulsante primario" data-azione="cliente-modifica" data-id="${c.id}">${icona('modifica')}Modifica</button></div></div>
   <div class="griglia quattro mb">
@@ -62,7 +62,7 @@ function vistaCliente(id){
     <div class="indicatore" style="cursor:default"><span class="etichetta">Giorni medi di pagamento</span><span class="valore md">${st.giorniPagamento!=null?fNum(st.giorniPagamento,0):'—'}</span><span class="nota">${st.pagamentiTot?(st.pagamentiSenzaData?st.pagamentiSenzaData+' incassi senza data registrata':'su '+st.pagamentiTot+' incassi'):'nessun incasso registrato'}</span></div>
     <div class="indicatore" style="cursor:default"><span class="etichetta">Ultimo lavoro</span><span class="valore md">${st.ultimoLavoro?fDataBreve(st.ultimoLavoro):'—'}</span><span class="nota">${st.cantieri.length} cantieri</span></div>
   </div>
-  ${linguette('cliente',[{id:'scheda',testo:'Scheda e referenti',icona:'clienti'},{id:'cantieri',testo:'Cantieri',icona:'cantieri',contatore:st.cantieri.length||null},{id:'andamento',testo:'Andamento',icona:'avanzamento'},{id:'cronologia',testo:'Cronologia',icona:'orologio',contatore:(c.interazioni||[]).length||null},{id:'preventivi',testo:'Preventivi',icona:'preventivi',contatore:st.preventivi.length||null}],ling)}
+  ${linguette('cliente:'+c.id,[{id:'scheda',testo:'Scheda e referenti',icona:'clienti'},{id:'cantieri',testo:'Cantieri',icona:'cantieri',contatore:st.cantieri.length||null},{id:'andamento',testo:'Andamento',icona:'avanzamento'},{id:'cronologia',testo:'Cronologia',icona:'orologio',contatore:(c.interazioni||[]).length||null},{id:'preventivi',testo:'Preventivi',icona:'preventivi',contatore:st.preventivi.length||null}],ling)}
   ${ling==='scheda'?schedaClienteAnagrafica(c):ling==='cantieri'?schedaClienteCantieri(c,st):ling==='andamento'?schedaClienteAndamento(c,st):ling==='cronologia'?schedaClienteCronologia(c):schedaClientePreventivi(c,st)}`;
 }
 function schedaClienteAnagrafica(c){

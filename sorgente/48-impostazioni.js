@@ -5,9 +5,41 @@
 VISTE.impostazioni=function(r){
   const sotto=r.id||(r.query.backup?'backup':'azienda');
   return html`<div class="testata"><div><h1>Impostazioni</h1><div class="sotto">Versione schema ${VERSIONE_SCHEMA} · ${stato.impostazioni.dispositivo||''}</div></div></div>
-  ${linguette('impostazioni',[{id:'azienda',testo:'Azienda',icona:'azienda'},{id:'backup',testo:'Backup',icona:'backup'},{id:'tipi',testo:'Tipi di documento',icona:'documenti'},{id:'preferenze',testo:'Preferenze',icona:'impostazioni'},{id:'esporta',testo:'Esportazioni',icona:'scarica'},{id:'sistema',testo:'Sistema',icona:'chiave'}],sotto)}
-  ${sotto==='azienda'?impAzienda():sotto==='backup'?impBackup():sotto==='tipi'?impTipi():sotto==='preferenze'?impPreferenze():sotto==='esporta'?impEsporta():impSistema()}`;
+  ${linguette('impostazioni',[{id:'azienda',testo:'Azienda',icona:'azienda'},{id:'backup',testo:'Backup',icona:'backup'},{id:'peso',testo:'Peso archivio',icona:'peso'},{id:'tipi',testo:'Tipi di documento',icona:'documenti'},{id:'preferenze',testo:'Preferenze',icona:'impostazioni'},{id:'esporta',testo:'Esportazioni',icona:'scarica'},{id:'sistema',testo:'Sistema',icona:'chiave'}],sotto)}
+  ${sotto==='azienda'?impAzienda():sotto==='backup'?impBackup():sotto==='peso'?vistaPeso():sotto==='tipi'?impTipi():sotto==='preferenze'?impPreferenze():sotto==='esporta'?impEsporta():impSistema()}`;
 };
+// ---- peso dell'archivio ----
+function vistaPeso(){
+  const p=pesoArchivio();
+  const cestino=stato.file.filter(f=>f.cestinato);
+  dopoRender(async()=>{const q=await stimaQuota();const e=el('#quota-info');if(e&&q)e.innerHTML=html`Spazio usato dal browser: <b>${fPeso(q.usato)}</b> su circa ${fPeso(q.quota)} disponibili (${q.quota?Math.round(q.usato/q.quota*100):0}%).`;const pe=el('#persistenza-info');if(pe){const ok=ui.persistenza;pe.innerHTML=ok===true?html`<span class="pillola valido">${icona('ok')}Archivio protetto dallo svuotamento automatico</span>`:ok===false?html`<span class="pillola scadenza">${icona('attenzione')}Il browser non garantisce di conservare l'archivio: fai backup regolari</span>`:html`<span class="pillola neutro">Stato di persistenza non verificabile su questo browser</span>`}});
+  const max=Math.max(1,...p.perSoggetto.map(x=>x.peso));
+  return html`<div class="griglia due">
+    <div class="scheda"><h3>${icona('peso')}Peso dell'archivio</h3><div class="indicatore" style="cursor:default"><span class="etichetta">Totale documenti</span><span class="valore md">${fPeso(p.totale)}</span><span class="nota">${p.numero} file · cestino ${fPeso(p.cestino)}</span></div>
+      <p class="mt piccolo" id="quota-info">Stima dello spazio in corso…</p><p id="persistenza-info"></p>
+      <div class="sezione-titolo">Per soggetto</div>${p.perSoggetto.map(x=>html`<div class="riga stretta piccolo" style="margin-bottom:4px"><span style="width:160px" class="taglia">${x.nome}</span><div class="barra-peso spazio"><span style="width:${Math.round(x.peso/max*100)}%;background:var(--blu)"></span></div><span class="num" style="width:70px">${fPeso(x.peso)}</span></div>`)}
+      <div class="sezione-titolo">Per tipo</div>${p.perTipo.map(x=>html`<div class="riga stretta piccolo" style="margin-bottom:4px"><span style="width:160px" class="taglia">${x.nome}</span><div class="barra-peso spazio"><span style="width:${Math.round(x.peso/max*100)}%;background:var(--grigio)"></span></div><span class="num" style="width:70px">${fPeso(x.peso)}</span></div>`)}
+    </div>
+    <div class="scheda"><h3>I file più pesanti</h3>${tabella({righe:p.pesanti,colonne:[{chiave:'nome',titolo:'File',principale:true,formatta:f=>html`<span class="taglia" style="display:block;max-width:240px" title="${f.nome}">${f.nome}</span><span class="piccolo secondario">${(riferimentiFile(f.id)[0]||{}).tipo||'senza riferimenti'}</span>`},{chiave:'dimensione',titolo:'Peso',num:true,formatta:f=>html`<b>${fPeso(f.dimensione)}</b>${f.compresso?html`<br><span class="piccolo secondario">da ${fPeso(f.dimensioneOriginale)}</span>`:''}`},{chiave:'az',titolo:'',classe:'azioni',formatta:f=>html`<button class="pulsante piccolo" data-azione="file-apri" data-id="${f.id}" title="Vedi">${icona('occhio','piccola')}</button> ${eImmagine(f.mime,f.nome)?html`<button class="pulsante piccolo" data-azione="file-ricomprimi" data-id="${f.id}" title="Ricomprimi">${icona('magia','piccola')}</button>`:''} <button class="pulsante piccolo" data-azione="file-sostituisci" data-id="${f.id}" title="Sostituisci con una versione più leggera">${icona('aggiorna','piccola')}</button></td>`}]})}
+      <div class="sezione-titolo">Per alleggerire</div><ul class="piccolo"><li>Le scansioni pesanti (oltre 2 MB) si rifanno a 150–200 dpi in bianco e nero, o si fotografano: l'immagine viene compressa automaticamente sotto ${stato.impostazioni.obiettivoKb||300} KB.</li><li>I PDF non si possono ricomprimere qui: usa «Sostituisci» dopo averne creato una versione più leggera.</li><li>I file eliminati restano nel cestino per 30 giorni, poi lo spazio si libera.</li></ul>
+      ${cestino.length?html`<div class="sezione-titolo">Cestino (${cestino.length})</div><ul class="elenco-piatto piccolo">${cestino.map(f=>html`<li><span class="spazio taglia">${f.nome}</span><span class="secondario">${fPeso(f.dimensione)} · ${fData(f.cestinato.slice(0,10))}</span><button class="pulsante piccolo pericolo" data-azione="file-elimina-definitivo" data-id="${f.id}">Elimina ora</button></li>`)}</ul><button class="pulsante piccolo mt-s" data-azione="cestino-svuota">Svuota il cestino</button>`:''}
+    </div></div>`;
+}
+AZIONI['file-ricomprimi']=async d=>{const m=fileMeta(d.id);const b=await leggiFile(m.hash);if(!b)return;const c=await comprimiImmagine(b,{obiettivo:(stato.impostazioni.obiettivoKb||300)*1024});if(c.blob.size>=b.size*0.95)return avviso('Non si comprime ulteriormente in modo utile');const u1=URL.createObjectURL(b),u2=URL.createObjectURL(c.blob);const ok=await dialogo({titolo:'Ricompressione',largo:true,corpo:html`<div class="confronto-immagini"><figure><img src="${u1}"><figcaption>Prima: ${fPeso(b.size)}</figcaption></figure><figure><img src="${u2}"><figcaption>Dopo: ${fPeso(c.blob.size)}</figcaption></figure></div>`,pulsanti:[{testo:'Annulla',valore:false},{testo:'Sostituisci',classe:'primario',valore:true,primario:true}]});URL.revokeObjectURL(u1);URL.revokeObjectURL(u2);if(!ok)return;await sostituisciFile(m.id,c.blob,m.nome.replace(/\.[a-z]+$/i,'.jpg'),{compresso:true,dimensioneOriginale:m.dimensioneOriginale||m.dimensione})};
+AZIONI['file-sostituisci']=async d=>{const fs=await scegliFile({multipli:false,accetta:'.pdf,image/*'});if(!fs.length)return;const m=fileMeta(d.id);const es=await acquisisciFile(fs[0],{});await sostituisciRiferimenti(m.id,es.rec.id);avviso('File sostituito')};
+async function sostituisciFile(vecchioId,blob,nome,meta){const {rec}=await salvaFile(blob,Object.assign({nome},meta||{}));await sostituisciRiferimenti(vecchioId,rec.id)}
+async function sostituisciRiferimenti(vecchioId,nuovoId_){
+  esegui('Sostituito file',s=>{
+    for(const d of s.documenti) d.file=(d.file||[]).map(f=>f===vecchioId?nuovoId_:f);
+    for(const b of s.bustePaga) if(b.fileId===vecchioId) b.fileId=nuovoId_;
+    for(const m of s.movimenti) if(m.fileId===vecchioId) m.fileId=nuovoId_;
+    for(const c of s.cantieri){ if(c.psc&&c.psc.fileId===vecchioId) c.psc.fileId=nuovoId_; for(const dp of c.documentiProdotti||[]) if(dp.fileId===vecchioId) dp.fileId=nuovoId_; }
+    for(const k of Object.keys(s.presenze)) for(const pid of Object.keys(s.presenze[k].persone)) if(s.presenze[k].persone[pid].foglioOreId===vecchioId) s.presenze[k].persone[pid].foglioOreId=nuovoId_;
+    cestinaFileOrfani(s);
+  });
+}
+AZIONI['file-elimina-definitivo']=async d=>{if(!(await conferma('Eliminare definitivamente questo file? Non si può recuperare.',{pericolo:true,ok:'Elimina'})))return;await eliminaFileDefinitivo(d.id);render()};
+AZIONI['cestino-svuota']=async()=>{if(!(await conferma('Svuotare il cestino? I file eliminati non si potranno recuperare.',{pericolo:true,ok:'Svuota'})))return;const n=await svuotaCestinoScaduto(0);avviso('Eliminati '+n+' file');render()};
 document.addEventListener('click',e=>{const b=e.target.closest('[data-linguetta="impostazioni"]');if(b){e.stopImmediatePropagation();vai('impostazioni/'+b.dataset.valore)}},true);
 function impAzienda(){
   const a=stato.azienda;const leg=persona(a.legaleRappresentanteId);

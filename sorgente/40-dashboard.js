@@ -4,7 +4,7 @@
 // ---------------------------------------------------------------------
 VISTE.dashboard=function(){
   const riquadro=(fn)=>{try{return fn()}catch(e){console.error(e);return html`<div class="avviso-inline critico">${icona('errore')}<div class="corpo">Riquadro non disponibile: ${e.message}</div></div>`}};
-  return html`<div class="testata"><div><h1>Buongiorno${stato.impostazioni.nomeUtente?', '+stato.impostazioni.nomeUtente.split(' ')[0]:''}</h1><div class="sotto">${capitalizza(NOMI_GIORNI[new Date().getDay()])} ${fDataLunga(oggi())}</div></div><div class="azioni"><a class="pulsante" href="#/operai/scadenzario">${icona('calendario')}Scadenzario</a><a class="pulsante" href="#/presenze">${icona('presenze')}Presenze</a></div></div>
+  return html`<div class="testata"><div><h1>Buongiorno</h1><div class="sotto">${capitalizza(NOMI_GIORNI[new Date().getDay()])} ${fDataLunga(oggi())}</div></div></div>
   ${riquadro(riquadroSemaforo)}
   <div class="griglia due mt">${riquadro(riquadroIdoneita)}${riquadro(riquadroAzioni)}</div>
   <div class="mt">${riquadro(riquadroCantieri)}</div>
