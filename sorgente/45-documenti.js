@@ -175,6 +175,7 @@ async function dialogoDocumento(d,filesIniziali){
 }
 
 // ---- acquisizione rapida: file trascinati sulla finestra ----
+AZIONI['carica-documento-globale']=async()=>{const fs=await scegliFile({accetta:'.pdf,image/*'});if(fs.length)acquisizioneRapida(fs)};
 async function acquisizioneRapida(files){
   const conCartelle=files.some(f=>(f.percorso||'').includes('/'));
   if(files.length>3||conCartelle){ ui.caricamentoFiles=files; vai('documenti/caricamento'); if(leggiRotta().sezione==='documenti'&&leggiRotta().id==='caricamento') render(); return; }

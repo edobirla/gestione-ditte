@@ -662,6 +662,7 @@ input[type=checkbox],input[type=radio]{width:18px;height:18px;accent-color:var(-
     <button class="pulsante discreto icona" id="btn-annulla" title="Annulla (⌘Z)" aria-label="Annulla"><svg class="ic"><use href="#i-annulla"/></svg></button>
     <button class="pulsante discreto icona" id="btn-ripristina" title="Ripristina (⇧⌘Z)" aria-label="Ripristina"><svg class="ic"><use href="#i-ripristina"/></svg></button>
     <button class="spia-backup" id="spia-backup" title="Stato del backup"><span class="punto"></span><span class="testo-spia">Backup</span></button>
+    <button class="pulsante discreto icona" data-azione="carica-documento-globale" title="Carica un documento (lo archivio da solo)" aria-label="Carica un documento"><svg class="ic"><use href="#i-carica"/></svg></button>
     <button class="pulsante discreto icona" id="btn-tema" title="Tema" aria-label="Cambia tema"><svg class="ic"><use href="#i-monitor"/></svg></button>
   </header>
   <nav class="menu" id="menu" aria-label="Sezioni"></nav>
@@ -3578,6 +3579,7 @@ async function dialogoDocumento(d,filesIniziali){
 }
 
 // ---- acquisizione rapida: file trascinati sulla finestra ----
+AZIONI['carica-documento-globale']=async()=>{const fs=await scegliFile({accetta:'.pdf,image/*'});if(fs.length)acquisizioneRapida(fs)};
 async function acquisizioneRapida(files){
   const conCartelle=files.some(f=>(f.percorso||'').includes('/'));
   if(files.length>3||conCartelle){ ui.caricamentoFiles=files; vai('documenti/caricamento'); if(leggiRotta().sezione==='documenti'&&leggiRotta().id==='caricamento') render(); return; }
