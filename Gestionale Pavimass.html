@@ -3416,7 +3416,7 @@ AZIONI['presenze-uscite']=async d=>{
 VISTE.documenti=function(r){
   if(r.query.doc){setTimeout(()=>apriDocumento(r.query.doc),0);history.replaceState(null,'','#/documenti')}
   const sotto=r.id||'archivio';
-  const testa=html`<div class="testata"><div><h1>Documenti</h1><div class="sotto">${stato.file.filter(f=>!f.cestinato).length} file · ${fPeso(somma(stato.file.filter(f=>!f.cestinato),f=>f.dimensione))} nell'archivio</div></div><div class="azioni"><button class="pulsante" data-azione="documento-nuovo">${icona('allega')}Aggiungi documento</button><a class="pulsante" href="#/documenti/caricamento">${icona('cartella')}Caricamento cartelle</a></div></div>
+  const testa=html`<div class="testata"><div><h1>Documenti</h1><div class="sotto">${stato.file.filter(f=>!f.cestinato).length} file · ${fPeso(somma(stato.file.filter(f=>!f.cestinato),f=>f.dimensione))} nell'archivio</div></div><div class="azioni"><button class="pulsante" data-azione="assistente-documento-esterno" title="Copri intestazioni, aggiungi timbro/firma e dati del legale rappresentante su un documento di un'altra azienda">${icona('magia')}Assistente documento esterno</button><button class="pulsante" data-azione="documento-nuovo">${icona('allega')}Aggiungi documento</button><a class="pulsante" href="#/documenti/caricamento">${icona('cartella')}Caricamento cartelle</a></div></div>
   ${linguette('documenti',[{id:'archivio',testo:'Archivio',icona:'documenti'},{id:'buste',testo:'Buste paga',icona:'busta-paga'},{id:'modelli',testo:'Modelli',icona:'firma'},{id:'generati',testo:'Generati',icona:'stampa'},{id:'caricamento',testo:'Caricamento',icona:'cartella'}].map(x=>({...x,href:'#/documenti/'+(x.id==='archivio'?'':x.id)})),sotto)}`;
   const corpo=sotto==='buste'?vistaBustePaga(r):sotto==='modelli'?vistaModelli(r):sotto==='generati'?vistaGenerati():sotto==='caricamento'?vistaCaricamento():vistaArchivio();
   return html`${testa}${corpo}`;
@@ -3662,6 +3662,71 @@ async function proponiDateDaFile(file){
       dataEmissione:estraiDataDaTesto(testo,['emess[oa]\\s+il','rilasciat[oa]\\s+il','data\\s+di\\s+emissione']),
     };
   }catch(e){ return null; }
+}
+
+// ---- assistente per documenti di un'altra azienda: copri intestazioni, aggiungi timbro/firma e dati del legale rappresentante ----
+// Su richiesta di Edoardo: solo assistenza manuale, niente riconoscimento automatico. L'utente
+// posiziona a mano quello che serve (in percentuale, quindi indipendente dalla risoluzione), poi
+// stampa, condivide o archivia il risultato come un documento qualsiasi.
+function testoLegaleRappresentante(){
+  const a=stato.azienda;const leg=persona(a.legaleRappresentanteId);
+  return [a.ragioneSociale,leg?'Il Legale Rappresentante: '+nomePersona(leg):'',leg&&leg.cf?'C.F. '+leg.cf:'',indirizzoTesto(a.indirizzo),a.piva?'P.IVA '+a.piva:''].filter(Boolean).join('\n');
+}
+AZIONI['assistente-documento-esterno']=async()=>{
+  const fs=await scegliFile({multipli:false,accetta:'image/*'});
+  if(!fs.length) return;
+  await apriAssistenteDocumento(fs[0]);
+};
+async function apriAssistenteDocumento(file){
+  let img; try{ img=await caricaImmagine(file); }catch(e){ return segnalaErrore(e,'Non sono riuscito ad aprire l\'immagine (serve una foto o scansione, non un PDF)'); }
+  const cw=img.width,ch=img.height;
+  const stampaImg=await new Promise(ok=>{const im=new Image();im.onload=()=>ok(im);im.onerror=()=>ok(null);im.src=immagineAzienda('firmaTimbro')});
+  const st={coperture:[],timbro:{attivo:false,x:75,y:85,scala:100},testo:{attivo:false,x:8,y:85,dimensione:16,testo:testoLegaleRappresentante()}};
+  const ridisegna=canvas=>{
+    canvas.width=cw;canvas.height=ch;
+    const ctx=canvas.getContext('2d');
+    ctx.clearRect(0,0,cw,ch);ctx.drawImage(img,0,0,cw,ch);
+    for(const c of st.coperture){ ctx.fillStyle=c.colore; ctx.fillRect(c.x/100*cw,c.y/100*ch,c.w/100*cw,c.h/100*ch); }
+    if(st.timbro.attivo&&stampaImg){ const w=cw*0.22*(st.timbro.scala/100),hh=w*(stampaImg.height/stampaImg.width); ctx.drawImage(stampaImg,st.timbro.x/100*cw-w/2,st.timbro.y/100*ch-hh/2,w,hh); }
+    if(st.testo.attivo){ ctx.fillStyle='#000';ctx.font=st.testo.dimensione+'px Arial,sans-serif';ctx.textBaseline='top'; (st.testo.testo||'').split('\n').forEach((riga,i)=>ctx.fillText(riga,st.testo.x/100*cw,st.testo.y/100*ch+i*(st.testo.dimensione+3))); }
+  };
+  const corpo=()=>html`<div class="griglia due">
+    <div><canvas id="tela-assistente" style="width:100%;height:auto;border:1px solid var(--bordo);border-radius:var(--raggio);background:#fff"></canvas></div>
+    <div>
+      <div class="scheda mb-s"><h3>${icona('elimina','piccola')}Copri un'area (es. l'intestazione di un'altra azienda)</h3>
+        <div class="campi"><div class="campo"><span class="etichetta-campo">X %</span><input type="number" id="ass-cop-x" value="5" min="0" max="100"></div><div class="campo"><span class="etichetta-campo">Y %</span><input type="number" id="ass-cop-y" value="2" min="0" max="100"></div><div class="campo"><span class="etichetta-campo">Largh. %</span><input type="number" id="ass-cop-w" value="90" min="1" max="100"></div><div class="campo"><span class="etichetta-campo">Alt. %</span><input type="number" id="ass-cop-h" value="12" min="1" max="100"></div></div>
+        <button class="pulsante piccolo mt-s" id="ass-cop-agg">${icona('piu','piccola')}Aggiungi rettangolo bianco</button>
+        <ul class="elenco-piatto piccolo mt-s" id="ass-cop-lista"></ul>
+      </div>
+      <div class="scheda mb-s"><h3><label class="spunta"><input type="checkbox" id="ass-timbro-on">${icona('firma','piccola')}Timbro e firma</label></h3>
+        <div class="campi"><div class="campo"><span class="etichetta-campo">X %</span><input type="number" id="ass-timbro-x" value="75" min="0" max="100"></div><div class="campo"><span class="etichetta-campo">Y %</span><input type="number" id="ass-timbro-y" value="85" min="0" max="100"></div><div class="campo"><span class="etichetta-campo">Dimensione %</span><input type="number" id="ass-timbro-s" value="100" min="20" max="300"></div></div>
+      </div>
+      <div class="scheda"><h3><label class="spunta"><input type="checkbox" id="ass-testo-on">${icona('persona','piccola')}Dati legale rappresentante</label></h3>
+        <textarea id="ass-testo-testo" rows="4" class="mb-s">${testoLegaleRappresentante()}</textarea>
+        <div class="campi"><div class="campo"><span class="etichetta-campo">X %</span><input type="number" id="ass-testo-x" value="8" min="0" max="100"></div><div class="campo"><span class="etichetta-campo">Y %</span><input type="number" id="ass-testo-y" value="85" min="0" max="100"></div><div class="campo"><span class="etichetta-campo">Dimensione testo</span><input type="number" id="ass-testo-d" value="16" min="8" max="60"></div></div>
+      </div>
+    </div>
+  </div>`;
+  const risultato=await dialogo({titolo:'Assistente documento esterno · '+file.name,enorme:true,corpo:corpo(),
+    pulsanti:[{testo:'Chiudi',valore:null},{testo:'Stampa',fn:v=>{const c=v.querySelector('#tela-assistente');const u=c.toDataURL('image/png');const w=window.open('');w.document.write('<img src="'+u+'" style="max-width:100%" onload="print()">');return false}},{testo:'Condividi',fn:async v=>{const c=v.querySelector('#tela-assistente');const b=await canvasABlob(c,'image/png',1);await condividiOScarica(b,file.name.replace(/\.[a-z0-9]+$/i,'')+' - modificato.png');return false}},{testo:'Salva nell\'archivio',classe:'primario',primario:true,fn:async v=>{const c=v.querySelector('#tela-assistente');const b=await canvasABlob(c,'image/jpeg',0.92);return {blob:b}}}],
+    alMontaggio:v=>{
+      const canvas=v.querySelector('#tela-assistente');
+      const agg=()=>ridisegna(canvas);
+      agg();
+      const lista=()=>{v.querySelector('#ass-cop-lista').innerHTML=st.coperture.map((c,i)=>html`<li>Rettangolo ${i+1} (${Math.round(c.x)}%,${Math.round(c.y)}%) <button class="pulsante piccolo icona" data-tog="${i}" aria-label="Togli">${icona('chiudi','piccola')}</button></li>`).map(x=>x.s).join('');tutti('[data-tog]',v).forEach(b=>b.onclick=()=>{st.coperture.splice(+b.dataset.tog,1);lista();agg()})};
+      v.querySelector('#ass-cop-agg').onclick=()=>{st.coperture.push({x:+v.querySelector('#ass-cop-x').value||0,y:+v.querySelector('#ass-cop-y').value||0,w:+v.querySelector('#ass-cop-w').value||10,h:+v.querySelector('#ass-cop-h').value||10,colore:'#fff'});lista();agg()};
+      lista();
+      const campo=(id,ramo,chiave,num)=>{const el=v.querySelector(id);el.addEventListener('input',()=>{ramo[chiave]=num?(+el.value||0):el.value;agg()})};
+      v.querySelector('#ass-timbro-on').addEventListener('change',e=>{st.timbro.attivo=e.target.checked;agg()});
+      campo('#ass-timbro-x',st.timbro,'x',true);campo('#ass-timbro-y',st.timbro,'y',true);campo('#ass-timbro-s',st.timbro,'scala',true);
+      v.querySelector('#ass-testo-on').addEventListener('change',e=>{st.testo.attivo=e.target.checked;agg()});
+      campo('#ass-testo-x',st.testo,'x',true);campo('#ass-testo-y',st.testo,'y',true);campo('#ass-testo-d',st.testo,'dimensione',true);
+      campo('#ass-testo-testo',st.testo,'testo',false);
+    }});
+  if(risultato&&risultato.blob){
+    const fileFinale=new File([risultato.blob],file.name.replace(/\.[a-z0-9]+$/i,'')+' - modificato.jpg',{type:'image/jpeg'});
+    dialogoDocumento({},[fileFinale]);
+  }
 }
 
 // ---- caricamento iniziale ----
