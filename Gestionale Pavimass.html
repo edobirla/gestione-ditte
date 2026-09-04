@@ -546,8 +546,11 @@ body.trascinamento::after{content:"Rilascia qui i documenti";position:fixed;inse
 .doc .cornice-modulo{border:.6pt solid #111;padding:3mm}
 .doc .caselle{display:inline-flex;gap:.6mm;vertical-align:middle} .doc .caselle span{display:inline-block;width:5.2mm;height:6.5mm;border:.5pt solid #111;text-align:center;font-family:"Courier New",monospace;font-size:10.5pt;line-height:6.5mm;text-transform:uppercase}
 .doc .caselle span.sep{border:0;width:2mm}
-.doc .libro-presenze{font-size:7pt} .doc .libro-presenze th,.doc .libro-presenze td{padding:.6mm .5mm;text-align:center;font-size:6.5pt} .doc .libro-presenze td.nome{text-align:left;font-weight:700;white-space:nowrap} .doc .libro-presenze td.sub{text-align:left;color:#555;font-size:6pt}
-.doc .libro-presenze td.ws{background:#E8E8E8} .doc .libro-presenze td.fest{background:#FBF2CF}
+.doc .scheda-persona{border:.6pt solid #999;border-radius:1.5mm;padding:2.5mm 3mm;margin:0 0 3mm}
+.doc .scheda-persona-testa{display:flex;align-items:baseline;gap:2mm;font-size:11pt;border-bottom:.5pt solid #ccc;padding-bottom:1.5mm;margin-bottom:1.5mm}
+.doc .scheda-persona table{margin:0}
+.doc .scheda-persona table tr.fest td{background:#FBF2CF}
+.doc .nota-persona{background:#FBF2CF;padding:1.5mm 2mm;margin:1.5mm 0 0;border-left:1.5mm solid #B4471A}
 .doc .checklist td.si{color:#2A1FB8;font-weight:700} .doc .checklist td.no{color:#C8262A;font-weight:700}
 .doc .titolo-tabella{font-weight:700;margin:3mm 0 1mm}
 .doc .scadenzario-gruppo{font-weight:700;background:#E4E4E4;padding:1.5mm 2mm;margin:3mm 0 1mm;border-left:2mm solid #3426F2}
@@ -4453,24 +4456,37 @@ function docPreventivo(p){
   return {titolo:'Preventivo '+p.numero+'/'+p.anno,cartaIntestata:true,blocchi};
 }
 function stampaPreventivo(p){anteprimaStampa({titolo:'Preventivo '+p.numero+' '+p.anno,doc:docPreventivo(p),riferimento:nomeCliente(p.clienteId)})}
+// Stampa una scheda per operaio (compilazione veloce resta a griglia a schermo, qui si legge): un
+// blocco per persona con solo i giorni compilati, così è leggibile su carta senza le 31 colonne strette.
 function docLibroPresenze(anno,mese){
   const m=meseP(anno,mese)||{persone:{}};const persone=personePresenze(anno,mese);const n=giorniNelMese(anno,mese);const fest=festivitaAnno(anno,stato.impostazioni.festivitaLocali);const k=chiaveMese(anno,mese);
-  const giorni=Array.from({length:n},(_,i)=>i+1);
-  const cls=g=>eFineSettimana(anno,mese,g)?'ws':fest.has(k+'-'+pad2(g))?'fest':'';
-  const testa=`<thead><tr><th style="width:26mm">Persona</th><th style="width:16mm"></th>${giorni.map(g=>`<th class="${cls(g)}">${g}<br><span style="font-weight:400">${NOMI_GIORNI_BREVI[giornoSettimana(anno,mese,g)].slice(0,1)}</span></th>`).join('')}<th style="width:10mm">Ore</th><th style="width:14mm">Importo</th></tr></thead>`;
-  const righe=[];
-  for(const sz of ['soci','dipendenti']){const pp=persone.filter(p=>(p.sezionePresenze||'dipendenti')===sz);if(!pp.length)continue;righe.push(`<tr><td colspan="${n+4}" style="background:#D9D9D9;font-weight:700;text-align:left">${sz==='soci'?'Soci':'Dipendenti'}</td></tr>`);
-    for(const p of pp){const mp=m.persone[p.id]||{giorni:{}};const calc=calcolaMesePersona(mp,p);const cella=(g,riga)=>{const c=mp.giorni[String(g)]||{};if(riga==='ore'){const v=valoreCella(c);return v==null?'':typeof v==='number'?fOre(v):v}return c[riga]||''};
-      if(p.soloTrasferte){righe.push(`<tr><td class="nome">${h(nomePersona(p))}</td><td class="sub">trasferte</td>${giorni.map(g=>`<td class="${cls(g)}">${h(cella(g,'trasferta'))}</td>`).join('')}<td></td><td class="num">${h(fEuro(calc.importo,0))}</td></tr>`);continue}
-      righe.push(`<tr><td class="nome">${h(nomePersona(p))}</td><td class="sub">ore</td>${giorni.map(g=>`<td class="${cls(g)}"><b>${h(cella(g,'ore'))}</b></td>`).join('')}<td class="num">${h(fOre(calc.oreGriglia))}</td><td class="num">${calc.importo!=null?h(fEuro(calc.importo,0)):''}</td></tr>`);
-      righe.push(`<tr><td></td><td class="sub">cantiere</td>${giorni.map(g=>`<td class="${cls(g)}">${h(tronca(cella(g,'cantiere'),9))}</td>`).join('')}<td colspan="2" class="sub">${h(Object.entries(calc.perCodice).map(([c,nn])=>c+' '+nn).join(' '))}</td></tr>`);
-      righe.push(`<tr><td></td><td class="sub">committente</td>${giorni.map(g=>`<td class="${cls(g)}">${h(tronca(cella(g,'committente'),9))}</td>`).join('')}<td colspan="2"></td></tr>`);
-      if(mp.note)righe.push(`<tr><td></td><td class="sub">note</td><td colspan="${n+2}" class="sub" style="text-align:left;white-space:normal">${h(mp.note)}</td></tr>`);}}
   const rie=riepilogoMese(anno,mese);
-  const blocchi=[`<h1 class="sx">Libro presenze — ${h(fMeseAnno(anno,mese))}</h1>`,`<table class="libro-presenze">${testa}<tbody>${righe.join('')}</tbody></table>`,`<p class="mini sx">Codici: M malattia · I infortunio · PE permesso · FS festività · FE ferie · AS assenza · CI cassa integrazione. Sabato e domenica non si compilano. Totale ore in griglia ${h(fOre(rie.oreTotali))} · importo complessivo ${h(fEuro(rie.importoTotale,0))}.</p>`];
-  return {titolo:'Libro presenze '+capitalizza(nomeMese(mese))+' '+anno,orientamento:'orizzontale',cartaIntestata:true,blocchi};
+  const blocchi=[`<h1 class="sx">Libro presenze — ${h(fMeseAnno(anno,mese))}</h1><p class="mini sx">Codici: M malattia · I infortunio · PE permesso · FS festività · FE ferie · AS assenza · CI cassa integrazione. Sabato e domenica non si compilano; i giorni non compilati non compaiono. Totale ore in griglia ${h(fOre(rie.oreTotali))} · importo complessivo ${h(fEuro(rie.importoTotale,0))}.</p>`];
+  for(const sz of ['soci','dipendenti']){
+    const pp=persone.filter(p=>(p.sezionePresenze||'dipendenti')===sz);if(!pp.length)continue;
+    blocchi.push(`<h2 class="sx">${sz==='soci'?'Soci':'Dipendenti'}</h2>`);
+    for(const p of pp){
+      const mp=m.persone[p.id]||{giorni:{}};const calc=calcolaMesePersona(mp,p);
+      const righeGiorno=[];
+      for(let g=1;g<=n;g++){
+        if(eFineSettimana(anno,mese,g)) continue;
+        const c=mp.giorni[String(g)]||{};const iso=k+'-'+pad2(g);const cf=fest.has(iso)?' class="fest"':'';
+        if(p.soloTrasferte){ if(!c.trasferta) continue; righeGiorno.push(`<tr${cf}><td>${g} ${h(NOMI_GIORNI_BREVI[giornoSettimana(anno,mese,g)])}</td><td colspan="2">Trasferta: ${h(c.trasferta)}</td></tr>`); continue; }
+        const v=valoreCella(c); if(v==null) continue;
+        const valTxt=typeof v==='number'?fOre(v)+' h':((CODICI_ASSENZA[v]||{}).nome||v);
+        righeGiorno.push(`<tr${cf}><td>${g} ${h(NOMI_GIORNI_BREVI[giornoSettimana(anno,mese,g)])}</td><td>${h(valTxt)}</td><td>${h([c.cantiere,c.committente].filter(Boolean).join(' · '))}</td></tr>`);
+      }
+      const totaliTxt=p.soloTrasferte?fEuro(calc.importo,0):`${fOre(calc.oreGriglia)} h · ${fEuro(calc.importo,0)}`;
+      const testa=`<div class="scheda-persona-testa"><b>${h(nomePersona(p))}</b>${p.mansione?` <span class="mini">· ${h(p.mansione)}</span>`:''}<span class="spazio"></span><b>${h(totaliTxt)}</b>${mp.importoForzato?' ✎':''}</div>`;
+      const corpo=righeGiorno.length?`<table><thead><tr><th style="width:22mm">Giorno</th><th style="width:26mm">Ore/codice</th><th>Cantiere · Committente</th></tr></thead><tbody>${righeGiorno.join('')}</tbody></table>`:`<p class="mini sx">Nessun giorno compilato.</p>`;
+      const assenze=Object.keys(calc.perCodice).length?`<p class="mini sx">${h(Object.entries(calc.perCodice).map(([cc,nn])=>((CODICI_ASSENZA[cc]||{}).nome||cc)+' '+nn).join(' · '))}</p>`:'';
+      const nota=mp.note?`<p class="mini sx nota-persona">${h(mp.note)}</p>`:'';
+      blocchi.push(`<div class="scheda-persona">${testa}${corpo}${assenze}${nota}</div>`);
+    }
+  }
+  return {titolo:'Libro presenze '+capitalizza(nomeMese(mese))+' '+anno,cartaIntestata:true,blocchi};
 }
-function stampaLibroPresenze(anno,mese){anteprimaStampa({titolo:'Libro presenze '+capitalizza(nomeMese(mese))+' '+anno,doc:docLibroPresenze(anno,mese),orientamento:'orizzontale'})}
+function stampaLibroPresenze(anno,mese){anteprimaStampa({titolo:'Libro presenze '+capitalizza(nomeMese(mese))+' '+anno,doc:docLibroPresenze(anno,mese)})}
 function docChecklist(c){
   const ck=checklistCantiere(c);const g=raggruppa(ck.voci,v=>v.gruppo);
   const blocchi=[`<h1 class="sx">Checklist documenti — ${h(c.nome)}</h1><p class="sx">Committente: ${nomeCliente(c.committenteId)?h(nomeCliente(c.committenteId)):'<span class="da-compilare">[DA COMPILARE]</span>'} · Impresa affidataria: ${nomeCliente(c.affidatariaId)?h(nomeCliente(c.affidatariaId)):'<span class="da-compilare">[DA COMPILARE]</span>'} · Aggiornata al ${h(fData(oggi()))} · ${ck.pronti} su ${ck.totale} pronti</p>`];

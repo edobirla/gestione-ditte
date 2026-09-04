@@ -490,8 +490,11 @@ body.trascinamento::after{content:"Rilascia qui i documenti";position:fixed;inse
 .doc .cornice-modulo{border:.6pt solid #111;padding:3mm}
 .doc .caselle{display:inline-flex;gap:.6mm;vertical-align:middle} .doc .caselle span{display:inline-block;width:5.2mm;height:6.5mm;border:.5pt solid #111;text-align:center;font-family:"Courier New",monospace;font-size:10.5pt;line-height:6.5mm;text-transform:uppercase}
 .doc .caselle span.sep{border:0;width:2mm}
-.doc .libro-presenze{font-size:7pt} .doc .libro-presenze th,.doc .libro-presenze td{padding:.6mm .5mm;text-align:center;font-size:6.5pt} .doc .libro-presenze td.nome{text-align:left;font-weight:700;white-space:nowrap} .doc .libro-presenze td.sub{text-align:left;color:#555;font-size:6pt}
-.doc .libro-presenze td.ws{background:#E8E8E8} .doc .libro-presenze td.fest{background:#FBF2CF}
+.doc .scheda-persona{border:.6pt solid #999;border-radius:1.5mm;padding:2.5mm 3mm;margin:0 0 3mm}
+.doc .scheda-persona-testa{display:flex;align-items:baseline;gap:2mm;font-size:11pt;border-bottom:.5pt solid #ccc;padding-bottom:1.5mm;margin-bottom:1.5mm}
+.doc .scheda-persona table{margin:0}
+.doc .scheda-persona table tr.fest td{background:#FBF2CF}
+.doc .nota-persona{background:#FBF2CF;padding:1.5mm 2mm;margin:1.5mm 0 0;border-left:1.5mm solid #B4471A}
 .doc .checklist td.si{color:#2A1FB8;font-weight:700} .doc .checklist td.no{color:#C8262A;font-weight:700}
 .doc .titolo-tabella{font-weight:700;margin:3mm 0 1mm}
 .doc .scadenzario-gruppo{font-weight:700;background:#E4E4E4;padding:1.5mm 2mm;margin:3mm 0 1mm;border-left:2mm solid #3426F2}
