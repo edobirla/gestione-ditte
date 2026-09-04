@@ -159,18 +159,35 @@ AZIONI['pagina-indietro']=d=>{if(ui.storicoProfondita>0)history.back();else vai(
 AZIONI['chiudi-pannello']=()=>chiudiPannello();
 AZIONI['copia']=d=>copiaNegliAppunti(d.testo).then(()=>avviso('Copiato negli appunti'));
 
-// ---- trascinamento file su tutta la finestra: apre l'acquisizione rapida ----
-let contatoreDrag=0;
-window.addEventListener('dragenter',e=>{if(e.dataTransfer&&Array.from(e.dataTransfer.types).includes('Files')){contatoreDrag++;document.body.classList.add('trascinamento')}});
-window.addEventListener('dragleave',e=>{contatoreDrag--;if(contatoreDrag<=0){contatoreDrag=0;document.body.classList.remove('trascinamento')}});
-window.addEventListener('dragover',e=>{if(e.dataTransfer&&Array.from(e.dataTransfer.types).includes('Files')){e.preventDefault();e.dataTransfer.dropEffect='copy'}});
+// ---- trascinamento file: un solo gestore per tutta l'app ----
+// Un solo dragover/drop (invece di più gestori sovrapposti in cattura e bolla) evidenzia solo la
+// zona di rilascio effettiva sotto il cursore, ricalcolata a ogni evento — niente contatore
+// dragenter/dragleave da tenere in sincronia, che su Chrome si disallineava facilmente e lasciava
+// il drop "morto" nonostante il cursore mostrasse la copia.
+let zonaDropAttiva=null;
+function trovaZonaDrop(target){return target&&target.closest&&(target.closest('[data-drop-doc]')||target.closest('[data-drop-soggetto]')||target.closest('[data-drop-caricamento]')||target.closest('[data-drop-buste]')||target.closest('.zona-drop'))}
+function evidenziaZona(z){if(z===zonaDropAttiva)return;if(zonaDropAttiva)zonaDropAttiva.classList.remove('sopra');if(z)z.classList.add('sopra');zonaDropAttiva=z}
+window.addEventListener('dragover',e=>{
+  if(!e.dataTransfer||!Array.from(e.dataTransfer.types).includes('Files'))return;
+  e.preventDefault();e.dataTransfer.dropEffect='copy';
+  evidenziaZona(trovaZonaDrop(e.target));
+});
+window.addEventListener('dragleave',e=>{if(e.clientX<=0||e.clientY<=0||e.clientX>=window.innerWidth||e.clientY>=window.innerHeight)evidenziaZona(null)});
 window.addEventListener('drop',async e=>{
-  contatoreDrag=0;document.body.classList.remove('trascinamento');
   if(!e.dataTransfer||!e.dataTransfer.files||!e.dataTransfer.files.length) return;
-  if(e.target.closest&&e.target.closest('[data-drop-locale]')) return; // zone che gestiscono da sole
   e.preventDefault();
+  const z=trovaZonaDrop(e.target)||zonaDropAttiva;
+  evidenziaZona(null);
+  if(z&&z.hasAttribute('data-drop-locale')) return; // zona che gestisce da sola (es. dialogo documento)
   const files=await fileDaDrop(e.dataTransfer);
-  if(files.length&&typeof acquisizioneRapida==='function') acquisizioneRapida(files);
+  if(!files.length) return;
+  if(z){
+    if(z.dataset.dropDoc) return allegaFilesADocumento(z.dataset.dropDoc,files);
+    if(z.dataset.dropSoggetto){const [tipo,id]=z.dataset.dropSoggetto.split(':');return dialogoDocumento({soggettoTipo:tipo,soggettoId:id},files)}
+    if(z.hasAttribute('data-drop-caricamento')){ui.caricamentoFiles=files;ui.caricamentoRighe=null;return render()}
+    if(z.hasAttribute('data-drop-buste')) return accodaBuste(files);
+  }
+  if(typeof acquisizioneRapida==='function') acquisizioneRapida(files);
 });
 // Legge cartelle intere trascinate (webkitGetAsEntry) e restituisce File con percorso relativo
 async function fileDaDrop(dt){

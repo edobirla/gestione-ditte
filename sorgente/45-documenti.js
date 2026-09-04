@@ -81,15 +81,6 @@ AZIONI['documento-nuovo']=d=>dialogoDocumento({soggettoTipo:d.soggettoTipo||null
 AZIONI['documento-modifica']=d=>dialogoDocumento(perId('documenti',d.id));
 AZIONI['documento-duplica']=d=>{const o=perId('documenti',d.id);dialogoDocumento({soggettoTipo:o.soggettoTipo,soggettoId:o.soggettoId,tipoId:o.tipoId,titolo:o.titolo,rinnovoDi:o.id})};
 AZIONI['documento-elimina']=async d=>{const doc=perId('documenti',d.id);const t=tipoDoc(doc.tipoId);if(!(await conferma(`Eliminare «${t?t.nome:'documento'}» di ${nomeSoggettoDoc(doc)}? I file allegati restano nel cestino 30 giorni.`,{pericolo:true,ok:'Elimina'})))return;chiudiPannello();esegui('Eliminato documento '+(t?t.nome:''),s=>{s.documenti=s.documenti.filter(x=>x.id!==d.id);cestinaFileOrfani(s)})};
-// Zone di drop locali: documento esistente o soggetto
-window.addEventListener('drop',async e=>{
-  const z=e.target.closest&&(e.target.closest('[data-drop-doc]')||e.target.closest('[data-drop-soggetto]'));
-  if(!z) return; e.preventDefault(); e.stopPropagation(); contatoreDrag=0; document.body.classList.remove('trascinamento');
-  const files=await fileDaDrop(e.dataTransfer); if(!files.length) return;
-  if(z.dataset.dropDoc) return allegaFilesADocumento(z.dataset.dropDoc,files);
-  const [tipo,id]=z.dataset.dropSoggetto.split(':'); dialogoDocumento({soggettoTipo:tipo,soggettoId:id},files);
-},true);
-window.addEventListener('dragover',e=>{const z=e.target.closest&&(e.target.closest('[data-drop-doc]')||e.target.closest('[data-drop-soggetto]')||e.target.closest('.zona-drop'));tutti('.zona-drop.sopra').forEach(x=>x.classList.remove('sopra'));if(z){z.classList.add('sopra');if(e.dataTransfer)e.dataTransfer.dropEffect='copy'}});
 async function allegaFilesADocumento(docId,files){
   const esiti=await acquisisciConAnteprima(files); if(!esiti) return;
   esegui('Allegati '+esiti.length+' file',s=>{const doc=s.documenti.find(x=>x.id===docId);for(const e of esiti){if(!doc.file.includes(e.rec.id))doc.file.push(e.rec.id)}},{senzaRender:true});
@@ -265,7 +256,6 @@ document.addEventListener('change',e=>{const t=e.target;if(!t.dataset||!t.datase
 AZIONI['caricamento-scegli']=async()=>{const fs=await scegliFile({cartella:true});if(fs.length){ui.caricamentoFiles=fs;ui.caricamentoRighe=null;render()}};
 AZIONI['caricamento-scegli-file']=async()=>{const fs=await scegliFile({});if(fs.length){ui.caricamentoFiles=fs;ui.caricamentoRighe=null;render()}};
 AZIONI['caricamento-annulla']=()=>{ui.caricamentoFiles=null;ui.caricamentoRighe=null;render()};
-window.addEventListener('drop',async e=>{const z=e.target.closest&&e.target.closest('[data-drop-caricamento]');if(!z)return;e.preventDefault();e.stopPropagation();contatoreDrag=0;document.body.classList.remove('trascinamento');const fs=await fileDaDrop(e.dataTransfer);if(fs.length){ui.caricamentoFiles=fs;ui.caricamentoRighe=null;render()}},true);
 AZIONI['caricamento-applica']=async()=>{
   const righe=ui.caricamentoRighe.righe.filter(r=>!r.escludi&&!r.duplicato);
   const senza=righe.filter(r=>!r.soggetto||!r.tipoId);
@@ -338,7 +328,6 @@ AZIONI['buste-scegli']=async()=>{const fs=await scegliFile({accetta:'.pdf'});if(
 AZIONI['buste-togli']=d=>{ui.busteCoda.splice(+d.i,1);render()};
 AZIONI['busta-regola-elimina']=d=>esegui('Eliminata regola buste paga',s=>{s.regoleBuste.splice(+d.i,1)});
 function accodaBuste(files){ui.busteCoda=(ui.busteCoda||[]).concat(files.map(f=>Object.assign({f},interpretaNomeBusta(f.name))));render()}
-window.addEventListener('drop',async e=>{const z=e.target.closest&&e.target.closest('[data-drop-buste]');if(!z)return;e.preventDefault();e.stopPropagation();contatoreDrag=0;document.body.classList.remove('trascinamento');const fs=await fileDaDrop(e.dataTransfer);if(fs.length)accodaBuste(fs)},true);
 AZIONI['buste-applica']=async()=>{
   const coda=ui.busteCoda||[]; if(!coda.length) return;
   const prog=dialogoAvanzamento('Archiviazione buste paga');

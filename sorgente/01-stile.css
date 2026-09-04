@@ -240,7 +240,6 @@ input[type=checkbox],input[type=radio]{width:18px;height:18px;accent-color:var(-
 .zona-drop{border:2px dashed var(--bordo-forte);border-radius:var(--raggio-grande);padding:var(--sp-5);text-align:center;color:var(--testo-2);background:var(--superficie);cursor:pointer;transition:border-color var(--durata),background var(--durata)}
 .zona-drop.sopra,.zona-drop:hover{border-color:var(--blu);background:var(--blu-tenue);color:var(--blu-testo)}
 .zona-drop svg.ic{width:28px;height:28px;margin:0 auto var(--sp-2);stroke-width:1.5}
-body.trascinamento::after{content:"Rilascia qui i documenti";position:fixed;inset:12px;border:3px dashed var(--blu);border-radius:var(--raggio-grande);background:rgba(52,38,242,.06);display:flex;align-items:center;justify-content:center;font-size:var(--t-xl);font-weight:650;color:var(--blu-testo);z-index:200;pointer-events:none}
 
 /* ---- schede a linguette ---- */
 .linguette{display:flex;gap:2px;border-bottom:1px solid var(--bordo);margin-bottom:var(--sp-4);overflow-x:auto;-webkit-overflow-scrolling:touch}

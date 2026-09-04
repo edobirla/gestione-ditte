@@ -296,7 +296,6 @@ input[type=checkbox],input[type=radio]{width:18px;height:18px;accent-color:var(-
 .zona-drop{border:2px dashed var(--bordo-forte);border-radius:var(--raggio-grande);padding:var(--sp-5);text-align:center;color:var(--testo-2);background:var(--superficie);cursor:pointer;transition:border-color var(--durata),background var(--durata)}
 .zona-drop.sopra,.zona-drop:hover{border-color:var(--blu);background:var(--blu-tenue);color:var(--blu-testo)}
 .zona-drop svg.ic{width:28px;height:28px;margin:0 auto var(--sp-2);stroke-width:1.5}
-body.trascinamento::after{content:"Rilascia qui i documenti";position:fixed;inset:12px;border:3px dashed var(--blu);border-radius:var(--raggio-grande);background:rgba(52,38,242,.06);display:flex;align-items:center;justify-content:center;font-size:var(--t-xl);font-weight:650;color:var(--blu-testo);z-index:200;pointer-events:none}
 
 /* ---- schede a linguette ---- */
 .linguette{display:flex;gap:2px;border-bottom:1px solid var(--bordo);margin-bottom:var(--sp-4);overflow-x:auto;-webkit-overflow-scrolling:touch}
@@ -2272,18 +2271,35 @@ AZIONI['pagina-indietro']=d=>{if(ui.storicoProfondita>0)history.back();else vai(
 AZIONI['chiudi-pannello']=()=>chiudiPannello();
 AZIONI['copia']=d=>copiaNegliAppunti(d.testo).then(()=>avviso('Copiato negli appunti'));
 
-// ---- trascinamento file su tutta la finestra: apre l'acquisizione rapida ----
-let contatoreDrag=0;
-window.addEventListener('dragenter',e=>{if(e.dataTransfer&&Array.from(e.dataTransfer.types).includes('Files')){contatoreDrag++;document.body.classList.add('trascinamento')}});
-window.addEventListener('dragleave',e=>{contatoreDrag--;if(contatoreDrag<=0){contatoreDrag=0;document.body.classList.remove('trascinamento')}});
-window.addEventListener('dragover',e=>{if(e.dataTransfer&&Array.from(e.dataTransfer.types).includes('Files')){e.preventDefault();e.dataTransfer.dropEffect='copy'}});
+// ---- trascinamento file: un solo gestore per tutta l'app ----
+// Un solo dragover/drop (invece di più gestori sovrapposti in cattura e bolla) evidenzia solo la
+// zona di rilascio effettiva sotto il cursore, ricalcolata a ogni evento — niente contatore
+// dragenter/dragleave da tenere in sincronia, che su Chrome si disallineava facilmente e lasciava
+// il drop "morto" nonostante il cursore mostrasse la copia.
+let zonaDropAttiva=null;
+function trovaZonaDrop(target){return target&&target.closest&&(target.closest('[data-drop-doc]')||target.closest('[data-drop-soggetto]')||target.closest('[data-drop-caricamento]')||target.closest('[data-drop-buste]')||target.closest('.zona-drop'))}
+function evidenziaZona(z){if(z===zonaDropAttiva)return;if(zonaDropAttiva)zonaDropAttiva.classList.remove('sopra');if(z)z.classList.add('sopra');zonaDropAttiva=z}
+window.addEventListener('dragover',e=>{
+  if(!e.dataTransfer||!Array.from(e.dataTransfer.types).includes('Files'))return;
+  e.preventDefault();e.dataTransfer.dropEffect='copy';
+  evidenziaZona(trovaZonaDrop(e.target));
+});
+window.addEventListener('dragleave',e=>{if(e.clientX<=0||e.clientY<=0||e.clientX>=window.innerWidth||e.clientY>=window.innerHeight)evidenziaZona(null)});
 window.addEventListener('drop',async e=>{
-  contatoreDrag=0;document.body.classList.remove('trascinamento');
   if(!e.dataTransfer||!e.dataTransfer.files||!e.dataTransfer.files.length) return;
-  if(e.target.closest&&e.target.closest('[data-drop-locale]')) return; // zone che gestiscono da sole
   e.preventDefault();
+  const z=trovaZonaDrop(e.target)||zonaDropAttiva;
+  evidenziaZona(null);
+  if(z&&z.hasAttribute('data-drop-locale')) return; // zona che gestisce da sola (es. dialogo documento)
   const files=await fileDaDrop(e.dataTransfer);
-  if(files.length&&typeof acquisizioneRapida==='function') acquisizioneRapida(files);
+  if(!files.length) return;
+  if(z){
+    if(z.dataset.dropDoc) return allegaFilesADocumento(z.dataset.dropDoc,files);
+    if(z.dataset.dropSoggetto){const [tipo,id]=z.dataset.dropSoggetto.split(':');return dialogoDocumento({soggettoTipo:tipo,soggettoId:id},files)}
+    if(z.hasAttribute('data-drop-caricamento')){ui.caricamentoFiles=files;ui.caricamentoRighe=null;return render()}
+    if(z.hasAttribute('data-drop-buste')) return accodaBuste(files);
+  }
+  if(typeof acquisizioneRapida==='function') acquisizioneRapida(files);
 });
 // Legge cartelle intere trascinate (webkitGetAsEntry) e restituisce File con percorso relativo
 async function fileDaDrop(dt){
@@ -3511,15 +3527,6 @@ AZIONI['documento-nuovo']=d=>dialogoDocumento({soggettoTipo:d.soggettoTipo||null
 AZIONI['documento-modifica']=d=>dialogoDocumento(perId('documenti',d.id));
 AZIONI['documento-duplica']=d=>{const o=perId('documenti',d.id);dialogoDocumento({soggettoTipo:o.soggettoTipo,soggettoId:o.soggettoId,tipoId:o.tipoId,titolo:o.titolo,rinnovoDi:o.id})};
 AZIONI['documento-elimina']=async d=>{const doc=perId('documenti',d.id);const t=tipoDoc(doc.tipoId);if(!(await conferma(`Eliminare «${t?t.nome:'documento'}» di ${nomeSoggettoDoc(doc)}? I file allegati restano nel cestino 30 giorni.`,{pericolo:true,ok:'Elimina'})))return;chiudiPannello();esegui('Eliminato documento '+(t?t.nome:''),s=>{s.documenti=s.documenti.filter(x=>x.id!==d.id);cestinaFileOrfani(s)})};
-// Zone di drop locali: documento esistente o soggetto
-window.addEventListener('drop',async e=>{
-  const z=e.target.closest&&(e.target.closest('[data-drop-doc]')||e.target.closest('[data-drop-soggetto]'));
-  if(!z) return; e.preventDefault(); e.stopPropagation(); contatoreDrag=0; document.body.classList.remove('trascinamento');
-  const files=await fileDaDrop(e.dataTransfer); if(!files.length) return;
-  if(z.dataset.dropDoc) return allegaFilesADocumento(z.dataset.dropDoc,files);
-  const [tipo,id]=z.dataset.dropSoggetto.split(':'); dialogoDocumento({soggettoTipo:tipo,soggettoId:id},files);
-},true);
-window.addEventListener('dragover',e=>{const z=e.target.closest&&(e.target.closest('[data-drop-doc]')||e.target.closest('[data-drop-soggetto]')||e.target.closest('.zona-drop'));tutti('.zona-drop.sopra').forEach(x=>x.classList.remove('sopra'));if(z){z.classList.add('sopra');if(e.dataTransfer)e.dataTransfer.dropEffect='copy'}});
 async function allegaFilesADocumento(docId,files){
   const esiti=await acquisisciConAnteprima(files); if(!esiti) return;
   esegui('Allegati '+esiti.length+' file',s=>{const doc=s.documenti.find(x=>x.id===docId);for(const e of esiti){if(!doc.file.includes(e.rec.id))doc.file.push(e.rec.id)}},{senzaRender:true});
@@ -3695,7 +3702,6 @@ document.addEventListener('change',e=>{const t=e.target;if(!t.dataset||!t.datase
 AZIONI['caricamento-scegli']=async()=>{const fs=await scegliFile({cartella:true});if(fs.length){ui.caricamentoFiles=fs;ui.caricamentoRighe=null;render()}};
 AZIONI['caricamento-scegli-file']=async()=>{const fs=await scegliFile({});if(fs.length){ui.caricamentoFiles=fs;ui.caricamentoRighe=null;render()}};
 AZIONI['caricamento-annulla']=()=>{ui.caricamentoFiles=null;ui.caricamentoRighe=null;render()};
-window.addEventListener('drop',async e=>{const z=e.target.closest&&e.target.closest('[data-drop-caricamento]');if(!z)return;e.preventDefault();e.stopPropagation();contatoreDrag=0;document.body.classList.remove('trascinamento');const fs=await fileDaDrop(e.dataTransfer);if(fs.length){ui.caricamentoFiles=fs;ui.caricamentoRighe=null;render()}},true);
 AZIONI['caricamento-applica']=async()=>{
   const righe=ui.caricamentoRighe.righe.filter(r=>!r.escludi&&!r.duplicato);
   const senza=righe.filter(r=>!r.soggetto||!r.tipoId);
@@ -3768,7 +3774,6 @@ AZIONI['buste-scegli']=async()=>{const fs=await scegliFile({accetta:'.pdf'});if(
 AZIONI['buste-togli']=d=>{ui.busteCoda.splice(+d.i,1);render()};
 AZIONI['busta-regola-elimina']=d=>esegui('Eliminata regola buste paga',s=>{s.regoleBuste.splice(+d.i,1)});
 function accodaBuste(files){ui.busteCoda=(ui.busteCoda||[]).concat(files.map(f=>Object.assign({f},interpretaNomeBusta(f.name))));render()}
-window.addEventListener('drop',async e=>{const z=e.target.closest&&e.target.closest('[data-drop-buste]');if(!z)return;e.preventDefault();e.stopPropagation();contatoreDrag=0;document.body.classList.remove('trascinamento');const fs=await fileDaDrop(e.dataTransfer);if(fs.length)accodaBuste(fs)},true);
 AZIONI['buste-applica']=async()=>{
   const coda=ui.busteCoda||[]; if(!coda.length) return;
   const prog=dialogoAvanzamento('Archiviazione buste paga');
