@@ -4233,6 +4233,16 @@ function intestazioneCartaIntestata(){
 function pieStandard(titolo){return html`<span>${titolo||''}</span><span class="numero-pagina">Pagina <span data-n></span> di <span data-m></span></span>`}
 // Sostituisce i segnaposto immagine nelle pagine (le immagini non si salvano nello storico dei generati)
 function risolviImmagini(htmlStr){return String(htmlStr==null?'':htmlStr).replace(/\{\{IMG:([\w]+)\}\}/g,(m,k)=>{if(k==='logo')return h(immagineAzienda('logo')||IMMAGINI.logo);if(IMMAGINI[k]||stato.azienda['img_'+k])return h(immagineAzienda(k));if(IMMAGINI.pos&&IMMAGINI.pos[k])return h(IMMAGINI.pos[k]);return ''})}
+// Raggruppa le righe di una tabella tenendo insieme quelle unite da rowspan: una riga con
+// rowspan=3 "porta con sé" le 2 righe successive, altrimenti spezzando la tabella a metà del
+// gruppo il rowspan resterebbe orfano sulla pagina dopo (colonna mancante o disallineata).
+function raggruppaRigheRowspan(trEls){
+  const righeRaw=trEls.map(tr=>({el:tr,h:tr.getBoundingClientRect().height}));
+  const reach=righeRaw.map((r,i)=>{let max=i;for(const td of r.el.children){const rs=parseInt(td.getAttribute('rowspan')||'1',10);if(rs>1)max=Math.max(max,i+rs-1)}return max});
+  const gruppi=[];let i=0;
+  while(i<righeRaw.length){let fine=reach[i];let j=i;while(j<fine){j++;if(reach[j]>fine)fine=reach[j]}gruppi.push({righe:righeRaw.slice(i,fine+1),h:righeRaw.slice(i,fine+1).reduce((a,x)=>a+x.h,0)});i=fine+1}
+  return gruppi;
+}
 // doc: {titolo, orientamento, cartaIntestata (bool), intestazione (html alternativa), pie (html), blocchi:[string|{html,tieniConSuccessivo,nuovaPagina,intera}], classe}
 function impagina(doc){
   const cont=el('#stampa');cont.innerHTML='';cont.style.cssText='display:block;position:absolute;left:-20000px;top:0;width:auto';
@@ -4245,7 +4255,7 @@ function impagina(doc){
   const H=corpo.getBoundingClientRect().height;
   const blocchi=doc.blocchi.map(b=>typeof b==='string'||b instanceof Grezzo?{html:String(b)}:b).filter(b=>b.html&&String(b.html).trim()).map(b=>Object.assign({},b,{html:risolviImmagini(String(b.html))}));
   const nodi=blocchi.map(b=>{const n=creaEl('<div class="blk">'+String(b.html)+'</div>');corpo.appendChild(n);return n});
-  const misure=nodi.map((n,i)=>{const r=n.getBoundingClientRect();const cr=corpo.getBoundingClientRect();const m={top:r.top-cr.top,h:r.height};const t=n.querySelector(':scope>table');if(t){const th=t.querySelector('thead');m.tabella=t;m.testaH=th?th.getBoundingClientRect().height:0;m.righe=Array.from(t.querySelectorAll(':scope>tbody>tr')).map(tr=>({el:tr,h:tr.getBoundingClientRect().height}));m.pieH=t.querySelector('tfoot')?t.querySelector('tfoot').getBoundingClientRect().height:0}const l=n.querySelector(':scope>ul,:scope>ol');if(l&&l.children.length>3){m.lista=l;m.voci=Array.from(l.children).map(li=>({el:li,h:li.getBoundingClientRect().height}))}const g=n.querySelector(':scope>.gruppo');if(g&&g.children.length>1){m.gruppo=g;m.figli=Array.from(g.children).map(c=>({el:c,h:c.getBoundingClientRect().height+parseFloat(getComputedStyle(c).marginBottom||0)}))}return m});
+  const misure=nodi.map((n,i)=>{const r=n.getBoundingClientRect();const cr=corpo.getBoundingClientRect();const m={top:r.top-cr.top,h:r.height};const t=n.querySelector(':scope>table');if(t){const th=t.querySelector('thead');m.tabella=t;m.testaH=th?th.getBoundingClientRect().height:0;m.righe=raggruppaRigheRowspan(Array.from(t.querySelectorAll(':scope>tbody>tr')));m.pieH=t.querySelector('tfoot')?t.querySelector('tfoot').getBoundingClientRect().height:0}const l=n.querySelector(':scope>ul,:scope>ol');if(l&&l.children.length>3){m.lista=l;m.voci=Array.from(l.children).map(li=>({el:li,h:li.getBoundingClientRect().height}))}const g=n.querySelector(':scope>.gruppo');if(g&&g.children.length>1){m.gruppo=g;m.figli=Array.from(g.children).map(c=>({el:c,h:c.getBoundingClientRect().height+parseFloat(getComputedStyle(c).marginBottom||0)}))}return m});
   // altezza effettiva = distanza dal prossimo (comprende i margini)
   for(let i=0;i<misure.length;i++){misure[i].alt=i<misure.length-1?misure[i+1].top-misure[i].top:misure[i].h}
   const eTitolo=n=>/^H[1-5]$/.test((n.firstElementChild||{}).tagName||'')||n.firstElementChild&&n.firstElementChild.classList&&(n.firstElementChild.classList.contains('scheda-titolo')||n.firstElementChild.classList.contains('titolo-tabella')||n.firstElementChild.classList.contains('scadenzario-gruppo'));
@@ -4270,9 +4280,9 @@ function impagina(doc){
         if(!prima||y>0){ if(y+m.testaH+righe[0].h>H-TOL){corpoP=apri()} }
         const t=m.tabella.cloneNode(false);const thead=m.tabella.querySelector('thead');if(thead)t.appendChild(thead.cloneNode(true));const tb=document.createElement('tbody');t.appendChild(tb);
         let hh=m.testaH;const disp=H-y-TOL;
-        while(righe.length&&hh+righe[0].h<=disp){const r=righe.shift();tb.appendChild(r.el);hh+=r.h}
-        if(!tb.children.length){ // neanche una riga entra: pagina nuova
-          if(y===0){const r=righe.shift();tb.appendChild(r.el);hh+=r.h} else {corpoP=apri();continue} }
+        while(righe.length&&hh+righe[0].h<=disp){const r=righe.shift();for(const rr of r.righe)tb.appendChild(rr.el);hh+=r.h}
+        if(!tb.children.length){ // neanche un gruppo di righe entra: pagina nuova
+          if(y===0){const r=righe.shift();for(const rr of r.righe)tb.appendChild(rr.el);hh+=r.h} else {corpoP=apri();continue} }
         if(!righe.length&&m.tabella.querySelector('tfoot')){t.appendChild(m.tabella.querySelector('tfoot').cloneNode(true));hh+=m.pieH}
         const wrap=document.createElement('div');wrap.className='blk';wrap.appendChild(t);
         // gli eventuali elementi prima/dopo la tabella nel blocco (es. titolo tabella) vanno con la prima/ultima parte
