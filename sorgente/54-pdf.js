@@ -54,14 +54,16 @@ async function estraiTestoPdf(blob,avanzamento){
   const cacheFont=new Map();
   const mappaFont=async(ref)=>{if(cacheFont.has(ref))return cacheFont.get(ref);const d=dictDi(ref);const f={due:/\/Subtype\s*\/Type0/.test(d),mappa:null};const tu=/\/ToUnicode\s+(\d+)\s+0\s+R/.exec(d);if(tu){const o=oggetti.get(+tu[1]);const dati=o?(o.inline!==undefined?codificatoreUtf8.encode(o.inline):await flusso(o)):null;if(dati){f.mappa=leggiCMap(latin1(dati,0,dati.length))}}if(!f.mappa&&/\/Encoding\s*\/(WinAnsi|MacRoman|Standard)/.test(d)){f.mappa=null}cacheFont.set(ref,f);return f};
   const risorseFont=async(dict)=>{const out=new Map();let res=dict;const rr=/\/Resources\s+(\d+)\s+0\s+R/.exec(dict);if(rr)res=dictDi(+rr[1]);let fontDict='';const fm=/\/Font\s+(\d+)\s+0\s+R/.exec(res);if(fm)fontDict=dictDi(+fm[1]);else{const fi=/\/Font\s*<<([\s\S]*?)>>/.exec(res);if(fi)fontDict=fi[1]}const rf=/\/(\w+)\s+(\d+)\s+0\s+R/g;let x;while((x=rf.exec(fontDict)))out.set(x[1],await mappaFont(+x[2]));return out};
-  let tutto='';
+  let tutto='';const paginaTesti=[];
   for(let i=0;i<pagine.length;i++){
     const p=pagine[i];if(avanzamento)await avanzamento(i+1,pagine.length);
     const fonts=await risorseFont(p.dict);
     let contenuti=[];const cm=/\/Contents\s*(?:\[([^\]]*)\]|(\d+)\s+0\s+R)/.exec(p.dict);if(cm){const refs=cm[1]?Array.from(cm[1].matchAll(/(\d+)\s+0\s+R/g)).map(x=>+x[1]):[+cm[2]];for(const r of refs){const o=oggetti.get(r);if(!o)continue;const d=await flusso(o);if(d)contenuti.push(latin1(d,0,d.length))}}
-    tutto+=estraiTestoContenuto(contenuti.join('\n'),fonts)+'\n\n';
+    const testoPagina=estraiTestoContenuto(contenuti.join('\n'),fonts);
+    paginaTesti.push(testoPagina);
+    tutto+=testoPagina+'\n\n';
   }
-  return tutto;
+  return {testo:tutto,pagine:paginaTesti};
 }
 function leggiCMap(s){
   const mappa=new Map();let m;

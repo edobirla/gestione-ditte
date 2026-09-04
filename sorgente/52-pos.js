@@ -74,7 +74,7 @@ AZIONI['pos-psc-estrai']=async d=>{
   const c=cantiere(d.id);const w=ui.posWizard;leggiPassoCorrente();
   const b=await leggiFile((fileMeta(c.psc.fileId)||{}).hash);if(!b)return avviso('PSC non trovato nell\'archivio',{tipo:'errore'});
   const prog=dialogoAvanzamento('Lettura del PSC',{testo:'Estraggo il testo dal PDF…'});
-  let testo='';try{testo=await estraiTestoPdf(b,(i,n)=>prog.aggiorna(i,n,'pagina '+i+' di '+n))}catch(e){prog.chiudi();w.pscEsito={tipo:'attenzione',testo:'Non sono riuscito a leggere il PDF ('+(e.message||e)+'): compila i dati a mano.'};render();return}
+  let testo='';try{testo=(await estraiTestoPdf(b,(i,n)=>prog.aggiorna(i,n,'pagina '+i+' di '+n))).testo}catch(e){prog.chiudi();w.pscEsito={tipo:'attenzione',testo:'Non sono riuscito a leggere il PDF ('+(e.message||e)+'): compila i dati a mano.'};render();return}
   prog.chiudi();
   if(!testo||testo.replace(/\s/g,'').length<200){w.pscEsito={tipo:'attenzione',testo:'Il PDF non ha un livello di testo leggibile (probabilmente è una scansione): compila i dati a mano.'};render();return}
   const prop=proponiDatiDaPsc(testo);

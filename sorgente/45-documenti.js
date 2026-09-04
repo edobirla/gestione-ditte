@@ -38,13 +38,14 @@ AZIONI['filtro-archivio-reset']=()=>{ui.filtri.archivio={};render()};
 document.addEventListener('input',debounce(e=>{const t=e.target;if(t.matches&&t.matches('[data-cambio="filtro-archivio"][data-campo="cerca"]'))AZIONI['filtro-archivio']({campo:'cerca'},t)},250));
 
 // ---- anteprima file ----
-async function htmlAnteprimaFile(fileId){
+async function htmlAnteprimaFile(fileId,pagina){
   const m=fileMeta(fileId); if(!m) return html`<div class="anteprima-nessuna">File non trovato nei metadati.</div>`;
   const u=await urlFile(m.hash); if(!u) return html`<div class="anteprima-nessuna">${icona('attenzione')} Il contenuto di «${m.nome}» non è nell'archivio del browser (forse manca dal backup ripristinato).</div>`;
+  const frammento=pagina?'#page='+pagina+'&toolbar=0&navpanes=0':'#toolbar=0&navpanes=0';
   if(eImmagine(m.mime,m.nome)) return html`<img class="anteprima-img" src="${u}" alt="${m.nome}" data-azione="immagine-zoom" data-src="${u}">`;
   if(ePdf(m.mime,m.nome)){
-    if(eIos()) return html`<div class="anteprima-nessuna">${icona('pdf')}<p>Su iPhone e iPad l'anteprima incorporata mostra solo la prima pagina.</p><a class="pulsante primario" href="${u}" target="_blank" rel="noopener">Apri a schermo intero</a><div class="mt"><iframe class="anteprima-doc" src="${u}#toolbar=0&navpanes=0" title="${m.nome}" style="min-height:40vh"></iframe></div></div>`;
-    return html`<iframe class="anteprima-doc" src="${u}#toolbar=0&navpanes=0&statusbar=0" title="${m.nome}"></iframe>`;
+    if(eIos()) return html`<div class="anteprima-nessuna">${icona('pdf')}<p>Su iPhone e iPad l'anteprima incorporata mostra solo la prima pagina.</p><a class="pulsante primario" href="${u}${frammento}" target="_blank" rel="noopener">Apri a schermo intero</a><div class="mt"><iframe class="anteprima-doc" src="${u}${frammento}" title="${m.nome}" style="min-height:40vh"></iframe></div></div>`;
+    return html`<iframe class="anteprima-doc" src="${u}${frammento}&statusbar=0" title="${m.nome}"></iframe>`;
   }
   return html`<div class="anteprima-nessuna">${icona('file')}<p>Anteprima non disponibile per questo tipo di file (${m.mime||estensioneDi(m.nome)}).</p><button class="pulsante" data-azione="file-scarica" data-id="${m.id}">${icona('scarica')}Scarica</button></div>`;
 }
@@ -315,6 +316,7 @@ function vistaBustePaga(r){
   return html`<div class="griglia due">
     <div class="scheda"><h3>${icona('busta-paga')}Smistamento buste paga</h3><p class="secondario">Trascina qui tutti i PDF del mese: per ciascuno propongo operaio, anno e mese dal nome del file. Le tue correzioni insegnano all'applicazione come leggere i nomi la volta dopo.</p>
       <div class="zona-drop" data-azione="buste-scegli" data-drop-buste>${icona('carica')}Trascina i PDF delle buste paga o clicca per sceglierli</div>
+      <button class="pulsante piccolo mt-s" data-azione="buste-smistamento-scegli">${icona('magia','piccola')}Oppure carica un unico PDF con tutte le buste del mese (separate da pagine bianche): le smisto da solo</button>
       ${coda.length?html`<div class="mt"><table class="tabella densa"><thead><tr><th>File</th><th>Operaio</th><th>Anno</th><th>Mese</th><th></th></tr></thead><tbody>${coda.map((c,i)=>html`<tr class="${c.fiducia<0.7?'riga-scadenza':''}"><td><span class="taglia" style="display:block;max-width:220px" title="${c.f.name}">${c.f.name}</span><span class="piccolo secondario">${c.motivi.join('; ')||'nessun indizio'}</span></td><td><select data-busta="personaId" data-i="${i}"><option value="">— da assegnare —</option>${persone.map(pp=>html`<option value="${pp.id}" ${pp.id===c.personaId?'selected':''}>${nomePersona(pp)}</option>`)}</select></td><td><input type="text" inputmode="numeric" value="${c.anno||''}" data-busta="anno" data-i="${i}" style="width:72px"></td><td><select data-busta="mese" data-i="${i}"><option value="">—</option>${NOMI_MESI.map((mn,mi)=>html`<option value="${mi+1}" ${mi+1===c.mese?'selected':''}>${mn}</option>`)}</select></td><td><button class="pulsante piccolo icona" data-azione="buste-togli" data-i="${i}" aria-label="Togli">${icona('chiudi','piccola')}</button></td></tr>`)}</tbody></table><div class="riga mt-s"><span class="piccolo secondario">${coda.filter(c=>!c.personaId||!c.anno||!c.mese).length} senza destinazione completa: finiranno in «da assegnare»</span><span class="spazio"></span><button class="pulsante primario" data-azione="buste-applica">${icona('spunta')}Archivia ${coda.length} buste</button></div></div>`:''}
       ${daAssegnare.length?html`<div class="sezione-titolo">Da assegnare (${daAssegnare.length})</div><ul class="elenco-piatto">${daAssegnare.map(b=>{const m=fileMeta(b.fileId);return html`<li>${icona('attenzione','piccola')}<span class="spazio taglia">${m?m.nome:'file?'}</span><button class="pulsante piccolo" data-azione="busta-apri" data-id="${b.id}">Assegna</button></li>`})}</ul>`:''}
       ${(stato.regoleBuste||[]).length?html`<details class="mt"><summary class="piccolo secondario">Regole apprese (${stato.regoleBuste.length})</summary><ul class="elenco-piatto piccolo">${stato.regoleBuste.map((rg,i)=>html`<li><span class="mono">${rg.segno}</span> → ${nomePersona(persona(rg.personaId))}<span class="spazio"></span><button class="pulsante piccolo icona" data-azione="busta-regola-elimina" data-i="${i}" aria-label="Elimina regola">${icona('chiudi','piccola')}</button></li>`)}</ul></details>`:''}
@@ -329,11 +331,42 @@ AZIONI['buste-scegli']=async()=>{const fs=await scegliFile({accetta:'.pdf'});if(
 AZIONI['buste-togli']=d=>{ui.busteCoda.splice(+d.i,1);render()};
 AZIONI['busta-regola-elimina']=d=>esegui('Eliminata regola buste paga',s=>{s.regoleBuste.splice(+d.i,1)});
 function accodaBuste(files){ui.busteCoda=(ui.busteCoda||[]).concat(files.map(f=>Object.assign({f},interpretaNomeBusta(f.name))));render()}
+// ---- smistamento di un unico PDF con più buste separate da pagine bianche ----
+AZIONI['buste-smistamento-scegli']=async()=>{const fs=await scegliFile({multipli:false,accetta:'.pdf'});if(fs.length)await smistaBustaPdf(fs[0])};
+async function smistaBustaPdf(file){
+  const oggiD=new Date();
+  const periodo=await dialogoModulo('Periodo delle buste nel PDF',[{nome:'anno',etichetta:'Anno',tipo:'numero',decimali:0,obbligatorio:true},{nome:'mese',etichetta:'Mese',tipo:'select',vuoto:false,obbligatorio:true,opzioni:NOMI_MESI.map((mn,i)=>({v:i+1,t:mn}))}],{anno:oggiD.getFullYear(),mese:oggiD.getMonth()+1},{ok:'Continua'});
+  if(!periodo) return;
+  const prog=dialogoAvanzamento('Lettura del PDF',{testo:'Estraggo il testo dalle pagine…'});
+  let pagine;
+  try{ pagine=(await estraiTestoPdf(file,(i,n)=>prog.aggiorna(i,n,'pagina '+i+' di '+n))).pagine; }
+  catch(e){ prog.chiudi(); segnalaErrore(e,'Non sono riuscito a leggere il PDF'); return; }
+  prog.chiudi();
+  if(!pagine||!pagine.length) return avviso('Il PDF non ha pagine leggibili (forse una scansione senza testo)',{tipo:'errore'});
+  // le pagine bianche separano una busta dall'altra; buste con più componenti (aggiuntivi) hanno più pagine consecutive
+  const vuota=t=>t.replace(/\s/g,'').length<40;
+  const gruppi=[];let corrente=null;
+  pagine.forEach((t,i)=>{
+    if(vuota(t)){ if(corrente){gruppi.push(corrente);corrente=null} }
+    else { if(!corrente) corrente={inizio:i,fine:i,testo:''}; corrente.fine=i; corrente.testo+=' '+t; }
+  });
+  if(corrente) gruppi.push(corrente);
+  if(!gruppi.length) return avviso('Non ho trovato pagine con contenuto nel PDF',{tipo:'errore'});
+  const trovaPersona=testo=>{const q=normalizzaTesto(testo);return stato.persone.find(p=>{const cog=normalizzaTesto(p.cognome),nom=normalizzaTesto(p.nome);return cog&&nom&&q.includes(cog)&&q.includes(nom)})};
+  const voci=gruppi.map(g=>{
+    const p=trovaPersona(g.testo);
+    const pag='pag. '+(g.inizio+1)+(g.fine>g.inizio?'–'+(g.fine+1):'');
+    return {f:file,personaId:p?p.id:null,anno:+periodo.anno,mese:+periodo.mese,paginaInizio:g.inizio+1,paginaFine:g.fine+1,fiducia:p?0.9:0,motivi:[p?'nome trovato nel testo: '+nomePersona(p):'nome non riconosciuto nel testo',pag]};
+  });
+  ui.busteCoda=(ui.busteCoda||[]).concat(voci);
+  render();
+  avviso(`${voci.length} buste trovate nel PDF: ${voci.filter(v=>v.personaId).length} riconosciute automaticamente, ${voci.filter(v=>!v.personaId).length} da assegnare a mano`);
+}
 AZIONI['buste-applica']=async()=>{
   const coda=ui.busteCoda||[]; if(!coda.length) return;
   const prog=dialogoAvanzamento('Archiviazione buste paga');
   const nuove=[];const regole=[];
-  for(let i=0;i<coda.length;i++){const c=coda[i];await prog.aggiorna(i,coda.length,c.f.name);try{const es=await acquisisciFile(c.f,{senzaCompressione:true});nuove.push({id:nuovoId('b'),personaId:c.personaId||null,anno:c.anno||null,mese:c.mese||null,netto:null,lordo:null,oreRetribuite:null,fileId:es.rec.id,note:'File: '+c.f.name,creato:new Date().toISOString()});
+  for(let i=0;i<coda.length;i++){const c=coda[i];await prog.aggiorna(i,coda.length,c.f.name);try{const es=await acquisisciFile(c.f,{senzaCompressione:true});nuove.push({id:nuovoId('b'),personaId:c.personaId||null,anno:c.anno||null,mese:c.mese||null,netto:null,lordo:null,oreRetribuite:null,fileId:es.rec.id,paginaInizio:c.paginaInizio||null,paginaFine:c.paginaFine||null,note:c.paginaInizio?('Smistata da '+c.f.name+', pag. '+c.paginaInizio+(c.paginaFine>c.paginaInizio?'–'+c.paginaFine:'')):('File: '+c.f.name),creato:new Date().toISOString()});
     // apprendimento: se l'utente ha corretto la persona, associa i segni del nome file a quella persona
     if(c.corretto&&c.personaId){const toks=normalizzaTesto(c.f.name.replace(/\.[a-z0-9]+$/i,'')).split(' ').filter(t=>t.length>=3&&!/^\d+$/.test(t)&&!NOMI_MESI.includes(t)&&!/busta|paga|cedolino|pdf|lul/.test(t));const per=persona(c.personaId);const nomi=[per.cognome,per.nome].flatMap(x=>normalizzaTesto(x).split(' '));for(const t of toks){if(!nomi.includes(t)&&!(stato.regoleBuste||[]).find(r=>r.segno===t))regole.push({segno:t,personaId:c.personaId})}}
   }catch(e){segnalaErrore(e,'Busta non archiviata: '+c.f.name)}}
@@ -345,8 +378,8 @@ AZIONI['buste-applica']=async()=>{
 AZIONI['busta-apri']=async d=>{
   const b=perId('bustePaga',d.id); if(!b) return;
   const m=fileMeta(b.fileId);
-  apriPannello({titolo:'Busta paga '+(b.anno&&b.mese?fMeseAnno(b.anno,b.mese):'da assegnare')+(b.personaId?' · '+nomePersona(persona(b.personaId)):''),largo:true,corpo:html`<div class="campi"><div class="campo"><span class="etichetta-campo">File</span><div>${m?m.nome:'?'}</div></div><div class="campo"><span class="etichetta-campo">Netto</span><div>${b.netto!=null?fEuro(b.netto):html`<span class="silenzioso">—</span>`}</div></div><div class="campo"><span class="etichetta-campo">Lordo</span><div>${b.lordo!=null?fEuro(b.lordo):html`<span class="silenzioso">—</span>`}</div></div><div class="campo"><span class="etichetta-campo">Ore retribuite</span><div>${b.oreRetribuite!=null?fOre(b.oreRetribuite):html`<span class="silenzioso">—</span>`}</div></div></div><div id="anteprima-busta" class="mt"></div>`,piede:html`<button class="pulsante primario" data-azione="busta-modifica" data-id="${b.id}">${icona('modifica')}Modifica</button><button class="pulsante" data-azione="file-condividi" data-id="${b.fileId}">${icona('condividi')}Condividi</button><span class="spazio"></span><button class="pulsante pericolo" data-azione="busta-elimina" data-id="${b.id}">${icona('elimina')}Elimina</button>`});
-  const a=await htmlAnteprimaFile(b.fileId);const c=el('#anteprima-busta');if(c)c.innerHTML=a;
+  apriPannello({titolo:'Busta paga '+(b.anno&&b.mese?fMeseAnno(b.anno,b.mese):'da assegnare')+(b.personaId?' · '+nomePersona(persona(b.personaId)):''),largo:true,corpo:html`<div class="campi"><div class="campo"><span class="etichetta-campo">File</span><div>${m?m.nome:'?'}${b.paginaInizio?html` <span class="piccolo secondario">(pag. ${b.paginaInizio}${b.paginaFine>b.paginaInizio?'–'+b.paginaFine:''} di un file condiviso)</span>`:''}</div></div><div class="campo"><span class="etichetta-campo">Netto</span><div>${b.netto!=null?fEuro(b.netto):html`<span class="silenzioso">—</span>`}</div></div><div class="campo"><span class="etichetta-campo">Lordo</span><div>${b.lordo!=null?fEuro(b.lordo):html`<span class="silenzioso">—</span>`}</div></div><div class="campo"><span class="etichetta-campo">Ore retribuite</span><div>${b.oreRetribuite!=null?fOre(b.oreRetribuite):html`<span class="silenzioso">—</span>`}</div></div></div><div id="anteprima-busta" class="mt"></div>`,piede:html`<button class="pulsante primario" data-azione="busta-modifica" data-id="${b.id}">${icona('modifica')}Modifica</button><button class="pulsante" data-azione="file-condividi" data-id="${b.fileId}">${icona('condividi')}Condividi</button><span class="spazio"></span><button class="pulsante pericolo" data-azione="busta-elimina" data-id="${b.id}">${icona('elimina')}Elimina</button>`});
+  const a=await htmlAnteprimaFile(b.fileId,b.paginaInizio);const c=el('#anteprima-busta');if(c)c.innerHTML=a;
 };
 AZIONI['busta-modifica']=async d=>{const b=perId('bustePaga',d.id);const v=await dialogoModulo('Busta paga',[{nome:'personaId',etichetta:'Persona',tipo:'select',obbligatorio:true,opzioni:stato.persone.map(p=>({v:p.id,t:nomePersona(p)}))},{nome:'anno',etichetta:'Anno',tipo:'numero',decimali:0,obbligatorio:true},{nome:'mese',etichetta:'Mese',tipo:'select',obbligatorio:true,opzioni:NOMI_MESI.map((m,i)=>({v:i+1,t:m}))},{nome:'netto',etichetta:'Netto',tipo:'euro'},{nome:'lordo',etichetta:'Lordo',tipo:'euro'},{nome:'oreRetribuite',etichetta:'Ore retribuite',tipo:'ore'},{nome:'note',etichetta:'Note',tipo:'textarea',largo:true}],b);if(!v)return;v.mese=+v.mese;const vecchia=b.personaId;esegui('Modificata busta paga',s=>{Object.assign(s.bustePaga.find(x=>x.id===b.id),v);if(vecchia!==v.personaId){const m=fileMeta(b.fileId);if(m){const toks=normalizzaTesto(m.nome.replace(/\.[a-z0-9]+$/i,'')).split(' ').filter(t=>t.length>=3&&!/^\d+$/.test(t)&&!NOMI_MESI.includes(t)&&!/busta|paga|cedolino|pdf|lul/.test(t));const per=s.persone.find(p=>p.id===v.personaId);const nomi=[per.cognome,per.nome].flatMap(x=>normalizzaTesto(x).split(' '));for(const t of toks)if(!nomi.includes(t)&&!s.regoleBuste.find(r=>r.segno===t))s.regoleBuste.push({segno:t,personaId:v.personaId})}}});AZIONI['busta-apri']({id:b.id})};
 AZIONI['busta-elimina']=async d=>{if(!(await conferma('Eliminare questa busta paga? Il file resta nel cestino 30 giorni.',{pericolo:true,ok:'Elimina'})))return;chiudiPannello();esegui('Eliminata busta paga',s=>{s.bustePaga=s.bustePaga.filter(x=>x.id!==d.id);cestinaFileOrfani(s)})};
