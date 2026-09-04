@@ -262,7 +262,7 @@ function stampaPreventivo(p){anteprimaStampa({titolo:'Preventivo '+p.numero+' '+
 function docLibroPresenze(anno,mese){
   const m=meseP(anno,mese)||{persone:{}};const persone=personePresenze(anno,mese);const n=giorniNelMese(anno,mese);const fest=festivitaAnno(anno,stato.impostazioni.festivitaLocali);const k=chiaveMese(anno,mese);
   const rie=riepilogoMese(anno,mese);
-  const blocchi=[`<h1 class="sx">Libro presenze — ${h(fMeseAnno(anno,mese))}</h1><p class="mini sx">Codici: M malattia · I infortunio · PE permesso · FS festività · FE ferie · AS assenza · CI cassa integrazione. Sabato e domenica non si compilano; i giorni non compilati non compaiono. Totale ore in griglia ${h(fOre(rie.oreTotali))} · importo complessivo ${h(fEuro(rie.importoTotale,0))}.</p>`];
+  const blocchi=[`<h1 class="sx">Libro presenze — ${h(fMeseAnno(anno,mese))}</h1><p class="mini sx">Codici: M malattia · I infortunio · PE permesso · FS festività · FE ferie · AS assenza · CI cassa integrazione. Sabato, domenica e festività in colore. Totale ore in griglia ${h(fOre(rie.oreTotali))} · importo complessivo ${h(fEuro(rie.importoTotale,0))}.</p>`];
   for(const sz of ['soci','dipendenti']){
     const pp=persone.filter(p=>(p.sezionePresenze||'dipendenti')===sz);if(!pp.length)continue;
     blocchi.push(`<h2 class="sx">${sz==='soci'?'Soci':'Dipendenti'}</h2>`);
@@ -270,16 +270,17 @@ function docLibroPresenze(anno,mese){
       const mp=m.persone[p.id]||{giorni:{}};const calc=calcolaMesePersona(mp,p);
       const righeGiorno=[];
       for(let g=1;g<=n;g++){
-        if(eFineSettimana(anno,mese,g)) continue;
-        const c=mp.giorni[String(g)]||{};const iso=k+'-'+pad2(g);const cf=fest.has(iso)?' class="fest"':'';
-        if(p.soloTrasferte){ if(!c.trasferta) continue; righeGiorno.push(`<tr${cf}><td>${g} ${h(NOMI_GIORNI_BREVI[giornoSettimana(anno,mese,g)])}</td><td colspan="2">Trasferta: ${h(c.trasferta)}</td></tr>`); continue; }
-        const v=valoreCella(c); if(v==null) continue;
-        const valTxt=typeof v==='number'?fOre(v)+' h':((CODICI_ASSENZA[v]||{}).nome||v);
-        righeGiorno.push(`<tr${cf}><td>${g} ${h(NOMI_GIORNI_BREVI[giornoSettimana(anno,mese,g)])}</td><td>${h(valTxt)}</td><td>${h([c.cantiere,c.committente].filter(Boolean).join(' · '))}</td></tr>`);
+        const we=eFineSettimana(anno,mese,g);const c=mp.giorni[String(g)]||{};const iso=k+'-'+pad2(g);
+        const cf=we?' class="we"':fest.has(iso)?' class="fest"':'';
+        const etichettaGiorno=`${g} ${h(NOMI_GIORNI_BREVI[giornoSettimana(anno,mese,g)])}`;
+        if(p.soloTrasferte){ righeGiorno.push(`<tr${cf}><td>${etichettaGiorno}</td><td colspan="2">${c.trasferta?'Trasferta: '+h(c.trasferta):'—'}</td></tr>`); continue; }
+        const v=valoreCella(c);
+        const valTxt=v==null?'—':typeof v==='number'?fOre(v)+' h':((CODICI_ASSENZA[v]||{}).nome||v);
+        righeGiorno.push(`<tr${cf}><td>${etichettaGiorno}</td><td>${h(valTxt)}</td><td>${h([c.cantiere,c.committente].filter(Boolean).join(' · '))||''}</td></tr>`);
       }
       const totaliTxt=p.soloTrasferte?fEuro(calc.importo,0):`${fOre(calc.oreGriglia)} h · ${fEuro(calc.importo,0)}`;
       const testa=`<div class="scheda-persona-testa"><b>${h(nomePersona(p))}</b>${p.mansione?` <span class="mini">· ${h(p.mansione)}</span>`:''}<span class="spazio"></span><b>${h(totaliTxt)}</b>${mp.importoForzato?' ✎':''}</div>`;
-      const corpo=righeGiorno.length?`<table><thead><tr><th style="width:22mm">Giorno</th><th style="width:26mm">Ore/codice</th><th>Cantiere · Committente</th></tr></thead><tbody>${righeGiorno.join('')}</tbody></table>`:`<p class="mini sx">Nessun giorno compilato.</p>`;
+      const corpo=`<table><thead><tr><th style="width:22mm">Giorno</th><th style="width:26mm">Ore/codice</th><th>Cantiere · Committente</th></tr></thead><tbody>${righeGiorno.join('')}</tbody></table>`;
       const assenze=Object.keys(calc.perCodice).length?`<p class="mini sx">${h(Object.entries(calc.perCodice).map(([cc,nn])=>((CODICI_ASSENZA[cc]||{}).nome||cc)+' '+nn).join(' · '))}</p>`:'';
       const nota=mp.note?`<p class="mini sx nota-persona">${h(mp.note)}</p>`:'';
       blocchi.push(`<div class="scheda-persona">${testa}${corpo}${assenze}${nota}</div>`);

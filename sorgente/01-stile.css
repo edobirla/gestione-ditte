@@ -476,10 +476,11 @@ input[type=checkbox],input[type=radio]{width:18px;height:18px;accent-color:var(-
 .doc .cornice-modulo{border:.6pt solid #111;padding:3mm}
 .doc .caselle{display:inline-flex;gap:.6mm;vertical-align:middle} .doc .caselle span{display:inline-block;width:5.2mm;height:6.5mm;border:.5pt solid #111;text-align:center;font-family:"Courier New",monospace;font-size:10.5pt;line-height:6.5mm;text-transform:uppercase}
 .doc .caselle span.sep{border:0;width:2mm}
-.doc .scheda-persona{border:.6pt solid #999;border-radius:1.5mm;padding:2.5mm 3mm;margin:0 0 3mm}
-.doc .scheda-persona-testa{display:flex;align-items:baseline;gap:2mm;font-size:11pt;border-bottom:.5pt solid #ccc;padding-bottom:1.5mm;margin-bottom:1.5mm}
+.doc .scheda-persona{border:.6pt solid #B7B4F5;border-radius:1.5mm;padding:2.5mm 3mm;margin:0 0 3mm}
+.doc .scheda-persona-testa{display:flex;align-items:baseline;gap:2mm;font-size:11pt;border-bottom:1pt solid #3426F2;padding-bottom:1.5mm;margin-bottom:1.5mm;color:#2519C2}
 .doc .scheda-persona table{margin:0}
-.doc .scheda-persona table tr.fest td{background:#FBF2CF}
+.doc .scheda-persona table tr.we td{background:#EDEBFD;color:#666}
+.doc .scheda-persona table tr.fest td{background:#FCE9DC}
 .doc .nota-persona{background:#FBF2CF;padding:1.5mm 2mm;margin:1.5mm 0 0;border-left:1.5mm solid #B4471A}
 .doc .checklist td.si{color:#2A1FB8;font-weight:700} .doc .checklist td.no{color:#C8262A;font-weight:700}
 .doc .titolo-tabella{font-weight:700;margin:3mm 0 1mm}
