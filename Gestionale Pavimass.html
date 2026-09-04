@@ -235,6 +235,13 @@ table.tabella{width:100%;border-collapse:collapse;font-size:var(--t-sm)}
 table.tabella th,table.tabella td{padding:8px 10px;text-align:left;vertical-align:middle;border-bottom:1px solid var(--bordo)}
 table.tabella th{font-weight:600;color:var(--testo-2);font-size:var(--t-xs);text-transform:uppercase;letter-spacing:.04em;background:var(--superficie-2);position:sticky;top:0;z-index:1;white-space:nowrap}
 table.tabella th.ordinabile{cursor:pointer;user-select:none} table.tabella th.ordinabile:hover{color:var(--testo)}
+.tabella-scroll{overflow:auto;max-height:calc(100dvh - 220px);border:1px solid var(--bordo);border-radius:var(--raggio)}
+table.tabella-excel{border-collapse:collapse;font-size:var(--t-xs)}
+table.tabella-excel th,table.tabella-excel td{border:1px solid var(--bordo);padding:0}
+table.tabella-excel thead th{position:sticky;top:0;background:var(--superficie-2);z-index:2;padding:4px 6px;font-weight:600;color:var(--testo-2)}
+table.tabella-excel tbody th{position:sticky;left:0;background:var(--superficie-2);z-index:1;padding:4px 6px;font-weight:600;color:var(--testo-2);white-space:nowrap}
+table.tabella-excel td input{width:90px;height:26px;border:none;padding:2px 6px;font-size:var(--t-xs);background:transparent;color:var(--testo)}
+table.tabella-excel td input:focus{background:var(--blu-chiaro);outline:2px solid var(--blu)}
 table.tabella th .freccia{display:inline-block;margin-left:4px;opacity:.5}
 table.tabella tbody tr:last-child td{border-bottom:0}
 table.tabella tbody tr.cliccabile{cursor:pointer} table.tabella tbody tr.cliccabile:hover{background:var(--superficie-2)}
@@ -3906,7 +3913,7 @@ VISTE.preventivi=function(r){
   if(r.id==='listino') return vistaListino(r);
   if(r.id) return vistaPreventivo(r.id);
   const righe=ordina(stato.preventivi.map(p=>({p,tot:totaliPreventivo(p)})),x=>x.p.data||'','desc');
-  return html`<div class="testata"><div><h1>Preventivi</h1><div class="sotto">${stato.preventivi.length} preventivi · ${stato.listino.length} voci di listino</div></div><div class="azioni"><a class="pulsante" href="#/preventivi/listino">${icona('elenco')}Listino</a><button class="pulsante primario" data-azione="preventivo-nuovo">${icona('piu')}Nuovo preventivo</button></div></div>
+  return html`<div class="testata"><div><h1>Preventivi</h1><div class="sotto">${stato.preventivi.length} preventivi · ${stato.listino.length} voci di listino</div></div><div class="azioni"><button class="pulsante" data-azione="preventivo-compila-excel" title="Carica il modulo Excel ricevuto dal cliente e compilalo, mantenendo il suo formato originale">${icona('carica')}Compila modulo del cliente</button><a class="pulsante" href="#/preventivi/listino">${icona('elenco')}Listino</a><button class="pulsante primario" data-azione="preventivo-nuovo">${icona('piu')}Nuovo preventivo</button></div></div>
   ${tabella({id:'preventivi',righe,href:x=>'#/preventivi/'+x.p.id,colonne:[{chiave:'n',titolo:'Numero',principale:true,valore:x=>(x.p.anno*1000+x.p.numero),formatta:x=>html`<b>${x.p.numero}/${x.p.anno}</b>`},{chiave:'data',titolo:'Data',valore:x=>x.p.data,formatta:x=>fData(x.p.data)},{chiave:'cl',titolo:'Cliente',valore:x=>nomeCliente(x.p.clienteId),formatta:x=>nomeCliente(x.p.clienteId)||daCompilare()},{chiave:'ogg',titolo:'Oggetto',valore:x=>x.p.oggetto||''},{chiave:'stato',titolo:'Stato',formatta:x=>pillolaStatoPreventivo(x.p.stato)},{chiave:'dq',titolo:'Da quotare',num:true,valore:x=>x.tot.daQuotare.length,formatta:x=>x.tot.daQuotare.length?html`<span class="pillola scadenza">${icona('attenzione','piccola')}${x.tot.daQuotare.length}</span>`:''},{chiave:'tot',titolo:'Totale',num:true,valore:x=>x.tot.totale,formatta:x=>fEuro(x.tot.totale)}],vuoto:vuoto({icona:'preventivi',titolo:'Nessun preventivo',testo:'Crea il primo preventivo dal listino o incollando il computo del cliente.',azione:{testo:'Nuovo preventivo',azione:'preventivo-nuovo'}})})}`;
 };
 AZIONI['preventivo-nuovo']=()=>nuovoPreventivo();
@@ -3987,6 +3994,91 @@ function dialogoVoceListino(l){
 AZIONI['listino-esporta']=()=>{const righe=[['Codice','Categoria','Descrizione','Descrizione estesa','UM','Prezzo posa','Prezzo fornitura e posa','Note']];for(const l of stato.listino)righe.push([l.codice,(stato.lavorazioni.find(x=>x.id===l.categoriaId)||{}).breve||l.categoriaId,l.descrizione,l.descrizioneEstesa||'',l.um,l.prezzoPosa,l.prezzoFornituraPosa,l.note||'']);scaricaCsv(righe,nomeFileData('Listino Pavimass','csv'))};
 AZIONI['listino-importa']=async()=>{const fs=await scegliFile({multipli:false,accetta:'.csv,.txt'});if(!fs.length)return;const testo=await leggiComeTesto(fs[0]);const righe=leggiCsv(testo);if(righe.length<2)return avviso('CSV vuoto',{tipo:'errore'});const testa=righe[0].map(normalizzaTesto);const col=n=>testa.findIndex(x=>x.includes(n));const iC=col('codice'),iCat=col('categoria'),iD=col('descrizione'),iE=testa.findIndex(x=>x.includes('estesa')),iU=testa.findIndex(x=>x==='um'||x.includes('unita')),iP=testa.findIndex(x=>x.includes('posa')&&!x.includes('fornitura')),iF=testa.findIndex(x=>x.includes('fornitura')),iN=col('note');const nuove=[],agg=[];for(const r of righe.slice(1)){if(!r[iC])continue;const catNome=normalizzaTesto(r[iCat]||'');const cat=stato.lavorazioni.find(l=>normalizzaTesto(l.breve)===catNome||String(l.id)===r[iCat])||null;const v={codice:r[iC],categoriaId:cat?cat.id:7,descrizione:r[iD]||'',descrizioneEstesa:iE>=0?r[iE]:'',um:iU>=0?r[iU]:'mq',prezzoPosa:iP>=0?leggiNumero(r[iP]):null,prezzoFornituraPosa:iF>=0?leggiNumero(r[iF]):null,note:iN>=0?r[iN]:''};const es=stato.listino.find(l=>l.codice===v.codice);if(es)agg.push({id:es.id,v});else nuove.push(Object.assign({id:nuovoId('l')},v))}if(!(await conferma(`Importare ${nuove.length} voci nuove e aggiornarne ${agg.length}?`)))return;esegui('Importato listino',s=>{for(const n of nuove)s.listino.push(n);for(const a of agg)Object.assign(s.listino.find(x=>x.id===a.id),a.v)})};
 function leggiCsv(testo){const sep=(testo.split('\n')[0].match(/;/g)||[]).length>=(testo.split('\n')[0].match(/,/g)||[]).length?';':',';const out=[];let riga=[],campo='',inQ=false;for(let i=0;i<testo.length;i++){const c=testo[i];if(inQ){if(c==='"'){if(testo[i+1]==='"'){campo+='"';i++}else inQ=false}else campo+=c}else{if(c==='"')inQ=true;else if(c===sep){riga.push(campo);campo=''}else if(c==='\n'||c==='\r'){if(c==='\r'&&testo[i+1]==='\n')i++;riga.push(campo);out.push(riga);riga=[];campo=''}else campo+=c}}if(campo||riga.length){riga.push(campo);out.push(riga)}return out.filter(r=>r.some(x=>x.trim()))}
+
+// ---- compilazione di un modulo Excel ricevuto dal cliente, mantenendo il suo formato esatto ----
+// Su richiesta di Edoardo: spesso il cliente vuole il preventivo nel SUO modulo, non nel nostro.
+// Si modificano solo le celle toccate nell'XML originale del foglio: tutto il resto (impaginazione,
+// stili, altri fogli, formule) resta byte per byte quello che era.
+function indiceColLettere(lettere){let n=0;for(const ch of lettere)n=n*26+(ch.charCodeAt(0)-64);return n-1}
+function rifCellaXlsx(riga,col){return colXlsx(col)+(riga+1)}
+AZIONI['preventivo-compila-excel']=async()=>{
+  const fs=await scegliFile({multipli:false,accetta:'.xlsx'});
+  if(!fs.length) return;
+  await apriCompilatoreExcel(fs[0]);
+};
+async function apriCompilatoreExcel(file){
+  let zip; try{ zip=await leggiZip(file); }catch(e){ return segnalaErrore(e,'Non sono riuscito ad aprire il file: dev\'essere un .xlsx'); }
+  const vSheet=zip.voci.find(v=>v.nome==='xl/worksheets/sheet1.xml');
+  if(!vSheet) return avviso('Non ho trovato un foglio di lavoro leggibile in questo file',{tipo:'errore'});
+  const xmlTesto=await zip.testo(vSheet);
+  const vShared=zip.voci.find(v=>v.nome==='xl/sharedStrings.xml');
+  const shared=vShared?Array.from((await zip.testo(vShared)).matchAll(/<si>([\s\S]*?)<\/si>/g)).map(m=>m[1].replace(/<[^>]+>/g,'')):[];
+  const doc=new DOMParser().parseFromString(xmlTesto,'application/xml');
+  if(doc.querySelector('parsererror')) return avviso('Il foglio di lavoro non è leggibile (XML non valido)',{tipo:'errore'});
+  let righeMax=0,colMax=0;
+  const dimRef=(doc.querySelector('dimension')||{}).getAttribute&&doc.querySelector('dimension').getAttribute('ref');
+  const mDim=dimRef&&/^[A-Z]+\d+:([A-Z]+)(\d+)$/.exec(dimRef);
+  if(mDim){colMax=indiceColLettere(mDim[1]);righeMax=+mDim[2]-1}
+  const celle=new Map();
+  tutti('c',doc).forEach(c=>{
+    const ref=c.getAttribute('r'); if(!ref) return;
+    const m=/^([A-Z]+)(\d+)$/.exec(ref); if(!m) return;
+    const col=indiceColLettere(m[1]),riga=+m[2]-1;
+    if(riga>righeMax)righeMax=riga; if(col>colMax)colMax=col;
+    const t=c.getAttribute('t'); const vEl=c.querySelector('v'); const isEl=c.querySelector('is');
+    let testo='';
+    if(t==='s'&&vEl) testo=shared[+vEl.textContent]||'';
+    else if(isEl) testo=(isEl.textContent||'').trim();
+    else if(vEl) testo=vEl.textContent;
+    celle.set(ref,testo);
+  });
+  righeMax=Math.min(righeMax,300); colMax=Math.min(colMax,40);
+  const modifiche=new Map();
+  const griglia=()=>{
+    let intestazione='<th></th>';for(let c=0;c<=colMax;c++)intestazione+=`<th>${colXlsx(c)}</th>`;
+    let corpo='';
+    for(let r=0;r<=righeMax;r++){
+      let riga=`<th>${r+1}</th>`;
+      for(let c=0;c<=colMax;c++){const ref=rifCellaXlsx(r,c);const valore=modifiche.has(ref)?modifiche.get(ref):(celle.get(ref)||'');riga+=`<td><input type="text" data-cella="${ref}" value="${h(valore)}"></td>`}
+      corpo+=`<tr>${riga}</tr>`;
+    }
+    return `<div class="tabella-scroll"><table class="tabella-excel"><thead><tr>${intestazione}</tr></thead><tbody>${corpo}</tbody></table></div>`;
+  };
+  const risultato=await dialogo({titolo:'Compila «'+file.name+'»',enorme:true,
+    corpo:html`<p class="piccolo secondario">Il file resta nel suo formato originale: cambia solo le celle che tocchi, il resto (impaginazione, altri fogli, formule) resta identico.</p>${grezzo(griglia())}`,
+    pulsanti:[{testo:'Annulla',valore:null},{testo:'Scarica il file compilato',classe:'primario',primario:true,fn:()=>true}],
+    alMontaggio:v=>{v.addEventListener('input',e=>{const t=e.target;if(t.dataset&&t.dataset.cella)modifiche.set(t.dataset.cella,t.value)})}});
+  if(!risultato) return;
+  if(!modifiche.size) return avviso('Nessuna cella modificata: niente da scaricare');
+  for(const [ref,valore] of modifiche){
+    let c=doc.querySelector(`c[r="${ref}"]`);
+    if(!c){
+      const m=/^([A-Z]+)(\d+)$/.exec(ref); const rNum=+m[2]; const colIdx=indiceColLettere(m[1]);
+      let rowEl=doc.querySelector(`row[r="${rNum}"]`);
+      if(!rowEl){
+        rowEl=doc.createElementNS(doc.documentElement.namespaceURI,'row'); rowEl.setAttribute('r',String(rNum));
+        const sheetData=doc.querySelector('sheetData'); let inserito=false;
+        for(const rw of Array.from(sheetData.children)){ if(+rw.getAttribute('r')>rNum){sheetData.insertBefore(rowEl,rw);inserito=true;break} }
+        if(!inserito) sheetData.appendChild(rowEl);
+      }
+      c=doc.createElementNS(doc.documentElement.namespaceURI,'c'); c.setAttribute('r',ref);
+      let inserito=false;
+      for(const cc of Array.from(rowEl.children)){ const ccM=/^([A-Z]+)\d+$/.exec(cc.getAttribute('r')); if(ccM&&indiceColLettere(ccM[1])>colIdx){rowEl.insertBefore(c,cc);inserito=true;break} }
+      if(!inserito) rowEl.appendChild(c);
+    }
+    while(c.firstChild) c.removeChild(c.firstChild);
+    const numerico=valore.trim()!==''&&/^-?[\d.,]+$/.test(valore.trim())&&leggiNumero(valore)!==null;
+    if(valore===''){ c.removeAttribute('t'); }
+    else if(numerico){ c.removeAttribute('t'); const vEl=doc.createElementNS(doc.documentElement.namespaceURI,'v'); vEl.textContent=String(leggiNumero(valore)); c.appendChild(vEl); }
+    else { c.setAttribute('t','inlineStr'); const isEl=doc.createElementNS(doc.documentElement.namespaceURI,'is'); const tEl=doc.createElementNS(doc.documentElement.namespaceURI,'t'); tEl.setAttribute('xml:space','preserve'); tEl.textContent=valore; isEl.appendChild(tEl); c.appendChild(isEl); }
+  }
+  const nuovoXml=new XMLSerializer().serializeToString(doc);
+  const nuoveVoci=[];
+  for(const v of zip.voci) nuoveVoci.push({nome:v.nome,dati:v===vSheet?nuovoXml:await zip.estrai(v)});
+  const blob=await creaZip(nuoveVoci);
+  const nomeFinale=file.name.replace(/\.xlsx$/i,'')+' - compilato.xlsx';
+  await condividiOScarica(new Blob([blob],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),nomeFinale);
+}
 
 
 /* ═══════════════════════════════════════════════════════════════════

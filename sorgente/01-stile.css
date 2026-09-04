@@ -179,6 +179,13 @@ table.tabella{width:100%;border-collapse:collapse;font-size:var(--t-sm)}
 table.tabella th,table.tabella td{padding:8px 10px;text-align:left;vertical-align:middle;border-bottom:1px solid var(--bordo)}
 table.tabella th{font-weight:600;color:var(--testo-2);font-size:var(--t-xs);text-transform:uppercase;letter-spacing:.04em;background:var(--superficie-2);position:sticky;top:0;z-index:1;white-space:nowrap}
 table.tabella th.ordinabile{cursor:pointer;user-select:none} table.tabella th.ordinabile:hover{color:var(--testo)}
+.tabella-scroll{overflow:auto;max-height:calc(100dvh - 220px);border:1px solid var(--bordo);border-radius:var(--raggio)}
+table.tabella-excel{border-collapse:collapse;font-size:var(--t-xs)}
+table.tabella-excel th,table.tabella-excel td{border:1px solid var(--bordo);padding:0}
+table.tabella-excel thead th{position:sticky;top:0;background:var(--superficie-2);z-index:2;padding:4px 6px;font-weight:600;color:var(--testo-2)}
+table.tabella-excel tbody th{position:sticky;left:0;background:var(--superficie-2);z-index:1;padding:4px 6px;font-weight:600;color:var(--testo-2);white-space:nowrap}
+table.tabella-excel td input{width:90px;height:26px;border:none;padding:2px 6px;font-size:var(--t-xs);background:transparent;color:var(--testo)}
+table.tabella-excel td input:focus{background:var(--blu-chiaro);outline:2px solid var(--blu)}
 table.tabella th .freccia{display:inline-block;margin-left:4px;opacity:.5}
 table.tabella tbody tr:last-child td{border-bottom:0}
 table.tabella tbody tr.cliccabile{cursor:pointer} table.tabella tbody tr.cliccabile:hover{background:var(--superficie-2)}
