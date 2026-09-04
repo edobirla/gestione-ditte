@@ -2650,7 +2650,7 @@ function schedaOrePersona(p){
 }
 function schedaCantieriPersona(p){
   const cs=stato.cantieri.filter(c=>(c.operai||[]).includes(p.id)||c.prepostoId===p.id);
-  return html`<div class="scheda"><h3>Cantieri</h3>${cs.length?tabella({righe:cs,href:c=>'#/cantieri/'+c.id,colonne:[{chiave:'nome',titolo:'Cantiere',principale:true,formatta:c=>html`<b>${c.nome}</b>${c.prepostoId===p.id?html` <span class="etichetta-tag">preposto</span>`:''}`},{chiave:'stato',titolo:'Stato',formatta:c=>STATI_CANTIERE[c.stato]||c.stato},{chiave:'periodo',titolo:'Periodo',formatta:c=>c.dataInizio?fData(c.dataInizio)+' → '+(c.dataFine?fData(c.dataFine):'…'):(c.periodoTesto||'')},{chiave:'aff',titolo:'Impresa affidataria',formatta:c=>nomeCliente(c.affidatariaId)}]}):html`<p class="secondario">Non è assegnato a nessun cantiere.</p>`}</div>`;
+  return html`<div class="scheda"><h3>Cantieri</h3>${cs.length?tabella({righe:cs,href:c=>'#/cantieri/'+c.id,colonne:[{chiave:'nome',titolo:'Cantiere',principale:true,formatta:c=>html`<b>${c.nome}</b>${c.prepostoId===p.id?html` <span class="etichetta-tag">preposto</span>`:''}`},{chiave:'periodo',titolo:'Periodo',formatta:c=>c.dataInizio?fData(c.dataInizio)+' → '+(c.dataFine?fData(c.dataFine):'…'):(c.periodoTesto||'')},{chiave:'aff',titolo:'Impresa affidataria',formatta:c=>nomeCliente(c.affidatariaId)},{chiave:'stato',titolo:'Stato',formatta:c=>STATI_CANTIERE[c.stato]||c.stato}]}):html`<p class="secondario">Non è assegnato a nessun cantiere.</p>`}</div>`;
 }
 function schedaRetribuzione(p){
   const r=p.retribuzione||{};
