@@ -216,9 +216,19 @@ function docDichiarazione(modello,c,opz){
   return {titolo:modello.nome,cartaIntestata:modello.cartaIntestata!==false,blocchi,pie:pieStandard(modello.nome+(c?' · '+c.nome:''))};
 }
 AZIONI['dichiarazione-compila']=async d=>{
-  const c=cantiere(d.cantiere);
+  let c=cantiere(d.cantiere);
   let modelloId=d.modello;
-  if(!modelloId){const scelta=await dialogoModulo('Compila una dichiarazione',[{nome:'modelloId',etichetta:'Modello',tipo:'select',obbligatorio:true,opzioni:stato.modelli.dichiarazioni.map(m=>({v:m.id,t:m.nome}))},{nome:'data',etichetta:'Data',tipo:'data',obbligatorio:true}],{data:oggi()},{ok:'Anteprima',intro:html`<p class="piccolo secondario">Si compila con i dati di <b>${c?c.nome:'nessun cantiere'}</b>: denominazione e indirizzo, comune, committente, impresa affidataria, data odierna, azienda e legale rappresentante, elenco operai. Quello che manca compare in rosso.</p>`});if(!scelta)return;modelloId=scelta.modelloId;d.data=scelta.data}
+  if(!modelloId||!c){
+    const campi=[];
+    if(!modelloId)campi.push({nome:'modelloId',etichetta:'Modello',tipo:'select',obbligatorio:true,opzioni:stato.modelli.dichiarazioni.map(m=>({v:m.id,t:m.nome}))});
+    if(!c)campi.push({nome:'cantiereId',etichetta:'Cantiere (facoltativo)',tipo:'select',opzioni:stato.cantieri.map(x=>({v:x.id,t:x.nome})),aiuto:'Lascia vuoto per una dichiarazione aziendale non legata a un cantiere: i campi del cantiere compariranno da compilare'});
+    campi.push({nome:'data',etichetta:'Data',tipo:'data',obbligatorio:true});
+    const scelta=await dialogoModulo('Compila una dichiarazione',campi,{data:oggi()},{ok:'Anteprima',intro:html`<p class="piccolo secondario">Si compila da sola con i dati dell'azienda, del legale rappresentante e, se scelto, del cantiere: denominazione e indirizzo, comune, committente, impresa affidataria, operai assegnati. Quello che manca compare in rosso, non si inventa.</p>`});
+    if(!scelta)return;
+    if(scelta.modelloId)modelloId=scelta.modelloId;
+    if(scelta.cantiereId)c=cantiere(scelta.cantiereId);
+    d.data=scelta.data;
+  }
   const m=stato.modelli.dichiarazioni.find(x=>x.id===modelloId);if(!m)return;
   const doc=docDichiarazione(m,c,{data:d.data});
   anteprimaStampa({titolo:m.nome+(c?' · '+c.nome:''),doc,riferimento:c?c.nome:'',dopoRegistrazione:(s,g)=>{if(c){const cc=s.cantieri.find(x=>x.id===c.id);cc.documentiProdotti.push({id:nuovoId('dp'),tipo:'Dichiarazione',titolo:m.nome,data:d.data||oggi(),modelloId:m.id,generatoId:g.id,fileId:null,note:m.firma?'Firma grafica applicata. Se la committenza richiede firma digitale, il PDF va firmato con dispositivo.':''})}}});
