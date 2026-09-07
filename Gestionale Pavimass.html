@@ -620,6 +620,9 @@ input[type=checkbox],input[type=radio]{width:18px;height:18px;accent-color:var(-
 .doc table.ore-mensili tr.g-festivo td{background:#FBF2CF}
 .doc table.ore-mensili tr.g-malattia td{background:#FBE4E4}
 .doc table.ore-mensili tr.g-assenza td{background:#ECECEC}
+.segnaposto-picker{border:1px solid var(--bordo);border-radius:var(--raggio);padding:var(--sp-2);max-height:220px;overflow:auto;background:var(--superficie-2)}
+.segnaposto-picker .gruppo+.gruppo{margin-top:var(--sp-2)}
+.segnaposto-picker .chip{cursor:pointer}
 .doc .firma-accettazione{display:flex;align-items:flex-end;gap:4mm;margin:6mm 0 0;page-break-inside:avoid}
 .doc .firma-accettazione .chi{white-space:nowrap}
 .doc .firma-accettazione .linea{flex:1;max-width:70mm;border-bottom:.6pt solid #111;height:16mm;position:relative}
@@ -4115,19 +4118,42 @@ AZIONI['immagine-sostituisci']=async d=>{const fs=await scegliFile({multipli:fal
 AZIONI['immagine-ripristina']=d=>esegui('Ripristinata immagine originale',s=>{delete s.azienda['img_'+d.chiave]});
 AZIONI['carta-modifica']=async()=>{const v=await chiediTesto('Righe della carta intestata',{multiriga:true,valore:(stato.azienda.cartaIntestata.righe||[]).join('\n'),aiuto:'Una riga per ogni linea'});if(v==null)return;esegui('Modificata carta intestata',s=>{s.azienda.cartaIntestata.righe=v.split('\n').map(x=>x.trim()).filter(Boolean)})};
 AZIONI['modello-nuovo']=()=>dialogoModello(null);
+// I campi che si riempiono da soli. Ogni voce ha un nome in italiano: chi scrive un modello clicca
+// "Nome del cantiere", non deve sapere che dietro c'è {{cantiere.nome}}. La sintassi resta valida
+// per chi la conosce, ma non è più necessario conoscerla.
 const SEGNAPOSTO_GRUPPI=[
-  ['Azienda','azienda.ragioneSociale, azienda.sede, azienda.piva, azienda.cf, azienda.pec, azienda.telefono, azienda.inail, azienda.rea, azienda.email'],
-  ['Legale rappresentante','legale.nome, legale.natoA, legale.natoIl, legale.residenza, legale.cf'],
-  ['Cantiere (se scelto in fase di compilazione)','cantiere.nome, cantiere.descrizione, cantiere.indirizzo, cantiere.comune, cantiere.cap, cantiere.lavorazioni, cantiere.lavorazioniElenco'],
-  ['Committente e affidataria','committente.nome, committente.indirizzo, affidataria.nome, affidataria.indirizzo'],
-  ['Figure della sicurezza','cse.nome, rspp.nome, rls.nome, medico.nome, preposto.nome, preposto.cf, preposto.natoIl, preposto.corsoData'],
-  ['Operai del cantiere','operai.elenco (lista puntata), operai.tabella (tabella con dati anagrafici), addettiAntincendio.elenco, addettiPrimoSoccorso.elenco'],
-  ['Altro','oggi (data di compilazione), luogoData (riquadro luogo/data/firma)'],
+  ['Azienda',[['azienda.ragioneSociale','Ragione sociale'],['azienda.sede','Sede'],['azienda.piva','Partita IVA'],['azienda.cf','Codice fiscale'],['azienda.pec','PEC'],['azienda.telefono','Telefono'],['azienda.email','Email'],['azienda.inail','Codice INAIL'],['azienda.rea','Numero REA']]],
+  ['Legale rappresentante',[['legale.nome','Nome e cognome'],['legale.natoA','Luogo di nascita'],['legale.natoIl','Data di nascita'],['legale.residenza','Residenza'],['legale.cf','Codice fiscale']]],
+  ['Cantiere',[['cantiere.nome','Nome del cantiere'],['cantiere.indirizzo','Indirizzo del cantiere'],['cantiere.comune','Comune'],['cantiere.cap','CAP'],['cantiere.descrizione','Descrizione dei lavori'],['cantiere.lavorazioni','Lavorazioni (una riga)'],['cantiere.lavorazioniElenco','Lavorazioni (elenco numerato)']]],
+  ['Committente e affidataria',[['committente.nome','Committente'],['committente.indirizzo','Indirizzo del committente'],['affidataria.nome','Impresa affidataria'],['affidataria.indirizzo','Indirizzo dell\'affidataria']]],
+  ['Figure della sicurezza',[['cse.nome','Coordinatore (CSE)'],['rspp.nome','RSPP'],['rls.nome','RLS'],['medico.nome','Medico competente'],['preposto.nome','Preposto'],['preposto.cf','Codice fiscale del preposto'],['preposto.natoIl','Data di nascita del preposto'],['preposto.corsoData','Data del corso preposto']]],
+  ['Operai del cantiere',[['operai.elenco','Elenco degli operai'],['operai.tabella','Tabella degli operai con i dati'],['addettiAntincendio.elenco','Addetti antincendio'],['addettiPrimoSoccorso.elenco','Addetti primo soccorso']]],
+  ['In fondo al documento',[['oggi','Data di compilazione'],['luogoData','Luogo, data e firma'],['preposto.accettazione','Firma per accettazione del preposto'],['addettiAntincendio.accettazione','Firma degli addetti antincendio'],['addettiPrimoSoccorso.accettazione','Firma degli addetti primo soccorso']]],
 ];
 function dialogoModello(m){
   const nuovo=!m; m=m||{nome:'',testo:'# TITOLO\n\nIl sottoscritto {{legale.nome}}…\n\n{{luogoData}}',cartaIntestata:true,firma:true,timbro:true,firmatario:'Il Legale Rappresentante'};
-  const segnapostoHtml=SEGNAPOSTO_GRUPPI.map(([g,voci])=>html`<div class="mb-s"><b class="piccolo">${g}</b><br><span class="mono piccolo">${voci}</span></div>`);
-  return dialogoModulo(nuovo?'Nuovo modello':'Modello: '+m.nome,[{nome:'nome',etichetta:'Nome del documento',obbligatorio:true,largo:true},{nome:'firmatario',etichetta:'Dicitura firmatario'},{nome:'cartaIntestata',tipo:'spunta',testo:'Su carta intestata'},{nome:'firma',tipo:'spunta',testo:'Va firmato'},{nome:'timbro',tipo:'spunta',testo:'Va timbrato'},{nome:'soloConSubappalto',tipo:'spunta',testo:'Solo se ci sono subappaltatori'},{nome:'testo',etichetta:'Testo (Markdown semplice: # titolo, ## sottotitolo, - elenco, **grassetto**, tabelle con |)',tipo:'textarea',righe:18,largo:true,obbligatorio:true}],m,{intro:html`<p class="piccolo secondario">Scrivi il testo normalmente e usa un segnaposto fra doppie graffe (es. <span class="mono">{{legale.nome}}</span>) dove vuoi che si riempia da solo. Quello che manca compare in rosso, non si inventa mai. Segnaposto disponibili:</p><div class="riquadro">${segnapostoHtml}</div>`,pulsantiExtra:nuovo?[]:[{testo:'Elimina',classe:'pericolo',sinistra:true,fn:async()=>{if(await conferma('Eliminare il modello «'+m.nome+'»?',{pericolo:true,ok:'Elimina'})){esegui('Eliminato modello',s=>{s.modelli.dichiarazioni=s.modelli.dichiarazioni.filter(x=>x.id!==m.id)});return null}return false}}]}).then(v=>{if(!v)return;if(nuovo)esegui('Nuovo modello '+v.nome,s=>{s.modelli.dichiarazioni.push(Object.assign({id:nuovoId('mod')},v))});else esegui('Modificato modello '+v.nome,s=>{Object.assign(s.modelli.dichiarazioni.find(x=>x.id===m.id),v)})});
+  const picker=html`<div class="segnaposto-picker">${SEGNAPOSTO_GRUPPI.map(([g,voci])=>html`<div class="gruppo"><b class="piccolo">${g}</b><div class="chip-lista">${voci.map(([k,et])=>html`<button type="button" class="chip" data-segnaposto="${k}" title="Inserisce ${et.toLowerCase()} nel punto in cui stai scrivendo">${et}</button>`)}</div></div>`)}</div>`;
+  return dialogoModulo(nuovo?'Nuovo modello':'Modello: '+m.nome,[{nome:'nome',etichetta:'Nome del documento',obbligatorio:true,largo:true},{nome:'firmatario',etichetta:'Dicitura firmatario'},{nome:'cartaIntestata',tipo:'spunta',testo:'Su carta intestata'},{nome:'firma',tipo:'spunta',testo:'Va firmato'},{nome:'timbro',tipo:'spunta',testo:'Va timbrato'},{nome:'soloConSubappalto',tipo:'spunta',testo:'Solo se ci sono subappaltatori'},{nome:'testo',etichetta:'Testo del documento',tipo:'textarea',righe:18,largo:true,obbligatorio:true,aiuto:'Si scrive normalmente. # titolo, ## sottotitolo, - elenco, **grassetto**, tabelle con |'}],m,
+    {intro:html`<p class="piccolo secondario">Scrivi il testo come lo diresti. Dove serve un dato che l'applicazione conosce già, clicca il campo qui sotto e lo inserisce dove sei arrivato a scrivere: si riempirà da solo con i dati dell'azienda, del legale rappresentante e del cantiere. Quello che manca esce in rosso, non viene mai inventato.</p>${picker}<p class="piccolo"><button type="button" class="pulsante piccolo" id="mod-anteprima">${icona('occhio','piccola')}Vedi com'è compilato</button></p>`,
+    alMontaggio:v=>{
+      const ta=v.querySelector('[name=testo]');
+      let fine=ta.value.length,inizio=fine;
+      ta.addEventListener('blur',()=>{inizio=ta.selectionStart;fine=ta.selectionEnd});
+      tutti('[data-segnaposto]',v).forEach(b=>b.addEventListener('click',()=>{
+        const t='{{'+b.dataset.segnaposto+'}}';
+        ta.value=ta.value.slice(0,inizio)+t+ta.value.slice(fine);
+        inizio=fine=inizio+t.length;
+        ta.focus();ta.setSelectionRange(inizio,fine);
+      }));
+      v.querySelector('#mod-anteprima').addEventListener('click',()=>anteprimaModello(Object.assign({},m,{nome:v.querySelector('[name=nome]').value||m.nome||'Modello',testo:ta.value,firma:v.querySelector('[name=firma]').checked,cartaIntestata:v.querySelector('[name=cartaIntestata]').checked})));
+    },
+    pulsantiExtra:nuovo?[]:[{testo:'Elimina',classe:'pericolo',sinistra:true,fn:async()=>{if(await conferma('Eliminare il modello «'+m.nome+'»?',{pericolo:true,ok:'Elimina'})){esegui('Eliminato modello',s=>{s.modelli.dichiarazioni=s.modelli.dichiarazioni.filter(x=>x.id!==m.id)});return null}return false}}]}).then(v=>{if(!v)return;if(nuovo)esegui('Nuovo modello '+v.nome,s=>{s.modelli.dichiarazioni.push(Object.assign({id:nuovoId('mod')},v))});else esegui('Modificato modello '+v.nome,s=>{Object.assign(s.modelli.dichiarazioni.find(x=>x.id===m.id),v)})});
+}
+// Anteprima del modello con i dati veri di un cantiere: è il modo più corto per capire cosa fa un
+// campo senza doverne leggere il nome tecnico.
+async function anteprimaModello(m){
+  const c=stato.cantieri.find(x=>x.stato==='attivo')||stato.cantieri[0]||null;
+  anteprimaStampa({titolo:m.nome+(c?' · esempio su '+c.nome:' · esempio'),doc:docDichiarazione(m,c,{data:oggi()}),registra:false});
 }
 function vistaModelloPos(){
   const testo=posTestoCorrente();
