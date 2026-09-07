@@ -259,36 +259,46 @@ function docPreventivo(p){
 function stampaPreventivo(p){anteprimaStampa({titolo:'Preventivo '+p.numero+' '+p.anno,doc:docPreventivo(p),riferimento:nomeCliente(p.clienteId)})}
 // Stampa una scheda per operaio (compilazione veloce resta a griglia a schermo, qui si legge): un
 // blocco per persona con solo i giorni compilati, così è leggibile su carta senza le 31 colonne strette.
+// Libro presenze: una scheda per persona, fedele al modello aziendale "Scheda Ore Mensile"
+// (testata con logo + titolo, riquadri nome/qualifica, tabella Giorno/Committente/Località trasferta/Ore).
+function classeGiornoOre(v,we,festivo){
+  if(v==='FE') return 'g-ferie';
+  if(v==='FS'||(festivo&&v==null)) return 'g-festivo';
+  if(v==='M'||v==='I') return 'g-malattia';
+  if(typeof v==='string') return 'g-assenza';
+  if(we) return 'g-we';
+  return '';
+}
 function docLibroPresenze(anno,mese){
   const m=meseP(anno,mese)||{persone:{}};const persone=personePresenze(anno,mese);const n=giorniNelMese(anno,mese);const fest=festivitaAnno(anno,stato.impostazioni.festivitaLocali);const k=chiaveMese(anno,mese);
-  const rie=riepilogoMese(anno,mese);
-  const blocchi=[`<h1 class="sx">Libro presenze — ${h(fMeseAnno(anno,mese))}</h1><p class="mini sx">Codici: M malattia · I infortunio · PE permesso · FS festività · FE ferie · AS assenza · CI cassa integrazione. Sabato, domenica e festività in colore. Totale ore in griglia ${h(fOre(rie.oreTotali))} · importo complessivo ${h(fEuro(rie.importoTotale,0))}.</p>`];
+  const blocchi=[];
+  let primo=true;
   for(const sz of ['soci','dipendenti']){
     const pp=persone.filter(p=>(p.sezionePresenze||'dipendenti')===sz);if(!pp.length)continue;
-    blocchi.push(`<h2 class="sx">${sz==='soci'?'Soci':'Dipendenti'}</h2>`);
     for(const p of pp){
       const mp=m.persone[p.id]||{giorni:{}};const calc=calcolaMesePersona(mp,p);
-      const righeGiorno=[];
+      const righe=[];
       for(let g=1;g<=n;g++){
-        const we=eFineSettimana(anno,mese,g);const c=mp.giorni[String(g)]||{};const iso=k+'-'+pad2(g);
-        const cf=we?' class="we"':fest.has(iso)?' class="fest"':'';
-        const etichettaGiorno=`${g} ${h(NOMI_GIORNI_BREVI[giornoSettimana(anno,mese,g)])}`;
-        if(p.soloTrasferte){ righeGiorno.push(`<tr${cf}><td>${etichettaGiorno}</td><td colspan="2">${c.trasferta?'Trasferta: '+h(c.trasferta):'—'}</td></tr>`); continue; }
+        const we=eFineSettimana(anno,mese,g);const c=mp.giorni[String(g)]||{};const iso=k+'-'+pad2(g);const festivo=fest.has(iso);
         const v=valoreCella(c);
-        const valTxt=v==null?'—':typeof v==='number'?fOre(v)+' h':((CODICI_ASSENZA[v]||{}).nome||v);
-        righeGiorno.push(`<tr${cf}><td>${etichettaGiorno}</td><td>${h(valTxt)}</td><td>${h([c.cantiere,c.committente].filter(Boolean).join(' · '))||''}</td></tr>`);
+        const cls=classeGiornoOre(v,we,festivo);
+        const ore=v==null?'—':typeof v==='number'?fOre(v):((CODICI_ASSENZA[v]||{}).nome||v);
+        const committente=[c.committente,c.cantiere&&c.cantiere!==c.committente?c.cantiere:''].filter(Boolean).join(' · ');
+        righe.push(`<tr${cls?` class="${cls}"`:''}><td class="giorno">${g}<span class="gs"> ${h(NOMI_GIORNI_BREVI[giornoSettimana(anno,mese,g)])}</span></td><td>${h(committente)||'—'}</td><td>${h(c.trasferta||'')||'—'}</td><td class="num">${h(ore)}</td></tr>`);
       }
-      const totaliTxt=p.soloTrasferte?fEuro(calc.importo,0):`${fOre(calc.oreGriglia)} h · ${fEuro(calc.importo,0)}`;
-      const testa=`<div class="scheda-persona-testa"><b>${h(nomePersona(p))}</b>${p.mansione?` <span class="mini">· ${h(p.mansione)}</span>`:''}<span class="spazio"></span><b>${h(totaliTxt)}</b>${mp.importoForzato?' ✎':''}</div>`;
-      const corpo=`<table><thead><tr><th style="width:22mm">Giorno</th><th style="width:26mm">Ore/codice</th><th>Cantiere · Committente</th></tr></thead><tbody>${righeGiorno.join('')}</tbody></table>`;
-      const assenze=Object.keys(calc.perCodice).length?`<p class="mini sx">${h(Object.entries(calc.perCodice).map(([cc,nn])=>((CODICI_ASSENZA[cc]||{}).nome||cc)+' '+nn).join(' · '))}</p>`:'';
-      const nota=mp.note?`<p class="mini sx nota-persona">${h(mp.note)}</p>`:'';
-      blocchi.push(`<div class="scheda-persona">${testa}${corpo}${assenze}${nota}</div>`);
+      const totale=p.soloTrasferte?'—':fOre(calc.oreGriglia);
+      blocchi.push({nuovaPagina:!primo,html:`<div class="ore-anagrafica"><div class="riq"><span class="et">Nome e cognome</span><div class="vl">${h(nomePersona(p))}</div></div><div class="riq"><span class="et">Qualifica / Ruolo</span><div class="vl">${h(p.mansione||(sz==='soci'?'Socio':'Operaio'))}</div></div></div>`});
+      blocchi.push(`<table class="ore-mensili"><thead><tr><th class="giorno">Giorno</th><th>Committente</th><th class="trasf">Località Trasferta</th><th class="num ore">Ore Ordinarie</th></tr></thead><tbody>${righe.join('')}</tbody><tfoot><tr class="totale"><td colspan="3" class="num">Totale mese</td><td class="num">${h(totale)}</td></tr></tfoot></table>`);
+      const assenze=Object.entries(calc.perCodice).map(([cc,nn])=>((CODICI_ASSENZA[cc]||{}).nome||cc)+' '+nn).join(' · ');
+      blocchi.push(`<div class="ore-piede"><div class="riq note"><span class="et">Note</span><div class="vl">${h(mp.note||'')}${assenze?`<div class="mini">${h(assenze)}</div>`:''}</div></div><div class="riq importo"><span class="et">Importo totale</span><div class="vl">${h(calc.importo!=null?fEuro(calc.importo,0):'—')}${mp.importoForzato?' <span class="mini">(forzato)</span>':''}</div></div></div>`);
+      primo=false;
     }
   }
-  return {titolo:'Libro presenze '+capitalizza(nomeMese(mese))+' '+anno,cartaIntestata:true,blocchi};
+  if(!blocchi.length) blocchi.push('<p class="sx">Nessuna persona in presenze per questo mese.</p>');
+  const testa=`<div class="carta-intestata ore-testa"><img src="{{IMG:logo}}" alt="${h(stato.azienda.ragioneSociale)}"><div class="dati"><b>${h(stato.azienda.ragioneSociale)}</b>${(((stato.azienda.cartaIntestata||{}).righe)||[]).map(r=>h(r)+'<br>').join('')}</div><div class="titolo-scheda"><b>SCHEDA ORE MENSILE</b><span>${h(capitalizza(fMeseAnno(anno,mese)))}</span></div></div>`;
+  return {titolo:'Scheda ore mensile '+capitalizza(nomeMese(mese))+' '+anno,intestazione:testa,classe:'ore-mensili-doc',blocchi};
 }
-function stampaLibroPresenze(anno,mese){anteprimaStampa({titolo:'Libro presenze '+capitalizza(nomeMese(mese))+' '+anno,doc:docLibroPresenze(anno,mese)})}
+function stampaLibroPresenze(anno,mese){anteprimaStampa({titolo:'Scheda ore mensile '+capitalizza(nomeMese(mese))+' '+anno,doc:docLibroPresenze(anno,mese)})}
 function docChecklist(c){
   const ck=checklistCantiere(c);const g=raggruppa(ck.voci,v=>v.gruppo);
   const blocchi=[`<h1 class="sx">Checklist documenti — ${h(c.nome)}</h1><p class="sx">Committente: ${nomeCliente(c.committenteId)?h(nomeCliente(c.committenteId)):'<span class="da-compilare">[DA COMPILARE]</span>'} · Impresa affidataria: ${nomeCliente(c.affidatariaId)?h(nomeCliente(c.affidatariaId)):'<span class="da-compilare">[DA COMPILARE]</span>'} · Aggiornata al ${h(fData(oggi()))} · ${ck.pronti} su ${ck.totale} pronti</p>`];

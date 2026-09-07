@@ -492,11 +492,36 @@ input[type=checkbox],input[type=radio]{width:18px;height:18px;accent-color:var(-
 .doc .cornice-modulo{border:.6pt solid #111;padding:3mm}
 .doc .caselle{display:inline-flex;gap:.6mm;vertical-align:middle} .doc .caselle span{display:inline-block;width:5.2mm;height:6.5mm;border:.5pt solid #111;text-align:center;font-family:"Courier New",monospace;font-size:10.5pt;line-height:6.5mm;text-transform:uppercase}
 .doc .caselle span.sep{border:0;width:2mm}
-.doc .scheda-persona{border:.6pt solid #B7B4F5;border-radius:1.5mm;padding:2.5mm 3mm;margin:0 0 3mm}
-.doc .scheda-persona-testa{display:flex;align-items:baseline;gap:2mm;font-size:11pt;border-bottom:1pt solid #3426F2;padding-bottom:1.5mm;margin-bottom:1.5mm;color:#2519C2}
-.doc .scheda-persona table{margin:0}
-.doc .scheda-persona table tr.we td{background:#EDEBFD;color:#666}
-.doc .scheda-persona table tr.fest td{background:#FCE9DC}
+/* Scheda ore mensile: fedele al modello aziendale (testata con titolo, riquadri, tabella a 4 colonne) */
+.carta-intestata.ore-testa{align-items:flex-start;border-bottom:1.2pt solid #111;padding-bottom:1.5mm}
+.carta-intestata.ore-testa img{height:17mm}
+.carta-intestata.ore-testa .dati{font-size:6.5pt;line-height:1.25;padding-top:0}
+.carta-intestata.ore-testa .titolo-scheda{margin-left:auto;text-align:right;line-height:1.25}
+.carta-intestata.ore-testa .titolo-scheda b{display:block;font-size:14pt;letter-spacing:.02em;color:#111;white-space:nowrap}
+.carta-intestata.ore-testa .titolo-scheda span{font-size:13pt;font-weight:700;color:#3426F2}
+.doc .ore-anagrafica,.doc .ore-piede{display:flex;gap:3mm;margin:0 0 2.5mm}
+.doc .ore-piede{margin:2.5mm 0 0;page-break-inside:avoid}
+.doc .riq{border:.6pt solid #CFCBC2;background:#FAF8F4;padding:1.2mm 3mm;flex:1}
+.doc .riq .et{display:block;font-size:7pt;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#3426F2}
+.doc .riq .vl{font-size:10.5pt;font-weight:700;min-height:4.5mm}
+.doc .riq.note{flex:2} .doc .riq.note .vl{font-weight:400;font-size:8.5pt;min-height:9mm}
+.doc .riq.importo{flex:1;text-align:right}
+.doc .riq .mini{font-size:7.5pt;font-weight:400;color:#555}
+.doc table.ore-mensili{font-size:8.5pt;margin:0}
+.doc table.ore-mensili th{background:#111;color:#fff;border-color:#111;font-size:8pt;padding:1.2mm 2mm}
+.doc table.ore-mensili th.num,.doc table.ore-mensili td.num{text-align:right}
+.doc table.ore-mensili th.giorno,.doc table.ore-mensili td.giorno{width:16mm;text-align:center}
+.doc table.ore-mensili th.trasf{width:38mm} .doc table.ore-mensili th.ore{width:26mm}
+.doc table.ore-mensili td{border-color:#CFCBC2;padding:.55mm 2mm}
+.doc table.ore-mensili td.giorno .gs{font-size:7.5pt;color:#777}
+.doc table.ore-mensili tfoot tr.totale td{background:#EDEBE6;border-color:#CFCBC2;font-weight:700}
+/* fine settimana: filigrana a righe, come le celle non compilabili della griglia a schermo */
+.doc table.ore-mensili tr.g-we td{background:repeating-linear-gradient(45deg,#fff,#fff 1.2mm,#EFEFEF 1.2mm,#EFEFEF 2.4mm);color:#888}
+/* ferie, festività, malattia: riga piena, si devono vedere a colpo d'occhio */
+.doc table.ore-mensili tr.g-ferie td{background:#E9E7FD}
+.doc table.ore-mensili tr.g-festivo td{background:#FBF2CF}
+.doc table.ore-mensili tr.g-malattia td{background:#FBE4E4}
+.doc table.ore-mensili tr.g-assenza td{background:#ECECEC}
 .doc .nota-persona{background:#FBF2CF;padding:1.5mm 2mm;margin:1.5mm 0 0;border-left:1.5mm solid #B4471A}
 .doc .checklist td.si{color:#2A1FB8;font-weight:700} .doc .checklist td.no{color:#C8262A;font-weight:700}
 .doc .titolo-tabella{font-weight:700;margin:3mm 0 1mm}
@@ -508,7 +533,7 @@ input[type=checkbox],input[type=radio]{width:18px;height:18px;accent-color:var(-
   html,body{background:#fff!important;height:auto!important;min-height:0!important;margin:0;padding:0;color-scheme:light}
   body>*:not(#stampa){display:none!important}
   #stampa{display:block!important}
-  #stampa .pagina{box-shadow:none;margin:0;page-break-after:always;break-after:page}
+  #stampa .pagina{box-shadow:none;margin:0;page-break-after:always;break-after:page;-webkit-print-color-adjust:exact;print-color-adjust:exact}
   #stampa .pagina:last-child{page-break-after:auto;break-after:auto}
   .anteprima-stampa{display:none!important}
 }
