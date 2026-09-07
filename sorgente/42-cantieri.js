@@ -20,9 +20,21 @@ function personeQualificatePreposto(ids){
   return stato.persone.filter(p=>p.attivo&&(!ids||ids.includes(p.id))).filter(p=>{const docs=documentiPersona(p.id).filter(d=>d.tipoId==='corso_preposto');const m=migliorDocumento(docs,t,oggi(),soglie());return m&&!['scaduto'].includes(m.info.stato)});
 }
 // ---- checklist della committenza ----
-function checklistCantiere(c){
+// Quando la committenza ha mandato la sua lista, la checklist si restringe a quello che ha chiesto:
+// prima elencava sempre tutto, e su un cantiere dove chiedono quattro carte ne comparivano quaranta.
+// Non si tolgono mai i documenti che bloccano l'ingresso in cantiere e la sicurezza del cantiere:
+// quelli sono obbligo di legge, non una richiesta del cliente.
+function checklistCantiere(c,opz){
   const voci=[];const oggiIso=oggi();const s=soglie();
-  const aggiungi=(v)=>voci.push(v);
+  const lista=(!(opz&&opz.tutto)&&c.listaRicevuta)?c.listaRicevuta:null;
+  const chiesto=(v)=>{
+    if(!lista) return true;
+    if(v.bloccante||v.gruppo==='Sicurezza cantiere'||v.gruppo==='Richieste dalla committenza') return true;
+    if(v.tipo&&(lista.tipiId||[]).includes(v.tipo.id)) return true;
+    if(v.modelloId&&(lista.modelliId||[]).includes(v.modelloId)) return true;
+    return false;
+  };
+  const aggiungi=(v)=>{if(chiesto(v))voci.push(v)};
   // documenti d'impresa obbligatori
   for(const t of stato.tipiDocumento.filter(t=>t.ambito==='azienda'&&t.obbligatorio==='si')){
     const docs=documentiAzienda().filter(d=>d.tipoId===t.id);
@@ -59,7 +71,7 @@ function checklistCantiere(c){
   const totale=voci.filter(v=>v.stato!=='na').length;
   const pronti=voci.filter(v=>v.stato==='ok').length;
   const urgenti=voci.filter(v=>v.stato==='scaduto'||(v.stato==='richiedere'&&v.bloccante));
-  return {voci,totale,pronti,urgenti};
+  return {voci,totale,pronti,urgenti,lista};
 }
 const STATI_CHECKLIST={ok:{t:'Presente e valido',cl:'valido',ic:'ok'},scaduto:{t:'Presente ma scaduto',cl:'scaduto',ic:'errore'},senzafile:{t:'Registrato, manca il file',cl:'scadenza',ic:'attenzione'},richiedere:{t:'Da richiedere',cl:'mancante',ic:'blocco'},preparare:{t:'Da preparare',cl:'pianificare',ic:'modifica'},na:{t:'Non applicabile',cl:'neutro',ic:'meno'}};
 
@@ -108,7 +120,7 @@ AZIONI['cantiere-modifica']=d=>dialogoCantiere(cantiere(d.id));
 function vistaCantiere(id,r){
   const c=cantiere(id); if(!c) return html`<div class="vuoto">${icona('attenzione')}<h3>Cantiere non trovato</h3><a class="pulsante" href="#/cantieri">Elenco</a></div>`;
   const ling=linguettaAttiva('cantiere:'+c.id,'scheda');
-  const ck=checklistCantiere(c);
+  const ck=checklistCantiere(c,{tutto:ui.filtri.checklistTutto});
   return html`<div class="briciole"><a href="#/cantieri">Cantieri</a> › ${c.nome}</div>
   <div class="testata"><div><h1>${c.nome}</h1><div class="sotto">${pillolaGenerica(STATI_CANTIERE[c.stato]||c.stato,c.stato==='attivo'?'valido':'neutro')} ${c.anno} · ${indirizzoTesto(c.indirizzo)||daCompilare('indirizzo')}</div></div>
     <div class="azioni"><a class="pulsante" href="#/cantieri/${c.id}/pos">${icona('scudo')}Genera POS</a><a class="pulsante" href="#/cantieri/${c.id}/pacchetto">${icona('pacchetto')}Pacchetto committenza</a><button class="pulsante primario" data-azione="cantiere-modifica" data-id="${c.id}">${icona('modifica')}Modifica</button></div></div>
@@ -162,11 +174,14 @@ AZIONI['cantiere-prodotto-elimina']=async d=>{if(!(await conferma('Eliminare que
 function schedaCantiereChecklist(c,ck){
   const gruppi=raggruppa(ck.voci,v=>v.gruppo);
   return html`<div class="scheda"><h3>Checklist della committenza <span class="azioni"><button class="pulsante piccolo" data-azione="checklist-lista-incolla" data-id="${c.id}">${icona('incolla','piccola')}Incolla lista ricevuta</button><button class="pulsante piccolo" data-azione="checklist-lista-carica" data-id="${c.id}" title="Carica un PDF o un file di testo con la lista">${icona('carica','piccola')}Carica lista (PDF)</button><button class="pulsante piccolo" data-azione="checklist-voce-nuova" data-id="${c.id}">${icona('piu','piccola')}Voce</button><button class="pulsante piccolo" data-azione="checklist-copia" data-id="${c.id}">${icona('copia','piccola')}Copia testo</button><button class="pulsante piccolo" data-azione="checklist-stampa" data-id="${c.id}">${icona('stampa','piccola')}Stampa</button></span></h3>
-  <p class="secondario piccolo">Generata dai documenti d'impresa obbligatori e dai documenti obbligatori per ciascun operaio assegnato, più sicurezza e dichiarazioni. <b>${ck.pronti}</b> su ${ck.totale} pronti.</p>
+  ${c.listaRicevuta?html`<div class="avviso-inline">${icona('info')}<div class="corpo">Ristretta alla lista ricevuta dalla committenza il ${fData(c.listaRicevuta.data)} (${plurale(c.listaRicevuta.richieste,'richiesta','richieste')}). Restano comunque i documenti che bloccano l'ingresso in cantiere e la sicurezza del cantiere.<div class="mt-s"><button class="pulsante piccolo" data-azione="checklist-tutto">${ui.filtri.checklistTutto?'Torna alla lista della committenza':'Mostra tutti i documenti'}</button> <button class="pulsante piccolo pericolo" data-azione="checklist-lista-togli" data-id="${c.id}">Togli la lista</button></div></div></div>`:''}
+  <p class="secondario piccolo">${c.listaRicevuta&&!ui.filtri.checklistTutto?'Solo i documenti chiesti da questa committenza.':'Generata dai documenti d\'impresa obbligatori e dai documenti obbligatori per ciascun operaio assegnato, più sicurezza e dichiarazioni.'} <b>${ck.pronti}</b> su ${ck.totale} pronti.</p>
   <div class="progresso mb"><div style="width:${ck.totale?Math.round(ck.pronti/ck.totale*100):0}%"></div></div>
   ${Array.from(gruppi.entries()).map(([g,voci])=>html`<div class="sezione-titolo">${g} · ${voci.filter(v=>v.stato==='ok').length}/${voci.filter(v=>v.stato!=='na').length}</div>${voci.map(v=>{const st=STATI_CHECKLIST[v.stato];return html`<div class="checklist-voce"><span class="pillola ${st.cl}">${icona(st.ic,'piccola')}${st.t}</span><span><b>${v.nome}</b> <span class="secondario">· ${v.soggetto}</span>${v.info&&v.info.data?html` <span class="piccolo ${v.info.stato==='scaduto'?'da-compilare':'secondario'}">${v.info.stato==='scaduto'?'scaduto il':'scade il'} ${fData(v.info.data)}</span>`:''}${v.motivo?html`<br><span class="piccolo secondario">${v.motivo}</span>`:''}</span><span>${v.doc?html`<button class="pulsante piccolo" data-azione="doc-apri" data-id="${v.doc.id}">${icona('occhio','piccola')}</button>`:v.azione==='pos'?html`<a class="pulsante piccolo" href="#/cantieri/${c.id}/pos">Genera</a>`:v.azione&&v.azione.startsWith('dichiarazione:')?html`<button class="pulsante piccolo" data-azione="dichiarazione-compila" data-cantiere="${c.id}" data-modello="${v.azione.split(':')[1]}">Compila</button>`:v.persona?html`<a class="pulsante piccolo" href="#/operai/${v.persona.id}">Vai</a>`:''}${v.extra?html`<button class="pulsante piccolo icona pericolo" data-azione="checklist-voce-elimina" data-id="${c.id}" data-voce="${v.id}" aria-label="Togli">${icona('chiudi','piccola')}</button>`:''}</span></div>`})}`)}</div>`;
 }
 AZIONI['doc-apri']=d=>apriDocumento(d.id);
+AZIONI['checklist-tutto']=()=>{ui.filtri.checklistTutto=!ui.filtri.checklistTutto;render()};
+AZIONI['checklist-lista-togli']=async d=>{if(!(await conferma('Togliere la lista della committenza? La checklist torna a mostrare tutti i documenti.',{pericolo:true})))return;esegui('Tolta la lista della committenza',s=>{delete s.cantieri.find(x=>x.id===d.id).listaRicevuta})};
 AZIONI['checklist-voce-nuova']=async d=>{const v=await dialogoModulo('Voce della checklist',[{nome:'nome',etichetta:'Documento richiesto',obbligatorio:true,largo:true},{nome:'tipoId',etichetta:'Corrisponde al tipo',tipo:'select',opzioni:stato.tipiDocumento.map(t=>({v:t.id,t:t.nome}))},{nome:'soggetto',etichetta:'Soggetto'},{nome:'stato',etichetta:'Stato',tipo:'select',vuoto:false,opzioni:Object.entries(STATI_CHECKLIST).map(([v,x])=>({v,t:x.t}))},{nome:'motivo',etichetta:'Nota / motivo',largo:true}],{stato:'richiedere'});if(!v)return;esegui('Aggiunta voce checklist',s=>{s.cantieri.find(x=>x.id===d.id).checklistExtra.push(Object.assign({id:nuovoId('ck')},v))})};
 AZIONI['checklist-voce-elimina']=d=>esegui('Tolta voce checklist',s=>{const c=s.cantieri.find(x=>x.id===d.id);c.checklistExtra=c.checklistExtra.filter(x=>x.id!==d.voce)});
 // Riconoscimento della lista richiesta dalla committenza: ogni riga → tipo di documento tramite sinonimi
@@ -198,11 +213,15 @@ AZIONI['checklist-lista-carica']=async d=>{
 async function elaboraListaCommittenza(cantiereId,testo){
   const righe=testo.split(/\n|;|•/).map(x=>x.replace(/^[\s\-–*\d.)]+/,'').trim()).filter(x=>x.length>2);
   const ric=righe.map(riconosciVoceLista).filter(Boolean);
-  const c=cantiere(cantiereId);const ck=checklistCantiere(c);
+  const c=cantiere(cantiereId);const ck=checklistCantiere(c,{tutto:true});
   const corpo=html`<p>${ric.length} richieste lette. Per ciascuna: come l'ho interpretata e se è già coperta dalla checklist.</p><table class="tabella densa"><thead><tr><th>Richiesta</th><th>Interpretazione</th><th>Coperta</th><th>Aggiungi</th></tr></thead><tbody>${ric.map((x,i)=>{const cop=x.tipo?ck.voci.find(v=>v.tipo&&v.tipo.id===x.tipo.id):x.modello?ck.voci.find(v=>v.modelloId===x.modello):null;return html`<tr><td>${x.testo}</td><td>${x.tipo?html`<span class="pillola valido">${x.tipo.nome}</span>`:x.modello?html`<span class="pillola valido">Dichiarazione: ${(stato.modelli.dichiarazioni.find(m=>m.id===x.modello)||{}).nome||x.modello}</span>`:html`<span class="pillola pianificare">non riconosciuta</span>`}</td><td>${cop?html`<span class="pillola ${STATI_CHECKLIST[cop.stato].cl}">${STATI_CHECKLIST[cop.stato].t}</span>`:html`<span class="secondario">no</span>`}</td><td><input type="checkbox" data-agg="${i}" ${cop?'':'checked'}></td></tr>`})}</tbody></table>`;
   const scelte=await dialogo({titolo:'Lista della committenza',largo:true,corpo,pulsanti:[{testo:'Annulla',valore:null},{testo:'Aggiungi le voci selezionate',classe:'primario',primario:true,fn:v=>tutti('[data-agg]:checked',v).map(x=>ric[+x.dataset.agg])}]});
   if(!scelte||!scelte.length) return;
-  esegui('Aggiunte '+scelte.length+' voci dalla lista della committenza',s=>{const cc=s.cantieri.find(x=>x.id===cantiereId);for(const x of scelte)cc.checklistExtra.push({id:nuovoId('ck'),nome:x.testo,tipoId:x.tipo?x.tipo.id:null,soggetto:x.tipo&&x.tipo.ambito==='persona'?'ogni operaio':'',stato:x.modello?'preparare':'richiedere',motivo:x.modello?'dichiarazione da compilare':(x.tipo?'':'voce non riconosciuta: da valutare')})});
+  // si registra tutto quello che la committenza ha chiesto (non solo le voci aggiunte a mano):
+  // da qui in poi la checklist di questo cantiere mostra solo queste richieste
+  const tipiId=unici(ric.map(x=>x.tipo&&x.tipo.id).filter(Boolean));
+  const modelliId=unici(ric.map(x=>x.modello).filter(Boolean));
+  esegui('Aggiunte '+scelte.length+' voci dalla lista della committenza',s=>{const cc=s.cantieri.find(x=>x.id===cantiereId);cc.listaRicevuta={data:oggi(),tipiId,modelliId,richieste:ric.length};for(const x of scelte)cc.checklistExtra.push({id:nuovoId('ck'),nome:x.testo,tipoId:x.tipo?x.tipo.id:null,soggetto:x.tipo&&x.tipo.ambito==='persona'?'ogni operaio':'',stato:x.modello?'preparare':'richiedere',motivo:x.modello?'dichiarazione da compilare':(x.tipo?'':'voce non riconosciuta: da valutare')})});
 }
 AZIONI['checklist-copia']=d=>{copiaNegliAppunti(checklistTesto(cantiere(d.id))).then(()=>avviso('Checklist copiata: incollala nella mail'))};
 function checklistTesto(c){const ck=checklistCantiere(c);const g=raggruppa(ck.voci,v=>v.gruppo);let t=`Checklist documenti — ${c.nome}\nCommittente: ${nomeCliente(c.committenteId)||'[DA COMPILARE]'} · Impresa affidataria: ${nomeCliente(c.affidatariaId)||'[DA COMPILARE]'}\nAggiornata al ${fData(oggi())} — ${ck.pronti} su ${ck.totale} pronti\n\n`;for(const [gr,voci] of g){t+=`${gr.toUpperCase()}\n`;for(const v of voci){t+=`  [${v.stato==='ok'?'x':' '}] ${v.nome} — ${v.soggetto} — ${STATI_CHECKLIST[v.stato].t}${v.info&&v.info.data?' ('+(v.info.stato==='scaduto'?'scaduto il ':'scade il ')+fData(v.info.data)+')':''}${v.motivo?' — '+v.motivo:''}\n`}t+='\n'}return t}
