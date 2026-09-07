@@ -4,7 +4,7 @@
 // (in coda, con ritardo per accorpare) e registra un'istantanea per annulla.
 // I documenti (blob) NON stanno qui: vedi ARCHIVIO. Qui solo i metadati.
 // ---------------------------------------------------------------------
-const VERSIONE_SCHEMA=3;
+const VERSIONE_SCHEMA=4;
 const NOME_DB='GestionalePavimass';
 let db=null;
 let stato=null;
@@ -143,6 +143,11 @@ const migrazioni={
   },
   3:s=>{ // le presenze passano da {ore,cantiere,committente} piatti per giorno a oggetti con codice separato
     for(const k of Object.keys(s.presenze||{})){ const mese=s.presenze[k]; for(const pid of Object.keys(mese.persone||{})){ const mp=mese.persone[pid]; for(const g of Object.keys(mp.giorni||{})){ const c=mp.giorni[g]; if(c&&typeof c==='object'&&typeof c.ore==='string'&&CODICI_ASSENZA[c.ore.toUpperCase()]){c.codice=c.ore.toUpperCase();delete c.ore} } } }
+    return s;
+  },
+  4:s=>{ // dati bancari e condizioni per il preventivo: presi dal preventivo vero dell'azienda, mai inventati
+    const a=s.azienda||(s.azienda={});const base=datiIniziali().azienda;
+    for(const k of ['banca','iban','condizioniPagamento','notePreventivo']) if(!a[k]) a[k]=base[k];
     return s;
   },
 };

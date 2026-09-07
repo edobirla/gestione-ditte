@@ -492,6 +492,48 @@ input[type=checkbox],input[type=radio]{width:18px;height:18px;accent-color:var(-
 .doc .cornice-modulo{border:.6pt solid #111;padding:3mm}
 .doc .caselle{display:inline-flex;gap:.6mm;vertical-align:middle} .doc .caselle span{display:inline-block;width:5.2mm;height:6.5mm;border:.5pt solid #111;text-align:center;font-family:"Courier New",monospace;font-size:10.5pt;line-height:6.5mm;text-transform:uppercase}
 .doc .caselle span.sep{border:0;width:2mm}
+/* Preventivo: stessa veste del gestionale di fatturazione aziendale (riquadri azzurri, fascia blu) */
+.doc.prev{font-size:9.5pt}
+.doc.prev .prev-testa{display:flex;gap:4mm;margin:0 0 2.5mm}
+.doc.prev .prev-mittente{width:82mm;flex:none}
+.doc.prev .prev-mittente img{height:26mm;width:auto;display:block;margin:0 0 2mm}
+.doc.prev .prev-mittente .ind{font-style:italic;font-size:9.5pt;line-height:1.45;color:#111;margin:0 0 3mm}
+.doc.prev .prev-numero .barra{background:#1F4E9C;color:#fff;font-size:10pt;padding:1.2mm 2.5mm;border-radius:1.5mm 1.5mm 0 0}
+.doc.prev .prev-numero .celle{display:flex;flex-wrap:wrap;background:#DCE7F6;border-radius:0 0 1.5mm 1.5mm;padding:1mm 0}
+.doc.prev .prev-numero .celle>div{width:50%;padding:.8mm 2.5mm}
+.doc.prev .prev-numero .celle .et{display:block;font-size:6.5pt;color:#1F4E9C;font-weight:700}
+.doc.prev .prev-numero .celle .vl{font-size:10pt;font-weight:700;display:block;text-align:right}
+.doc.prev .prev-destinatario{flex:1;display:flex;flex-direction:column;gap:3mm}
+.doc.prev .prev-condizioni{display:flex;gap:4mm;margin:0 0 2.5mm}
+.doc.prev .prev-condizioni .riq-prev{flex:1}
+.doc.prev .prev-condizioni .riq-prev:first-child{width:82mm;flex:none}
+.doc.prev .riq-prev{background:#DCE7F6;border-radius:2mm;padding:1.2mm 3mm}
+.doc.prev .riq-prev .et{display:block;font-size:6.5pt;font-weight:700;color:#1F4E9C}
+.doc.prev .riq-prev .vl{font-size:10pt;line-height:1.4}
+.doc.prev .riq-prev.alto .vl{min-height:16mm}
+.doc.prev .riq-prev.note .vl{min-height:12mm;font-size:8.5pt}
+.doc.prev table.prev-voci{font-size:9.5pt;margin:0 0 2.5mm;border-collapse:separate;border-spacing:0}
+.doc.prev table.prev-voci th{background:#1F4E9C;color:#fff;border:0;font-size:7.5pt;font-weight:700;text-transform:uppercase;letter-spacing:.04em;text-align:center;padding:1.4mm 2mm}
+.doc.prev table.prev-voci th:first-child{border-radius:2mm 0 0 0} .doc.prev table.prev-voci th:last-child{border-radius:0 2mm 0 0}
+.doc.prev table.prev-voci td{background:#EAF1FA;border:0;border-right:.5pt solid #C3D5EC;padding:1.2mm 2.5mm;vertical-align:top}
+.doc.prev table.prev-voci td:last-child{border-right:0}
+.doc.prev table.prev-voci th.q,.doc.prev table.prev-voci td.num{text-align:right}
+.doc.prev table.prev-voci th.um,.doc.prev table.prev-voci td.um,.doc.prev table.prev-voci th.civa,.doc.prev table.prev-voci td.civa{text-align:center}
+.doc.prev table.prev-voci th.q{width:18mm} .doc.prev table.prev-voci th.um{width:14mm} .doc.prev table.prev-voci th.pz{width:22mm} .doc.prev table.prev-voci th.imp{width:26mm} .doc.prev table.prev-voci th.civa{width:14mm}
+.doc.prev .prev-piede{page-break-inside:avoid}
+.doc.prev .prev-fascia{background:#DCE7F6;border-radius:2mm;padding:1.2mm 3mm;margin:0 0 2mm;display:flex;gap:6mm;font-size:9.5pt}
+.doc.prev .prev-totali{display:flex;gap:1mm;margin:0 0 1mm}
+.doc.prev .prev-totali .col{flex:1;background:#DCE7F6;border-radius:1.5mm;padding:1mm 2.5mm}
+.doc.prev .prev-totali .col .et{display:block;font-size:6.5pt;font-weight:700;color:#1F4E9C;text-transform:uppercase}
+.doc.prev .prev-totali .col .vl{display:block;font-size:11pt;font-weight:700;text-align:right}
+.doc.prev .prev-totali .col.tot{background:#1F4E9C;color:#fff;flex:1.4}
+.doc.prev .prev-totali .col.tot .et{color:#fff} .doc.prev .prev-totali .col.tot .vl{font-size:14pt;margin-top:2mm}
+.doc.prev .prev-totali.sotto{margin:0 0 2.5mm} .doc.prev .prev-totali.sotto .col{flex:1} .doc.prev .prev-totali.sotto .col .vl{font-size:10pt}
+.doc.prev .prev-fondo{display:flex;gap:4mm;align-items:stretch}
+.doc.prev .prev-fondo .riq-prev{flex:2}
+.doc.prev .prev-fondo .firma-acc{flex:1;text-align:center;padding-top:2mm;font-size:10pt}
+.doc.prev .prev-fondo .firma-acc .linea{border-bottom:.6pt solid #111;height:14mm}
+.doc.prev .prev-privacy{font-size:6.5pt;color:#444;margin:3mm 0 0;text-align:justify}
 /* Scheda ore mensile: fedele al modello aziendale (testata con titolo, riquadri, tabella a 4 colonne) */
 .carta-intestata.ore-testa{align-items:flex-start;border-bottom:1.2pt solid #111;padding-bottom:1.5mm}
 .carta-intestata.ore-testa img{height:17mm}

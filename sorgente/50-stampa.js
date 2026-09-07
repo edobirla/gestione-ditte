@@ -246,19 +246,37 @@ function docScadenzario(){
   return {titolo:'Scadenzario Pavimass',cartaIntestata:true,blocchi};
 }
 AZIONI['stampa-scadenzario']=()=>anteprimaStampa({titolo:'Scadenzario Pavimass',doc:docScadenzario()});
+// Preventivo: stessa impaginazione del gestionale di fatturazione usato in azienda
+// (template/Prev. n.4-26-P ...pdf), così tutte le offerte Pavimass escono uguali.
 function docPreventivo(p){
-  const tot=totaliPreventivo(p);const cl=cliente(p.clienteId);const c=cantiere(p.cantiereId);
-  const blocchi=[`<h1 class="sx">Preventivo n. ${h(p.numero)}/${h(p.anno)}</h1><table class="senza-bordi"><tbody><tr><td style="width:30mm"><b>Data</b></td><td>${h(fData(p.data))}</td><td style="width:30mm"><b>Validità</b></td><td>${p.validitaGiorni?h(p.validitaGiorni)+' giorni':'<span class="da-compilare">[DA COMPILARE]</span>'}</td></tr><tr><td><b>Spett.le</b></td><td colspan="3">${cl?h(cl.ragioneSociale)+'<br>'+h(indirizzoTesto(cl.indirizzo)):'<span class="da-compilare">[DA COMPILARE: cliente]</span>'}</td></tr><tr><td><b>Oggetto</b></td><td colspan="3">${h(p.oggetto)||'<span class="da-compilare">[DA COMPILARE]</span>'}${c?' — cantiere '+h(c.nome)+(c.indirizzo.comune?', '+h(c.indirizzo.comune):''):''}</td></tr></tbody></table>`];
+  const tot=totaliPreventivo(p);const cl=cliente(p.clienteId);const c=cantiere(p.cantiereId);const a=stato.azienda;
   const righe=(p.righe||[]);
-  blocchi.push(`<table><thead><tr><th style="width:18mm">Codice</th><th>Descrizione</th><th style="width:10mm">UM</th><th class="num" style="width:18mm">Quantità</th><th class="num" style="width:22mm">Prezzo unit.</th><th class="num" style="width:24mm">Importo</th></tr></thead><tbody>${righe.map(r=>{const imp=(r.prezzo==null||r.prezzo==='')?null:(+r.quantita||0)*+r.prezzo;return `<tr><td>${h(r.codice||'')}</td><td>${h(r.descrizione||'')}${r.descrizioneEstesa?'<div class="mini">'+h(r.descrizioneEstesa)+'</div>':''}${r.esclusa?'<div class="mini"><b>SOLO POSA — esclusa fornitura</b></div>':''}${r.tipoPrezzo==='fornituraPosa'?'<div class="mini">Fornitura e posa</div>':''}</td><td>${h(r.um||'')}</td><td class="num">${r.quantita!=null?h(fNum(r.quantita,Number.isInteger(+r.quantita)?0:2)):''}</td><td class="num">${r.esclusa?'—':imp==null?'<span class="da-compilare">[DA QUOTARE]</span>':h(fEuro(r.prezzo))}</td><td class="num">${r.esclusa?'escl.':imp==null?'<span class="da-compilare">[DA QUOTARE]</span>':h(fEuro(imp))}</td></tr>`}).join('')}</tbody><tfoot><tr><td colspan="5" class="num">Imponibile</td><td class="num">${h(fEuro(tot.imponibile))}</td></tr>${p.scontoPct?`<tr><td colspan="5" class="num">Sconto ${h(fNum(p.scontoPct,0))}%</td><td class="num">− ${h(fEuro(tot.sconto))}</td></tr>`:''}<tr class="totale"><td colspan="5" class="num">Totale (IVA esclusa)</td><td class="num">${h(fEuro(tot.totale))}</td></tr></tfoot></table>`);
-  if(tot.daQuotare.length) blocchi.push(`<p class="sx"><span class="da-compilare">Voci ancora da quotare: ${h(tot.daQuotare.map(r=>r.codice||tronca(r.descrizione,30)).join(', '))}.</span></p>`);
-  if(p.condizioni) blocchi.push({html:'<h3>Condizioni</h3>',tieniConSuccessivo:true},'<div class="gruppo">'+p.condizioni.split('\n').filter(Boolean).map(x=>'<p class="sx">'+inlineMd(x)+'</p>').join('')+'</div>');
-  blocchi.push(bloccoFirma({data:p.data}));
-  return {titolo:'Preventivo '+p.numero+'/'+p.anno,cartaIntestata:true,blocchi};
+  const dc=(v,et)=>v?h(v):`<span class="da-compilare">[DA COMPILARE${et?': '+et:''}]</span>`;
+  const riq=(et,corpo,cls)=>`<div class="riq-prev ${cls||''}"><span class="et">${h(et)}</span><div class="vl">${corpo}</div></div>`;
+  const intestatario=cl?`<b>Spett.le</b><br>${h(cl.ragioneSociale)}<br>${h(indirizzoTesto(cl.indirizzo))}`:'<span class="da-compilare">[DA COMPILARE: cliente]</span>';
+  const destinazione=c?h(c.nome)+(c.indirizzo&&c.indirizzo.comune?'<br>'+h(indirizzoTesto(c.indirizzo)):''):(p.oggetto?h(p.oggetto):'—');
+  const testata=`<div class="prev-testa">
+    <div class="prev-mittente"><img src="{{IMG:logo}}" alt="${h(a.ragioneSociale)}"><div class="ind">${h(a.indirizzo.via||'')}<br>${h(a.indirizzo.cap||'')} ${h(a.indirizzo.comune||'')} (${h(a.indirizzo.provincia||'')})<br>Italia<br>P.IVA e C.F. ${h(a.piva||'')}</div>
+      <div class="prev-numero"><div class="barra"><b>Preventivo</b></div><div class="celle"><div><span class="et">Numero</span><span class="vl">${h(p.numero)}/${h(String(p.anno).slice(-2))}/P</span></div><div><span class="et">Data</span><span class="vl">${h(fData(p.data))}</span></div><div><span class="et">Partita Iva</span><span class="vl">${cl&&cl.piva?h(cl.piva):''}</span></div><div><span class="et">Codice fiscale</span><span class="vl">${cl&&cl.cf?h(cl.cf):''}</span></div></div></div></div>
+    <div class="prev-destinatario">${riq('Intestatario',intestatario,'alto')}${riq('Destinazione',destinazione,'alto')}</div>
+  </div>
+  <div class="prev-condizioni">${riq('Condizioni di pagamento',dc((cl&&cl.condizioniPagamento)||a.condizioniPagamento,'condizioni di pagamento'))}${riq('Banca e Coordinate',(a.banca?h(a.banca):'')+(a.iban?(a.banca?' - ':'')+h(a.iban)+'<br>IBAN: '+h(a.iban):(a.banca?'':'<span class="da-compilare">[DA COMPILARE: banca e IBAN in Impostazioni → Azienda]</span>')))}</div>`;
+  const corpoRighe=righe.map(r=>{
+    const imp=(r.prezzo==null||r.prezzo==='')?null:(+r.quantita||0)*+r.prezzo;
+    const desc=h(r.descrizione||'')+(r.descrizioneEstesa?'<div class="mini">'+h(r.descrizioneEstesa)+'</div>':'')+(r.esclusa?'<div class="mini"><b>SOLO POSA — esclusa fornitura</b></div>':'');
+    return `<tr><td>${desc}</td><td class="num">${r.quantita!=null&&r.quantita!==''?h(fNum(r.quantita,Number.isInteger(+r.quantita)?0:2)):''}</td><td class="um">${h(r.um||'')}</td><td class="num">${r.esclusa?'—':imp==null?'<span class="da-compilare">[DA QUOTARE]</span>':h(fNum(r.prezzo,2))}</td><td class="num">${r.esclusa?'escl.':imp==null?'':h(fNum(imp,2))}</td><td class="civa">${h(p.codiceIva||'N6.7')}</td></tr>`;
+  }).join('');
+  const tabella=`<table class="prev-voci"><thead><tr><th>Descrizione</th><th class="num q">Q.tà</th><th class="um">U.M.</th><th class="num pz">Prezzo</th><th class="num imp">Importo</th><th class="civa">C.IVA</th></tr></thead><tbody>${corpoRighe||'<tr><td colspan="6" class="mini">Nessuna voce inserita.</td></tr>'}</tbody></table>`;
+  const notePiede=[a.notePreventivo,p.validitaGiorni?'Validità preventivo: '+fNum(p.validitaGiorni,0)+' giorni':null,a.cellulare?'Cell. '+a.cellulare:null].filter(Boolean);
+  const piede=`<div class="prev-piede">
+    <div class="prev-fascia">${notePiede.map(x=>`<span>${h(x)}</span>`).join('')}</div>
+    <div class="prev-totali"><div class="col"><span class="et">Imponibili</span><span class="vl">${h(fEuro(tot.totale))}</span></div><div class="col"><span class="et">Descrizione imposta</span><span class="vl piccolo">${h(p.descrizioneImposta||'inversione contabile')}</span></div><div class="col"><span class="et">Imposta</span><span class="vl">${h(fEuro(0))}</span></div><div class="col tot"><span class="et">Totale documento</span><span class="vl">${h(fEuro(tot.totale))}</span></div></div>
+    <div class="prev-totali sotto"><div class="col"><span class="et">Tot. imponibile</span><span class="vl">${h(fEuro(tot.totale))}</span></div><div class="col"><span class="et">Tot. imposte</span><span class="vl">${h(fEuro(0))}</span></div></div>
+    <div class="prev-fondo">${riq('Note',(p.condizioni?h(p.condizioni).replace(/\n/g,'<br>'):'')+(tot.daQuotare.length?`<div class="da-compilare mini">Voci ancora da quotare: ${h(tot.daQuotare.map(r=>r.codice||tronca(r.descrizione,30)).join(', '))}</div>`:''),'note')}<div class="firma-acc"><i>Firma per accettazione</i><div class="linea"></div></div></div>
+    <p class="prev-privacy">Ai sensi del D.Lgs. 196/2003 Vi informiamo che i Vs. dati saranno utilizzati esclusivamente per i fini connessi ai rapporti commerciali tra di noi in essere. Vi preghiamo di controllare i Vs. dati anagrafici, la P. IVA e il Cod. Fiscale. Non ci riteniamo responsabili di eventuali errori.</p></div>`;
+  return {titolo:'Preventivo '+p.numero+'/'+p.anno,cartaIntestata:false,classe:'prev',blocchi:[testata,tabella,piede]};
 }
 function stampaPreventivo(p){anteprimaStampa({titolo:'Preventivo '+p.numero+' '+p.anno,doc:docPreventivo(p),riferimento:nomeCliente(p.clienteId)})}
-// Stampa una scheda per operaio (compilazione veloce resta a griglia a schermo, qui si legge): un
-// blocco per persona con solo i giorni compilati, così è leggibile su carta senza le 31 colonne strette.
 // Libro presenze: una scheda per persona, fedele al modello aziendale "Scheda Ore Mensile"
 // (testata con logo + titolo, riquadri nome/qualifica, tabella Giorno/Committente/Località trasferta/Ore).
 function classeGiornoOre(v,we,festivo){

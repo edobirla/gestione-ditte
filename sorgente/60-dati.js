@@ -13,6 +13,7 @@ function datiIniziali(soloStruttura){
       rea:'AR-168277',codiceSdi:'WP7SE2Q',ateco:'43.33.00',inail:'19548392',inps:'0504900998',cassaEdile:'Falea 08700',
       patenteCrediti:{codice:'PAC-BI-027-DW',dataRilascio:'2024-10-24'},
       attivita:'Pavimentazioni, rivestimenti, massetti, impermeabilizzazioni',
+      banca:'Banca MPS',iban:'IT72G0103071640000000976514',condizioniPagamento:'Bonifico Bancario',notePreventivo:'Lavori in economia: 35 €/ora',
       legaleRappresentanteId:'p_ovidiu',rsppId:'p_ovidiu',rlsId:'p_edvalt',rlsEletto:'2024-10-07',
       medicoCompetente:{nome:'Dott. Mario Martinelli',telefono:'3474502772',email:'martinellimario55@gmail.com',professionistaId:'pr_martinelli'},
       consulenteSicurezza:{nome:'Studio Tecnico Boncompagni Ghezzi',indirizzo:'Via Calamandrei 185, 52100 Arezzo (AR)',professionistaId:'pr_boncompagni'},
