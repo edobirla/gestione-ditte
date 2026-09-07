@@ -173,13 +173,23 @@ AZIONI['copia']=d=>copiaNegliAppunti(d.testo).then(()=>avviso('Copiato negli app
 let zonaDropAttiva=null;
 function trovaZonaDrop(target){return target&&target.closest&&(target.closest('[data-drop-doc]')||target.closest('[data-drop-soggetto]')||target.closest('[data-drop-caricamento]')||target.closest('[data-drop-buste]')||target.closest('.zona-drop'))}
 function evidenziaZona(z){if(z===zonaDropAttiva)return;if(zonaDropAttiva)zonaDropAttiva.classList.remove('sopra');if(z)z.classList.add('sopra');zonaDropAttiva=z}
+// Mentre si trascina un file, le anteprime dei PDF (iframe) devono farsi da parte: un iframe è un
+// documento a sé, gli eventi di trascinamento sopra di lui non arrivano mai a questa pagina e il
+// visualizzatore PDF di Chrome si prende il file al posto nostro. Con pointer-events:none il
+// trascinamento passa oltre e arriva alla zona di rilascio che sta sotto.
+const trascinamento=(attivo)=>document.body.classList.toggle('trascinamento',attivo);
+const eTrascinamentoFile=e=>!!(e.dataTransfer&&Array.from(e.dataTransfer.types||[]).includes('Files'));
+window.addEventListener('dragenter',e=>{if(eTrascinamentoFile(e))trascinamento(true)},true);
 window.addEventListener('dragover',e=>{
-  if(!e.dataTransfer||!Array.from(e.dataTransfer.types).includes('Files'))return;
+  if(!eTrascinamentoFile(e))return;
+  trascinamento(true);
   e.preventDefault();e.dataTransfer.dropEffect='copy';
   evidenziaZona(trovaZonaDrop(e.target));
 });
-window.addEventListener('dragleave',e=>{if(e.clientX<=0||e.clientY<=0||e.clientX>=window.innerWidth||e.clientY>=window.innerHeight)evidenziaZona(null)});
+window.addEventListener('dragend',()=>{trascinamento(false);evidenziaZona(null)});
+window.addEventListener('dragleave',e=>{if(e.clientX<=0||e.clientY<=0||e.clientX>=window.innerWidth||e.clientY>=window.innerHeight){trascinamento(false);evidenziaZona(null)}});
 window.addEventListener('drop',async e=>{
+  trascinamento(false);
   if(!e.dataTransfer||!e.dataTransfer.files||!e.dataTransfer.files.length) return;
   e.preventDefault();
   const z=trovaZonaDrop(e.target)||zonaDropAttiva;
@@ -199,12 +209,13 @@ window.addEventListener('drop',async e=>{
 async function fileDaDrop(dt){
   const out=[];
   const items=dt.items?Array.from(dt.items):[];
+  const diretti=Array.from(dt.files||[]); // letti subito: dopo un await Chrome svuota il DataTransfer
   const entries=items.map(i=>i.webkitGetAsEntry?i.webkitGetAsEntry():null);
   if(entries.some(Boolean)){
     for(const en of entries){ if(en) await leggiEntry(en,'',out); }
     if(out.length) return out;
   }
-  for(const f of Array.from(dt.files)){ f.percorso=f.webkitRelativePath||f.name; out.push(f); }
+  for(const f of diretti){ f.percorso=f.webkitRelativePath||f.name; out.push(f); }
   return out;
 }
 function leggiEntry(entry,percorso,out){
