@@ -264,12 +264,17 @@ function testoLegaleRappresentante(){
   return [a.ragioneSociale,leg?'Il Legale Rappresentante: '+nomePersona(leg):'',leg&&leg.cf?'C.F. '+leg.cf:'',indirizzoTesto(a.indirizzo),a.piva?'P.IVA '+a.piva:''].filter(Boolean).join('\n');
 }
 AZIONI['assistente-documento-esterno']=async()=>{
-  const fs=await scegliFile({multipli:false,accetta:'image/*'});
+  // Nessun filtro sui tipi: con accept="image/*" i PDF risultavano spenti nella finestra del Mac e
+  // sembrava che il pulsante non facesse niente. Meglio farli scegliere e spiegare a parole.
+  const fs=await scegliFile({multipli:false});
   if(!fs.length) return;
-  await apriAssistenteDocumento(fs[0]);
+  const f=fs[0];
+  if(ePdf(f.type,f.name)) return informa('Per ora l\u2019assistente lavora sulle immagini','Questo \u00e8 un PDF. L\u2019assistente scrive sopra l\u2019immagine del documento, e leggere un PDF pagina per pagina richiede un motore di stampa che l\u2019app non ha.\n\nCome fare adesso: apri il PDF, fai uno screenshot della pagina (Maiusc+Cmd+4 sul Mac) oppure esportala come immagine, e ricarica quella qui.');
+  if(!eImmagine(f.type,f.name)) return informa('Tipo di file non adatto','L\u2019assistente lavora su foto e scansioni (JPG, PNG, HEIC). Il file scelto \u00e8 \u00ab'+f.name+'\u00bb.');
+  await apriAssistenteDocumento(f);
 };
 async function apriAssistenteDocumento(file){
-  let img; try{ img=await caricaImmagine(file); }catch(e){ return segnalaErrore(e,'Non sono riuscito ad aprire l\'immagine (serve una foto o scansione, non un PDF)'); }
+  let img; try{ img=await caricaImmagine(file); }catch(e){ return segnalaErrore(e,'Non sono riuscito ad aprire \u00ab'+file.name+'\u00bb: il browser non sa leggere questa immagine (capita con le foto HEIC dell\'iPhone: riesportale in JPG)'); }
   const cw=img.width,ch=img.height;
   const stampaImg=await new Promise(ok=>{const im=new Image();im.onload=()=>ok(im);im.onerror=()=>ok(null);im.src=immagineAzienda('firmaTimbro')});
   const st={coperture:[],timbro:{attivo:false,x:75,y:85,scala:100},testo:{attivo:false,x:8,y:85,dimensione:16,testo:testoLegaleRappresentante()}};

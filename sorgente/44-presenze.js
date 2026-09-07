@@ -204,10 +204,7 @@ AZIONI['presenze-strumenti']=async d=>{
   const {anno,mese}=daChiaveMese(d.k);const persone=personePresenze(anno,mese);
   const scelta=await dialogo({titolo:'Strumenti per '+fMeseAnno(anno,mese),corpo:html`<div class="scelta-lista">
     <label><input type="radio" name="st" value="riempi" checked><span><b>Riempi il mese</b><div class="desc">8 ore nei giorni lavorativi (o lo schema orario personale), FS nelle festività feriali, trasferte per chi ha solo quelle. Non tocca le celle già compilate.</div></span></label>
-    <label><input type="radio" name="st" value="blocco"><span><b>Compila un intervallo di giorni</b><div class="desc">Ore o codice, cantiere e committente per più persone in un colpo.</div></span></label>
     <label><input type="radio" name="st" value="copiaPersona"><span><b>Copia da una persona all'altra</b><div class="desc">Ore, cantiere e committente di una persona su altre.</div></span></label>
-    <label><input type="radio" name="st" value="copiaMese"><span><b>Copia il mese precedente</b><div class="desc">Riporta cantiere e committente (e le ore, se vuoi) di ${fMeseAnno(mesePrecedente(anno,mese).anno,mesePrecedente(anno,mese).mese)} sugli stessi giorni lavorativi.</div></span></label>
-    <label><input type="radio" name="st" value="svuota"><span><b>Svuota il mese di una persona</b><div class="desc">Cancella tutte le celle del mese per una persona.</div></span></label>
   </div>`,pulsanti:[{testo:'Annulla',valore:null},{testo:'Avanti',classe:'primario',primario:true,fn:v=>v.querySelector('[name=st]:checked').value}]});
   if(!scelta) return;
   const opzPersone=persone.map(p=>({v:p.id,t:nomePersona(p)}));
@@ -215,31 +212,10 @@ AZIONI['presenze-strumenti']=async d=>{
     const v=await dialogoModulo('Riempi il mese',[{nome:'persone',etichetta:'Persone',tipo:'chip',largo:true,opzioni:opzPersone},{nome:'cantiere',etichetta:'Cantiere (facoltativo)',lista:'lista-cantieri'},{nome:'committente',etichetta:'Committente (facoltativo)'},{nome:'sovrascrivi',tipo:'spunta',testo:'Sovrascrivi anche le celle già compilate'}],{persone:persone.filter(p=>p.attivo&&p.inLibroPresenze).map(p=>p.id)});
     if(!v||!v.persone.length) return;
     riempiMese(anno,mese,v.persone,{cantiere:v.cantiere,committente:v.committente,sovrascrivi:v.sovrascrivi});
-  } else if(scelta==='blocco'){
-    const v=await dialogoModulo('Compila un intervallo',[{nome:'persone',etichetta:'Persone',tipo:'chip',largo:true,obbligatorio:true,opzioni:opzPersone},{nome:'da',etichetta:'Dal giorno',tipo:'numero',decimali:0,obbligatorio:true},{nome:'a',etichetta:'Al giorno',tipo:'numero',decimali:0,obbligatorio:true},{nome:'ore',etichetta:'Ore o codice (vuoto = non toccare)',segnaposto:'8, FE, M…'},{nome:'cantiere',etichetta:'Cantiere'},{nome:'committente',etichetta:'Committente (vuoto = proposto dal cantiere)'},{nome:'nonSovrascrivere',tipo:'spunta',testo:'Non sovrascrivere le celle già compilate'}],{da:1,a:giorniNelMese(anno,mese)});
-    if(!v) return;
-    const g1=Math.max(1,+v.da),g2=Math.min(giorniNelMese(anno,mese),+v.a);
-    if(v.ore) applicaBlocco(anno,mese,v.persone,g1,g2,'ore',v.ore,{rispettaFestivi:true,nonSovrascrivere:v.nonSovrascrivere,senzaRender:true});
-    if(v.cantiere) applicaBlocco(anno,mese,v.persone,g1,g2,'cantiere',v.cantiere,{nonSovrascrivere:v.nonSovrascrivere,senzaRender:true});
-    if(v.committente) applicaBlocco(anno,mese,v.persone,g1,g2,'committente',v.committente,{nonSovrascrivere:v.nonSovrascrivere,senzaRender:true});
-    render();
   } else if(scelta==='copiaPersona'){
     const v=await dialogoModulo('Copia da una persona',[{nome:'da',etichetta:'Da',tipo:'select',obbligatorio:true,opzioni:opzPersone},{nome:'a',etichetta:'A',tipo:'chip',largo:true,obbligatorio:true,opzioni:opzPersone},{nome:'cosa',etichetta:'Cosa copiare',tipo:'chip',largo:true,opzioni:[{v:'ore',t:'Ore e codici'},{v:'cantiere',t:'Cantiere'},{v:'committente',t:'Committente'}]}],{cosa:['ore','cantiere','committente']});
     if(!v) return;
     esegui('Copiate presenze da '+nomePersona(persona(v.da)),s=>{const src=(assicuraMesePersona(s,anno,mese,v.da)).giorni;for(const pid of v.a){if(pid===v.da)continue;const mp=assicuraMesePersona(s,anno,mese,pid);for(const g of Object.keys(src)){const c=Object.assign({},mp.giorni[g]||{});if(v.cosa.includes('ore')){delete c.ore;delete c.codice;if(src[g].ore!=null)c.ore=src[g].ore;if(src[g].codice)c.codice=src[g].codice}if(v.cosa.includes('cantiere')&&src[g].cantiere)c.cantiere=src[g].cantiere;if(v.cosa.includes('committente')&&src[g].committente)c.committente=src[g].committente;if(Object.keys(c).length)mp.giorni[g]=c}}});
-  } else if(scelta==='copiaMese'){
-    const prec=mesePrecedente(anno,mese);
-    const v=await dialogoModulo('Copia il mese precedente',[{nome:'persone',etichetta:'Persone',tipo:'chip',largo:true,obbligatorio:true,opzioni:opzPersone},{nome:'cosa',etichetta:'Cosa copiare',tipo:'chip',largo:true,opzioni:[{v:'cantiere',t:'Cantiere'},{v:'committente',t:'Committente'},{v:'ore',t:'Ore e codici'},{v:'trasferta',t:'Trasferte'}]}],{persone:persone.map(p=>p.id),cosa:['cantiere','committente']});
-    if(!v) return;
-    const mPrec=meseP(prec.anno,prec.mese);if(!mPrec)return avviso('Il mese precedente è vuoto');
-    esegui('Copiato '+fMeseAnno(prec.anno,prec.mese),s=>{for(const pid of v.persone){const src=(mPrec.persone[pid]||{}).giorni||{};const mp=assicuraMesePersona(s,anno,mese,pid);const lavPrec=giorniLavorativiMese(prec.anno,prec.mese,s.impostazioni.festivitaLocali);const lavCur=giorniLavorativiMese(anno,mese,s.impostazioni.festivitaLocali);
-      // allinea per posizione fra i giorni lavorativi (il 3° giorno lavorativo del mese scorso → il 3° di questo)
-      for(let i=0;i<lavCur.length;i++){const gS=lavPrec[i%lavPrec.length];const sc=src[String(gS)];if(!sc)continue;const c=Object.assign({},mp.giorni[String(lavCur[i])]||{});for(const kk of v.cosa){if(kk==='ore'){if(sc.ore!=null){c.ore=sc.ore;delete c.codice}if(sc.codice&&sc.codice!=='FS'){c.codice=sc.codice;delete c.ore}}else if(sc[kk])c[kk]=sc[kk]}if(Object.keys(c).length)mp.giorni[String(lavCur[i])]=c}
-      const fest=festivitaAnno(anno,s.impostazioni.festivitaLocali);for(let g=1;g<=giorniNelMese(anno,mese);g++){const iso=chiaveMese(anno,mese)+'-'+pad2(g);if(fest.has(iso)&&!eFineSettimana(anno,mese,g)&&v.cosa.includes('ore')){mp.giorni[String(g)]=Object.assign({},mp.giorni[String(g)]||{},{codice:'FS'});delete mp.giorni[String(g)].ore}}}});
-  } else if(scelta==='svuota'){
-    const v=await dialogoModulo('Svuota il mese',[{nome:'pid',etichetta:'Persona',tipo:'select',obbligatorio:true,opzioni:opzPersone}],{});
-    if(!v) return;if(!(await conferma('Cancellare tutte le celle di '+nomePersona(persona(v.pid))+' per '+fMeseAnno(anno,mese)+'?',{pericolo:true})))return;
-    esegui('Svuotato il mese di '+nomePersona(persona(v.pid)),s=>{const mp=assicuraMesePersona(s,anno,mese,v.pid);mp.giorni={};mp.incerti=[]});
   }
 };
 function riempiMese(anno,mese,pids,opz){
