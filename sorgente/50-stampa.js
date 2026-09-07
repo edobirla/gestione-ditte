@@ -188,6 +188,12 @@ function contestoDichiarazione(c,opz){
   const docCorso=(p,tipo)=>{const d=migliorDocumento(documentiPersona(p.id).filter(x=>x.tipoId===tipo),tipoDoc(tipo),oggi(),soglie());return d&&d.doc.dataEmissione?fData(d.doc.dataEmissione):null};
   const tabellaOperai=()=>'<table><thead><tr><th>Cognome e nome</th><th>Nato il</th><th>Codice fiscale</th><th>Mansione</th><th>Qualifiche</th></tr></thead><tbody>'+(operai.length?operai.map(p=>`<tr><td>${h(nomePersona(p))}</td><td>${p.dataNascita?h(fData(p.dataNascita)):'<span class="da-compilare">[DA COMPILARE]</span>'}</td><td>${p.cf?h(p.cf):'<span class="da-compilare">[DA COMPILARE]</span>'}</td><td>${h(p.mansione||'')}</td><td>${h((p.qualifiche||[]).map(q=>QUALIFICHE[q]||q).join(', '))}</td></tr>`).join(''):'<tr><td colspan="5"><span class="da-compilare">[DA COMPILARE: operai assegnati al cantiere]</span></td></tr>')+'</tbody></table>';
   const elencoOperai=()=>'<ul>'+(operai.length?operai.map(p=>`<li>${h(nomePersona(p))}${p.dataNascita?', nato il '+h(fData(p.dataNascita)):''}${p.cf?', C.F. '+h(p.cf):''} — ${h(p.mansione||'')}</li>`).join(''):'<li><span class="da-compilare">[DA COMPILARE: operai assegnati al cantiere]</span></li>')+'</ul>';
+  // Firma per accettazione di chi viene nominato: la sua firma se è stata caricata nella scheda,
+  // altrimenti la riga vuota di prima (mai una firma di qualcun altro al posto suo).
+  const accettazione=(persone,ruolo)=>{
+    if(!persone.length) return `<p>Per accettazione, ${h(ruolo)}: ______________________________</p>`;
+    return '<div class="gruppo">'+persone.map(x=>`<div class="firma-accettazione"><span class="chi">Per accettazione, ${h(ruolo)} ${h(nomePersona(x))}</span><span class="linea">${x.firmaImg?`<img src="${h(x.firmaImg)}" alt="">`:''}</span></div>`).join('')+'</div>';
+  };
   const elencoAddetti=(q)=>{const l=operai.filter(p=>(p.qualifiche||[]).includes(q));return '<ul>'+(l.length?l.map(p=>`<li>${h(nomePersona(p))}${p.cf?', C.F. '+h(p.cf):''}</li>`).join(''):`<li><span class="da-compilare">[DA COMPILARE: nessun operaio assegnato con qualifica ${h(QUALIFICHE[q])}]</span></li>`)+'</ul>'};
   const mappa={
     'azienda.ragioneSociale':a.ragioneSociale,'azienda.sede':sede,'azienda.piva':a.piva,'azienda.cf':a.cf,'azienda.pec':a.pec,'azienda.telefono':a.telefono,'azienda.inail':a.inail,'azienda.rea':a.rea,'azienda.email':a.email,
@@ -205,6 +211,9 @@ function contestoDichiarazione(c,opz){
     if(k==='cantiere.lavorazioniElenco') return {blocco:'<ol>'+(lavNomi.length?lavNomi.map(x=>'<li>'+h(x)+'</li>').join(''):'<li><span class="da-compilare">[DA COMPILARE: lavorazioni]</span></li>')+'</ol>'};
     if(k==='addettiAntincendio.elenco') return {blocco:elencoAddetti('antincendio')};
     if(k==='addettiPrimoSoccorso.elenco') return {blocco:elencoAddetti('primoSoccorso')};
+    if(k==='preposto.accettazione') return {blocco:accettazione(prep?[prep]:[],'il Preposto')};
+    if(k==='addettiAntincendio.accettazione') return {blocco:accettazione(operai.filter(x=>(x.qualifiche||[]).includes('antincendio')),'l\'Addetto')};
+    if(k==='addettiPrimoSoccorso.accettazione') return {blocco:accettazione(operai.filter(x=>(x.qualifiche||[]).includes('primoSoccorso')),'l\'Addetto')};
     if(k in mappa) return {testo:v(mappa[k],k)};
     return {testo:DC(k)};
   };

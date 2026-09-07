@@ -564,6 +564,10 @@ input[type=checkbox],input[type=radio]{width:18px;height:18px;accent-color:var(-
 .doc table.ore-mensili tr.g-festivo td{background:#FBF2CF}
 .doc table.ore-mensili tr.g-malattia td{background:#FBE4E4}
 .doc table.ore-mensili tr.g-assenza td{background:#ECECEC}
+.doc .firma-accettazione{display:flex;align-items:flex-end;gap:4mm;margin:6mm 0 0;page-break-inside:avoid}
+.doc .firma-accettazione .chi{white-space:nowrap}
+.doc .firma-accettazione .linea{flex:1;max-width:70mm;border-bottom:.6pt solid #111;height:16mm;position:relative}
+.doc .firma-accettazione .linea img{position:absolute;left:4mm;bottom:0;height:15mm;width:auto}
 .doc .nota-persona{background:#FBF2CF;padding:1.5mm 2mm;margin:1.5mm 0 0;border-left:1.5mm solid #B4471A}
 .doc .checklist td.si{color:#2A1FB8;font-weight:700} .doc .checklist td.no{color:#C8262A;font-weight:700}
 .doc .titolo-tabella{font-weight:700;margin:3mm 0 1mm}

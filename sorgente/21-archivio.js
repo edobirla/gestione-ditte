@@ -128,6 +128,38 @@ async function caricaImmagine(blob){
   if(window.createImageBitmap){ try{ return await createImageBitmap(blob); }catch(e){} }
   return new Promise((ok,ko)=>{const u=URL.createObjectURL(blob);const i=new Image();i.onload=()=>{URL.revokeObjectURL(u);ok(i)};i.onerror=()=>{URL.revokeObjectURL(u);ko(new Error('Immagine non leggibile'))};i.src=u});
 }
+// Firma da foto: toglie lo sfondo del foglio e lascia solo l'inchiostro su fondo trasparente.
+// Niente riconoscimento: è una soglia di luminosità, che è quello che serve per una firma a penna
+// su carta bianca. La soglia resta regolabile perché la carta vera non è mai bianca allo stesso
+// modo: foto in ombra, fogli giallini e scansioni chiare cadono su valori diversi.
+const SOGLIA_FIRMA=200;
+async function firmaSenzaSfondo(blob,soglia){
+  soglia=soglia==null?SOGLIA_FIRMA:+soglia;
+  const img=await caricaImmagine(blob);
+  const scala=Math.min(1,900/Math.max(img.width,img.height));
+  const w=Math.max(1,Math.round(img.width*scala)),hh=Math.max(1,Math.round(img.height*scala));
+  const c=document.createElement('canvas');c.width=w;c.height=hh;
+  const ctx=c.getContext('2d');ctx.drawImage(img,0,0,w,hh);
+  const dati=ctx.getImageData(0,0,w,hh);const px=dati.data;
+  let x0=w,y0=hh,x1=-1,y1=-1;
+  for(let i=0,p=0;i<px.length;i+=4,p++){
+    const l=0.299*px[i]+0.587*px[i+1]+0.114*px[i+2];
+    if(l>soglia){px[i+3]=0;continue}
+    // l'inchiostro si scurisce in proporzione a quanto è più scuro della soglia: i tratti leggeri restano leggeri
+    const k=Math.round(60*(l/soglia));
+    px[i]=k;px[i+1]=k;px[i+2]=k;px[i+3]=255;
+    const x=p%w,y=(p-x)/w;
+    if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y;
+  }
+  ctx.putImageData(dati,0,0);
+  if(x1<0) throw new Error('con questa soglia non resta niente: la firma è troppo chiara, alza la soglia');
+  // ritaglia attorno alla firma, così si posiziona sui documenti senza margini bianchi invisibili
+  const m=Math.round(Math.max(w,hh)*0.01);
+  const rx=Math.max(0,x0-m),ry=Math.max(0,y0-m),rw=Math.min(w,x1+m)-rx+1,rh=Math.min(hh,y1+m)-ry+1;
+  const out=document.createElement('canvas');out.width=rw;out.height=rh;
+  out.getContext('2d').drawImage(c,rx,ry,rw,rh,0,0,rw,rh);
+  return leggiComeDataUrl(await canvasABlob(out,'image/png'));
+}
 function eImmagine(mime,nome){return /^image\//.test(mime||'')||/\.(jpe?g|png|gif|webp|heic|heif|bmp)$/i.test(nome||'')}
 function ePdf(mime,nome){return mime==='application/pdf'||/\.pdf$/i.test(nome||'')}
 const SOGLIA_PDF_PESANTE=2*1024*1024;

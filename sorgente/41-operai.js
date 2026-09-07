@@ -159,9 +159,34 @@ function schedaAnagrafica(p){
     <div class="campo"><span class="etichetta-campo">Va in cantiere</span><div>${p.inCantiere!==false?'sì':'no'}</div></div>
     ${p.schemaOrario?html`<div class="campo largo"><span class="etichetta-campo">Schema orario personale</span><div>${['lun','mar','mer','gio','ven'].map(g=>g+' '+(p.schemaOrario[g]||0)).join(' · ')}</div></div>`:''}
   </div></div>
+  <div class="scheda"><h3>${icona('firma')}Firma <span class="azioni"><button class="pulsante piccolo" data-azione="persona-firma" data-id="${p.id}">${icona('fotocamera','piccola')}${p.firmaImg?'Sostituisci':'Carica da una foto'}</button>${p.firmaImg?html`<button class="pulsante piccolo pericolo" data-azione="persona-firma-togli" data-id="${p.id}">${icona('elimina','piccola')}Togli</button>`:''}</span></h3>
+    ${p.firmaImg?html`<div class="riquadro-firma"><img src="${p.firmaImg}" alt="Firma di ${nomePersona(p)}"></div>`:html`<p class="secondario piccolo">Nessuna firma. Fotografa la firma su un foglio bianco: l'app toglie lo sfondo e la usa nelle nomine che questa persona deve firmare per accettazione.</p>`}</div>
   ${p.note?html`<div class="scheda"><h3>${icona('info')}Note</h3><p>${p.note}</p></div>`:''}
   </div>`;
 }
+// Firma da foto: si sceglie la soglia guardando l'anteprima, perché la carta fotografata non è mai
+// bianca allo stesso modo (ombra, foglio giallino, scansione chiara).
+AZIONI['persona-firma-togli']=async d=>{const p=persona(d.id);if(!(await conferma('Togliere la firma di '+nomePersona(p)+'?',{pericolo:true})))return;esegui('Tolta la firma di '+nomePersona(p),s=>{s.persone.find(x=>x.id===d.id).firmaImg=null})};
+AZIONI['persona-firma']=async d=>{
+  const p=persona(d.id);
+  const fs=await scegliFile({multipli:false,accetta:'image/*'});
+  if(!fs.length) return;
+  let soglia=SOGLIA_FIRMA,ultima=null;
+  const ris=await dialogo({titolo:'Firma di '+nomePersona(p),largo:true,
+    corpo:html`<p class="piccolo secondario">Lo sfondo del foglio diventa trasparente: resta solo il tratto della penna. Se sparisce troppo alza la soglia, se resta il grigio del foglio abbassala.</p>
+      <div class="campo"><span class="etichetta-campo">Soglia dello sfondo</span><input type="range" id="fr-soglia" min="120" max="245" value="${SOGLIA_FIRMA}"> <span id="fr-val">${SOGLIA_FIRMA}</span></div>
+      <div class="riquadro-firma mt" style="min-height:120px"><img id="fr-ant" alt="Anteprima della firma"></div>
+      <p class="piccolo da-compilare" id="fr-errore"></p>`,
+    pulsanti:[{testo:'Annulla',valore:null},{testo:'Salva la firma',classe:'primario',primario:true,fn:()=>ultima}],
+    alMontaggio:v=>{
+      const sl=v.querySelector('#fr-soglia'),val=v.querySelector('#fr-val'),ant=v.querySelector('#fr-ant'),err=v.querySelector('#fr-errore');
+      const aggiorna=async()=>{val.textContent=sl.value;try{ultima=await firmaSenzaSfondo(fs[0],+sl.value);ant.src=ultima;err.textContent=''}catch(e){ultima=null;ant.removeAttribute('src');err.textContent=e.message}};
+      sl.addEventListener('input',debounce(aggiorna,120));
+      aggiorna();
+    }});
+  if(!ris) return;
+  esegui('Firma di '+nomePersona(p),s=>{s.persone.find(x=>x.id===d.id).firmaImg=ris});
+};
 function schedaBustePersona(p){
   const buste=stato.bustePaga.filter(b=>b.personaId===p.id);
   const anni=unici([...buste.map(b=>b.anno),new Date().getFullYear()]).sort((a,b)=>b-a);

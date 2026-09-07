@@ -4,7 +4,7 @@
 // (in coda, con ritardo per accorpare) e registra un'istantanea per annulla.
 // I documenti (blob) NON stanno qui: vedi ARCHIVIO. Qui solo i metadati.
 // ---------------------------------------------------------------------
-const VERSIONE_SCHEMA=4;
+const VERSIONE_SCHEMA=5;
 const NOME_DB='GestionalePavimass';
 let db=null;
 let stato=null;
@@ -148,6 +148,14 @@ const migrazioni={
   4:s=>{ // dati bancari e condizioni per il preventivo: presi dal preventivo vero dell'azienda, mai inventati
     const a=s.azienda||(s.azienda={});const base=datiIniziali().azienda;
     for(const k of ['banca','iban','condizioniPagamento','notePreventivo']) if(!a[k]) a[k]=base[k];
+    return s;
+  },
+  5:s=>{ // la firma per accettazione di chi viene nominato: sostituisce solo la riga di puntini, il
+        // resto del modello (anche se l'utente lo ha cambiato) non si tocca
+    const righe={nomina_preposto_cantiere:['Per accettazione, il Preposto: ______________________________','{{preposto.accettazione}}'],
+      nomina_antincendio_cantiere:['Per accettazione: ______________________________','{{addettiAntincendio.accettazione}}'],
+      nomina_primo_soccorso_cantiere:['Per accettazione: ______________________________','{{addettiPrimoSoccorso.accettazione}}']};
+    for(const m of ((s.modelli||{}).dichiarazioni||[])){const r=righe[m.id];if(r&&m.testo&&m.testo.includes(r[0]))m.testo=m.testo.replace(r[0],r[1])}
     return s;
   },
 };

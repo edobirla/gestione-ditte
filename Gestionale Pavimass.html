@@ -620,6 +620,10 @@ input[type=checkbox],input[type=radio]{width:18px;height:18px;accent-color:var(-
 .doc table.ore-mensili tr.g-festivo td{background:#FBF2CF}
 .doc table.ore-mensili tr.g-malattia td{background:#FBE4E4}
 .doc table.ore-mensili tr.g-assenza td{background:#ECECEC}
+.doc .firma-accettazione{display:flex;align-items:flex-end;gap:4mm;margin:6mm 0 0;page-break-inside:avoid}
+.doc .firma-accettazione .chi{white-space:nowrap}
+.doc .firma-accettazione .linea{flex:1;max-width:70mm;border-bottom:.6pt solid #111;height:16mm;position:relative}
+.doc .firma-accettazione .linea img{position:absolute;left:4mm;bottom:0;height:15mm;width:auto}
 .doc .nota-persona{background:#FBF2CF;padding:1.5mm 2mm;margin:1.5mm 0 0;border-left:1.5mm solid #B4471A}
 .doc .checklist td.si{color:#2A1FB8;font-weight:700} .doc .checklist td.no{color:#C8262A;font-weight:700}
 .doc .titolo-tabella{font-weight:700;margin:3mm 0 1mm}
@@ -1220,7 +1224,7 @@ function autoverifica(){
 // (in coda, con ritardo per accorpare) e registra un'istantanea per annulla.
 // I documenti (blob) NON stanno qui: vedi ARCHIVIO. Qui solo i metadati.
 // ---------------------------------------------------------------------
-const VERSIONE_SCHEMA=4;
+const VERSIONE_SCHEMA=5;
 const NOME_DB='GestionalePavimass';
 let db=null;
 let stato=null;
@@ -1364,6 +1368,14 @@ const migrazioni={
   4:s=>{ // dati bancari e condizioni per il preventivo: presi dal preventivo vero dell'azienda, mai inventati
     const a=s.azienda||(s.azienda={});const base=datiIniziali().azienda;
     for(const k of ['banca','iban','condizioniPagamento','notePreventivo']) if(!a[k]) a[k]=base[k];
+    return s;
+  },
+  5:s=>{ // la firma per accettazione di chi viene nominato: sostituisce solo la riga di puntini, il
+        // resto del modello (anche se l'utente lo ha cambiato) non si tocca
+    const righe={nomina_preposto_cantiere:['Per accettazione, il Preposto: ______________________________','{{preposto.accettazione}}'],
+      nomina_antincendio_cantiere:['Per accettazione: ______________________________','{{addettiAntincendio.accettazione}}'],
+      nomina_primo_soccorso_cantiere:['Per accettazione: ______________________________','{{addettiPrimoSoccorso.accettazione}}']};
+    for(const m of ((s.modelli||{}).dichiarazioni||[])){const r=righe[m.id];if(r&&m.testo&&m.testo.includes(r[0]))m.testo=m.testo.replace(r[0],r[1])}
     return s;
   },
 };
@@ -1563,6 +1575,38 @@ function canvasABlob(canvas,tipo,q){return new Promise((ok,ko)=>{if(canvas.toBlo
 async function caricaImmagine(blob){
   if(window.createImageBitmap){ try{ return await createImageBitmap(blob); }catch(e){} }
   return new Promise((ok,ko)=>{const u=URL.createObjectURL(blob);const i=new Image();i.onload=()=>{URL.revokeObjectURL(u);ok(i)};i.onerror=()=>{URL.revokeObjectURL(u);ko(new Error('Immagine non leggibile'))};i.src=u});
+}
+// Firma da foto: toglie lo sfondo del foglio e lascia solo l'inchiostro su fondo trasparente.
+// Niente riconoscimento: è una soglia di luminosità, che è quello che serve per una firma a penna
+// su carta bianca. La soglia resta regolabile perché la carta vera non è mai bianca allo stesso
+// modo: foto in ombra, fogli giallini e scansioni chiare cadono su valori diversi.
+const SOGLIA_FIRMA=200;
+async function firmaSenzaSfondo(blob,soglia){
+  soglia=soglia==null?SOGLIA_FIRMA:+soglia;
+  const img=await caricaImmagine(blob);
+  const scala=Math.min(1,900/Math.max(img.width,img.height));
+  const w=Math.max(1,Math.round(img.width*scala)),hh=Math.max(1,Math.round(img.height*scala));
+  const c=document.createElement('canvas');c.width=w;c.height=hh;
+  const ctx=c.getContext('2d');ctx.drawImage(img,0,0,w,hh);
+  const dati=ctx.getImageData(0,0,w,hh);const px=dati.data;
+  let x0=w,y0=hh,x1=-1,y1=-1;
+  for(let i=0,p=0;i<px.length;i+=4,p++){
+    const l=0.299*px[i]+0.587*px[i+1]+0.114*px[i+2];
+    if(l>soglia){px[i+3]=0;continue}
+    // l'inchiostro si scurisce in proporzione a quanto è più scuro della soglia: i tratti leggeri restano leggeri
+    const k=Math.round(60*(l/soglia));
+    px[i]=k;px[i+1]=k;px[i+2]=k;px[i+3]=255;
+    const x=p%w,y=(p-x)/w;
+    if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y;
+  }
+  ctx.putImageData(dati,0,0);
+  if(x1<0) throw new Error('con questa soglia non resta niente: la firma è troppo chiara, alza la soglia');
+  // ritaglia attorno alla firma, così si posiziona sui documenti senza margini bianchi invisibili
+  const m=Math.round(Math.max(w,hh)*0.01);
+  const rx=Math.max(0,x0-m),ry=Math.max(0,y0-m),rw=Math.min(w,x1+m)-rx+1,rh=Math.min(hh,y1+m)-ry+1;
+  const out=document.createElement('canvas');out.width=rw;out.height=rh;
+  out.getContext('2d').drawImage(c,rx,ry,rw,rh,0,0,rw,rh);
+  return leggiComeDataUrl(await canvasABlob(out,'image/png'));
 }
 function eImmagine(mime,nome){return /^image\//.test(mime||'')||/\.(jpe?g|png|gif|webp|heic|heif|bmp)$/i.test(nome||'')}
 function ePdf(mime,nome){return mime==='application/pdf'||/\.pdf$/i.test(nome||'')}
@@ -2707,9 +2751,34 @@ function schedaAnagrafica(p){
     <div class="campo"><span class="etichetta-campo">Va in cantiere</span><div>${p.inCantiere!==false?'sì':'no'}</div></div>
     ${p.schemaOrario?html`<div class="campo largo"><span class="etichetta-campo">Schema orario personale</span><div>${['lun','mar','mer','gio','ven'].map(g=>g+' '+(p.schemaOrario[g]||0)).join(' · ')}</div></div>`:''}
   </div></div>
+  <div class="scheda"><h3>${icona('firma')}Firma <span class="azioni"><button class="pulsante piccolo" data-azione="persona-firma" data-id="${p.id}">${icona('fotocamera','piccola')}${p.firmaImg?'Sostituisci':'Carica da una foto'}</button>${p.firmaImg?html`<button class="pulsante piccolo pericolo" data-azione="persona-firma-togli" data-id="${p.id}">${icona('elimina','piccola')}Togli</button>`:''}</span></h3>
+    ${p.firmaImg?html`<div class="riquadro-firma"><img src="${p.firmaImg}" alt="Firma di ${nomePersona(p)}"></div>`:html`<p class="secondario piccolo">Nessuna firma. Fotografa la firma su un foglio bianco: l'app toglie lo sfondo e la usa nelle nomine che questa persona deve firmare per accettazione.</p>`}</div>
   ${p.note?html`<div class="scheda"><h3>${icona('info')}Note</h3><p>${p.note}</p></div>`:''}
   </div>`;
 }
+// Firma da foto: si sceglie la soglia guardando l'anteprima, perché la carta fotografata non è mai
+// bianca allo stesso modo (ombra, foglio giallino, scansione chiara).
+AZIONI['persona-firma-togli']=async d=>{const p=persona(d.id);if(!(await conferma('Togliere la firma di '+nomePersona(p)+'?',{pericolo:true})))return;esegui('Tolta la firma di '+nomePersona(p),s=>{s.persone.find(x=>x.id===d.id).firmaImg=null})};
+AZIONI['persona-firma']=async d=>{
+  const p=persona(d.id);
+  const fs=await scegliFile({multipli:false,accetta:'image/*'});
+  if(!fs.length) return;
+  let soglia=SOGLIA_FIRMA,ultima=null;
+  const ris=await dialogo({titolo:'Firma di '+nomePersona(p),largo:true,
+    corpo:html`<p class="piccolo secondario">Lo sfondo del foglio diventa trasparente: resta solo il tratto della penna. Se sparisce troppo alza la soglia, se resta il grigio del foglio abbassala.</p>
+      <div class="campo"><span class="etichetta-campo">Soglia dello sfondo</span><input type="range" id="fr-soglia" min="120" max="245" value="${SOGLIA_FIRMA}"> <span id="fr-val">${SOGLIA_FIRMA}</span></div>
+      <div class="riquadro-firma mt" style="min-height:120px"><img id="fr-ant" alt="Anteprima della firma"></div>
+      <p class="piccolo da-compilare" id="fr-errore"></p>`,
+    pulsanti:[{testo:'Annulla',valore:null},{testo:'Salva la firma',classe:'primario',primario:true,fn:()=>ultima}],
+    alMontaggio:v=>{
+      const sl=v.querySelector('#fr-soglia'),val=v.querySelector('#fr-val'),ant=v.querySelector('#fr-ant'),err=v.querySelector('#fr-errore');
+      const aggiorna=async()=>{val.textContent=sl.value;try{ultima=await firmaSenzaSfondo(fs[0],+sl.value);ant.src=ultima;err.textContent=''}catch(e){ultima=null;ant.removeAttribute('src');err.textContent=e.message}};
+      sl.addEventListener('input',debounce(aggiorna,120));
+      aggiorna();
+    }});
+  if(!ris) return;
+  esegui('Firma di '+nomePersona(p),s=>{s.persone.find(x=>x.id===d.id).firmaImg=ris});
+};
 function schedaBustePersona(p){
   const buste=stato.bustePaga.filter(b=>b.personaId===p.id);
   const anni=unici([...buste.map(b=>b.anno),new Date().getFullYear()]).sort((a,b)=>b-a);
@@ -4842,6 +4911,12 @@ function contestoDichiarazione(c,opz){
   const docCorso=(p,tipo)=>{const d=migliorDocumento(documentiPersona(p.id).filter(x=>x.tipoId===tipo),tipoDoc(tipo),oggi(),soglie());return d&&d.doc.dataEmissione?fData(d.doc.dataEmissione):null};
   const tabellaOperai=()=>'<table><thead><tr><th>Cognome e nome</th><th>Nato il</th><th>Codice fiscale</th><th>Mansione</th><th>Qualifiche</th></tr></thead><tbody>'+(operai.length?operai.map(p=>`<tr><td>${h(nomePersona(p))}</td><td>${p.dataNascita?h(fData(p.dataNascita)):'<span class="da-compilare">[DA COMPILARE]</span>'}</td><td>${p.cf?h(p.cf):'<span class="da-compilare">[DA COMPILARE]</span>'}</td><td>${h(p.mansione||'')}</td><td>${h((p.qualifiche||[]).map(q=>QUALIFICHE[q]||q).join(', '))}</td></tr>`).join(''):'<tr><td colspan="5"><span class="da-compilare">[DA COMPILARE: operai assegnati al cantiere]</span></td></tr>')+'</tbody></table>';
   const elencoOperai=()=>'<ul>'+(operai.length?operai.map(p=>`<li>${h(nomePersona(p))}${p.dataNascita?', nato il '+h(fData(p.dataNascita)):''}${p.cf?', C.F. '+h(p.cf):''} — ${h(p.mansione||'')}</li>`).join(''):'<li><span class="da-compilare">[DA COMPILARE: operai assegnati al cantiere]</span></li>')+'</ul>';
+  // Firma per accettazione di chi viene nominato: la sua firma se è stata caricata nella scheda,
+  // altrimenti la riga vuota di prima (mai una firma di qualcun altro al posto suo).
+  const accettazione=(persone,ruolo)=>{
+    if(!persone.length) return `<p>Per accettazione, ${h(ruolo)}: ______________________________</p>`;
+    return '<div class="gruppo">'+persone.map(x=>`<div class="firma-accettazione"><span class="chi">Per accettazione, ${h(ruolo)} ${h(nomePersona(x))}</span><span class="linea">${x.firmaImg?`<img src="${h(x.firmaImg)}" alt="">`:''}</span></div>`).join('')+'</div>';
+  };
   const elencoAddetti=(q)=>{const l=operai.filter(p=>(p.qualifiche||[]).includes(q));return '<ul>'+(l.length?l.map(p=>`<li>${h(nomePersona(p))}${p.cf?', C.F. '+h(p.cf):''}</li>`).join(''):`<li><span class="da-compilare">[DA COMPILARE: nessun operaio assegnato con qualifica ${h(QUALIFICHE[q])}]</span></li>`)+'</ul>'};
   const mappa={
     'azienda.ragioneSociale':a.ragioneSociale,'azienda.sede':sede,'azienda.piva':a.piva,'azienda.cf':a.cf,'azienda.pec':a.pec,'azienda.telefono':a.telefono,'azienda.inail':a.inail,'azienda.rea':a.rea,'azienda.email':a.email,
@@ -4859,6 +4934,9 @@ function contestoDichiarazione(c,opz){
     if(k==='cantiere.lavorazioniElenco') return {blocco:'<ol>'+(lavNomi.length?lavNomi.map(x=>'<li>'+h(x)+'</li>').join(''):'<li><span class="da-compilare">[DA COMPILARE: lavorazioni]</span></li>')+'</ol>'};
     if(k==='addettiAntincendio.elenco') return {blocco:elencoAddetti('antincendio')};
     if(k==='addettiPrimoSoccorso.elenco') return {blocco:elencoAddetti('primoSoccorso')};
+    if(k==='preposto.accettazione') return {blocco:accettazione(prep?[prep]:[],'il Preposto')};
+    if(k==='addettiAntincendio.accettazione') return {blocco:accettazione(operai.filter(x=>(x.qualifiche||[]).includes('antincendio')),'l\'Addetto')};
+    if(k==='addettiPrimoSoccorso.accettazione') return {blocco:accettazione(operai.filter(x=>(x.qualifiche||[]).includes('primoSoccorso')),'l\'Addetto')};
     if(k in mappa) return {testo:v(mappa[k],k)};
     return {testo:DC(k)};
   };
@@ -5769,7 +5847,7 @@ function datiIniziali(soloStruttura){
     return s;
   }
   // ---- persone ----
-  const P=(o)=>Object.assign({id:null,cognome:'',nome:'',tipo:'dipendente',mansione:'',cf:null,dataNascita:null,luogoNascita:null,nazionalita:null,residenza:null,telefono:null,email:null,dataAssunzione:null,dataCessazione:null,attivo:true,qualifiche:[],retribuzione:{tipo:'oraria',tariffaOraria:null,importoFisso:null},schemaOrario:null,inLibroPresenze:true,sezionePresenze:'dipendenti',soloTrasferte:false,inCantiere:true,fotoId:null,firmaId:null,firmaIncorporata:null,note:''},o);
+  const P=(o)=>Object.assign({id:null,cognome:'',nome:'',tipo:'dipendente',mansione:'',cf:null,dataNascita:null,luogoNascita:null,nazionalita:null,residenza:null,telefono:null,email:null,dataAssunzione:null,dataCessazione:null,attivo:true,qualifiche:[],retribuzione:{tipo:'oraria',tariffaOraria:null,importoFisso:null},schemaOrario:null,inLibroPresenze:true,sezionePresenze:'dipendenti',soloTrasferte:false,inCantiere:true,fotoId:null,firmaId:null,firmaImg:null,firmaIncorporata:null,note:''},o);
   s.persone=[
     P({id:'p_ovidiu',cognome:'Birla',nome:'Costel Ovidiu',tipo:'legale_rappresentante',mansione:'Legale Rappresentante',cf:'BRLCTL76L04Z129C',dataNascita:'1976-07-04',luogoNascita:'Romania',nazionalita:'Romania',residenza:'Loc. Marcena 32/B, 52100 Arezzo (AR)',qualifiche:['rspp','datoreLavoro'],retribuzione:{tipo:'fissa',tariffaOraria:null,importoFisso:5000},sezionePresenze:'soci',soloTrasferte:true,firmaIncorporata:'firmaLegale',note:'Socio e Legale Rappresentante, RSPP e datore di lavoro. Nel libro presenze si compila solo la riga trasferte (località toscane, mai Subbiano).'}),
     P({id:'p_edvalt',cognome:'Gostima',nome:'Edvalt',tipo:'dipendente',mansione:'Piastrellista',cf:'GSTDLT83T17Z100X',dataNascita:'1983-12-17',luogoNascita:'Albania',nazionalita:'Albania',qualifiche:['rls','preposto','antincendio','primoSoccorso'],retribuzione:{tipo:'oraria',tariffaOraria:17,importoFisso:null},firmaIncorporata:'firmaRls',note:'Unico preposto qualificato dell\'azienda. RLS eletto il 07/10/2024.'}),
@@ -6138,7 +6216,7 @@ Il preposto ha frequentato il corso di formazione previsto dall'art. 37 del D.Lg
 
 {{luogoData}}
 
-Per accettazione, il Preposto: ______________________________`},
+{{preposto.accettazione}}`},
   {id:'nomina_antincendio_cantiere',nome:'Nomina Addetto antincendio di cantiere',cartaIntestata:true,firma:true,timbro:true,firmatario:'Il Datore di Lavoro',testo:
 `# NOMINA DELL'ADDETTO ALLA PREVENZIONE INCENDI, LOTTA ANTINCENDIO E GESTIONE DELLE EMERGENZE
 ## (artt. 18, 43 e 46 del D.Lgs. 81/2008 — D.M. 2 settembre 2021)
@@ -6153,7 +6231,7 @@ addetti alla prevenzione incendi, lotta antincendio e gestione delle emergenze p
 
 {{luogoData}}
 
-Per accettazione: ______________________________`},
+{{addettiAntincendio.accettazione}}`},
   {id:'nomina_primo_soccorso_cantiere',nome:'Nomina Addetto primo soccorso di cantiere',cartaIntestata:true,firma:true,timbro:true,firmatario:'Il Datore di Lavoro',testo:
 `# NOMINA DELL'ADDETTO AL PRIMO SOCCORSO
 ## (artt. 18 e 45 del D.Lgs. 81/2008 — D.M. 15 luglio 2003, n. 388)
@@ -6168,7 +6246,7 @@ addetti al primo soccorso per il cantiere {{cantiere.nome}}, {{cantiere.indirizz
 
 {{luogoData}}
 
-Per accettazione: ______________________________`},
+{{addettiPrimoSoccorso.accettazione}}`},
   {id:'regolarita_fiscale',nome:'Dichiarazione sostitutiva regolarità fiscale (subappalto)',cartaIntestata:false,firma:true,timbro:true,firmatario:'Firma',testo:
 `# Dichiarazione sostitutiva in merito alla regolarità fiscale
 ## ai sensi dell'art. 46, c. 1, lettera p del D.P.R. 28 dicembre 2000 n. 445 e art. 4 comma 14-bis Legge 12 luglio 2011 n. 106

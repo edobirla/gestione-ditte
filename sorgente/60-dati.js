@@ -38,7 +38,7 @@ function datiIniziali(soloStruttura){
     return s;
   }
   // ---- persone ----
-  const P=(o)=>Object.assign({id:null,cognome:'',nome:'',tipo:'dipendente',mansione:'',cf:null,dataNascita:null,luogoNascita:null,nazionalita:null,residenza:null,telefono:null,email:null,dataAssunzione:null,dataCessazione:null,attivo:true,qualifiche:[],retribuzione:{tipo:'oraria',tariffaOraria:null,importoFisso:null},schemaOrario:null,inLibroPresenze:true,sezionePresenze:'dipendenti',soloTrasferte:false,inCantiere:true,fotoId:null,firmaId:null,firmaIncorporata:null,note:''},o);
+  const P=(o)=>Object.assign({id:null,cognome:'',nome:'',tipo:'dipendente',mansione:'',cf:null,dataNascita:null,luogoNascita:null,nazionalita:null,residenza:null,telefono:null,email:null,dataAssunzione:null,dataCessazione:null,attivo:true,qualifiche:[],retribuzione:{tipo:'oraria',tariffaOraria:null,importoFisso:null},schemaOrario:null,inLibroPresenze:true,sezionePresenze:'dipendenti',soloTrasferte:false,inCantiere:true,fotoId:null,firmaId:null,firmaImg:null,firmaIncorporata:null,note:''},o);
   s.persone=[
     P({id:'p_ovidiu',cognome:'Birla',nome:'Costel Ovidiu',tipo:'legale_rappresentante',mansione:'Legale Rappresentante',cf:'BRLCTL76L04Z129C',dataNascita:'1976-07-04',luogoNascita:'Romania',nazionalita:'Romania',residenza:'Loc. Marcena 32/B, 52100 Arezzo (AR)',qualifiche:['rspp','datoreLavoro'],retribuzione:{tipo:'fissa',tariffaOraria:null,importoFisso:5000},sezionePresenze:'soci',soloTrasferte:true,firmaIncorporata:'firmaLegale',note:'Socio e Legale Rappresentante, RSPP e datore di lavoro. Nel libro presenze si compila solo la riga trasferte (località toscane, mai Subbiano).'}),
     P({id:'p_edvalt',cognome:'Gostima',nome:'Edvalt',tipo:'dipendente',mansione:'Piastrellista',cf:'GSTDLT83T17Z100X',dataNascita:'1983-12-17',luogoNascita:'Albania',nazionalita:'Albania',qualifiche:['rls','preposto','antincendio','primoSoccorso'],retribuzione:{tipo:'oraria',tariffaOraria:17,importoFisso:null},firmaIncorporata:'firmaRls',note:'Unico preposto qualificato dell\'azienda. RLS eletto il 07/10/2024.'}),
@@ -407,7 +407,7 @@ Il preposto ha frequentato il corso di formazione previsto dall'art. 37 del D.Lg
 
 {{luogoData}}
 
-Per accettazione, il Preposto: ______________________________`},
+{{preposto.accettazione}}`},
   {id:'nomina_antincendio_cantiere',nome:'Nomina Addetto antincendio di cantiere',cartaIntestata:true,firma:true,timbro:true,firmatario:'Il Datore di Lavoro',testo:
 `# NOMINA DELL'ADDETTO ALLA PREVENZIONE INCENDI, LOTTA ANTINCENDIO E GESTIONE DELLE EMERGENZE
 ## (artt. 18, 43 e 46 del D.Lgs. 81/2008 — D.M. 2 settembre 2021)
@@ -422,7 +422,7 @@ addetti alla prevenzione incendi, lotta antincendio e gestione delle emergenze p
 
 {{luogoData}}
 
-Per accettazione: ______________________________`},
+{{addettiAntincendio.accettazione}}`},
   {id:'nomina_primo_soccorso_cantiere',nome:'Nomina Addetto primo soccorso di cantiere',cartaIntestata:true,firma:true,timbro:true,firmatario:'Il Datore di Lavoro',testo:
 `# NOMINA DELL'ADDETTO AL PRIMO SOCCORSO
 ## (artt. 18 e 45 del D.Lgs. 81/2008 — D.M. 15 luglio 2003, n. 388)
@@ -437,7 +437,7 @@ addetti al primo soccorso per il cantiere {{cantiere.nome}}, {{cantiere.indirizz
 
 {{luogoData}}
 
-Per accettazione: ______________________________`},
+{{addettiPrimoSoccorso.accettazione}}`},
   {id:'regolarita_fiscale',nome:'Dichiarazione sostitutiva regolarità fiscale (subappalto)',cartaIntestata:false,firma:true,timbro:true,firmatario:'Firma',testo:
 `# Dichiarazione sostitutiva in merito alla regolarità fiscale
 ## ai sensi dell'art. 46, c. 1, lettera p del D.P.R. 28 dicembre 2000 n. 445 e art. 4 comma 14-bis Legge 12 luglio 2011 n. 106
