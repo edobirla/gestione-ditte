@@ -132,7 +132,7 @@ function schedaDocumentiPersona(p,idn){
     {chiave:'emissione',titolo:'Emissione',valore:r=>r.d.dataEmissione||'',formatta:r=>r.d.dataEmissione?fData(r.d.dataEmissione):html`<span class="silenzioso">—</span>`},
     {chiave:'scadenza',titolo:'Scadenza',valore:r=>r.info.data||'',formatta:r=>r.info.data?html`<span class="${r.info.stimata?'stimata':''}" title="${r.info.stimata?'Stimata dalla validità tipica':''}">${fData(r.info.data)}${r.info.stimata?' ~':''}</span>`:r.d.senzaScadenza?html`<span class="silenzioso">nessuna</span>`:daCompilare('data?')},
     {chiave:'stato',titolo:'Stato',valore:r=>ord.indexOf(r.info.stato),formatta:r=>pillolaDocumento(r.info)},
-    {chiave:'file',titolo:'File',valore:r=>(r.d.file||[]).length,formatta:r=>html`${(r.d.file||[]).map(f=>{const m=fileMeta(f);return m?html`<span class="etichetta-tag" title="${m.nome}">${icona(ePdf(m.mime,m.nome)?'pdf':'immagine','piccola')} ${fPeso(m.dimensione)}</span> `:''})}${r.d.verificato?html`<span class="pillola valido piccolo" title="Verificato">${icona('spunta','piccola')}</span>`:''}`},
+    {chiave:'file',titolo:'File',valore:r=>(r.d.file||[]).length,formatta:r=>html`${(r.d.file||[]).map(f=>{const m=fileMeta(f);return m?html`<span class="etichetta-tag" title="${m.nome}">${icona(ePdf(m.mime,m.nome)?'pdf':'immagine','piccola')} ${fPeso(m.dimensione)}</span> `:''})}`},
   ],vuoto:vuoto({icona:'documenti',titolo:'Nessun documento',testo:'Trascina qui le scansioni o aggiungi il primo documento.',azione:{testo:'Aggiungi documento',azione:'documento-nuovo',dati:{'soggetto-tipo':'persona','soggetto-id':p.id}}})})}`;
 }
 function schedaAnagrafica(p){

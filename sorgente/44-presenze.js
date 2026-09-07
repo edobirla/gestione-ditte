@@ -40,7 +40,7 @@ VISTE.presenze=function(r){
   const sezioni=[['soci','Soci'],['dipendenti','Dipendenti']];
   dopoRender(montaGriglia);
   return html`<div class="testata"><div class="riga stretta"><a class="pulsante icona" href="#/presenze/${chiaveMese(prev.anno,prev.mese)}" aria-label="Mese precedente">${icona('sinistra')}</a><h1 style="min-width:220px;text-align:center">${fMeseAnno(anno,mese)}</h1><a class="pulsante icona" href="#/presenze/${chiaveMese(succ.anno,succ.mese)}" aria-label="Mese successivo">${icona('destra')}</a><a class="pulsante piccolo discreto" href="#/presenze">Oggi</a></div>
-    <div class="azioni"><button class="pulsante" data-azione="presenze-strumenti" data-k="${k}">${icona('magia')}Strumenti</button><button class="pulsante" data-azione="presenze-uscite" data-k="${k}">${icona('scarica')}Uscite</button><button class="pulsante icona" data-azione="presenze-aiuto" title="Tasti e regole">${icona('info')}</button></div></div>
+    <div class="azioni"><button class="pulsante" data-azione="presenze-strumenti" data-k="${k}">${icona('magia')}Strumenti</button><button class="pulsante" data-azione="presenze-trascrizione" data-k="${k}">${icona('tastiera')}Compila un operaio</button><button class="pulsante" data-azione="presenze-uscite" data-k="${k}">${icona('scarica')}Uscite</button><button class="pulsante icona" data-azione="presenze-aiuto" title="Tasti e regole">${icona('info')}</button></div></div>
   <div class="griglia quattro mb"><div class="indicatore" style="cursor:default"><span class="etichetta">Ore in griglia</span><span class="valore md">${fOre(rie.oreTotali)}</span></div><div class="indicatore" style="cursor:default"><span class="etichetta">Importo del mese</span><span class="valore md">${fEuro(rie.importoTotale,0)}</span></div><div class="indicatore ${rie.giorniDaCompilare?'attenzione':''}" style="cursor:default"><span class="etichetta">Giorni-persona da compilare</span><span class="valore md">${rie.giorniDaCompilare}</span></div><div class="indicatore" style="cursor:default"><span class="etichetta">Giorni lavorativi</span><span class="valore md">${giorniLavorativiMese(anno,mese,stato.impostazioni.festivitaLocali).length}</span><span class="nota">${giorni.filter(x=>x.festivo&&!x.we).map(x=>'FS '+x.g).join(', ')||'nessuna festività feriale'}</span></div></div>
   ${avvisi.length?html`<div class="avviso-inline attenzione">${icona('attenzione')}<div class="corpo">${avvisi.map(a=>html`${a}<br>`)}</div></div>`:''}
   <div class="strumenti-tabella"><label class="spunta piccolo"><input type="checkbox" data-cambio="presenze-compatta" ${compatta?'checked':''}> Nascondi righe cantiere e committente</label><span class="conteggio">Frecce per muoversi · digita per inserire · ⇧+frecce seleziona · Canc svuota</span></div>
@@ -276,6 +276,55 @@ AZIONI['presenze-persona']=async d=>{
   const aggiustamenti=(v.aggiustamentiTesto||'').split('\n').map(x=>x.trim()).filter(Boolean).map(x=>{const m=/^(.*?)\s*([+-]?\s*[\d.,]+)\s*€?$/.exec(x);if(!m)return {sigla:x,importo:0};return {sigla:m[1].trim()||'agg',importo:leggiNumero(m[2].replace(/\s/g,''))||0}});
   esegui('Riepilogo '+nomePersona(p)+' '+fMeseAnno(anno,mese),s=>{const x=assicuraMesePersona(s,anno,mese,p.id);x.aggiustamenti=aggiustamenti;x.importoForzato=!!v.importoForzato;x.importoManuale=v.importoForzato?v.importoManuale:null;x.note=v.note});
 };
+// ---- compilazione operaio per operaio (tutto il mese da tastiera) ----
+AZIONI['presenze-trascrizione']=async d=>{
+  const {anno,mese}=daChiaveMese(d.k);const persone=personePresenze(anno,mese).filter(p=>!p.soloTrasferte);
+  if(!persone.length) return avviso('Nessuna persona da compilare in questo mese',{tipo:'attenzione'});
+  const scelta=await dialogoModulo('Compila un operaio',[{nome:'pid',etichetta:'Operaio',tipo:'select',obbligatorio:true,opzioni:persone.map(p=>({v:p.id,t:nomePersona(p)}))}],{pid:ui.filtri.ultimaTrascrizione||persone[0].id},{ok:'Apri il mese',intro:html`<p class="piccolo secondario">Tutto il mese di una persona in un'unica tabella, da riempire con la tastiera senza mai staccare le mani.</p>`});
+  if(!scelta) return;
+  ui.filtri.ultimaTrascrizione=scelta.pid;
+  apriTrascrizione(anno,mese,scelta.pid);
+};
+async function apriTrascrizione(anno,mese,pid){
+  const p=persona(pid);const k=chiaveMese(anno,mese);
+  const mp=clona(((meseP(anno,mese)||{persone:{}}).persone[pid])||{giorni:{},aggiustamenti:[]});
+  const n=giorniNelMese(anno,mese);const fest=festivitaAnno(anno,stato.impostazioni.festivitaLocali);
+  const righe=Array.from({length:n},(_,i)=>{const g=i+1;const iso=k+'-'+pad2(g);const gs=giornoSettimana(anno,mese,g);const c=mp.giorni[String(g)]||{};const v=valoreCella(c);return {g,gs,we:gs===0||gs===6,fest:fest.has(iso),ore:v==null?'':typeof v==='number'?fOre(v):v,cantiere:c.cantiere||'',committente:c.committente||'',incerto:(mp.incerti||[]).includes(g)}});
+  const corpo=html`<div class="trascrizione"><div class="griglia-t"><table><thead><tr><th>G</th><th>Ore/cod.</th><th>Cantiere</th><th>Committente</th><th title="Da ricontrollare">?</th></tr></thead><tbody>${righe.map(r=>html`<tr class="${r.we?'fine-settimana':''} ${r.fest?'festivo':''}" data-g="${r.g}"><td><b>${r.g}</b> <span class="piccolo">${NOMI_GIORNI_BREVI[r.gs]}</span></td>${r.we?html`<td colspan="4" class="piccolo secondario">fine settimana: non si compila</td>`:html`<td><input type="text" data-tr="ore" data-g="${r.g}" value="${r.ore}" style="width:64px;text-align:center" placeholder="${r.fest?'FS':'8'}"></td><td><input type="text" data-tr="cantiere" data-g="${r.g}" value="${r.cantiere}"></td><td><input type="text" data-tr="committente" data-g="${r.g}" value="${r.committente}"></td><td><input type="checkbox" data-tr="incerto" data-g="${r.g}" ${r.incerto?'checked':''} aria-label="Da ricontrollare"></td>`}</tr>`)}</tbody></table></div></div>
+  <div class="riga mt-s piccolo secondario"><span><span class="kbd">Invio</span> giù nella stessa colonna · <span class="kbd">Tab</span> a destra · <span class="kbd">⌘D</span> copia dalla riga sopra · <span class="kbd">⌘↓</span> riempi in giù fino a fine mese · <span class="kbd">?</span> segna da ricontrollare</span></div>`;
+  const ris=await dialogo({titolo:'Compila · '+nomePersona(p)+' · '+fMeseAnno(anno,mese),enorme:true,corpo,senzaFocus:true,valoreEscape:null,pulsanti:[{testo:'Annulla',valore:null},{testo:'Applica',classe:'primario',primario:true,fn:v=>leggiTrascrizione(v)}],alMontaggio:v=>{
+    const primo=v.querySelector('input[data-tr="ore"]');if(primo)primo.focus();
+    tutti('input[data-tr="ore"]',v).forEach(i=>attivaSuggerimenti(i,()=>[{v:'8',t:'8 ore'},{v:'4',t:'4 ore'},...Object.entries(CODICI_ASSENZA).map(([c,x])=>({v:c,t:c+' — '+x.nome}))]));
+    tutti('input[data-tr="cantiere"],input[data-tr="committente"]',v).forEach(i=>attivaSuggerimenti(i,()=>valoriUsati(i.dataset.tr)));
+    v.addEventListener('keydown',e=>{
+      const t=e.target;if(!t.dataset||!t.dataset.tr)return;const col=t.dataset.tr,g=+t.dataset.g;const kk=nomeTasto(e);
+      const trovaInput=(gg,c)=>v.querySelector(`input[data-tr="${c}"][data-g="${gg}"]`);
+      const prossimo=(dir)=>{let gg=g+dir;while(gg>=1&&gg<=n){const i=trovaInput(gg,col);if(i)return i;gg+=dir}return null};
+      if(kk==='Enter'){e.preventDefault();const nx=prossimo(1);if(nx){nx.focus();nx.select()}}
+      else if(kk==='ArrowDown'&&!(e.metaKey||e.ctrlKey)){if(t.tagName==='INPUT'&&t.type==='text'&&document.querySelector('.suggerimenti'))return;e.preventDefault();const nx=prossimo(1);if(nx){nx.focus();nx.select()}}
+      else if(kk==='ArrowUp'){if(document.querySelector('.suggerimenti'))return;e.preventDefault();const nx=prossimo(-1);if(nx){nx.focus();nx.select()}}
+      else if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='d'){e.preventDefault();const pr=prossimo(-1);if(pr&&t.type==='text'){t.value=pr.value;t.dispatchEvent(new Event('change'))}}
+      else if((e.metaKey||e.ctrlKey)&&kk==='ArrowDown'){e.preventDefault();let gg=g+1;while(gg<=n){const i=trovaInput(gg,col);if(i&&i.type==='text'&&!i.value)i.value=t.value;gg++}}
+      else if(e.key==='?'&&col!=='incerto'){e.preventDefault();const cb=trovaInput(g,'incerto');if(cb)cb.checked=!cb.checked}
+      else if(col==='cantiere'&&kk==='Tab'&&!e.shiftKey){const com=trovaInput(g,'committente');if(com&&!com.value&&t.value){const pr=committenteProposto(t.value);if(pr)com.value=pr}}
+    });
+    v.addEventListener('change',e=>{const t=e.target;if(t.dataset&&t.dataset.tr==='cantiere'&&t.value){const com=v.querySelector(`input[data-tr="committente"][data-g="${t.dataset.g}"]`);if(com&&!com.value){const pr=committenteProposto(t.value);if(pr)com.value=pr}}});
+  }});
+  if(!ris) return;
+  const errori=[];
+  esegui('Compilazione '+nomePersona(p)+' '+fMeseAnno(anno,mese),s=>{
+    const x=assicuraMesePersona(s,anno,mese,pid);x.giorni={};x.incerti=[];
+    for(const r of ris.righe){const c={};if(r.ore){const cod=r.ore.toUpperCase();if(CODICI_ASSENZA[cod]){if(cod==='FS'&&!fest.has(k+'-'+pad2(r.g))){errori.push('giorno '+r.g+': FS non ammesso (non è festività)');}else c.codice=cod}else{const nn=leggiNumero(r.ore);if(nn===null||nn<0||nn>24)errori.push('giorno '+r.g+': valore «'+r.ore+'» non valido');else c.ore=nn}}
+      if(r.cantiere)c.cantiere=r.cantiere;if(r.committente)c.committente=r.committente;else if(c.cantiere){const pr=committenteProposto(c.cantiere);if(pr)c.committente=pr}
+      if(Object.keys(c).length)x.giorni[String(r.g)]=c;if(r.incerto)x.incerti.push(r.g)}
+  });
+  if(errori.length) informa('Alcuni valori non sono stati applicati',errori.join('\n'));
+}
+function leggiTrascrizione(v){
+  const righe={};
+  for(const i of tutti('input[data-tr]',v)){const g=+i.dataset.g;righe[g]=righe[g]||{g};righe[g][i.dataset.tr]=i.type==='checkbox'?i.checked:i.value.trim()}
+  return {righe:Object.values(righe)};
+}
 // ---- uscite ----
 AZIONI['presenze-uscite']=async d=>{
   const {anno,mese}=daChiaveMese(d.k);

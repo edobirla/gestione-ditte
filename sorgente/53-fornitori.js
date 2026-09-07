@@ -32,6 +32,7 @@ function vistaFornitore(id){
   <div class="griglia due mb">
     <div class="scheda"><h3>${icona('fornitori')}Dati</h3><div class="campi">
       <div class="campo"><span class="etichetta-campo">Partita IVA</span><div>${valoreODaCompilare(f.piva)}</div></div>
+      ${f.cf?html`<div class="campo"><span class="etichetta-campo">Codice fiscale</span><div>${f.cf}</div></div>`:''}
       <div class="campo"><span class="etichetta-campo">Telefono</span><div>${f.telefono?contattoCliccabile('tel',f.telefono):daCompilare()}</div></div>
       <div class="campo"><span class="etichetta-campo">Email</span><div>${f.email?contattoCliccabile('mail',f.email):daCompilare()}</div></div>
     </div>${f.note?html`<p class="piccolo secondario mt-s">${f.note}</p>`:''}</div>
@@ -50,7 +51,7 @@ function vistaFornitore(id){
 }
 function dialogoFornitore(f){
   const nuovo=!f; f=f||{};
-  const campi=[{nome:'ragioneSociale',etichetta:'Ragione sociale',obbligatorio:true,largo:true},{nome:'cosaFornisce',etichetta:'Cosa fornisce',largo:true,segnaposto:'es. materiali edili, noleggio mezzi, trasporti'},{nome:'piva',etichetta:'Partita IVA',valida:validatorePIVA},{nome:'telefono',etichetta:'Telefono',tipo:'tel'},{nome:'email',etichetta:'Email',tipo:'email',valida:validatoreEmail},{nome:'note',etichetta:'Note',tipo:'textarea',largo:true}];
+  const campi=[{nome:'ragioneSociale',etichetta:'Ragione sociale',obbligatorio:true,largo:true},{nome:'cosaFornisce',etichetta:'Cosa fornisce',largo:true,segnaposto:'es. materiali edili, noleggio mezzi, trasporti'},{nome:'piva',etichetta:'Partita IVA',valida:validatorePIVA},{nome:'cf',etichetta:'Codice fiscale',maiuscolo:true,valida:validatoreCF,aiuto:'Per i fornitori privati senza partita IVA (es. il proprietario del capannone)'},{nome:'telefono',etichetta:'Telefono',tipo:'tel'},{nome:'email',etichetta:'Email',tipo:'email',valida:validatoreEmail},{nome:'note',etichetta:'Note',tipo:'textarea',largo:true}];
   return dialogoModulo(nuovo?'Nuovo fornitore':'Modifica '+f.ragioneSociale,campi,f,{pulsantiExtra:nuovo?[]:[{testo:'Elimina',classe:'pericolo',sinistra:true,fn:async()=>{if(await conferma('Eliminare il fornitore '+f.ragioneSociale+'?',{pericolo:true})){esegui('Eliminato fornitore '+f.ragioneSociale,s=>{s.fornitori=s.fornitori.filter(x=>x.id!==f.id)});vai('fornitori');return null}return false}}]}).then(v=>{
     if(!v)return;
     if(nuovo){const id=nuovoId('fr');esegui('Nuovo fornitore '+v.ragioneSociale,s=>{s.fornitori.push(Object.assign({id},v))});vai('fornitori/'+id)}

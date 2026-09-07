@@ -30,7 +30,6 @@ function vistaArchivio(){
     {chiave:'em',titolo:'Emissione',valore:x=>x.d.dataEmissione||'',formatta:x=>x.d.dataEmissione?fData(x.d.dataEmissione):''},
     {chiave:'scad',titolo:'Scadenza',valore:x=>x.info.data||'',formatta:x=>x.info.data?html`<span class="${x.info.stimata?'stimata':''}">${fData(x.info.data)}${x.info.stimata?' ~':''}</span>`:''},
     {chiave:'stato',titolo:'Stato',valore:x=>STATI_DOC[x.info.stato].ordine,formatta:x=>pillolaDocumento(x.info,{breve:true})},
-    {chiave:'peso',titolo:'Peso',num:true,valore:x=>x.peso,formatta:x=>(x.d.file||[]).length?fPeso(x.peso):html`<span class="da-compilare piccolo">nessun file</span>`},
   ],vuoto:vuoto({icona:'documenti',titolo:'Nessun documento con questi filtri',testo:'Prova ad allargare i filtri o aggiungi un documento.'})})}`;
 }
 AZIONI['filtro-archivio']=(d,t)=>{ui.filtri.archivio=Object.assign({},ui.filtri.archivio,{[d.campo]:t.value});render();if(d.campo==='cerca')setTimeout(()=>{const i=el('[data-cambio="filtro-archivio"][data-campo="cerca"]');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}},0)};
@@ -65,13 +64,12 @@ async function apriDocumento(docId){
     <div class="campo"><span class="etichetta-campo">Emissione</span><div>${d.dataEmissione?fData(d.dataEmissione):daCompilare()}</div></div>
     <div class="campo"><span class="etichetta-campo">Scadenza</span><div>${info.data?html`<span class="${info.stimata?'stimata':''}">${fData(info.data)}${info.stimata?' (stimata)':''}</span>`:d.senzaScadenza?'nessuna':daCompilare()}</div></div>
     <div class="campo"><span class="etichetta-campo">Stato</span><div>${pillolaDocumento(info)}</div></div>
-    <div class="campo"><span class="etichetta-campo">Verificato</span><div>${d.verificato?'sì':'no'}</div></div>
     ${d.titolo?html`<div class="campo largo"><span class="etichetta-campo">Titolo</span><div>${d.titolo}</div></div>`:''}
     ${d.note?html`<div class="campo largo"><span class="etichetta-campo">Note</span><div>${d.note}</div></div>`:''}
   </div>
   <div class="sezione-titolo">File allegati (${files.length})</div>
   ${files.length?html`<ul class="elenco-piatto">${files.map(m=>html`<li>${icona(ePdf(m.mime,m.nome)?'pdf':eImmagine(m.mime,m.nome)?'immagine':'file')}<span class="spazio taglia" title="${m.nome}">${m.nome}</span><span class="piccolo secondario">${fPeso(m.dimensione)}</span><button class="pulsante piccolo" data-azione="doc-anteprima-file" data-id="${m.id}">${icona('occhio','piccola')}</button><button class="pulsante piccolo" data-azione="file-scarica" data-id="${m.id}">${icona('scarica','piccola')}</button><button class="pulsante piccolo" data-azione="file-condividi" data-id="${m.id}">${icona('condividi','piccola')}</button><button class="pulsante piccolo pericolo" data-azione="doc-rimuovi-file" data-doc="${d.id}" data-id="${m.id}" title="Togli il file dal documento">${icona('chiudi','piccola')}</button></li>`)}</ul>`:html`<div class="avviso-inline attenzione">${icona('attenzione')}<div class="corpo">Nessun file allegato: il documento esiste come scadenza ma la scansione non è ancora nell'archivio.</div></div>`}
-  <div class="zona-drop mt" data-azione="doc-aggiungi-file" data-doc="${d.id}" data-drop-doc="${d.id}">${icona('carica')}Trascina qui la scansione o clicca per allegare un file</div>
+  ${files.length?html`<button class="pulsante piccolo mt" data-azione="doc-aggiungi-file" data-doc="${d.id}">${icona('carica','piccola')}Allega un altro file</button>`:html`<div class="zona-drop mt" data-azione="doc-aggiungi-file" data-doc="${d.id}" data-drop-doc="${d.id}">${icona('carica')}Trascina qui la scansione o clicca per allegare un file</div>`}
   <div id="anteprima-doc" class="mt"></div>`;
   apriPannello({titolo:(t?t.nome:'Documento')+' · '+nomeSoggettoDoc(d),largo:!!files.length,corpo:meta,piede:html`<button class="pulsante primario" data-azione="documento-modifica" data-id="${d.id}">${icona('modifica')}Modifica</button><button class="pulsante" data-azione="documento-duplica" data-id="${d.id}" title="Crea il rinnovo: stesso tipo e soggetto, date nuove">${icona('aggiorna')}Rinnovo</button><span class="spazio"></span><button class="pulsante pericolo" data-azione="documento-elimina" data-id="${d.id}">${icona('elimina')}Elimina</button>`});
   if(files.length){const a=await htmlAnteprimaFile(files[0].id);const c=el('#anteprima-doc');if(c)c.innerHTML=a}
@@ -139,7 +137,7 @@ async function dialogoDocumento(d,filesIniziali){
     {nome:'tipoId',etichetta:'Tipo di documento',tipo:'select',obbligatorio:true,opzioni:stato.tipiDocumento.map(t=>({v:t.id,t:t.nome+(t.ambito==='persona'?'':' ('+t.ambito+')')}))},
     {nome:'titolo',etichetta:'Titolo (se diverso dal tipo)',largo:true},
     {nome:'dataEmissione',etichetta:'Data di emissione',tipo:'data'},{nome:'dataScadenza',etichetta:'Data di scadenza',tipo:'data',aiuto:'Si precompila dalla validità tipica: la data sul documento prevale'},
-    {nome:'ente',etichetta:'Ente formatore / emittente (per attestati)'},{nome:'senzaScadenza',tipo:'spunta',testo:'Senza scadenza'},{nome:'verificato',tipo:'spunta',testo:'Verificato'},
+    {nome:'ente',etichetta:'Ente formatore / emittente (per attestati)'},{nome:'senzaScadenza',tipo:'spunta',testo:'Senza scadenza'},
     {nome:'note',etichetta:'Note',tipo:'textarea',largo:true},
   ];
   const val=clona(d);val.soggetto=d.soggettoTipo&&d.soggettoId?d.soggettoTipo+':'+d.soggettoId:'';
@@ -161,6 +159,10 @@ async function dialogoDocumento(d,filesIniziali){
   },validaTutto:v=>{if(v.dataEmissione&&v.dataScadenza&&v.dataScadenza<v.dataEmissione)return 'La scadenza precede l\'emissione';const t=tipoDoc(v.tipoId);if(t&&v.soggetto&&t.ambito!==ambitoDi(v.soggetto)&&!(ambitoDi(v.soggetto)==='cliente'))return 'Il tipo «'+t.nome+'» non è adatto a questo soggetto';return null}});
   if(!ris) return;
   const [st,sid]=ris.soggetto.split(':');delete ris.soggetto;
+  if(nuovo&&!d.rinnovoDi){
+    const gemelli=stato.documenti.filter(x=>x.soggettoTipo===st&&x.soggettoId===sid&&x.tipoId===ris.tipoId&&infoDocumento(x).stato!=='scaduto');
+    if(gemelli.length){const t=tipoDoc(ris.tipoId);if(!(await conferma(`Esiste gi\u00e0 ${gemelli.length>1?gemelli.length+' documenti':'un documento'} \u00ab${t?t.nome:'di questo tipo'}\u00bb per ${nomeSoggettoDoc({soggettoTipo:st,soggettoId:sid})} ancora in corso di validit\u00e0. Aggiungerne un altro?`,{ok:'Aggiungi lo stesso'})))return}
+  }
   let esiti=[];
   if(filesNuovi.length){esiti=await acquisisciConAnteprima(filesNuovi)||[]}
   const nuoviId=esiti.map(e=>e.rec.id);

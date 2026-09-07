@@ -400,6 +400,15 @@ input[type=checkbox],input[type=radio]{width:18px;height:18px;accent-color:var(-
 .presenze-griglia tr.riga-secondaria td{height:22px;color:var(--testo-3)}
 .presenze-griglia tr.riga-secondaria td.fisso{font-weight:400;color:var(--testo-3)}
 .presenze-griglia.compatta tr.riga-secondaria{display:none}
+.trascrizione{height:calc(100dvh - 220px);min-height:340px}
+.trascrizione .griglia-t{overflow:auto;height:100%;border:1px solid var(--bordo);border-radius:var(--raggio);background:var(--superficie)}
+.trascrizione table{width:100%;border-collapse:collapse;font-size:var(--t-sm)}
+.trascrizione td,.trascrizione th{border-bottom:1px solid var(--bordo);padding:2px 4px}
+.trascrizione th{font-size:var(--t-xs);color:var(--testo-2);text-transform:uppercase;position:sticky;top:0;background:var(--superficie-2)}
+.trascrizione input{min-height:30px;padding:2px 6px;border-radius:4px}
+.trascrizione input[type=text]{width:100%}
+.trascrizione tr.fine-settimana td{background:var(--superficie-3);color:var(--testo-3)}
+.trascrizione tr.festivo td{background:var(--giallo-chiaro)}
 .presenze-mobile{display:none}
 @media (max-width:760px){ .presenze-griglia.desktop{display:none} .presenze-mobile{display:block} }
 .giorno-card{display:grid;grid-template-columns:58px 1fr;gap:var(--sp-2);align-items:center;padding:8px;border-bottom:1px solid var(--bordo)}
@@ -2599,7 +2608,7 @@ function schedaDocumentiPersona(p,idn){
     {chiave:'emissione',titolo:'Emissione',valore:r=>r.d.dataEmissione||'',formatta:r=>r.d.dataEmissione?fData(r.d.dataEmissione):html`<span class="silenzioso">—</span>`},
     {chiave:'scadenza',titolo:'Scadenza',valore:r=>r.info.data||'',formatta:r=>r.info.data?html`<span class="${r.info.stimata?'stimata':''}" title="${r.info.stimata?'Stimata dalla validità tipica':''}">${fData(r.info.data)}${r.info.stimata?' ~':''}</span>`:r.d.senzaScadenza?html`<span class="silenzioso">nessuna</span>`:daCompilare('data?')},
     {chiave:'stato',titolo:'Stato',valore:r=>ord.indexOf(r.info.stato),formatta:r=>pillolaDocumento(r.info)},
-    {chiave:'file',titolo:'File',valore:r=>(r.d.file||[]).length,formatta:r=>html`${(r.d.file||[]).map(f=>{const m=fileMeta(f);return m?html`<span class="etichetta-tag" title="${m.nome}">${icona(ePdf(m.mime,m.nome)?'pdf':'immagine','piccola')} ${fPeso(m.dimensione)}</span> `:''})}${r.d.verificato?html`<span class="pillola valido piccolo" title="Verificato">${icona('spunta','piccola')}</span>`:''}`},
+    {chiave:'file',titolo:'File',valore:r=>(r.d.file||[]).length,formatta:r=>html`${(r.d.file||[]).map(f=>{const m=fileMeta(f);return m?html`<span class="etichetta-tag" title="${m.nome}">${icona(ePdf(m.mime,m.nome)?'pdf':'immagine','piccola')} ${fPeso(m.dimensione)}</span> `:''})}`},
   ],vuoto:vuoto({icona:'documenti',titolo:'Nessun documento',testo:'Trascina qui le scansioni o aggiungi il primo documento.',azione:{testo:'Aggiungi documento',azione:'documento-nuovo',dati:{'soggetto-tipo':'persona','soggetto-id':p.id}}})})}`;
 }
 function schedaAnagrafica(p){
@@ -2798,15 +2807,16 @@ VISTE.cantieri=function(r){
     return html`${testa}<div class="scheda"><h3>Diagramma temporale</h3><p class="secondario piccolo">Ogni barra è un cantiere sull'asse dei mesi; la linea rossa è oggi. Le sovrapposizioni mostrano dove la squadra è impegnata due volte.</p>${graficoTemporale(righe.filter(r=>r.inizio))}<div class="legenda"><span><i></i>attivo</span><span><i class="s4"></i>chiuso</span><span><i class="s3"></i>sospeso</span></div>${senza.length?html`<div class="sezione-titolo">Senza date</div><div class="chip-lista">${senza.map(c=>html`<a class="chip" href="#/cantieri/${c.id}">${c.nome} <span class="secondario piccolo">${c.periodoTesto||'date da compilare'}</span></a>`)}</div>`:''}</div>`;
   }
   const CHIUSI=['chiuso','archiviato'];
-  const f=Object.assign({stato:'attivi',anno:'',comune:''},ui.filtri.cantieri);
+  const f=Object.assign({stato:'attivi',anno:'',comune:'',cerca:''},ui.filtri.cantieri);
   let cantieriF=stato.cantieri.slice();
   if(f.stato==='attivi') cantieriF=cantieriF.filter(c=>!CHIUSI.includes(c.stato));
   if(f.stato==='chiusi') cantieriF=cantieriF.filter(c=>CHIUSI.includes(c.stato));
   if(f.anno) cantieriF=cantieriF.filter(c=>String(c.anno)===f.anno);
   if(f.comune) cantieriF=cantieriF.filter(c=>(c.indirizzo&&c.indirizzo.comune||'')===f.comune);
+  if(f.cerca){const q=normalizzaTesto(f.cerca);cantieriF=cantieriF.filter(c=>normalizzaTesto([c.nome,c.indirizzo&&c.indirizzo.comune,c.indirizzo&&c.indirizzo.via,nomeCliente(c.clienteId),c.commessa].filter(Boolean).join(' ')).includes(q))}
   const anni=[...new Set(stato.cantieri.map(c=>c.anno).filter(Boolean))].sort((a,b)=>b-a);
   const comuni=[...new Set(stato.cantieri.map(c=>c.indirizzo&&c.indirizzo.comune).filter(Boolean))].sort();
-  const barra=html`<div class="strumenti-tabella"><div class="gruppo-pulsanti">${[['attivi','In corso'],['chiusi','Chiusi'],['tutti','Tutti']].map(([v,t])=>html`<button class="pulsante piccolo ${f.stato===v?'attivo':''}" data-azione="filtro-cantieri-stato" data-valore="${v}">${t}</button>`)}</div><select data-cambio="filtro-cantieri" data-campo="anno" aria-label="Anno"><option value="">Tutti gli anni</option>${anni.map(a=>html`<option value="${a}" ${String(a)===f.anno?'selected':''}>${a}</option>`)}</select><select data-cambio="filtro-cantieri" data-campo="comune" aria-label="Località"><option value="">Tutte le località</option>${comuni.map(cm=>html`<option value="${cm}" ${cm===f.comune?'selected':''}>${cm}</option>`)}</select>${pulsanteCancellaFiltri(f.stato!=='attivi'||!!f.anno||!!f.comune,'filtro-cantieri-reset')}<span class="conteggio">${cantieriF.length} cantieri</span></div>`;
+  const barra=html`<div class="strumenti-tabella"><input type="search" placeholder="Cerca per nome, località o cliente" value="${f.cerca}" data-cambio="filtro-cantieri" data-campo="cerca" aria-label="Cerca cantieri"><div class="gruppo-pulsanti">${[['attivi','In corso'],['chiusi','Chiusi'],['tutti','Tutti']].map(([v,t])=>html`<button class="pulsante piccolo ${f.stato===v?'attivo':''}" data-azione="filtro-cantieri-stato" data-valore="${v}">${t}</button>`)}</div><select data-cambio="filtro-cantieri" data-campo="anno" aria-label="Anno"><option value="">Tutti gli anni</option>${anni.map(a=>html`<option value="${a}" ${String(a)===f.anno?'selected':''}>${a}</option>`)}</select><select data-cambio="filtro-cantieri" data-campo="comune" aria-label="Località"><option value="">Tutte le località</option>${comuni.map(cm=>html`<option value="${cm}" ${cm===f.comune?'selected':''}>${cm}</option>`)}</select>${pulsanteCancellaFiltri(f.stato!=='attivi'||!!f.anno||!!f.comune||!!f.cerca,'filtro-cantieri-reset')}<span class="conteggio">${cantieriF.length} cantieri</span></div>`;
   const gruppi=['attivo','sospeso','preventivo','chiuso','archiviato'];
   const righe=cantieriF.map(c=>{const ck=checklistCantiere(c);const eco=economiaCantiere(c.id,stato.movimenti);return {c,ck,eco}});
   return html`${testa}${barra}${gruppi.map(g=>{const rr=righe.filter(x=>x.c.stato===g);if(!rr.length)return '';return html`<div class="sezione-titolo">${STATI_CANTIERE[g]} · ${rr.length}</div>${tabella({id:'cant'+g,righe:rr,href:x=>'#/cantieri/'+x.c.id,colonne:[
@@ -2819,9 +2829,10 @@ VISTE.cantieri=function(r){
   ]})}`})}${stato.cantieri.length?(cantieriF.length?'':vuoto({icona:'cantieri',titolo:'Nessun cantiere con questi filtri',testo:'Prova a cambiare stato, anno o località.'})):vuoto({icona:'cantieri',titolo:'Nessun cantiere',testo:'Crea il primo cantiere: da lì partono POS, checklist e pacchetto per la committenza.',azione:{testo:'Nuovo cantiere',azione:'cantiere-nuovo'}})}`;
 };
 AZIONI['cantieri-vista']=d=>{ui.filtri.cantieriVista=d.valore;render()};
-AZIONI['filtro-cantieri-stato']=d=>{ui.filtri.cantieri=Object.assign({stato:'attivi',anno:'',comune:''},ui.filtri.cantieri,{stato:d.valore});render()};
-AZIONI['filtro-cantieri']=(d,t)=>{ui.filtri.cantieri=Object.assign({stato:'attivi',anno:'',comune:''},ui.filtri.cantieri,{[d.campo]:t.value});render()};
-AZIONI['filtro-cantieri-reset']=()=>{ui.filtri.cantieri={stato:'attivi',anno:'',comune:''};render()};
+AZIONI['filtro-cantieri-stato']=d=>{ui.filtri.cantieri=Object.assign({stato:'attivi',anno:'',comune:'',cerca:''},ui.filtri.cantieri,{stato:d.valore});render()};
+AZIONI['filtro-cantieri']=(d,t)=>{ui.filtri.cantieri=Object.assign({stato:'attivi',anno:'',comune:'',cerca:''},ui.filtri.cantieri,{[d.campo]:t.value});render();if(d.campo==='cerca')setTimeout(()=>{const i=el('.strumenti-tabella input[type=search]');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}},0)};
+document.addEventListener('input',debounce(e=>{const t=e.target;if(t.matches&&t.matches('[data-cambio="filtro-cantieri"][data-campo="cerca"]'))AZIONI['filtro-cantieri']({campo:'cerca'},t)},250));
+AZIONI['filtro-cantieri-reset']=()=>{ui.filtri.cantieri={stato:'attivi',anno:'',comune:'',cerca:''};render()};
 AZIONI['cantiere-nuovo']=()=>dialogoCantiere(null);
 AZIONI['cantiere-modifica']=d=>dialogoCantiere(cantiere(d.id));
 
@@ -3153,7 +3164,7 @@ VISTE.presenze=function(r){
   const sezioni=[['soci','Soci'],['dipendenti','Dipendenti']];
   dopoRender(montaGriglia);
   return html`<div class="testata"><div class="riga stretta"><a class="pulsante icona" href="#/presenze/${chiaveMese(prev.anno,prev.mese)}" aria-label="Mese precedente">${icona('sinistra')}</a><h1 style="min-width:220px;text-align:center">${fMeseAnno(anno,mese)}</h1><a class="pulsante icona" href="#/presenze/${chiaveMese(succ.anno,succ.mese)}" aria-label="Mese successivo">${icona('destra')}</a><a class="pulsante piccolo discreto" href="#/presenze">Oggi</a></div>
-    <div class="azioni"><button class="pulsante" data-azione="presenze-strumenti" data-k="${k}">${icona('magia')}Strumenti</button><button class="pulsante" data-azione="presenze-uscite" data-k="${k}">${icona('scarica')}Uscite</button><button class="pulsante icona" data-azione="presenze-aiuto" title="Tasti e regole">${icona('info')}</button></div></div>
+    <div class="azioni"><button class="pulsante" data-azione="presenze-strumenti" data-k="${k}">${icona('magia')}Strumenti</button><button class="pulsante" data-azione="presenze-trascrizione" data-k="${k}">${icona('tastiera')}Compila un operaio</button><button class="pulsante" data-azione="presenze-uscite" data-k="${k}">${icona('scarica')}Uscite</button><button class="pulsante icona" data-azione="presenze-aiuto" title="Tasti e regole">${icona('info')}</button></div></div>
   <div class="griglia quattro mb"><div class="indicatore" style="cursor:default"><span class="etichetta">Ore in griglia</span><span class="valore md">${fOre(rie.oreTotali)}</span></div><div class="indicatore" style="cursor:default"><span class="etichetta">Importo del mese</span><span class="valore md">${fEuro(rie.importoTotale,0)}</span></div><div class="indicatore ${rie.giorniDaCompilare?'attenzione':''}" style="cursor:default"><span class="etichetta">Giorni-persona da compilare</span><span class="valore md">${rie.giorniDaCompilare}</span></div><div class="indicatore" style="cursor:default"><span class="etichetta">Giorni lavorativi</span><span class="valore md">${giorniLavorativiMese(anno,mese,stato.impostazioni.festivitaLocali).length}</span><span class="nota">${giorni.filter(x=>x.festivo&&!x.we).map(x=>'FS '+x.g).join(', ')||'nessuna festività feriale'}</span></div></div>
   ${avvisi.length?html`<div class="avviso-inline attenzione">${icona('attenzione')}<div class="corpo">${avvisi.map(a=>html`${a}<br>`)}</div></div>`:''}
   <div class="strumenti-tabella"><label class="spunta piccolo"><input type="checkbox" data-cambio="presenze-compatta" ${compatta?'checked':''}> Nascondi righe cantiere e committente</label><span class="conteggio">Frecce per muoversi · digita per inserire · ⇧+frecce seleziona · Canc svuota</span></div>
@@ -3389,6 +3400,55 @@ AZIONI['presenze-persona']=async d=>{
   const aggiustamenti=(v.aggiustamentiTesto||'').split('\n').map(x=>x.trim()).filter(Boolean).map(x=>{const m=/^(.*?)\s*([+-]?\s*[\d.,]+)\s*€?$/.exec(x);if(!m)return {sigla:x,importo:0};return {sigla:m[1].trim()||'agg',importo:leggiNumero(m[2].replace(/\s/g,''))||0}});
   esegui('Riepilogo '+nomePersona(p)+' '+fMeseAnno(anno,mese),s=>{const x=assicuraMesePersona(s,anno,mese,p.id);x.aggiustamenti=aggiustamenti;x.importoForzato=!!v.importoForzato;x.importoManuale=v.importoForzato?v.importoManuale:null;x.note=v.note});
 };
+// ---- compilazione operaio per operaio (tutto il mese da tastiera) ----
+AZIONI['presenze-trascrizione']=async d=>{
+  const {anno,mese}=daChiaveMese(d.k);const persone=personePresenze(anno,mese).filter(p=>!p.soloTrasferte);
+  if(!persone.length) return avviso('Nessuna persona da compilare in questo mese',{tipo:'attenzione'});
+  const scelta=await dialogoModulo('Compila un operaio',[{nome:'pid',etichetta:'Operaio',tipo:'select',obbligatorio:true,opzioni:persone.map(p=>({v:p.id,t:nomePersona(p)}))}],{pid:ui.filtri.ultimaTrascrizione||persone[0].id},{ok:'Apri il mese',intro:html`<p class="piccolo secondario">Tutto il mese di una persona in un'unica tabella, da riempire con la tastiera senza mai staccare le mani.</p>`});
+  if(!scelta) return;
+  ui.filtri.ultimaTrascrizione=scelta.pid;
+  apriTrascrizione(anno,mese,scelta.pid);
+};
+async function apriTrascrizione(anno,mese,pid){
+  const p=persona(pid);const k=chiaveMese(anno,mese);
+  const mp=clona(((meseP(anno,mese)||{persone:{}}).persone[pid])||{giorni:{},aggiustamenti:[]});
+  const n=giorniNelMese(anno,mese);const fest=festivitaAnno(anno,stato.impostazioni.festivitaLocali);
+  const righe=Array.from({length:n},(_,i)=>{const g=i+1;const iso=k+'-'+pad2(g);const gs=giornoSettimana(anno,mese,g);const c=mp.giorni[String(g)]||{};const v=valoreCella(c);return {g,gs,we:gs===0||gs===6,fest:fest.has(iso),ore:v==null?'':typeof v==='number'?fOre(v):v,cantiere:c.cantiere||'',committente:c.committente||'',incerto:(mp.incerti||[]).includes(g)}});
+  const corpo=html`<div class="trascrizione"><div class="griglia-t"><table><thead><tr><th>G</th><th>Ore/cod.</th><th>Cantiere</th><th>Committente</th><th title="Da ricontrollare">?</th></tr></thead><tbody>${righe.map(r=>html`<tr class="${r.we?'fine-settimana':''} ${r.fest?'festivo':''}" data-g="${r.g}"><td><b>${r.g}</b> <span class="piccolo">${NOMI_GIORNI_BREVI[r.gs]}</span></td>${r.we?html`<td colspan="4" class="piccolo secondario">fine settimana: non si compila</td>`:html`<td><input type="text" data-tr="ore" data-g="${r.g}" value="${r.ore}" style="width:64px;text-align:center" placeholder="${r.fest?'FS':'8'}"></td><td><input type="text" data-tr="cantiere" data-g="${r.g}" value="${r.cantiere}"></td><td><input type="text" data-tr="committente" data-g="${r.g}" value="${r.committente}"></td><td><input type="checkbox" data-tr="incerto" data-g="${r.g}" ${r.incerto?'checked':''} aria-label="Da ricontrollare"></td>`}</tr>`)}</tbody></table></div></div>
+  <div class="riga mt-s piccolo secondario"><span><span class="kbd">Invio</span> giù nella stessa colonna · <span class="kbd">Tab</span> a destra · <span class="kbd">⌘D</span> copia dalla riga sopra · <span class="kbd">⌘↓</span> riempi in giù fino a fine mese · <span class="kbd">?</span> segna da ricontrollare</span></div>`;
+  const ris=await dialogo({titolo:'Compila · '+nomePersona(p)+' · '+fMeseAnno(anno,mese),enorme:true,corpo,senzaFocus:true,valoreEscape:null,pulsanti:[{testo:'Annulla',valore:null},{testo:'Applica',classe:'primario',primario:true,fn:v=>leggiTrascrizione(v)}],alMontaggio:v=>{
+    const primo=v.querySelector('input[data-tr="ore"]');if(primo)primo.focus();
+    tutti('input[data-tr="ore"]',v).forEach(i=>attivaSuggerimenti(i,()=>[{v:'8',t:'8 ore'},{v:'4',t:'4 ore'},...Object.entries(CODICI_ASSENZA).map(([c,x])=>({v:c,t:c+' — '+x.nome}))]));
+    tutti('input[data-tr="cantiere"],input[data-tr="committente"]',v).forEach(i=>attivaSuggerimenti(i,()=>valoriUsati(i.dataset.tr)));
+    v.addEventListener('keydown',e=>{
+      const t=e.target;if(!t.dataset||!t.dataset.tr)return;const col=t.dataset.tr,g=+t.dataset.g;const kk=nomeTasto(e);
+      const trovaInput=(gg,c)=>v.querySelector(`input[data-tr="${c}"][data-g="${gg}"]`);
+      const prossimo=(dir)=>{let gg=g+dir;while(gg>=1&&gg<=n){const i=trovaInput(gg,col);if(i)return i;gg+=dir}return null};
+      if(kk==='Enter'){e.preventDefault();const nx=prossimo(1);if(nx){nx.focus();nx.select()}}
+      else if(kk==='ArrowDown'&&!(e.metaKey||e.ctrlKey)){if(t.tagName==='INPUT'&&t.type==='text'&&document.querySelector('.suggerimenti'))return;e.preventDefault();const nx=prossimo(1);if(nx){nx.focus();nx.select()}}
+      else if(kk==='ArrowUp'){if(document.querySelector('.suggerimenti'))return;e.preventDefault();const nx=prossimo(-1);if(nx){nx.focus();nx.select()}}
+      else if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='d'){e.preventDefault();const pr=prossimo(-1);if(pr&&t.type==='text'){t.value=pr.value;t.dispatchEvent(new Event('change'))}}
+      else if((e.metaKey||e.ctrlKey)&&kk==='ArrowDown'){e.preventDefault();let gg=g+1;while(gg<=n){const i=trovaInput(gg,col);if(i&&i.type==='text'&&!i.value)i.value=t.value;gg++}}
+      else if(e.key==='?'&&col!=='incerto'){e.preventDefault();const cb=trovaInput(g,'incerto');if(cb)cb.checked=!cb.checked}
+      else if(col==='cantiere'&&kk==='Tab'&&!e.shiftKey){const com=trovaInput(g,'committente');if(com&&!com.value&&t.value){const pr=committenteProposto(t.value);if(pr)com.value=pr}}
+    });
+    v.addEventListener('change',e=>{const t=e.target;if(t.dataset&&t.dataset.tr==='cantiere'&&t.value){const com=v.querySelector(`input[data-tr="committente"][data-g="${t.dataset.g}"]`);if(com&&!com.value){const pr=committenteProposto(t.value);if(pr)com.value=pr}}});
+  }});
+  if(!ris) return;
+  const errori=[];
+  esegui('Compilazione '+nomePersona(p)+' '+fMeseAnno(anno,mese),s=>{
+    const x=assicuraMesePersona(s,anno,mese,pid);x.giorni={};x.incerti=[];
+    for(const r of ris.righe){const c={};if(r.ore){const cod=r.ore.toUpperCase();if(CODICI_ASSENZA[cod]){if(cod==='FS'&&!fest.has(k+'-'+pad2(r.g))){errori.push('giorno '+r.g+': FS non ammesso (non è festività)');}else c.codice=cod}else{const nn=leggiNumero(r.ore);if(nn===null||nn<0||nn>24)errori.push('giorno '+r.g+': valore «'+r.ore+'» non valido');else c.ore=nn}}
+      if(r.cantiere)c.cantiere=r.cantiere;if(r.committente)c.committente=r.committente;else if(c.cantiere){const pr=committenteProposto(c.cantiere);if(pr)c.committente=pr}
+      if(Object.keys(c).length)x.giorni[String(r.g)]=c;if(r.incerto)x.incerti.push(r.g)}
+  });
+  if(errori.length) informa('Alcuni valori non sono stati applicati',errori.join('\n'));
+}
+function leggiTrascrizione(v){
+  const righe={};
+  for(const i of tutti('input[data-tr]',v)){const g=+i.dataset.g;righe[g]=righe[g]||{g};righe[g][i.dataset.tr]=i.type==='checkbox'?i.checked:i.value.trim()}
+  return {righe:Object.values(righe)};
+}
 // ---- uscite ----
 AZIONI['presenze-uscite']=async d=>{
   const {anno,mese}=daChiaveMese(d.k);
@@ -3441,7 +3501,6 @@ function vistaArchivio(){
     {chiave:'em',titolo:'Emissione',valore:x=>x.d.dataEmissione||'',formatta:x=>x.d.dataEmissione?fData(x.d.dataEmissione):''},
     {chiave:'scad',titolo:'Scadenza',valore:x=>x.info.data||'',formatta:x=>x.info.data?html`<span class="${x.info.stimata?'stimata':''}">${fData(x.info.data)}${x.info.stimata?' ~':''}</span>`:''},
     {chiave:'stato',titolo:'Stato',valore:x=>STATI_DOC[x.info.stato].ordine,formatta:x=>pillolaDocumento(x.info,{breve:true})},
-    {chiave:'peso',titolo:'Peso',num:true,valore:x=>x.peso,formatta:x=>(x.d.file||[]).length?fPeso(x.peso):html`<span class="da-compilare piccolo">nessun file</span>`},
   ],vuoto:vuoto({icona:'documenti',titolo:'Nessun documento con questi filtri',testo:'Prova ad allargare i filtri o aggiungi un documento.'})})}`;
 }
 AZIONI['filtro-archivio']=(d,t)=>{ui.filtri.archivio=Object.assign({},ui.filtri.archivio,{[d.campo]:t.value});render();if(d.campo==='cerca')setTimeout(()=>{const i=el('[data-cambio="filtro-archivio"][data-campo="cerca"]');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}},0)};
@@ -3476,13 +3535,12 @@ async function apriDocumento(docId){
     <div class="campo"><span class="etichetta-campo">Emissione</span><div>${d.dataEmissione?fData(d.dataEmissione):daCompilare()}</div></div>
     <div class="campo"><span class="etichetta-campo">Scadenza</span><div>${info.data?html`<span class="${info.stimata?'stimata':''}">${fData(info.data)}${info.stimata?' (stimata)':''}</span>`:d.senzaScadenza?'nessuna':daCompilare()}</div></div>
     <div class="campo"><span class="etichetta-campo">Stato</span><div>${pillolaDocumento(info)}</div></div>
-    <div class="campo"><span class="etichetta-campo">Verificato</span><div>${d.verificato?'sì':'no'}</div></div>
     ${d.titolo?html`<div class="campo largo"><span class="etichetta-campo">Titolo</span><div>${d.titolo}</div></div>`:''}
     ${d.note?html`<div class="campo largo"><span class="etichetta-campo">Note</span><div>${d.note}</div></div>`:''}
   </div>
   <div class="sezione-titolo">File allegati (${files.length})</div>
   ${files.length?html`<ul class="elenco-piatto">${files.map(m=>html`<li>${icona(ePdf(m.mime,m.nome)?'pdf':eImmagine(m.mime,m.nome)?'immagine':'file')}<span class="spazio taglia" title="${m.nome}">${m.nome}</span><span class="piccolo secondario">${fPeso(m.dimensione)}</span><button class="pulsante piccolo" data-azione="doc-anteprima-file" data-id="${m.id}">${icona('occhio','piccola')}</button><button class="pulsante piccolo" data-azione="file-scarica" data-id="${m.id}">${icona('scarica','piccola')}</button><button class="pulsante piccolo" data-azione="file-condividi" data-id="${m.id}">${icona('condividi','piccola')}</button><button class="pulsante piccolo pericolo" data-azione="doc-rimuovi-file" data-doc="${d.id}" data-id="${m.id}" title="Togli il file dal documento">${icona('chiudi','piccola')}</button></li>`)}</ul>`:html`<div class="avviso-inline attenzione">${icona('attenzione')}<div class="corpo">Nessun file allegato: il documento esiste come scadenza ma la scansione non è ancora nell'archivio.</div></div>`}
-  <div class="zona-drop mt" data-azione="doc-aggiungi-file" data-doc="${d.id}" data-drop-doc="${d.id}">${icona('carica')}Trascina qui la scansione o clicca per allegare un file</div>
+  ${files.length?html`<button class="pulsante piccolo mt" data-azione="doc-aggiungi-file" data-doc="${d.id}">${icona('carica','piccola')}Allega un altro file</button>`:html`<div class="zona-drop mt" data-azione="doc-aggiungi-file" data-doc="${d.id}" data-drop-doc="${d.id}">${icona('carica')}Trascina qui la scansione o clicca per allegare un file</div>`}
   <div id="anteprima-doc" class="mt"></div>`;
   apriPannello({titolo:(t?t.nome:'Documento')+' · '+nomeSoggettoDoc(d),largo:!!files.length,corpo:meta,piede:html`<button class="pulsante primario" data-azione="documento-modifica" data-id="${d.id}">${icona('modifica')}Modifica</button><button class="pulsante" data-azione="documento-duplica" data-id="${d.id}" title="Crea il rinnovo: stesso tipo e soggetto, date nuove">${icona('aggiorna')}Rinnovo</button><span class="spazio"></span><button class="pulsante pericolo" data-azione="documento-elimina" data-id="${d.id}">${icona('elimina')}Elimina</button>`});
   if(files.length){const a=await htmlAnteprimaFile(files[0].id);const c=el('#anteprima-doc');if(c)c.innerHTML=a}
@@ -3550,7 +3608,7 @@ async function dialogoDocumento(d,filesIniziali){
     {nome:'tipoId',etichetta:'Tipo di documento',tipo:'select',obbligatorio:true,opzioni:stato.tipiDocumento.map(t=>({v:t.id,t:t.nome+(t.ambito==='persona'?'':' ('+t.ambito+')')}))},
     {nome:'titolo',etichetta:'Titolo (se diverso dal tipo)',largo:true},
     {nome:'dataEmissione',etichetta:'Data di emissione',tipo:'data'},{nome:'dataScadenza',etichetta:'Data di scadenza',tipo:'data',aiuto:'Si precompila dalla validità tipica: la data sul documento prevale'},
-    {nome:'ente',etichetta:'Ente formatore / emittente (per attestati)'},{nome:'senzaScadenza',tipo:'spunta',testo:'Senza scadenza'},{nome:'verificato',tipo:'spunta',testo:'Verificato'},
+    {nome:'ente',etichetta:'Ente formatore / emittente (per attestati)'},{nome:'senzaScadenza',tipo:'spunta',testo:'Senza scadenza'},
     {nome:'note',etichetta:'Note',tipo:'textarea',largo:true},
   ];
   const val=clona(d);val.soggetto=d.soggettoTipo&&d.soggettoId?d.soggettoTipo+':'+d.soggettoId:'';
@@ -3572,6 +3630,10 @@ async function dialogoDocumento(d,filesIniziali){
   },validaTutto:v=>{if(v.dataEmissione&&v.dataScadenza&&v.dataScadenza<v.dataEmissione)return 'La scadenza precede l\'emissione';const t=tipoDoc(v.tipoId);if(t&&v.soggetto&&t.ambito!==ambitoDi(v.soggetto)&&!(ambitoDi(v.soggetto)==='cliente'))return 'Il tipo «'+t.nome+'» non è adatto a questo soggetto';return null}});
   if(!ris) return;
   const [st,sid]=ris.soggetto.split(':');delete ris.soggetto;
+  if(nuovo&&!d.rinnovoDi){
+    const gemelli=stato.documenti.filter(x=>x.soggettoTipo===st&&x.soggettoId===sid&&x.tipoId===ris.tipoId&&infoDocumento(x).stato!=='scaduto');
+    if(gemelli.length){const t=tipoDoc(ris.tipoId);if(!(await conferma(`Esiste gi\u00e0 ${gemelli.length>1?gemelli.length+' documenti':'un documento'} \u00ab${t?t.nome:'di questo tipo'}\u00bb per ${nomeSoggettoDoc({soggettoTipo:st,soggettoId:sid})} ancora in corso di validit\u00e0. Aggiungerne un altro?`,{ok:'Aggiungi lo stesso'})))return}
+  }
   let esiti=[];
   if(filesNuovi.length){esiti=await acquisisciConAnteprima(filesNuovi)||[]}
   const nuoviId=esiti.map(e=>e.rec.id);
@@ -5345,6 +5407,7 @@ function vistaFornitore(id){
   <div class="griglia due mb">
     <div class="scheda"><h3>${icona('fornitori')}Dati</h3><div class="campi">
       <div class="campo"><span class="etichetta-campo">Partita IVA</span><div>${valoreODaCompilare(f.piva)}</div></div>
+      ${f.cf?html`<div class="campo"><span class="etichetta-campo">Codice fiscale</span><div>${f.cf}</div></div>`:''}
       <div class="campo"><span class="etichetta-campo">Telefono</span><div>${f.telefono?contattoCliccabile('tel',f.telefono):daCompilare()}</div></div>
       <div class="campo"><span class="etichetta-campo">Email</span><div>${f.email?contattoCliccabile('mail',f.email):daCompilare()}</div></div>
     </div>${f.note?html`<p class="piccolo secondario mt-s">${f.note}</p>`:''}</div>
@@ -5363,7 +5426,7 @@ function vistaFornitore(id){
 }
 function dialogoFornitore(f){
   const nuovo=!f; f=f||{};
-  const campi=[{nome:'ragioneSociale',etichetta:'Ragione sociale',obbligatorio:true,largo:true},{nome:'cosaFornisce',etichetta:'Cosa fornisce',largo:true,segnaposto:'es. materiali edili, noleggio mezzi, trasporti'},{nome:'piva',etichetta:'Partita IVA',valida:validatorePIVA},{nome:'telefono',etichetta:'Telefono',tipo:'tel'},{nome:'email',etichetta:'Email',tipo:'email',valida:validatoreEmail},{nome:'note',etichetta:'Note',tipo:'textarea',largo:true}];
+  const campi=[{nome:'ragioneSociale',etichetta:'Ragione sociale',obbligatorio:true,largo:true},{nome:'cosaFornisce',etichetta:'Cosa fornisce',largo:true,segnaposto:'es. materiali edili, noleggio mezzi, trasporti'},{nome:'piva',etichetta:'Partita IVA',valida:validatorePIVA},{nome:'cf',etichetta:'Codice fiscale',maiuscolo:true,valida:validatoreCF,aiuto:'Per i fornitori privati senza partita IVA (es. il proprietario del capannone)'},{nome:'telefono',etichetta:'Telefono',tipo:'tel'},{nome:'email',etichetta:'Email',tipo:'email',valida:validatoreEmail},{nome:'note',etichetta:'Note',tipo:'textarea',largo:true}];
   return dialogoModulo(nuovo?'Nuovo fornitore':'Modifica '+f.ragioneSociale,campi,f,{pulsantiExtra:nuovo?[]:[{testo:'Elimina',classe:'pericolo',sinistra:true,fn:async()=>{if(await conferma('Eliminare il fornitore '+f.ragioneSociale+'?',{pericolo:true})){esegui('Eliminato fornitore '+f.ragioneSociale,s=>{s.fornitori=s.fornitori.filter(x=>x.id!==f.id)});vai('fornitori');return null}return false}}]}).then(v=>{
     if(!v)return;
     if(nuovo){const id=nuovoId('fr');esegui('Nuovo fornitore '+v.ragioneSociale,s=>{s.fornitori.push(Object.assign({id},v))});vai('fornitori/'+id)}
