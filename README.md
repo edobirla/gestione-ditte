@@ -71,7 +71,8 @@ tutti verdi prima di considerare finita una modifica.**
 
 Niente che riguardi una ditta in particolare:
 
-- `azienda/` — i dati di partenza di una ditta (anagrafica, persone, cantieri, logo, firme);
+- `azienda/` — i dati di partenza di una ditta (anagrafica, persone, cantieri, logo, firme) e gli
+  strumenti che li hanno ricavati dai file dell'azienda;
 - `pavimass/` — un archivio documentale vero;
 - `template/` — i documenti di riferimento da cui sono ricavate le stampe;
 - i file `.html` costruiti, che sono un prodotto della costruzione (e possono contenere i dati di
