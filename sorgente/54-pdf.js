@@ -54,12 +54,34 @@ async function estraiTestoPdf(blob,avanzamento){
   const cacheFont=new Map();
   const mappaFont=async(ref)=>{if(cacheFont.has(ref))return cacheFont.get(ref);const d=dictDi(ref);const f={due:/\/Subtype\s*\/Type0/.test(d),mappa:null};const tu=/\/ToUnicode\s+(\d+)\s+0\s+R/.exec(d);if(tu){const o=oggetti.get(+tu[1]);const dati=o?(o.inline!==undefined?codificatoreUtf8.encode(o.inline):await flusso(o)):null;if(dati){f.mappa=leggiCMap(latin1(dati,0,dati.length))}}if(!f.mappa&&/\/Encoding\s*\/(WinAnsi|MacRoman|Standard)/.test(d)){f.mappa=null}cacheFont.set(ref,f);return f};
   const risorseFont=async(dict)=>{const out=new Map();let res=dict;const rr=/\/Resources\s+(\d+)\s+0\s+R/.exec(dict);if(rr)res=dictDi(+rr[1]);let fontDict='';const fm=/\/Font\s+(\d+)\s+0\s+R/.exec(res);if(fm)fontDict=dictDi(+fm[1]);else{const fi=/\/Font\s*<<([\s\S]*?)>>/.exec(res);if(fi)fontDict=fi[1]}const rf=/\/(\w+)\s+(\d+)\s+0\s+R/g;let x;while((x=rf.exec(fontDict)))out.set(x[1],await mappaFont(+x[2]));return out};
+  // Il testo può non stare nel contenuto della pagina: molti generatori (TeamSystem, per esempio)
+  // mettono tutta la pagina dentro un XObject di tipo Form richiamato con "/Fm1 Do". Senza seguirlo
+  // la pagina risulta vuota — è il motivo per cui le buste paga non si riuscivano a leggere.
+  const risorseDi=(dict)=>{const rr=/\/Resources\s+(\d+)\s+0\s+R/.exec(dict);if(rr)return dictDi(+rr[1]);const ri=/\/Resources\s*<<([\s\S]*?)>>\s*(?:\/|>>)/.exec(dict);return ri?ri[0]:dict};
+  const formDi=(res)=>{const out=new Map();let xo='';const xm=/\/XObject\s+(\d+)\s+0\s+R/.exec(res);if(xm)xo=dictDi(+xm[1]);else{const xi=/\/XObject\s*<<([\s\S]*?)>>/.exec(res);if(xi)xo=xi[1]}const rf=/\/([^\s\/\]<>]+)\s+(\d+)\s+0\s+R/g;let x;while((x=rf.exec(xo)))out.set(x[1],+x[2]);return out};
+  // Espande i "Do" dei Form dentro il contenuto e raccoglie i font di ogni risorsa incontrata
+  const espandi=async(contenuto,dict,fonts,profondita)=>{
+    if(profondita>4) return contenuto;
+    const res=risorseDi(dict);
+    const forms=formDi(res);
+    if(!forms.size) return contenuto;
+    const re=/\/([^\s\/\[\]<>]+)\s+Do\b/g;let m,out='',ultimo=0;
+    while((m=re.exec(contenuto))){
+      out+=contenuto.slice(ultimo,m.index);ultimo=m.index+m[0].length;
+      const ref=forms.get(m[1]);if(ref===undefined)continue;
+      const o=oggetti.get(ref);if(!o||!/\/Subtype\s*\/Form/.test(o.dict))continue;
+      const dati=await flusso(o);if(!dati)continue;
+      for(const [k,v] of await risorseFont(o.dict)) if(!fonts.has(k)) fonts.set(k,v);
+      out+='\nq\n'+await espandi(latin1(dati,0,dati.length),o.dict,fonts,profondita+1)+'\nQ\n';
+    }
+    return out+contenuto.slice(ultimo);
+  };
   let tutto='';const paginaTesti=[];
   for(let i=0;i<pagine.length;i++){
     const p=pagine[i];if(avanzamento)await avanzamento(i+1,pagine.length);
     const fonts=await risorseFont(p.dict);
     let contenuti=[];const cm=/\/Contents\s*(?:\[([^\]]*)\]|(\d+)\s+0\s+R)/.exec(p.dict);if(cm){const refs=cm[1]?Array.from(cm[1].matchAll(/(\d+)\s+0\s+R/g)).map(x=>+x[1]):[+cm[2]];for(const r of refs){const o=oggetti.get(r);if(!o)continue;const d=await flusso(o);if(d)contenuti.push(latin1(d,0,d.length))}}
-    const testoPagina=estraiTestoContenuto(contenuti.join('\n'),fonts);
+    const testoPagina=estraiTestoContenuto(await espandi(contenuti.join('\n'),p.dict,fonts,0),fonts);
     paginaTesti.push(testoPagina);
     tutto+=testoPagina+'\n\n';
   }
@@ -73,7 +95,12 @@ function leggiCMap(s){
 }
 function hexAUnicode(hx){let s='';for(let i=0;i+3<hx.length+1;i+=4){const cp=parseInt(hx.slice(i,i+4),16);if(!isNaN(cp))s+=String.fromCharCode(cp)}return s.replace(/[\uD800-\uDFFF]/g,'')}
 function estraiTestoContenuto(c,fonts){
-  let out='';let font=null;let ultimaY=null;let corpo=10;// dimensione del carattere corrente: serve a distinguere un vero a-capo da una parola posizionata
+  let out='';let font=null;let ultimaY=null;let ultimaX=null;let corpo=10;// dimensione del carattere corrente: serve a distinguere un vero a-capo da una parola posizionata
+  // Alcuni generatori posizionano una lettera alla volta (le buste paga TeamSystem lo fanno): se si
+  // mette uno spazio a ogni riposizionamento esce "D i t t a". Lo spazio si mette solo quando il
+  // salto orizzontale è più largo di un carattere intero, cioè quando è davvero un'altra colonna.
+  const SALTO_SPAZIO=0.9;
+  let daBT=0;
   const tok=/\((?:\\.|[^\\)])*\)|<[0-9A-Fa-f\s]*>|\[|\]|\/[^\s\/\[\]<>(]+|-?\d*\.?\d+|[A-Za-z'"*]+/g;
   const stack=[];let m;
   const decodifica=(s)=>{let codici=[];if(s[0]==='<'){const hx=s.slice(1,-1).replace(/\s/g,'');const passo=font&&font.due?4:2;for(let i=0;i<hx.length;i+=passo)codici.push(parseInt(hx.slice(i,i+passo),16))}else{const raw=s.slice(1,-1).replace(/\\([nrtbf()\\]|\d{1,3})/g,(x,e)=>({n:'\n',r:'\r',t:'\t',b:'\b',f:'\f','(':'(',')':')','\\':'\\'})[e]||String.fromCharCode(parseInt(e,8)));if(font&&font.due){for(let i=0;i<raw.length;i+=2)codici.push((raw.charCodeAt(i)<<8)|raw.charCodeAt(i+1))}else for(let i=0;i<raw.length;i++)codici.push(raw.charCodeAt(i))}
@@ -82,10 +109,13 @@ function estraiTestoContenuto(c,fonts){
     if(t==='Tf'){const nome=stack.filter(x=>typeof x==='string'&&x[0]==='/').pop();font=nome?fonts.get(nome.slice(1))||null:null;const nn=stack.filter(x=>typeof x==='number');if(nn.length&&nn[nn.length-1]>0)corpo=nn[nn.length-1];stack.length=0;continue}
     if(t==='Tj'||t==="'"||t==='"'){const s=stack.filter(x=>typeof x==='string'&&(x[0]==='('||x[0]==='<')).pop();if(t!=='Tj')out+='\n';if(s)out+=decodifica(s);stack.length=0;continue}
     if(t==='TJ'){let inArr=false;for(const x of stack){if(x==='[')inArr=true;else if(x===']')inArr=false;else if(typeof x==='string'&&(x[0]==='('||x[0]==='<'))out+=decodifica(x);else if(typeof x==='number'&&x<-180)out+=' '}stack.length=0;continue}
-    if(t==='Td'||t==='TD'){const n=stack.filter(x=>typeof x==='number');const ty=n[n.length-1];if(ty!==undefined&&Math.abs(ty)>Math.max(2,corpo*0.6))out+='\n';else out+=' ';if(ty!==undefined&&ultimaY!==null)ultimaY+=ty;stack.length=0;continue}
-    if(t==='Tm'){const n=stack.filter(x=>typeof x==='number');const y=n[n.length-1];const sc=Math.abs(n[n.length-3]||1);const soglia=Math.max(2,corpo*sc*0.6);if(ultimaY!==null&&y!==undefined&&Math.abs(y-ultimaY)>soglia)out+='\n';else out+=' ';if(y!==undefined)ultimaY=y;stack.length=0;continue}
+    if(t==='Td'||t==='TD'){const n=stack.filter(x=>typeof x==='number');const tx=n[n.length-2],ty=n[n.length-1];if(ty!==undefined&&Math.abs(ty)>Math.max(2,corpo*0.6))out+='\n';else if(tx!==undefined&&Math.abs(tx)>corpo*SALTO_SPAZIO)out+=' ';if(ty!==undefined&&ultimaY!==null)ultimaY+=ty;if(tx!==undefined&&ultimaX!==null)ultimaX+=tx;stack.length=0;continue}
+    if(t==='Tm'){const n=stack.filter(x=>typeof x==='number');const y=n[n.length-1];const x=n[n.length-2];const sc=Math.abs(n[n.length-3]||1);const soglia=Math.max(2,corpo*sc*0.6);if(ultimaY!==null&&y!==undefined&&Math.abs(y-ultimaY)>soglia)out+='\n';else if(ultimaX!==null&&x!==undefined&&Math.abs(x-ultimaX)>corpo*sc*SALTO_SPAZIO)out+=' ';if(y!==undefined)ultimaY=y;if(x!==undefined)ultimaX=x;stack.length=0;continue}
     if(t==='T*'){out+='\n';stack.length=0;continue}
-    if(t==='ET'){out+='\n';stack.length=0;continue}
+    if(t==='BT'){daBT=out.length;stack.length=0;continue}
+    // ET a capo solo se fra BT ed ET c'è stato più di un carattere: le buste paga aprono e chiudono
+    // un blocco di testo per ogni singola lettera, e un a-capo per lettera spezzava tutte le parole
+    if(t==='ET'){if(out.length-daBT>1)out+='\n';stack.length=0;continue}
     if(/^-?\d*\.?\d+$/.test(t))stack.push(parseFloat(t));else if(/^[A-Za-z'"*]+$/.test(t)){if(stack.length>40)stack.length=0;}else stack.push(t);
   }
   return out.replace(/[ \t]+/g,' ').replace(/\n{3,}/g,'\n\n');

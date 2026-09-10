@@ -447,30 +447,47 @@ async function smistaBustaPdf(file){
   catch(e){ prog.chiudi(); segnalaErrore(e,'Non sono riuscito a leggere il PDF'); return; }
   prog.chiudi();
   if(!pagine||!pagine.length) return avviso('Il PDF non ha pagine leggibili (forse una scansione senza testo)',{tipo:'errore'});
-  // le pagine bianche separano una busta dall'altra; buste con più componenti (aggiuntivi) hanno più pagine consecutive
+  // Le pagine bianche non separano un operaio dall'altro: nel PDF del commercialista busta e pagina
+  // bianca si alternano sempre, e chi ha più fogli li ha comunque separati da una bianca. L'unica
+  // cosa che dice di chi è una pagina è il nome scritto sopra: si raggruppa per quello.
+  const compatta=t=>String(t||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,'');
+  const trovaPersona=testo=>{
+    const q=compatta(testo);
+    return stato.persone.find(p=>{
+      const cog=compatta(p.cognome),nom=compatta(p.nome);
+      if(p.cf&&q.includes(compatta(p.cf))) return true;
+      return cog&&nom&&(q.includes(cog+nom)||q.includes(nom+cog)||(q.includes(cog)&&q.includes(nom)));
+    });
+  };
   const vuota=t=>t.replace(/\s/g,'').length<40;
-  const gruppi=[];let corrente=null;
+  const perPersona=new Map();const orfane=[];
+  let ultimo=null;
   pagine.forEach((t,i)=>{
-    if(vuota(t)){ if(corrente){gruppi.push(corrente);corrente=null} }
-    else { if(!corrente) corrente={inizio:i,fine:i,testo:''}; corrente.fine=i; corrente.testo+=' '+t; }
+    if(vuota(t)) return;
+    const p=trovaPersona(t);
+    if(p){ if(!perPersona.has(p.id))perPersona.set(p.id,[]); perPersona.get(p.id).push(i+1); ultimo=p.id; }
+    else if(ultimo&&perPersona.has(ultimo)){ perPersona.get(ultimo).push(i+1); } // foglio di seguito senza nome leggibile
+    else orfane.push(i+1);
   });
-  if(corrente) gruppi.push(corrente);
-  if(!gruppi.length) return avviso('Non ho trovato pagine con contenuto nel PDF',{tipo:'errore'});
-  const trovaPersona=testo=>{const q=normalizzaTesto(testo);return stato.persone.find(p=>{const cog=normalizzaTesto(p.cognome),nom=normalizzaTesto(p.nome);return cog&&nom&&q.includes(cog)&&q.includes(nom)})};
-  const voci=gruppi.map(g=>{
-    const p=trovaPersona(g.testo);
-    const pag='pag. '+(g.inizio+1)+(g.fine>g.inizio?'–'+(g.fine+1):'');
-    return {f:file,personaId:p?p.id:null,anno:+periodo.anno,mese:+periodo.mese,paginaInizio:g.inizio+1,paginaFine:g.fine+1,fiducia:p?0.9:0,motivi:[p?'nome trovato nel testo: '+nomePersona(p):'nome non riconosciuto nel testo',pag]};
-  });
+  if(!perPersona.size&&!orfane.length) return avviso('Non ho trovato pagine con contenuto nel PDF',{tipo:'errore'});
+  const voci=[];
+  for(const [pid,pg] of perPersona){
+    const p=persona(pid);
+    voci.push({f:file,personaId:pid,anno:+periodo.anno,mese:+periodo.mese,pagine:pg,paginaInizio:pg[0],paginaFine:pg[pg.length-1],fiducia:0.9,
+      motivi:['nome trovato sulle pagine: '+nomePersona(p),(pg.length===1?'pag. ':'pagg. ')+pg.join(', ')]});
+  }
+  voci.sort((a,b)=>a.paginaInizio-b.paginaInizio);
+  if(orfane.length) voci.push({f:file,personaId:null,anno:+periodo.anno,mese:+periodo.mese,pagine:orfane,paginaInizio:orfane[0],paginaFine:orfane[orfane.length-1],fiducia:0,motivi:['nessun nome riconosciuto','pagg. '+orfane.join(', ')]});
   ui.busteCoda=(ui.busteCoda||[]).concat(voci);
   render();
-  avviso(`${voci.length} buste trovate nel PDF: ${voci.filter(v=>v.personaId).length} riconosciute automaticamente, ${voci.filter(v=>!v.personaId).length} da assegnare a mano`);
+  const pagTot=voci.reduce((a,v)=>a+(v.pagine?v.pagine.length:1),0);
+  avviso(`${pagTot} pagine di busta raggruppate su ${voci.filter(v=>v.personaId).length} persone${voci.some(v=>!v.personaId)?', più le pagine senza nome riconosciuto da assegnare a mano':''}`);
 }
 AZIONI['buste-applica']=async()=>{
   const coda=ui.busteCoda||[]; if(!coda.length) return;
   const prog=dialogoAvanzamento('Archiviazione buste paga');
   const nuove=[];const regole=[];
-  for(let i=0;i<coda.length;i++){const c=coda[i];await prog.aggiorna(i,coda.length,c.f.name);try{const es=await acquisisciFile(c.f,{senzaCompressione:true});nuove.push({id:nuovoId('b'),personaId:c.personaId||null,anno:c.anno||null,mese:c.mese||null,netto:null,lordo:null,oreRetribuite:null,fileId:es.rec.id,paginaInizio:c.paginaInizio||null,paginaFine:c.paginaFine||null,note:c.paginaInizio?('Smistata da '+c.f.name+', pag. '+c.paginaInizio+(c.paginaFine>c.paginaInizio?'–'+c.paginaFine:'')):('File: '+c.f.name),creato:new Date().toISOString()});
+  for(let i=0;i<coda.length;i++){const c=coda[i];await prog.aggiorna(i,coda.length,c.f.name);try{const es=await acquisisciFile(c.f,{senzaCompressione:true});nuove.push({id:nuovoId('b'),personaId:c.personaId||null,anno:c.anno||null,mese:c.mese||null,netto:null,lordo:null,oreRetribuite:null,fileId:es.rec.id,paginaInizio:c.paginaInizio||null,paginaFine:c.paginaFine||null,pagine:c.pagine||null,note:c.pagine?('Smistata da '+c.f.name+', '+(c.pagine.length===1?'pag. ':'pagg. ')+c.pagine.join(', ')):c.paginaInizio?('Smistata da '+c.f.name+', pag. '+c.paginaInizio):('File: '+c.f.name),creato:new Date().toISOString()});
     // apprendimento: se l'utente ha corretto la persona, associa i segni del nome file a quella persona
     if(c.corretto&&c.personaId){const toks=normalizzaTesto(c.f.name.replace(/\.[a-z0-9]+$/i,'')).split(' ').filter(t=>t.length>=3&&!/^\d+$/.test(t)&&!NOMI_MESI.includes(t)&&!/busta|paga|cedolino|pdf|lul/.test(t));const per=persona(c.personaId);const nomi=[per.cognome,per.nome].flatMap(x=>normalizzaTesto(x).split(' '));for(const t of toks){if(!nomi.includes(t)&&!(stato.regoleBuste||[]).find(r=>r.segno===t))regole.push({segno:t,personaId:c.personaId})}}
   }catch(e){segnalaErrore(e,'Busta non archiviata: '+c.f.name)}}
