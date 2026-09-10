@@ -18,7 +18,8 @@ vuoto='--vuoto' in sys.argv
 def pezzi(cartella):
     d=os.path.join(base,cartella)
     if not os.path.isdir(d): return []
-    return [(cartella,p) for p in sorted(os.listdir(d)) if not p.startswith('.') and os.path.isfile(os.path.join(d,p))]
+    return [(cartella,p) for p in sorted(os.listdir(d))
+            if p.endswith(('.css','.html','.js')) and os.path.isfile(os.path.join(d,p))]
 
 parti=pezzi('sorgente')+([] if vuoto else pezzi('azienda'))
 css=[];html=[];js=[]

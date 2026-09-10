@@ -282,6 +282,90 @@ function salvaDichiarazione(m,c,st,pagine){
   else avviso('«'+m.nome+'» salvata fra i documenti generati.');
 }
 
+function docScadenzario(){
+  const sc=riepilogoScadenze();
+  const conData=sc.righe.filter(x=>x.info.data).sort((a,b)=>a.info.data<b.info.data?-1:1);
+  const gruppi=raggruppa(conData,x=>x.info.data.slice(0,7));
+  const blocchi=[`<h1>Scadenzario documenti</h1><p class="sx">Aggiornato al ${h(fData(sc.oggi))}. Stati: scaduto (data passata), in scadenza entro ${sc.soglie.scadenza} giorni, da pianificare entro ${sc.soglie.pianificare} giorni. Le date seguite da ~ sono stimate dalla validità tipica: la data sul documento prevale.</p>`];
+  blocchi.push(`<table><tbody><tr><td><b>Scaduti</b></td><td class="num">${sc.scaduti.length}</td><td><b>Mancanti</b></td><td class="num">${sc.mancanti.length}</td><td><b>In scadenza</b></td><td class="num">${sc.entro60.length}</td><td><b>Da pianificare</b></td><td class="num">${sc.entro90.length}</td></tr></tbody></table>`);
+  if(sc.mancanti.length) blocchi.push({html:'<h2>Documenti mancanti</h2>',tieniConSuccessivo:true},`<table><thead><tr><th>Persona</th><th>Documento</th><th>Effetto</th></tr></thead><tbody>${sc.mancanti.map(m=>`<tr><td>${h(nomePersona(m.persona))}</td><td>${h(m.nome)}</td><td class="${m.bloccante?'stato-scaduto':''}">${m.bloccante?'Blocca l\'ingresso in cantiere':'Richiesto dalle committenze'}</td></tr>`).join('')}</tbody></table>`);
+  for(const [k,righe] of gruppi){const {anno,mese}=daChiaveMese(k);blocchi.push({html:`<div class="scadenzario-gruppo">${h(fMeseAnno(anno,mese))}</div>`,tieniConSuccessivo:true},`<table><thead><tr><th style="width:24mm">Scadenza</th><th>Chi</th><th>Documento</th><th style="width:22mm">Emissione</th><th style="width:30mm">Stato</th></tr></thead><tbody>${righe.map(x=>`<tr><td>${h(fData(x.info.data))}${x.info.stimata?' ~':''}</td><td>${h(x.soggetto)}</td><td>${h((x.tipo||{}).nome||'')}${x.doc.titolo?' <span class="mini">'+h(x.doc.titolo)+'</span>':''}</td><td>${h(fData(x.doc.dataEmissione)||'')}</td><td class="stato-doc stato-${x.info.stato}">${h(STATI_DOC[x.info.stato].etichetta)}${x.info.giorni!=null&&x.info.giorni>=0?' ('+x.info.giorni+' gg)':''}</td></tr>`).join('')}</tbody></table>`)}
+  if(sc.senzaScadenza.length) blocchi.push({html:'<h2>Documenti senza scadenza</h2>',tieniConSuccessivo:true},`<table><thead><tr><th>Chi</th><th>Documento</th><th>Emissione</th><th>File</th></tr></thead><tbody>${sc.senzaScadenza.map(x=>`<tr><td>${h(x.soggetto)}</td><td>${h((x.tipo||{}).nome||'')}${x.doc.titolo?' <span class="mini">'+h(x.doc.titolo)+'</span>':''}</td><td>${h(fData(x.doc.dataEmissione)||'—')}</td><td>${(x.doc.file||[]).length?'sì':'<span class="da-compilare">manca</span>'}</td></tr>`).join('')}</tbody></table>`);
+  blocchi.push(bloccoFirma({}));
+  return {titolo:'Scadenzario'+(nomeImpresa()?' '+nomeImpresa():''),cartaIntestata:true,blocchi};
+}
+AZIONI['stampa-scadenzario']=()=>anteprimaStampa({titolo:'Scadenzario'+(nomeImpresa()?' '+nomeImpresa():''),doc:docScadenzario()});
+// Preventivo: stessa impaginazione del gestionale di fatturazione usato in azienda
+// (template/Prev. n.4-26-P ...pdf), così tutte le offerte escono uguali.
+function docPreventivo(p){
+  const tot=totaliPreventivo(p);const cl=cliente(p.clienteId);const c=cantiere(p.cantiereId);const a=stato.azienda;
+  const righe=(p.righe||[]);
+  const dc=(v,et)=>v?h(v):`<span class="da-compilare">[DA COMPILARE${et?': '+et:''}]</span>`;
+  const riq=(et,corpo,cls)=>`<div class="riq-prev ${cls||''}"><span class="et">${h(et)}</span><div class="vl">${corpo}</div></div>`;
+  const intestatario=cl?`<b>Spett.le</b><br>${h(cl.ragioneSociale)}<br>${h(indirizzoTesto(cl.indirizzo))}`:'<span class="da-compilare">[DA COMPILARE: cliente]</span>';
+  const destinazione=c?h(c.nome)+(c.indirizzo&&c.indirizzo.comune?'<br>'+h(indirizzoTesto(c.indirizzo)):''):(p.oggetto?h(p.oggetto):'—');
+  const testata=`<div class="prev-testa">
+    <div class="prev-mittente"><img src="{{IMG:logo}}" alt="${h(a.ragioneSociale)}"><div class="ind">${h(a.indirizzo.via||'')}<br>${h(a.indirizzo.cap||'')} ${h(a.indirizzo.comune||'')} (${h(a.indirizzo.provincia||'')})<br>Italia<br>P.IVA e C.F. ${h(a.piva||'')}</div>
+      <div class="prev-numero"><div class="barra"><b>Preventivo</b></div><div class="celle"><div><span class="et">Numero</span><span class="vl">${h(p.numero)}/${h(String(p.anno).slice(-2))}/P</span></div><div><span class="et">Data</span><span class="vl">${h(fData(p.data))}</span></div><div><span class="et">Partita Iva</span><span class="vl">${cl&&cl.piva?h(cl.piva):''}</span></div><div><span class="et">Codice fiscale</span><span class="vl">${cl&&cl.cf?h(cl.cf):''}</span></div></div></div></div>
+    <div class="prev-destinatario">${riq('Intestatario',intestatario,'alto')}${riq('Destinazione',destinazione,'alto')}</div>
+  </div>
+  <div class="prev-condizioni">${riq('Condizioni di pagamento',dc((cl&&cl.condizioniPagamento)||a.condizioniPagamento,'condizioni di pagamento'))}${riq('Banca e Coordinate',(a.banca?h(a.banca):'')+(a.iban?(a.banca?' - ':'')+h(a.iban)+'<br>IBAN: '+h(a.iban):(a.banca?'':'<span class="da-compilare">[DA COMPILARE: banca e IBAN in Impostazioni → Azienda]</span>')))}</div>`;
+  const corpoRighe=righe.map(r=>{
+    const imp=(r.prezzo==null||r.prezzo==='')?null:(+r.quantita||0)*+r.prezzo;
+    const desc=h(r.descrizione||'')+(r.descrizioneEstesa?'<div class="mini">'+h(r.descrizioneEstesa)+'</div>':'')+(r.esclusa?'<div class="mini"><b>SOLO POSA — esclusa fornitura</b></div>':'');
+    return `<tr><td>${desc}</td><td class="num">${r.quantita!=null&&r.quantita!==''?h(fNum(r.quantita,Number.isInteger(+r.quantita)?0:2)):''}</td><td class="um">${h(r.um||'')}</td><td class="num">${r.esclusa?'—':imp==null?'<span class="da-compilare">[DA QUOTARE]</span>':h(fNum(r.prezzo,2))}</td><td class="num">${r.esclusa?'escl.':imp==null?'':h(fNum(imp,2))}</td><td class="civa">${h(p.codiceIva||'N6.7')}</td></tr>`;
+  }).join('');
+  const tabella=`<table class="prev-voci"><thead><tr><th>Descrizione</th><th class="num q">Q.tà</th><th class="um">U.M.</th><th class="num pz">Prezzo</th><th class="num imp">Importo</th><th class="civa">C.IVA</th></tr></thead><tbody>${corpoRighe||'<tr><td colspan="6" class="mini">Nessuna voce inserita.</td></tr>'}</tbody></table>`;
+  const notePiede=[a.notePreventivo,p.validitaGiorni?'Validità preventivo: '+fNum(p.validitaGiorni,0)+' giorni':null,a.cellulare?'Cell. '+a.cellulare:null].filter(Boolean);
+  const piede=`<div class="prev-piede">
+    <div class="prev-fascia">${notePiede.map(x=>`<span>${h(x)}</span>`).join('')}</div>
+    <div class="prev-totali"><div class="col"><span class="et">Imponibili</span><span class="vl">${h(fEuro(tot.totale))}</span></div><div class="col"><span class="et">Descrizione imposta</span><span class="vl piccolo">${h(p.descrizioneImposta||'inversione contabile')}</span></div><div class="col"><span class="et">Imposta</span><span class="vl">${h(fEuro(0))}</span></div><div class="col tot"><span class="et">Totale documento</span><span class="vl">${h(fEuro(tot.totale))}</span></div></div>
+    <div class="prev-totali sotto"><div class="col"><span class="et">Tot. imponibile</span><span class="vl">${h(fEuro(tot.totale))}</span></div><div class="col"><span class="et">Tot. imposte</span><span class="vl">${h(fEuro(0))}</span></div></div>
+    <div class="prev-fondo">${riq('Note',(p.condizioni?h(p.condizioni).replace(/\n/g,'<br>'):'')+(tot.daQuotare.length?`<div class="da-compilare mini">Voci ancora da quotare: ${h(tot.daQuotare.map(r=>r.codice||tronca(r.descrizione,30)).join(', '))}</div>`:''),'note')}<div class="firma-acc"><i>Firma per accettazione</i><div class="linea"></div></div></div>
+    <p class="prev-privacy">Ai sensi del D.Lgs. 196/2003 Vi informiamo che i Vs. dati saranno utilizzati esclusivamente per i fini connessi ai rapporti commerciali tra di noi in essere. Vi preghiamo di controllare i Vs. dati anagrafici, la P. IVA e il Cod. Fiscale. Non ci riteniamo responsabili di eventuali errori.</p></div>`;
+  return {titolo:'Preventivo '+p.numero+'/'+p.anno,cartaIntestata:false,classe:'prev',blocchi:[testata,tabella,piede]};
+}
+function stampaPreventivo(p){anteprimaStampa({titolo:'Preventivo '+p.numero+' '+p.anno,doc:docPreventivo(p),riferimento:nomeCliente(p.clienteId)})}
+// Libro presenze: una scheda per persona, fedele al modello aziendale "Scheda Ore Mensile"
+// (testata con logo + titolo, riquadri nome/qualifica, tabella Giorno/Committente/Località trasferta/Ore).
+function classeGiornoOre(v,we,festivo){
+  if(v==='FE') return 'g-ferie';
+  if(v==='FS'||(festivo&&v==null)) return 'g-festivo';
+  if(v==='M'||v==='I') return 'g-malattia';
+  if(typeof v==='string') return 'g-assenza';
+  if(we) return 'g-we';
+  return '';
+}
+function docLibroPresenze(anno,mese){
+  const m=meseP(anno,mese)||{persone:{}};const persone=personePresenze(anno,mese);const n=giorniNelMese(anno,mese);const fest=festivitaAnno(anno,stato.impostazioni.festivitaLocali);const k=chiaveMese(anno,mese);
+  const blocchi=[];
+  let primo=true;
+  for(const sz of ['soci','dipendenti']){
+    const pp=persone.filter(p=>(p.sezionePresenze||'dipendenti')===sz);if(!pp.length)continue;
+    for(const p of pp){
+      const mp=m.persone[p.id]||{giorni:{}};const calc=calcolaMesePersona(mp,p);
+      const righe=[];
+      for(let g=1;g<=n;g++){
+        const we=eFineSettimana(anno,mese,g);const c=mp.giorni[String(g)]||{};const iso=k+'-'+pad2(g);const festivo=fest.has(iso);
+        const v=valoreCella(c);
+        const cls=classeGiornoOre(v,we,festivo);
+        const ore=v==null?'—':typeof v==='number'?fOre(v):((CODICI_ASSENZA[v]||{}).nome||v);
+        const trasferta=c.trasferta||c.cantiere||'';
+        righe.push(`<tr${cls?` class="${cls}"`:''}><td class="giorno">${g}<span class="gs"> ${h(NOMI_GIORNI_BREVI[giornoSettimana(anno,mese,g)])}</span></td><td>${h(c.committente||'')||'—'}</td><td>${h(trasferta)||'—'}</td><td class="num">${h(ore)}</td></tr>`);
+      }
+      const totale=p.soloTrasferte?'—':fOre(calc.oreGriglia);
+      blocchi.push({nuovaPagina:!primo,html:`<div class="ore-anagrafica"><div class="riq"><span class="et">Nome e cognome</span><div class="vl">${h(nomePersona(p))}</div></div><div class="riq"><span class="et">Qualifica / Ruolo</span><div class="vl">${h(p.mansione||(sz==='soci'?'Socio':'Operaio'))}</div></div></div>`});
+      blocchi.push(`<table class="ore-mensili"><thead><tr><th class="giorno">Giorno</th><th>Committente</th><th class="trasf">Località Trasferta</th><th class="num ore">Ore Ordinarie</th></tr></thead><tbody>${righe.join('')}</tbody><tfoot><tr class="totale"><td colspan="3" class="num">Totale mese</td><td class="num">${h(totale)}</td></tr></tfoot></table>`);
+      const assenze=Object.entries(calc.perCodice).map(([cc,nn])=>((CODICI_ASSENZA[cc]||{}).nome||cc)+' '+nn).join(' · ');
+      blocchi.push(`<div class="ore-piede"><div class="riq note"><span class="et">Note</span><div class="vl">${h(mp.note||'')}${assenze?`<div class="mini">${h(assenze)}</div>`:''}</div></div><div class="riq importo"><span class="et">Importo totale</span><div class="vl">${h(calc.importo!=null?fEuro(calc.importo,0):'—')}${mp.importoForzato?' <span class="mini">(forzato)</span>':''}</div></div></div>`);
+      primo=false;
+    }
+  }
+  if(!blocchi.length) blocchi.push('<p class="sx">Nessuna persona in presenze per questo mese.</p>');
+  const testa=`<div class="carta-intestata ore-testa"><img src="{{IMG:logo}}" alt="${h(stato.azienda.ragioneSociale)}"><div class="dati"><b>${h(stato.azienda.ragioneSociale)}</b>${(((stato.azienda.cartaIntestata||{}).righe)||[]).map(r=>h(r)+'<br>').join('')}</div><div class="titolo-scheda"><b>SCHEDA ORE MENSILE</b><span>${h(capitalizza(fMeseAnno(anno,mese)))}</span></div></div>`;
+  return {titolo:'Scheda ore mensile '+capitalizza(nomeMese(mese))+' '+anno,intestazione:testa,classe:'ore-mensili-doc',blocchi};
+}
+function stampaLibroPresenze(anno,mese){anteprimaStampa({titolo:'Scheda ore mensile '+capitalizza(nomeMese(mese))+' '+anno,doc:docLibroPresenze(anno,mese)})}
 function docChecklist(c){
   const ck=checklistCantiere(c);const g=raggruppa(ck.voci,v=>v.gruppo);
   const blocchi=[`<h1 class="sx">Checklist documenti — ${h(c.nome)}</h1><p class="sx">Committente: ${nomeCliente(c.committenteId)?h(nomeCliente(c.committenteId)):'<span class="da-compilare">[DA COMPILARE]</span>'} · Impresa affidataria: ${nomeCliente(c.affidatariaId)?h(nomeCliente(c.affidatariaId)):'<span class="da-compilare">[DA COMPILARE]</span>'} · Aggiornata al ${h(fData(oggi()))} · ${ck.pronti} su ${ck.totale} pronti</p>`];
