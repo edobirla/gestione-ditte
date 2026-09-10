@@ -1,5 +1,16 @@
-# Nel repository sta solo index.html: l'applicazione pronta, senza i dati di nessuna ditta.
-# Tutto il resto (sorgenti, dati aziendali, archivio documentale) resta sul computer.
-*
-!index.html
-!.gitignore
+.DS_Store
+Icon?
+
+# dati di una ditta: non stanno nel programma
+azienda/
+# archivio documentale vero dell'azienda
+pavimass/
+# documenti di riferimento da cui sono ricavate le stampe
+template/
+
+# file costruiti: si rifanno con strumenti/costruisci.py e possono contenere i dati di una ditta
+*.html
+!sorgente/*.html
+
+# il file dell'app pubblicata sta sul ramo main, non qui
+index.html
