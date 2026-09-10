@@ -12,9 +12,18 @@ VISTE.documenti=function(r){
 };
 document.addEventListener('click',e=>{const b=e.target.closest('[data-linguetta="documenti"]');if(b){e.stopImmediatePropagation();vai('documenti/'+(b.dataset.valore==='archivio'?'':b.dataset.valore))}},true);
 
+// Un documento è "archiviato" quando il suo soggetto non è più in uso: una persona cessata o un
+// cantiere chiuso. Non si cancella niente: si toglie di mezzo, e si rivede con un interruttore.
+function documentoArchiviato(d){
+  if(d.soggettoTipo==='persona'){const p=persona(d.soggettoId);return !!(p&&!p.attivo)}
+  if(d.soggettoTipo==='cantiere'){const c=cantiere(d.soggettoId);return !!(c&&['chiuso','archiviato'].includes(c.stato))}
+  return false;
+}
 function vistaArchivio(){
   const f=ui.filtri.archivio||{};
   let docs=stato.documenti.map(d=>({d,info:infoDocumento(d),tipo:tipoDoc(d.tipoId),peso:somma((d.file||[]).map(id=>fileMeta(id)).filter(Boolean),m=>m.dimensione)}));
+  const archiviati=docs.filter(x=>documentoArchiviato(x.d)).length;
+  if(!f.archiviati) docs=docs.filter(x=>!documentoArchiviato(x.d));
   if(f.soggetto) docs=docs.filter(x=>(x.d.soggettoTipo+':'+x.d.soggettoId)===f.soggetto||(f.soggetto==='azienda'&&x.d.soggettoTipo==='azienda'));
   if(f.tipo) docs=docs.filter(x=>x.d.tipoId===f.tipo);
   if(f.anno) docs=docs.filter(x=>(x.d.dataEmissione||'').startsWith(f.anno)||(x.info.data||'').startsWith(f.anno));
@@ -23,7 +32,7 @@ function vistaArchivio(){
   const soggetti=[{v:'azienda',t:stato.azienda.ragioneSociale},...stato.persone.map(p=>({v:'persona:'+p.id,t:nomePersona(p)})),...stato.cantieri.map(c=>({v:'cantiere:'+c.id,t:'Cantiere '+c.nome})),...stato.mezzi.map(m=>({v:'mezzo:'+m.id,t:'Mezzo '+nomeMezzo(m)}))];
   const anni=unici(stato.documenti.flatMap(d=>[(d.dataEmissione||'').slice(0,4),(d.dataScadenza||'').slice(0,4)]).filter(Boolean)).sort().reverse();
   const sel=(nome,opz,val,etic)=>html`<select data-cambio="filtro-archivio" data-campo="${nome}" aria-label="${etic}"><option value="">${etic}</option>${opz.map(o=>html`<option value="${o.v}" ${o.v===val?'selected':''}>${o.t}</option>`)}</select>`;
-  return html`<div class="strumenti-tabella"><input type="search" placeholder="Cerca nel nome, titolo, note" value="${f.cerca||''}" data-cambio="filtro-archivio" data-campo="cerca" aria-label="Cerca documenti">${sel('soggetto',soggetti,f.soggetto,'Tutti i soggetti')}${sel('tipo',stato.tipiDocumento.map(t=>({v:t.id,t:t.nome})),f.tipo,'Tutti i tipi')}${sel('anno',anni.map(a=>({v:a,t:a})),f.anno,'Anno')}${sel('stato',Object.entries(STATI_DOC).map(([v,x])=>({v,t:x.etichetta})),f.stato,'Validità')}${pulsanteCancellaFiltri(!!(f.cerca||f.soggetto||f.tipo||f.anno||f.stato),'filtro-archivio-reset')}<span class="conteggio">${docs.length} documenti</span></div>
+  return html`<div class="strumenti-tabella"><input type="search" placeholder="Cerca nel nome, titolo, note" value="${f.cerca||''}" data-cambio="filtro-archivio" data-campo="cerca" aria-label="Cerca documenti">${sel('soggetto',soggetti,f.soggetto,'Tutti i soggetti')}${sel('tipo',stato.tipiDocumento.map(t=>({v:t.id,t:t.nome})),f.tipo,'Tutti i tipi')}${sel('anno',anni.map(a=>({v:a,t:a})),f.anno,'Anno')}${sel('stato',Object.entries(STATI_DOC).map(([v,x])=>({v,t:x.etichetta})),f.stato,'Validità')}${pulsanteCancellaFiltri(!!(f.cerca||f.soggetto||f.tipo||f.anno||f.stato),'filtro-archivio-reset')}${archiviati?html`<label class="spunta piccolo" title="Documenti di persone cessate e di cantieri chiusi"><input type="checkbox" data-cambio="filtro-archivio-archiviati" ${f.archiviati?'checked':''}> Mostra archiviati (${archiviati})</label>`:''}<span class="conteggio">${docs.length} documenti</span></div>
   ${tabella({id:'archivio',righe:docs,chiaveOrd:'stato',onRiga:x=>apriDocumento(x.d.id),classeRiga:x=>'riga-'+x.info.stato,colonne:[
     {chiave:'sogg',titolo:'Soggetto',principale:true,valore:x=>nomeSoggettoDoc(x.d)},
     {chiave:'tipo',titolo:'Documento',valore:x=>x.tipo?x.tipo.nome:'',formatta:x=>html`<b>${x.tipo?x.tipo.nome:'[tipo?]'}</b>${x.d.titolo?html`<br><span class="piccolo secondario">${x.d.titolo}</span>`:''}`},
@@ -33,6 +42,7 @@ function vistaArchivio(){
   ],vuoto:vuoto({icona:'documenti',titolo:'Nessun documento con questi filtri',testo:'Prova ad allargare i filtri o aggiungi un documento.'})})}`;
 }
 AZIONI['filtro-archivio']=(d,t)=>{ui.filtri.archivio=Object.assign({},ui.filtri.archivio,{[d.campo]:t.value});render();if(d.campo==='cerca')setTimeout(()=>{const i=el('[data-cambio="filtro-archivio"][data-campo="cerca"]');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}},0)};
+AZIONI['filtro-archivio-archiviati']=(d,t)=>{ui.filtri.archivio=Object.assign({},ui.filtri.archivio,{archiviati:t.checked});render()};
 AZIONI['filtro-archivio-reset']=()=>{ui.filtri.archivio={};render()};
 document.addEventListener('input',debounce(e=>{const t=e.target;if(t.matches&&t.matches('[data-cambio="filtro-archivio"][data-campo="cerca"]'))AZIONI['filtro-archivio']({campo:'cerca'},t)},250));
 
@@ -120,7 +130,7 @@ async function acquisisciConAnteprima(files,opz){
 // ---- dialogo documento (nuovo/modifica) ----
 async function dialogoDocumento(d,filesIniziali){
   const nuovo=!d.id;
-  d=Object.assign({soggettoTipo:null,soggettoId:null,tipoId:null,titolo:'',dataEmissione:null,dataScadenza:null,senzaScadenza:false,verificato:false,note:'',file:[]},d);
+  d=Object.assign({soggettoTipo:null,soggettoId:null,tipoId:null,titolo:'',dataEmissione:null,dataScadenza:null,dataFine:null,anno:null,durata:'',senzaScadenza:false,verificato:false,note:'',file:[]},d);
   const soggettoFisso=!!(d.soggettoTipo&&d.soggettoId)&&!nuovo?true:false;
   const soggetti=[{v:'azienda:azienda',t:stato.azienda.ragioneSociale},...stato.persone.filter(p=>p.attivo||p.id===d.soggettoId).map(p=>({v:'persona:'+p.id,t:nomePersona(p)})),...stato.cantieri.map(c=>({v:'cantiere:'+c.id,t:'Cantiere '+c.nome})),...stato.clienti.map(c=>({v:'cliente:'+c.id,t:'Cliente '+c.ragioneSociale})),...stato.mezzi.map(m=>({v:'mezzo:'+m.id,t:'Mezzo '+nomeMezzo(m)}))];
   const filesNuovi=filesIniziali?Array.from(filesIniziali):[];
@@ -136,7 +146,11 @@ async function dialogoDocumento(d,filesIniziali){
     {nome:'soggetto',etichetta:'Soggetto',tipo:'select',obbligatorio:true,opzioni:soggetti,sola:soggettoFisso},
     {nome:'tipoId',etichetta:'Tipo di documento',tipo:'select',obbligatorio:true,opzioni:stato.tipiDocumento.map(t=>({v:t.id,t:t.nome+(t.ambito==='persona'?'':' ('+t.ambito+')')}))},
     {nome:'titolo',etichetta:'Titolo (se diverso dal tipo)',largo:true},
-    {nome:'dataEmissione',etichetta:'Data di emissione',tipo:'data'},{nome:'dataScadenza',etichetta:'Data di scadenza',tipo:'data',aiuto:'Si precompila dalla validità tipica: la data sul documento prevale'},
+    {nome:'dataEmissione',etichetta:'Data di emissione',tipo:'data'},
+    {nome:'durata',etichetta:'Durata',tipo:'select',opzioni:DURATE_DOCUMENTO,aiuto:'Scegliendola, la scadenza si calcola dalla data di emissione. Lascia vuoto per i documenti che non hanno una durata fissa: la scadenza si scrive a mano.'},
+    {nome:'dataScadenza',etichetta:'Data di scadenza',tipo:'data',aiuto:'Si precompila dalla validità tipica: la data sul documento prevale'},
+    {nome:'dataFine',etichetta:'Fino al',tipo:'data'},
+    {nome:'anno',etichetta:'Anno di riferimento',tipo:'numero',decimali:0},
     {nome:'ente',etichetta:'Ente formatore / emittente (per attestati)'},{nome:'senzaScadenza',tipo:'spunta',testo:'Senza scadenza'},
     {nome:'note',etichetta:'Note',tipo:'textarea',largo:true},
   ];
@@ -146,9 +160,26 @@ async function dialogoDocumento(d,filesIniziali){
     const form=v.querySelector('form');
     const sel=form.querySelector('[name=soggetto]'),tipoSel=form.querySelector('[name=tipoId]'),em=form.querySelector('[name=dataEmissione]'),sc=form.querySelector('[name=dataScadenza]'),ss=form.querySelector('[name=senzaScadenza]');
     const filtraTipi=()=>{const amb=sel.value?ambitoDi(sel.value):null;tutti('option',tipoSel).forEach(o=>{const t=tipoDoc(o.value);o.hidden=!!(t&&amb&&t.ambito!==amb&&!(amb==='cliente'&&t.ambito==='cantiere'))})};
+    const dur=form.querySelector('[name=durata]'),fine=form.querySelector('[name=dataFine]'),annoI=form.querySelector('[name=anno]');
+    const rigaDi=(e2)=>e2&&e2.closest('.campo');
+    // ogni tipo di documento chiede quello che gli serve: chi copre un periodo (una malattia) chiede
+    // dal e al, chi è annuale (la CU) chiede l'anno, gli altri emissione, durata e scadenza
+    const adatta=()=>{
+      const t=tipoDoc(tipoSel.value)||{};
+      const mostra=(e2,si)=>{const r=rigaDi(e2);if(r)r.hidden=!si};
+      mostra(fine,!!t.periodo); mostra(annoI,!!t.annuale);
+      mostra(sc,!t.periodo&&!t.annuale); mostra(dur,!t.periodo&&!t.annuale); mostra(ss,!t.periodo&&!t.annuale);
+      const et=rigaDi(em)&&rigaDi(em).querySelector('.etichetta-campo,label');
+      if(et) et.textContent=t.periodo?'Dal':t.annuale?'Data del documento':'Data di emissione';
+      if(t.annuale&&annoI&&!annoI.value) annoI.value=new Date().getFullYear();
+    };
+    const daDurata=()=>{const mesi=+dur.value;if(!mesi||!em.value)return;ss.checked=false;sc.disabled=false;sc.value=aggiungiMesi(em.value,mesi)};
+    dur.addEventListener('change',daDurata);
+    tipoSel.addEventListener('change',adatta);
+    dopoRender(adatta);setTimeout(adatta,0);
     const stimaScadenza=()=>{const t=tipoDoc(tipoSel.value);if(!t||!em.value||sc.value)return;if(t.validitaMesi)sc.value=aggiungiMesi(em.value,t.validitaMesi);else if(t.validitaGiorni)sc.value=aggiungiGiorni(em.value,t.validitaGiorni);if(!t.validitaMesi&&!t.validitaGiorni&&!sc.value&&!d.dataScadenza)ss.checked=true};
     sel.addEventListener('change',filtraTipi);filtraTipi();
-    tipoSel.addEventListener('change',()=>{sc.value='';stimaScadenza()});em.addEventListener('change',stimaScadenza);
+    tipoSel.addEventListener('change',()=>{sc.value='';stimaScadenza()});em.addEventListener('change',()=>{if(dur.value)daDurata();else stimaScadenza()});
     ss.addEventListener('change',()=>{sc.disabled=ss.checked});sc.disabled=ss.checked;
     const zona=v.querySelector('#dlg-drop');
     const rinfresca=()=>{v.querySelector('#dlg-file-lista').outerHTML=listaFile().s.match(/<ul[\s\S]*<\/ul>/)[0];tutti('[data-togli-nuovo]',v).forEach(b=>b.onclick=()=>{filesNuovi.splice(+b.dataset.togliNuovo,1);rinfresca()})};
@@ -159,6 +190,10 @@ async function dialogoDocumento(d,filesIniziali){
   },validaTutto:v=>{if(v.dataEmissione&&v.dataScadenza&&v.dataScadenza<v.dataEmissione)return 'La scadenza precede l\'emissione';const t=tipoDoc(v.tipoId);if(t&&v.soggetto&&t.ambito!==ambitoDi(v.soggetto)&&!(ambitoDi(v.soggetto)==='cliente'))return 'Il tipo «'+t.nome+'» non è adatto a questo soggetto';return null}});
   if(!ris) return;
   const [st,sid]=ris.soggetto.split(':');delete ris.soggetto;
+  const tSel=tipoDoc(ris.tipoId)||{};
+  if(tSel.periodo||tSel.annuale){ris.senzaScadenza=true;ris.dataScadenza=null}
+  if(!tSel.periodo)ris.dataFine=null;
+  if(!tSel.annuale)ris.anno=null;
   if(nuovo&&!d.rinnovoDi){
     const gemelli=stato.documenti.filter(x=>x.soggettoTipo===st&&x.soggettoId===sid&&x.tipoId===ris.tipoId&&infoDocumento(x).stato!=='scaduto');
     if(gemelli.length){const t=tipoDoc(ris.tipoId);if(!(await conferma(`Esiste gi\u00e0 ${gemelli.length>1?gemelli.length+' documenti':'un documento'} \u00ab${t?t.nome:'di questo tipo'}\u00bb per ${nomeSoggettoDoc({soggettoTipo:st,soggettoId:sid})} ancora in corso di validit\u00e0. Aggiungerne un altro?`,{ok:'Aggiungi lo stesso'})))return}

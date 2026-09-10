@@ -61,11 +61,18 @@ const RUOLI_PROFESSIONISTA={progettista:'Progettista',direttoreLavori:'Direttore
 const STATI_CANTIERE={preventivo:'In preventivo',attivo:'Attivo',sospeso:'Sospeso',chiuso:'Chiuso',archiviato:'Archiviato'};
 const STATI_CLIENTE={potenziale:'Potenziale',attivo:'Attivo',dormiente:'Dormiente',chiuso:'Chiuso'};
 const CATEGORIE_MOVIMENTO={materiali:'Materiali',subappalto:'Subappalto',trasporti:'Trasporti',noleggi:'Noleggi',spese_generali:'Spese generali',manodopera:'Manodopera',altro:'Altro'};
-const CATEGORIE_TIPO_DOC={identita:'Identità',contratto:'Contratto',sanitario:'Sanitario',formazione:'Formazione',nomina:'Nomina',impresa:'Impresa',sicurezza:'Sicurezza',amministrativo:'Amministrativo',cantiere:'Cantiere',mezzo:'Mezzo'};
+// Durate che si scelgono su un singolo documento: la scadenza si calcola dalla data di emissione.
+// Non si applica a tutto: molti documenti hanno la scadenza stampata sopra e lì si scrive a mano.
+const DURATE_DOCUMENTO=[{v:12,t:'1 anno'},{v:24,t:'2 anni'},{v:36,t:'3 anni'},{v:60,t:'5 anni'},{v:120,t:'10 anni'},{v:6,t:'6 mesi'}];
+const CATEGORIE_TIPO_DOC={identita:'Identità',malattia:'Malattia',contratto:'Contratto',sanitario:'Sanitario',formazione:'Formazione',nomina:'Nomina',impresa:'Impresa',sicurezza:'Sicurezza',amministrativo:'Amministrativo',cantiere:'Cantiere',mezzo:'Mezzo'};
 
 // Catalogo tipi di documento. obbligatorio: vedi tipoApplicabile() nelle REGOLE.
 // bloccaIdoneita: se mancante/scaduto impedisce l'ingresso in cantiere; gli altri obbligatori entrano solo nella checklist.
 const TIPI_DOCUMENTO_INIZIALI=[
+  {id:'cessazione',nome:'Cessazione del rapporto',ambito:'persona',validitaMesi:null,obbligatorio:'no',bloccaIdoneita:false,categoria:'contratto',note:'Lettera di licenziamento o di dimissioni, o comunicazione di fine rapporto.',sinonimi:['licenziamento','dimissioni','lettera di dimissioni','cessazione','fine rapporto','unilav cessazione']},
+  // periodo: il documento copre un intervallo (dal/al) e non scade mai; annuale: ce n'è uno per anno
+  {id:'certificato_malattia',nome:'Certificato medico di malattia',ambito:'persona',validitaMesi:null,obbligatorio:'no',bloccaIdoneita:false,categoria:'malattia',periodo:true,note:'Copre i giorni di assenza per malattia: si registra dal primo all\'ultimo giorno.',sinonimi:['certificato di malattia','certificato medico','malattia','prognosi','inps malattia']},
+  {id:'cu',nome:'CU (Certificazione Unica)',ambito:'persona',validitaMesi:null,obbligatorio:'no',bloccaIdoneita:false,categoria:'amministrativo',annuale:true,note:'Una per ogni anno d\'imposta.',sinonimi:['cu','certificazione unica','cud']},
   {id:'carta_identita',nome:'Carta d\'Identità',ambito:'persona',validitaMesi:null,obbligatorio:'si',bloccaIdoneita:true,categoria:'identita',note:'Validità dalla data sul documento. In alternativa il passaporto.',sinonimi:['documento identità','documento di identità','carta identità','ci','documento']},
   {id:'passaporto',nome:'Passaporto',ambito:'persona',validitaMesi:null,obbligatorio:'si',bloccaIdoneita:true,categoria:'identita',note:'In alternativa alla carta d\'identità.',sinonimi:['passaporto']},
   {id:'permesso_soggiorno',nome:'Permesso di Soggiorno',ambito:'persona',validitaMesi:null,obbligatorio:'extraUE',bloccaIdoneita:true,categoria:'identita',note:'Solo per cittadini extra UE. Validità dalla data sul documento.',sinonimi:['permesso di soggiorno','permesso soggiorno','pds','ricevuta questura']},
