@@ -31,6 +31,8 @@ MAPPA DELLE SEZIONI
   JS    ESPORTA .............. XLSX, CSV, Markdown, pacchetto committenza, condivisione iOS
   JS    POS .................. procedura guidata, composizione dal testo standard, controllo segnaposto
   JS    PDF .................. estrazione testo dai PDF (inflate in JS), lettura Excel dei clienti
+  JS    PDF-PAGINA ........... ricostruzione di una pagina PDF dentro l'app (testo e righe posizionati)
+  JS    ASSISTENTE ........... moduli di altre aziende: campi proposti, dati e firme da trascinare
   JS    DATI ................. datiIniziali(): i dati reali di partenza dell'azienda
   JS    IMMAGINI ............. logo, firme, immagini del modello POS (base64)
   JS    POS-TESTO ............ testo standard del POS travasato dal modello aziendale

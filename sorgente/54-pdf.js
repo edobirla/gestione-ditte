@@ -36,7 +36,9 @@ async function inflateZlib(dati){
 }
 // ---- lettura PDF ----
 function latin1(bytes,da,a){let s='';const CH=8192;for(let i=da;i<a;i+=CH)s+=String.fromCharCode.apply(null,bytes.subarray(i,Math.min(a,i+CH)));return s}
-async function estraiTestoPdf(blob,avanzamento){
+// Apre il PDF una volta sola e restituisce gli strumenti per leggerlo: oggetti, flussi, pagine,
+// font e l'espansione dei Form. Lo usano sia l'estrazione del testo sia la resa della pagina.
+async function analizzaPdf(blob){
   const bytes=new Uint8Array(await leggiComeArrayBuffer(blob));
   const testo=latin1(bytes,0,bytes.length);
   // 1) tutti gli oggetti "n g obj ... endobj" (senza fidarsi della xref)
@@ -76,12 +78,22 @@ async function estraiTestoPdf(blob,avanzamento){
     }
     return out+contenuto.slice(ultimo);
   };
-  let tutto='';const paginaTesti=[];
-  for(let i=0;i<pagine.length;i++){
-    const p=pagine[i];if(avanzamento)await avanzamento(i+1,pagine.length);
+  // contenuto completo di una pagina, con i Form già espansi, e i suoi font
+  const contenutoPagina=async(i)=>{
+    const p=pagine[i];if(!p)return null;
     const fonts=await risorseFont(p.dict);
     let contenuti=[];const cm=/\/Contents\s*(?:\[([^\]]*)\]|(\d+)\s+0\s+R)/.exec(p.dict);if(cm){const refs=cm[1]?Array.from(cm[1].matchAll(/(\d+)\s+0\s+R/g)).map(x=>+x[1]):[+cm[2]];for(const r of refs){const o=oggetti.get(r);if(!o)continue;const d=await flusso(o);if(d)contenuti.push(latin1(d,0,d.length))}}
-    const testoPagina=estraiTestoContenuto(await espandi(contenuti.join('\n'),p.dict,fonts,0),fonts);
+    return {contenuto:await espandi(contenuti.join('\n'),p.dict,fonts,0),fonts,dict:p.dict};
+  };
+  return {pagine,contenutoPagina,oggetti,flusso,dictDi};
+}
+async function estraiTestoPdf(blob,avanzamento){
+  const pdf=await analizzaPdf(blob);
+  let tutto='';const paginaTesti=[];
+  for(let i=0;i<pdf.pagine.length;i++){
+    if(avanzamento)await avanzamento(i+1,pdf.pagine.length);
+    const c=await pdf.contenutoPagina(i);
+    const testoPagina=c?estraiTestoContenuto(c.contenuto,c.fonts):'';
     paginaTesti.push(testoPagina);
     tutto+=testoPagina+'\n\n';
   }

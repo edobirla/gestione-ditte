@@ -41,6 +41,8 @@ MAPPA DELLE SEZIONI
   JS    ESPORTA .............. XLSX, CSV, Markdown, pacchetto committenza, condivisione iOS
   JS    POS .................. procedura guidata, composizione dal testo standard, controllo segnaposto
   JS    PDF .................. estrazione testo dai PDF (inflate in JS), lettura Excel dei clienti
+  JS    PDF-PAGINA ........... ricostruzione di una pagina PDF dentro l'app (testo e righe posizionati)
+  JS    ASSISTENTE ........... moduli di altre aziende: campi proposti, dati e firme da trascinare
   JS    DATI ................. datiIniziali(): i dati reali di partenza dell'azienda
   JS    IMMAGINI ............. logo, firme, immagini del modello POS (base64)
   JS    POS-TESTO ............ testo standard del POS travasato dal modello aziendale
@@ -621,6 +623,32 @@ input[type=checkbox],input[type=radio]{width:18px;height:18px;accent-color:var(-
 .doc table.ore-mensili tr.g-malattia td{background:#FBE4E4}
 .doc table.ore-mensili tr.g-assenza td{background:#ECECEC}
 body.trascinamento iframe,body.trascinamento embed,body.trascinamento object{pointer-events:none}
+.assistente{display:flex;flex-direction:column;gap:var(--sp-2);height:calc(100dvh - 190px);min-height:420px}
+.assistente .ap-barra{display:flex;align-items:center;gap:var(--sp-2);flex-wrap:wrap}
+.assistente .ap-barra .spazio{flex:1}
+.assistente .ap-corpo{display:grid;grid-template-columns:1fr 300px;gap:var(--sp-3);flex:1;min-height:0}
+.assistente .ap-foglio-cont{overflow:auto;background:var(--superficie-3);border-radius:var(--raggio);padding:12px}
+.assistente .ap-foglio{position:relative;background:#fff;color:#111;box-shadow:0 2px 14px rgba(0,0,0,.25);transform-origin:0 0;font-family:Helvetica,Arial,sans-serif;color-scheme:light}
+.assistente .ap-sfondo{position:absolute;left:0;top:0;width:100%;height:100%;object-fit:contain}
+.assistente .ap-t{position:absolute;white-space:pre;line-height:1}
+.assistente .ap-l{position:absolute;background:#111}
+.assistente .ap-proposte .ap-prop{position:absolute;transform:translateY(-2pt);font-size:8px;padding:1px 5px;border-radius:9px;border:1px dashed var(--blu);background:var(--blu-tenue);color:var(--blu-testo);cursor:pointer;white-space:nowrap;opacity:.92}
+.assistente .ap-proposte .ap-prop:hover{background:var(--blu);color:#fff}
+.assistente .ap-proposte .ap-prop.usata{opacity:.35}
+.assistente .ap-oggetti{position:absolute;left:0;top:0;right:0;bottom:0}
+.assistente .ap-o{position:absolute;cursor:move;line-height:1.25;white-space:pre-wrap;outline:1px dashed transparent}
+.assistente .ap-o:hover{outline-color:var(--blu)}
+.assistente .ap-o.scelto{outline:1.5px solid var(--blu)}
+.assistente .ap-o.copri{background:#fff}
+.assistente .ap-o.firma img{width:100%;height:100%;object-fit:contain;pointer-events:none}
+.assistente .ap-o .maniglia{position:absolute;right:-5px;bottom:-5px;width:11px;height:11px;border-radius:3px;background:var(--blu);border:1.5px solid #fff;cursor:nwse-resize;display:none}
+.assistente .ap-o.scelto .maniglia{display:block}
+.assistente .ap-lato{overflow:auto;border-left:1px solid var(--bordo);padding-left:var(--sp-3)}
+.assistente .ap-firme{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.assistente .ap-firma{display:flex;flex-direction:column;align-items:center;gap:2px;border:1px solid var(--bordo);border-radius:var(--raggio);padding:4px;background:var(--superficie);cursor:pointer}
+.assistente .ap-firma:hover{border-color:var(--blu)}
+.assistente .ap-firma img{max-width:100%;height:34px;object-fit:contain;background:#fff;border-radius:3px}
+@media (max-width:900px){.assistente .ap-corpo{grid-template-columns:1fr;grid-template-rows:1fr auto}.assistente .ap-lato{border-left:0;padding-left:0}}
 .ck-sezione{border:1px solid var(--bordo);border-radius:var(--raggio);margin-bottom:var(--sp-2);background:var(--superficie)}
 .ck-sezione>summary{display:flex;align-items:center;gap:var(--sp-2);padding:8px 10px;cursor:pointer;list-style:none;font-size:var(--t-sm)}
 .ck-sezione>summary::-webkit-details-marker{display:none}
@@ -3948,68 +3976,6 @@ function testoLegaleRappresentante(){
   const a=stato.azienda;const leg=persona(a.legaleRappresentanteId);
   return [a.ragioneSociale,leg?'Il Legale Rappresentante: '+nomePersona(leg):'',leg&&leg.cf?'C.F. '+leg.cf:'',indirizzoTesto(a.indirizzo),a.piva?'P.IVA '+a.piva:''].filter(Boolean).join('\n');
 }
-AZIONI['assistente-documento-esterno']=async()=>{
-  // Nessun filtro sui tipi: con accept="image/*" i PDF risultavano spenti nella finestra del Mac e
-  // sembrava che il pulsante non facesse niente. Meglio farli scegliere e spiegare a parole.
-  const fs=await scegliFile({multipli:false});
-  if(!fs.length) return;
-  const f=fs[0];
-  if(ePdf(f.type,f.name)) return informa('Per ora l\u2019assistente lavora sulle immagini','Questo \u00e8 un PDF. L\u2019assistente scrive sopra l\u2019immagine del documento, e leggere un PDF pagina per pagina richiede un motore di stampa che l\u2019app non ha.\n\nCome fare adesso: apri il PDF, fai uno screenshot della pagina (Maiusc+Cmd+4 sul Mac) oppure esportala come immagine, e ricarica quella qui.');
-  if(!eImmagine(f.type,f.name)) return informa('Tipo di file non adatto','L\u2019assistente lavora su foto e scansioni (JPG, PNG, HEIC). Il file scelto \u00e8 \u00ab'+f.name+'\u00bb.');
-  await apriAssistenteDocumento(f);
-};
-async function apriAssistenteDocumento(file){
-  let img; try{ img=await caricaImmagine(file); }catch(e){ return segnalaErrore(e,'Non sono riuscito ad aprire \u00ab'+file.name+'\u00bb: il browser non sa leggere questa immagine (capita con le foto HEIC dell\'iPhone: riesportale in JPG)'); }
-  const cw=img.width,ch=img.height;
-  const stampaImg=await new Promise(ok=>{const im=new Image();im.onload=()=>ok(im);im.onerror=()=>ok(null);im.src=immagineAzienda('firmaTimbro')});
-  const st={coperture:[],timbro:{attivo:false,x:75,y:85,scala:100},testo:{attivo:false,x:8,y:85,dimensione:16,testo:testoLegaleRappresentante()}};
-  const ridisegna=canvas=>{
-    canvas.width=cw;canvas.height=ch;
-    const ctx=canvas.getContext('2d');
-    ctx.clearRect(0,0,cw,ch);ctx.drawImage(img,0,0,cw,ch);
-    for(const c of st.coperture){ ctx.fillStyle=c.colore; ctx.fillRect(c.x/100*cw,c.y/100*ch,c.w/100*cw,c.h/100*ch); }
-    if(st.timbro.attivo&&stampaImg){ const w=cw*0.22*(st.timbro.scala/100),hh=w*(stampaImg.height/stampaImg.width); ctx.drawImage(stampaImg,st.timbro.x/100*cw-w/2,st.timbro.y/100*ch-hh/2,w,hh); }
-    if(st.testo.attivo){ ctx.fillStyle='#000';ctx.font=st.testo.dimensione+'px Arial,sans-serif';ctx.textBaseline='top'; (st.testo.testo||'').split('\n').forEach((riga,i)=>ctx.fillText(riga,st.testo.x/100*cw,st.testo.y/100*ch+i*(st.testo.dimensione+3))); }
-  };
-  const corpo=()=>html`<div class="griglia due">
-    <div><canvas id="tela-assistente" style="width:100%;height:auto;border:1px solid var(--bordo);border-radius:var(--raggio);background:#fff"></canvas></div>
-    <div>
-      <div class="scheda mb-s"><h3>${icona('elimina','piccola')}Copri un'area (es. l'intestazione di un'altra azienda)</h3>
-        <div class="campi"><div class="campo"><span class="etichetta-campo">X %</span><input type="number" id="ass-cop-x" value="5" min="0" max="100"></div><div class="campo"><span class="etichetta-campo">Y %</span><input type="number" id="ass-cop-y" value="2" min="0" max="100"></div><div class="campo"><span class="etichetta-campo">Largh. %</span><input type="number" id="ass-cop-w" value="90" min="1" max="100"></div><div class="campo"><span class="etichetta-campo">Alt. %</span><input type="number" id="ass-cop-h" value="12" min="1" max="100"></div></div>
-        <button class="pulsante piccolo mt-s" id="ass-cop-agg">${icona('piu','piccola')}Aggiungi rettangolo bianco</button>
-        <ul class="elenco-piatto piccolo mt-s" id="ass-cop-lista"></ul>
-      </div>
-      <div class="scheda mb-s"><h3><label class="spunta"><input type="checkbox" id="ass-timbro-on">${icona('firma','piccola')}Timbro e firma</label></h3>
-        <div class="campi"><div class="campo"><span class="etichetta-campo">X %</span><input type="number" id="ass-timbro-x" value="75" min="0" max="100"></div><div class="campo"><span class="etichetta-campo">Y %</span><input type="number" id="ass-timbro-y" value="85" min="0" max="100"></div><div class="campo"><span class="etichetta-campo">Dimensione %</span><input type="number" id="ass-timbro-s" value="100" min="20" max="300"></div></div>
-      </div>
-      <div class="scheda"><h3><label class="spunta"><input type="checkbox" id="ass-testo-on">${icona('persona','piccola')}Dati legale rappresentante</label></h3>
-        <textarea id="ass-testo-testo" rows="4" class="mb-s">${testoLegaleRappresentante()}</textarea>
-        <div class="campi"><div class="campo"><span class="etichetta-campo">X %</span><input type="number" id="ass-testo-x" value="8" min="0" max="100"></div><div class="campo"><span class="etichetta-campo">Y %</span><input type="number" id="ass-testo-y" value="85" min="0" max="100"></div><div class="campo"><span class="etichetta-campo">Dimensione testo</span><input type="number" id="ass-testo-d" value="16" min="8" max="60"></div></div>
-      </div>
-    </div>
-  </div>`;
-  const risultato=await dialogo({titolo:'Assistente documento esterno · '+file.name,enorme:true,corpo:corpo(),
-    pulsanti:[{testo:'Chiudi',valore:null},{testo:'Stampa',fn:v=>{const c=v.querySelector('#tela-assistente');const u=c.toDataURL('image/png');const w=window.open('');w.document.write('<img src="'+u+'" style="max-width:100%" onload="print()">');return false}},{testo:'Condividi',fn:async v=>{const c=v.querySelector('#tela-assistente');const b=await canvasABlob(c,'image/png',1);await condividiOScarica(b,file.name.replace(/\.[a-z0-9]+$/i,'')+' - modificato.png');return false}},{testo:'Salva nell\'archivio',classe:'primario',primario:true,fn:async v=>{const c=v.querySelector('#tela-assistente');const b=await canvasABlob(c,'image/jpeg',0.92);return {blob:b}}}],
-    alMontaggio:v=>{
-      const canvas=v.querySelector('#tela-assistente');
-      const agg=()=>ridisegna(canvas);
-      agg();
-      const lista=()=>{v.querySelector('#ass-cop-lista').innerHTML=st.coperture.map((c,i)=>html`<li>Rettangolo ${i+1} (${Math.round(c.x)}%,${Math.round(c.y)}%) <button class="pulsante piccolo icona" data-tog="${i}" aria-label="Togli">${icona('chiudi','piccola')}</button></li>`).map(x=>x.s).join('');tutti('[data-tog]',v).forEach(b=>b.onclick=()=>{st.coperture.splice(+b.dataset.tog,1);lista();agg()})};
-      v.querySelector('#ass-cop-agg').onclick=()=>{st.coperture.push({x:+v.querySelector('#ass-cop-x').value||0,y:+v.querySelector('#ass-cop-y').value||0,w:+v.querySelector('#ass-cop-w').value||10,h:+v.querySelector('#ass-cop-h').value||10,colore:'#fff'});lista();agg()};
-      lista();
-      const campo=(id,ramo,chiave,num)=>{const el=v.querySelector(id);el.addEventListener('input',()=>{ramo[chiave]=num?(+el.value||0):el.value;agg()})};
-      v.querySelector('#ass-timbro-on').addEventListener('change',e=>{st.timbro.attivo=e.target.checked;agg()});
-      campo('#ass-timbro-x',st.timbro,'x',true);campo('#ass-timbro-y',st.timbro,'y',true);campo('#ass-timbro-s',st.timbro,'scala',true);
-      v.querySelector('#ass-testo-on').addEventListener('change',e=>{st.testo.attivo=e.target.checked;agg()});
-      campo('#ass-testo-x',st.testo,'x',true);campo('#ass-testo-y',st.testo,'y',true);campo('#ass-testo-d',st.testo,'dimensione',true);
-      campo('#ass-testo-testo',st.testo,'testo',false);
-    }});
-  if(risultato&&risultato.blob){
-    const fileFinale=new File([risultato.blob],file.name.replace(/\.[a-z0-9]+$/i,'')+' - modificato.jpg',{type:'image/jpeg'});
-    dialogoDocumento({},[fileFinale]);
-  }
-}
-
 // ---- caricamento iniziale ----
 function vistaCaricamento(){
   const files=ui.caricamentoFiles||[];
@@ -5757,7 +5723,9 @@ async function inflateZlib(dati){
 }
 // ---- lettura PDF ----
 function latin1(bytes,da,a){let s='';const CH=8192;for(let i=da;i<a;i+=CH)s+=String.fromCharCode.apply(null,bytes.subarray(i,Math.min(a,i+CH)));return s}
-async function estraiTestoPdf(blob,avanzamento){
+// Apre il PDF una volta sola e restituisce gli strumenti per leggerlo: oggetti, flussi, pagine,
+// font e l'espansione dei Form. Lo usano sia l'estrazione del testo sia la resa della pagina.
+async function analizzaPdf(blob){
   const bytes=new Uint8Array(await leggiComeArrayBuffer(blob));
   const testo=latin1(bytes,0,bytes.length);
   // 1) tutti gli oggetti "n g obj ... endobj" (senza fidarsi della xref)
@@ -5797,12 +5765,22 @@ async function estraiTestoPdf(blob,avanzamento){
     }
     return out+contenuto.slice(ultimo);
   };
-  let tutto='';const paginaTesti=[];
-  for(let i=0;i<pagine.length;i++){
-    const p=pagine[i];if(avanzamento)await avanzamento(i+1,pagine.length);
+  // contenuto completo di una pagina, con i Form già espansi, e i suoi font
+  const contenutoPagina=async(i)=>{
+    const p=pagine[i];if(!p)return null;
     const fonts=await risorseFont(p.dict);
     let contenuti=[];const cm=/\/Contents\s*(?:\[([^\]]*)\]|(\d+)\s+0\s+R)/.exec(p.dict);if(cm){const refs=cm[1]?Array.from(cm[1].matchAll(/(\d+)\s+0\s+R/g)).map(x=>+x[1]):[+cm[2]];for(const r of refs){const o=oggetti.get(r);if(!o)continue;const d=await flusso(o);if(d)contenuti.push(latin1(d,0,d.length))}}
-    const testoPagina=estraiTestoContenuto(await espandi(contenuti.join('\n'),p.dict,fonts,0),fonts);
+    return {contenuto:await espandi(contenuti.join('\n'),p.dict,fonts,0),fonts,dict:p.dict};
+  };
+  return {pagine,contenutoPagina,oggetti,flusso,dictDi};
+}
+async function estraiTestoPdf(blob,avanzamento){
+  const pdf=await analizzaPdf(blob);
+  let tutto='';const paginaTesti=[];
+  for(let i=0;i<pdf.pagine.length;i++){
+    if(avanzamento)await avanzamento(i+1,pdf.pagine.length);
+    const c=await pdf.contenutoPagina(i);
+    const testoPagina=c?estraiTestoContenuto(c.contenuto,c.fonts):'';
     paginaTesti.push(testoPagina);
     tutto+=testoPagina+'\n\n';
   }
@@ -6037,6 +6015,410 @@ async function allegaDistinta(id,file){
   const es=await acquisisciFile(file,{});
   esegui('Allegata distinta',s=>{s.bonifici.find(x=>x.id===id).fileId=es.rec.id},{senzaRender:true});
   apriBonifico(id);render();
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   SEZIONE JS · PDF-PAGINA
+   ═══════════════════════════════════════════════════════════════════ */
+// ---------------------------------------------------------------------
+// RESA DI UNA PAGINA PDF DENTRO L'APPLICAZIONE.
+// Non è un visualizzatore PDF: è una ricostruzione. Si leggono le posizioni del testo e le righe e i
+// riquadri disegnati, e si ridisegnano come elementi HTML posizionati. Basta per lavorarci sopra:
+// vedere il modulo, capire dove va scritto, mettere testo e firma dove servono e stampare il tutto
+// con il motore di stampa dell'applicazione. Un visualizzatore vero vorrebbe dire scrivere un
+// interprete PostScript con i font incorporati, un'altra scala di lavoro.
+// ponytail: ricostruzione, non resa fedele — se un giorno serve la fedeltà al pixel serve tutt'altro.
+// ---------------------------------------------------------------------
+function moltiplicaMatrici(a,b){
+  return [a[0]*b[0]+a[1]*b[2], a[0]*b[1]+a[1]*b[3], a[2]*b[0]+a[3]*b[2], a[2]*b[1]+a[3]*b[3], a[4]*b[0]+a[5]*b[2]+b[4], a[4]*b[1]+a[5]*b[3]+b[5]];
+}
+function applicaMatrice(m,x,y){return [m[0]*x+m[2]*y+m[4], m[1]*x+m[3]*y+m[5]]}
+// Legge il contenuto di una pagina e restituisce testo e tratti con le loro coordinate (origine in
+// alto a sinistra, come sullo schermo: il PDF le ha in basso a sinistra).
+function elementiPagina(c,fonts,altezza){
+  const elementi=[];
+  let ctm=[1,0,0,1,0,0];const pila=[];
+  let tm=[1,0,0,1,0,0],tlm=[1,0,0,1,0,0];
+  let font=null,corpo=10,grassetto=false;
+  let xMin=0,yMin=0,xMax=0,yMax=0,haPercorso=false;
+  const tok=/\((?:\\.|[^\\)])*\)|<[0-9A-Fa-f\s]*>|\[|\]|\/[^\s\/\[\]<>(]+|-?\d*\.?\d+|[A-Za-z'"*]+/g;
+  const pila_op=[];let m;
+  const num=(n)=>pila_op.filter(x=>typeof x==='number').slice(-n);
+  const decodifica=(s)=>{
+    let codici=[];
+    if(s[0]==='<'){const hx=s.slice(1,-1).replace(/\s/g,'');const passo=font&&font.due?4:2;for(let i=0;i<hx.length;i+=passo)codici.push(parseInt(hx.slice(i,i+passo),16))}
+    else{const raw=s.slice(1,-1).replace(/\\([nrtbf()\\]|[0-7]{1,3})/g,(mm,g)=>({n:'\n',r:'\r',t:'\t',b:'\b',f:'\f','(':'(',')':')','\\':'\\'}[g]!==undefined?{n:'\n',r:'\r',t:'\t',b:'\b',f:'\f','(':'(',')':')','\\':'\\'}[g]:String.fromCharCode(parseInt(g,8))));for(let i=0;i<raw.length;i++)codici.push(raw.charCodeAt(i))}
+    return codici.map(cd=>{if(font&&font.mappa&&font.mappa.has(cd))return font.mappa.get(cd);if(font&&font.due)return '';return String.fromCharCode(cd)}).join('');
+  };
+  const scrivi=(testo)=>{
+    if(!testo) return;
+    const m2=moltiplicaMatrici(tm,ctm);
+    const [x,y]=[m2[4],m2[5]];
+    const scala=Math.sqrt(Math.abs(m2[0]*m2[3]-m2[1]*m2[2]))||1;
+    const dim=corpo*scala;
+    if(dim<1||dim>200) return;
+    const ult=elementi[elementi.length-1];
+    // le lettere messe una a una si riuniscono in una parola sola se stanno sulla stessa riga e vicine
+    if(ult&&ult.t==='testo'&&Math.abs(ult.y-(altezza-y))<0.6&&Math.abs(ult.dim-dim)<0.6&&x-ult.xFine<dim*0.9&&x>=ult.xFine-dim*0.2){
+      ult.testo+=(x-ult.xFine>dim*0.22?' ':'')+testo;ult.xFine=x+testo.length*dim*0.5;return;
+    }
+    elementi.push({t:'testo',x,y:altezza-y,dim,testo,grassetto,xFine:x+testo.length*dim*0.5});
+  };
+  const chiudiPercorso=(riempi)=>{
+    if(!haPercorso)return;
+    const w=xMax-xMin,h=yMax-yMin;
+    // solo le righe e i riquadri: le curve e i disegni complessi non servono a un modulo da compilare
+    if(w>=0.7&&h<=2.2) elementi.push({t:'tratto',x:xMin,y:altezza-yMax,w,h:Math.max(0.6,h)});
+    else if(h>=0.7&&w<=2.2) elementi.push({t:'tratto',x:xMin,y:altezza-yMax,w:Math.max(0.6,w),h});
+    else if(w>3&&h>3&&!riempi) elementi.push({t:'riquadro',x:xMin,y:altezza-yMax,w,h});
+    haPercorso=false;
+  };
+  const punto=(x,y)=>{const [px,py]=applicaMatrice(ctm,x,y);if(!haPercorso){xMin=xMax=px;yMin=yMax=py;haPercorso=true}else{xMin=Math.min(xMin,px);xMax=Math.max(xMax,px);yMin=Math.min(yMin,py);yMax=Math.max(yMax,py)}};
+  while((m=tok.exec(c))){
+    const t=m[0];
+    if(/^-?\d*\.?\d+$/.test(t)){pila_op.push(parseFloat(t));continue}
+    if(t[0]==='('||t[0]==='<'||t==='['||t===']'||t[0]==='/'){pila_op.push(t);continue}
+    switch(t){
+      case 'q': pila.push(ctm.slice()); break;
+      case 'Q': if(pila.length)ctm=pila.pop(); break;
+      case 'cm': {const n=num(6);if(n.length===6)ctm=moltiplicaMatrici(n,ctm);break}
+      case 'BT': tm=tlm=[1,0,0,1,0,0]; break;
+      case 'Tf': {const nome=pila_op.filter(x=>typeof x==='string'&&x[0]==='/').pop();font=nome?fonts.get(nome.slice(1))||null:null;grassetto=!!(nome&&/bold|grassetto|,B\b/i.test(nome));const n=num(1);if(n.length&&n[0]>0)corpo=n[0];break}
+      case 'Td': {const n=num(2);if(n.length===2){tlm=moltiplicaMatrici([1,0,0,1,n[0],n[1]],tlm);tm=tlm.slice()}break}
+      case 'TD': {const n=num(2);if(n.length===2){tlm=moltiplicaMatrici([1,0,0,1,n[0],n[1]],tlm);tm=tlm.slice()}break}
+      case 'Tm': {const n=num(6);if(n.length===6){tlm=n.slice();tm=n.slice()}break}
+      case 'T*': tlm=moltiplicaMatrici([1,0,0,1,0,-corpo*1.15],tlm);tm=tlm.slice(); break;
+      case 'Tj': case "'": case '"': {const s=pila_op.filter(x=>typeof x==='string'&&(x[0]==='('||x[0]==='<')).pop();if(s)scrivi(decodifica(s));break}
+      case 'TJ': {let testo='';for(const x of pila_op){if(typeof x==='string'&&(x[0]==='('||x[0]==='<'))testo+=decodifica(x);else if(typeof x==='number'&&x<-180)testo+=' '}scrivi(testo);break}
+      case 'm': case 'l': {const n=num(2);if(n.length===2)punto(n[0],n[1]);break}
+      case 'c': {const n=num(6);if(n.length===6){punto(n[0],n[1]);punto(n[4],n[5])}break}
+      case 're': {const n=num(4);if(n.length===4){punto(n[0],n[1]);punto(n[0]+n[2],n[1]+n[3])}break}
+      case 'S': case 's': chiudiPercorso(false); break;
+      case 'f': case 'F': case 'f*': case 'B': case 'B*': chiudiPercorso(true); break;
+      case 'n': haPercorso=false; break;
+    }
+    pila_op.length=0;
+  }
+  return elementi;
+}
+// Pagina scansionata: il foglio è una fotografia dentro il PDF. Non c'è niente da ricostruire, ma
+// l'immagine si può tirare fuori così com'è (le scansioni sono quasi sempre JPEG) e ci si lavora
+// sopra come su una foto.
+async function immagineDiPagina(pdf,dictPagina){
+  const rr=/\/Resources\s+(\d+)\s+0\s+R/.exec(dictPagina);
+  const res=rr?pdf.dictDi(+rr[1]):dictPagina;
+  let xo='';const xm=/\/XObject\s+(\d+)\s+0\s+R/.exec(res);
+  if(xm)xo=pdf.dictDi(+xm[1]);else{const xi=/\/XObject\s*<<([\s\S]*?)>>/.exec(res);if(xi)xo=xi[1]}
+  let migliore=null;
+  const re=/\/[^\s\/\]<>]+\s+(\d+)\s+0\s+R/g;let m;
+  while((m=re.exec(xo))){
+    const o=pdf.oggetti.get(+m[1]);if(!o||!/\/Subtype\s*\/Image/.test(o.dict))continue;
+    if(!/\/DCTDecode/.test(o.dict))continue; // solo JPEG: gli altri vorrebbero un decodificatore
+    const w=+((/\/Width\s+(\d+)/.exec(o.dict)||[])[1]||0);
+    if(!migliore||w>migliore.w) migliore={o,w};
+  }
+  if(!migliore) return null;
+  const dati=await pdf.flusso(migliore.o);
+  if(!dati) return null;
+  return leggiComeDataUrl(new Blob([dati],{type:'image/jpeg'}));
+}
+// Ricostruisce una pagina: misure in punti PDF (1/72"), che è anche l'unità del motore di stampa.
+async function rendiPaginaPdf(blob,indice){
+  const pdf=await analizzaPdf(blob);
+  if(!pdf.pagine.length) throw new Error('il PDF non contiene pagine leggibili');
+  const i=Math.min(Math.max(0,indice||0),pdf.pagine.length-1);
+  const c=await pdf.contenutoPagina(i);
+  if(!c) throw new Error('pagina non leggibile');
+  const mb=/\/MediaBox\s*\[\s*(-?[\d.]+)\s+(-?[\d.]+)\s+(-?[\d.]+)\s+(-?[\d.]+)/.exec(c.dict)||[0,0,0,595.28,841.89];
+  const larghezza=Math.abs(+mb[3]-+mb[1]),altezza=Math.abs(+mb[4]-+mb[2]);
+  const elementi=elementiPagina(c.contenuto,c.fonts,altezza);
+  // se non c'è testo da ricostruire, il foglio è una scansione: si usa la fotografia che sta dentro
+  const scansione=elementi.filter(e=>e.t==='testo').length?null:await immagineDiPagina(pdf,c.dict);
+  return {larghezza,altezza,elementi,scansione,pagine:pdf.pagine.length,indice:i};
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   SEZIONE JS · ASSISTENTE
+   ═══════════════════════════════════════════════════════════════════ */
+// ---------------------------------------------------------------------
+// ASSISTENTE DOCUMENTI DI ALTRE AZIENDE: si carica un modulo (PDF o foto), l'applicazione lo
+// ricostruisce a schermo, indica dove sembra che vada compilato, e ci si scrive sopra. I dati
+// dell'azienda e del legale rappresentante si mettono con un pulsante, come nei modelli. La firma si
+// sceglie fra quelle in archivio (azienda e persone) e si sposta e ridimensiona trascinandola.
+// Alla fine si stampa, si condivide o si archivia come un documento qualsiasi.
+// ---------------------------------------------------------------------
+function testoLegaleRappresentante(){
+  const a=stato.azienda;const leg=persona(a.legaleRappresentanteId);
+  return [a.ragioneSociale,leg?'Il Legale Rappresentante: '+nomePersona(leg):'',leg&&leg.cf?'C.F. '+leg.cf:'',indirizzoTesto(a.indirizzo),a.piva?'P.IVA '+a.piva:''].filter(Boolean).join('\n');
+}
+// I dati che si inseriscono con un clic: nome in italiano, mai un codice da ricordare.
+function datiDaInserire(){
+  const a=stato.azienda,leg=persona(a.legaleRappresentanteId);
+  return [
+    ['Azienda',[['Ragione sociale',a.ragioneSociale],['Sede',indirizzoTesto(a.indirizzo)],['Partita IVA',a.piva],['Codice fiscale',a.cf],['PEC',a.pec],['Telefono',a.telefono],['Email',a.email],['Codice INAIL',a.inail],['Matricola INPS',a.inps],['Cassa Edile',a.cassaEdile]]],
+    ['Legale rappresentante',[['Nome e cognome',leg?nomePersona(leg):null],['Luogo di nascita',leg?leg.luogoNascita:null],['Data di nascita',leg&&leg.dataNascita?fData(leg.dataNascita):null],['Codice fiscale',leg?leg.cf:null],['Residenza',leg?leg.residenza:null]]],
+    ['Data e luogo',[['Data di oggi',fData(oggi())],['Luogo e data',(a.indirizzo.comune||'')+', '+fData(oggi())],['Comune della sede',a.indirizzo.comune]]],
+    ['Blocchi',[['Dati completi del legale rappresentante',testoLegaleRappresentante()]]],
+  ].map(([g,voci])=>[g,voci.filter(v=>v[1])]).filter(([g,voci])=>voci.length);
+}
+// Tutte le firme che l'applicazione ha in archivio: quelle dell'azienda e quelle delle persone.
+function firmeDisponibili(){
+  const out=[];
+  for(const [k,t] of [['firmaTimbro','Timbro e firma azienda'],['firmaLegale','Firma Legale Rappresentante'],['firmaRspp','Firma RSPP'],['firmaRls','Firma RLS']]){
+    const src=immagineAzienda(k);if(src)out.push({id:'az:'+k,nome:t,src});
+  }
+  for(const p of stato.persone) if(p.firmaImg) out.push({id:'p:'+p.id,nome:'Firma di '+nomePersona(p),src:p.firmaImg});
+  return out;
+}
+// Punti del modulo che sembrano da compilare: le righe di puntini o trattini bassi, e le etichette
+// tipiche dei moduli. Sono proposte, non certezze: si clicca quella giusta e si scrive lì.
+const ETICHETTE_MODULO=[
+  [/^(luogo\s+e\s+)?data\b/i,'Data di oggi'],[/^firma/i,'FIRMA'],[/^timbro/i,'FIRMA'],
+  [/ragione\s+sociale|denominazione|impresa|ditta/i,'Ragione sociale'],
+  [/partita\s*iva|p\.?\s*iva/i,'Partita IVA'],[/codice\s+fiscale|c\.?f\.?$/i,'Codice fiscale'],
+  [/sede\s+(legale|operativa)?|indirizzo/i,'Sede'],[/il\s+sottoscritt/i,'Nome e cognome'],
+  [/pec|posta\s+elettronica/i,'PEC'],[/telefono|tel\./i,'Telefono'],
+  [/inail/i,'Codice INAIL'],[/inps/i,'Matricola INPS'],[/cassa\s+edile/i,'Cassa Edile'],
+];
+function proponiCampi(elementi){
+  const valori=new Map();for(const [,voci] of datiDaInserire())for(const [nome,val] of voci)if(!valori.has(nome))valori.set(nome,val);
+  const out=[];
+  for(const e of elementi){
+    if(e.t!=='testo') continue;
+    const testo=(e.testo||'').trim();
+    // riga di puntini o trattini: si scrive sopra la riga, subito dopo l'etichetta
+    const vuoto=/[_.]{6,}|…{3,}/.test(testo);
+    for(const [re,nome] of ETICHETTE_MODULO){
+      if(!re.test(testo)) continue;
+      const val=nome==='FIRMA'?null:valori.get(nome);
+      if(nome!=='FIRMA'&&!val) break;
+      out.push({x:e.x+e.testo.length*e.dim*0.5+e.dim*0.6,y:e.y,dim:e.dim,nome,valore:val,etichetta:tronca(testo,28),firma:nome==='FIRMA'});
+      break;
+    }
+    if(vuoto&&!out.some(c=>Math.abs(c.y-e.y)<2&&Math.abs(c.x-e.x)<80)) out.push({x:e.x+e.dim*0.4,y:e.y,dim:e.dim,nome:'Testo libero',valore:'',etichetta:'riga da compilare'});
+  }
+  return out.slice(0,40);
+}
+AZIONI['assistente-documento-esterno']=async()=>{
+  const fs=await scegliFile({multipli:false});
+  if(!fs.length) return;
+  await apriAssistenteDocumento(fs[0]);
+};
+async function apriAssistenteDocumento(file){
+  let sfondo=null,pagina=null,nPagine=1,indice=0;
+  const prog=dialogoAvanzamento('Lettura del documento',{testo:'Apro «'+file.name+'»…'});
+  try{
+    if(ePdf(file.type,file.name)){
+      pagina=await rendiPaginaPdf(file,0);nPagine=pagina.pagine;
+      if(pagina.scansione) sfondo=pagina.scansione; // pagina scansionata: si lavora sulla fotografia
+      else if(!pagina.elementi.length){prog.chiudi();return informa('Questa pagina non si riesce ad aprire','Non contiene né testo né una fotografia leggibile: se è una scansione in un formato particolare, esporta o fotografa la pagina come JPG e caricala qui.')}
+    } else if(eImmagine(file.type,file.name)){
+      const img=await caricaImmagine(file);
+      const c=document.createElement('canvas');const sc=Math.min(1,1600/Math.max(img.width,img.height));
+      c.width=Math.round(img.width*sc);c.height=Math.round(img.height*sc);
+      c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+      sfondo=await leggiComeDataUrl(await canvasABlob(c,'image/jpeg',0.85));
+      pagina={larghezza:c.width*0.75,altezza:c.height*0.75,elementi:[],pagine:1,indice:0};
+    } else { prog.chiudi(); return informa('Tipo di file non adatto','L’assistente lavora su PDF e su foto o scansioni (JPG, PNG). Il file scelto è «'+file.name+'».'); }
+  }catch(e){ prog.chiudi(); return segnalaErrore(e,'Non sono riuscito ad aprire «'+file.name+'»'); }
+  prog.chiudi();
+  await postazioneAssistente(file,pagina,sfondo,nPagine,indice);
+}
+// Un oggetto aggiunto dall'utente: testo, firma o rettangolo bianco. Coordinate in punti come la
+// pagina, così quello che si vede a schermo è esattamente quello che esce in stampa.
+function postazioneAssistente(file,pagina,sfondo,nPagine,indice){
+  const oggetti=[];
+  const proposte=proponiCampi(pagina.elementi);
+  const firme=firmeDisponibili();
+  const dati=datiDaInserire();
+  const disegnaPagina=()=>{
+    if(sfondo) return `<img class="ap-sfondo" src="${h(sfondo)}" alt="${h(file.name)}">`;
+    return pagina.elementi.map(e=>e.t==='testo'
+      ? `<span class="ap-t" style="left:${e.x}pt;top:${e.y-e.dim}pt;font-size:${e.dim}pt;${e.grassetto?'font-weight:700;':''}">${h(e.testo)}</span>`
+      : `<span class="ap-l" style="left:${e.x}pt;top:${e.y}pt;width:${e.w}pt;height:${e.h}pt;${e.t==='riquadro'?'background:none;border:.6pt solid #333;':''}"></span>`).join('');
+  };
+  const corpo=html`<div class="assistente">
+    <div class="ap-barra">
+      <button class="pulsante piccolo" data-ap="testo">${icona('piu','piccola')}Casella di testo</button>
+      <button class="pulsante piccolo" data-ap="firma">${icona('firma','piccola')}Firma</button>
+      <button class="pulsante piccolo" data-ap="copri">${icona('elimina','piccola')}Rettangolo bianco</button>
+      ${nPagine>1?html`<span class="spazio"></span><span class="piccolo secondario">Pagina</span><select id="ap-pagina">${Array.from({length:nPagine},(_,i)=>html`<option value="${i}" ${i===indice?'selected':''}>${i+1}</option>`)}</select>`:''}
+      <span class="spazio"></span><span class="piccolo secondario" id="ap-stato">Clicca un dato qui sotto per metterlo nel foglio, poi trascinalo dove vuoi.</span>
+    </div>
+    <div class="ap-corpo">
+      <div class="ap-foglio-cont"><div class="ap-foglio" id="ap-foglio" style="width:${pagina.larghezza}pt;height:${pagina.altezza}pt">
+        ${grezzo(disegnaPagina())}
+        <div class="ap-proposte" id="ap-proposte">${proposte.map((c,i)=>html`<button class="ap-prop" data-prop="${i}" style="left:${c.x}pt;top:${c.y-c.dim}pt" title="${c.etichetta}">${c.firma?'firma qui':c.nome}</button>`)}</div>
+        <div class="ap-oggetti" id="ap-oggetti"></div>
+      </div></div>
+      <div class="ap-lato">
+        <div class="sezione-titolo">Dati da inserire</div>
+        ${dati.map(([g,voci])=>html`<div class="mb-s"><b class="piccolo">${g}</b><div class="chip-lista">${voci.map(([nome,val])=>html`<button type="button" class="chip" data-dato="${nome}" title="${val}">${nome}</button>`)}</div></div>`)}
+        <div class="sezione-titolo">Firme in archivio</div>
+        ${firme.length?html`<div class="ap-firme">${firme.map(f=>html`<button type="button" class="ap-firma" data-firma="${f.id}" title="${f.nome}"><img src="${f.src}" alt="${f.nome}"><span class="piccolo">${f.nome}</span></button>`)}</div>`:html`<p class="piccolo secondario">Nessuna firma in archivio. Caricale dalla scheda di ogni persona o da Documenti → Modelli.</p>`}
+        <div class="sezione-titolo">Elemento scelto</div>
+        <div id="ap-proprieta"><p class="piccolo secondario">Clicca un elemento nel foglio per cambiarlo.</p></div>
+      </div>
+    </div>
+  </div>`;
+  return dialogo({titolo:'Compila «'+file.name+'»',enorme:true,corpo,senzaFocus:true,valoreEscape:null,
+    pulsanti:[{testo:'Annulla',valore:null},{testo:'Stampa o salva',classe:'primario',primario:true,fn:()=>({oggetti,pagina,sfondo})}],
+    alMontaggio:v=>montaAssistente(v,{file,pagina,sfondo,oggetti,proposte,firme,dati,nPagine,indice})
+  }).then(async r=>{
+    if(!r) return;
+    await esitoAssistente(file,r);
+  });
+}
+function montaAssistente(v,ctx){
+  const foglio=v.querySelector('#ap-foglio'),strato=v.querySelector('#ap-oggetti'),prop=v.querySelector('#ap-proprieta');
+  const cont=v.querySelector('.ap-foglio-cont');
+  const PT=96/72; // punti → pixel a scala 1
+  let scala=1;
+  const adatta=()=>{const disp=cont.clientWidth-24;scala=Math.min(1.6,Math.max(0.25,disp/(ctx.pagina.larghezza*PT)));foglio.style.transform='scale('+scala+')';cont.style.height=(ctx.pagina.altezza*PT*scala+24)+'px'};
+  adatta();window.addEventListener('resize',adatta);
+  let scelto=null;
+  const disegna=()=>{
+    strato.innerHTML=ctx.oggetti.map((o,i)=>{
+      const unaRiga=o.t==='testo'&&!/\n/.test(o.testo||'');
+      const stile=`left:${o.x}pt;top:${o.y}pt;`+(o.t==='testo'?`font-size:${o.dim}pt;${unaRiga?'white-space:pre;width:auto;':'width:'+o.w+'pt;'}`:`width:${o.w}pt;height:${o.h}pt;`);
+      const dentro=o.t==='testo'?h(o.testo).replace(/\n/g,'<br>'):o.t==='firma'?`<img src="${h(o.src)}" alt="">`:'';
+      return `<div class="ap-o ${o.t} ${scelto===i?'scelto':''}" data-o="${i}" style="${stile}">${dentro}<span class="maniglia" data-maniglia="${i}"></span></div>`;
+    }).join('');
+    proprieta();
+  };
+  const proprieta=()=>{
+    const o=ctx.oggetti[scelto];
+    if(!o){prop.innerHTML='<p class="piccolo secondario">Clicca un elemento nel foglio per cambiarlo.</p>';return}
+    prop.innerHTML=String(html`<div class="campi">
+      ${o.t==='testo'?html`<div class="campo largo"><span class="etichetta-campo">Testo</span><textarea id="ap-p-testo" rows="3">${o.testo}</textarea></div>
+      <div class="campo"><span class="etichetta-campo">Grandezza</span><input type="range" id="ap-p-dim" min="5" max="40" step="0.5" value="${o.dim}"></div>`:''}
+      ${o.t!=='testo'?html`<div class="campo"><span class="etichetta-campo">Larghezza</span><input type="range" id="ap-p-w" min="20" max="${Math.round(ctx.pagina.larghezza)}" value="${Math.round(o.w)}"></div>`:''}
+      </div>
+      <button class="pulsante piccolo pericolo mt-s" id="ap-p-elimina">${icona('elimina','piccola')}Togli questo elemento</button>`);
+    const t=prop.querySelector('#ap-p-testo');if(t)t.addEventListener('input',()=>{o.testo=t.value;const el2=strato.querySelector('[data-o="'+scelto+'"]');if(el2)el2.innerHTML=h(o.testo).replace(/\n/g,'<br>')+'<span class="maniglia" data-maniglia="'+scelto+'"></span>'});
+    const d=prop.querySelector('#ap-p-dim');if(d)d.addEventListener('input',()=>{o.dim=+d.value;const el2=strato.querySelector('[data-o="'+scelto+'"]');if(el2)el2.style.fontSize=o.dim+'pt'});
+    const w=prop.querySelector('#ap-p-w');if(w)w.addEventListener('input',()=>{const k=+w.value/o.w;o.w=+w.value;if(o.t==='firma')o.h=o.h*k;const el2=strato.querySelector('[data-o="'+scelto+'"]');if(el2){el2.style.width=o.w+'pt';el2.style.height=o.h+'pt'}});
+    prop.querySelector('#ap-p-elimina').addEventListener('click',()=>{ctx.oggetti.splice(scelto,1);scelto=null;disegna()});
+  };
+  const aggiungi=(o)=>{ctx.oggetti.push(o);scelto=ctx.oggetti.length-1;disegna();return o};
+  const centro=()=>({x:ctx.pagina.larghezza*0.2,y:ctx.pagina.altezza*0.4});
+  const nuovoTesto=(testo,x,y,dim)=>aggiungi({t:'testo',testo:testo||'testo',x:x!=null?x:centro().x,y:y!=null?y:centro().y,w:Math.max(80,String(testo||'').length*(dim||11)*0.62),dim:dim||11});
+  const nuovaFirma=(f,x,y)=>{const w=120;aggiungi({t:'firma',src:f.src,nome:f.nome,x:x!=null?x:centro().x,y:y!=null?y:centro().y,w,h:w*0.38})};
+  // barra e pannello laterale
+  v.querySelector('[data-ap="testo"]').addEventListener('click',()=>nuovoTesto('',null,null,11));
+  v.querySelector('[data-ap="copri"]').addEventListener('click',()=>aggiungi({t:'copri',x:centro().x,y:centro().y,w:200,h:30}));
+  v.querySelector('[data-ap="firma"]').addEventListener('click',()=>{if(!ctx.firme.length)return avviso('Nessuna firma in archivio: caricane una dalla scheda di una persona',{tipo:'attenzione'});nuovaFirma(ctx.firme[0])});
+  tutti('[data-dato]',v).forEach(b=>b.addEventListener('click',()=>{
+    const nome=b.dataset.dato;let val=null;
+    for(const [,voci] of ctx.dati)for(const [n,vv] of voci)if(n===nome)val=vv;
+    nuovoTesto(val||nome,null,null,11);
+  }));
+  tutti('[data-firma]',v).forEach(b=>b.addEventListener('click',()=>{const f=ctx.firme.find(x=>x.id===b.dataset.firma);if(f)nuovaFirma(f)}));
+  tutti('[data-prop]',v).forEach(b=>b.addEventListener('click',()=>{
+    const c=ctx.proposte[+b.dataset.prop];
+    if(c.firma){ if(!ctx.firme.length)return avviso('Nessuna firma in archivio',{tipo:'attenzione'}); nuovaFirma(ctx.firme[0],c.x,c.y-24); }
+    else nuovoTesto(c.valore||'',c.x,c.y-c.dim,Math.max(8,c.dim));
+    b.classList.add('usata');
+  }));
+  const sel=v.querySelector('#ap-pagina');
+  if(sel) sel.addEventListener('change',async()=>{
+    const p=await rendiPaginaPdf(ctx.file,+sel.value);
+    v.chiudi(null);postazioneAssistente(ctx.file,p,p.scansione||null,ctx.nPagine,+sel.value);
+  });
+  // trascinamento e ridimensionamento
+  let trascina=null;
+  strato.addEventListener('pointerdown',e=>{
+    const man=e.target.closest('[data-maniglia]');const el2=e.target.closest('[data-o]');
+    if(!el2) return;
+    const i=+el2.dataset.o;scelto=i;const o=ctx.oggetti[i];
+    tutti('.ap-o',strato).forEach(x=>x.classList.toggle('scelto',+x.dataset.o===i));proprieta();
+    trascina={i,o,man:!!man,x0:e.clientX,y0:e.clientY,ox:o.x,oy:o.y,ow:o.w,oh:o.h||0,dim:o.dim||0,el:el2};
+    el2.setPointerCapture(e.pointerId);e.preventDefault();
+  });
+  strato.addEventListener('pointermove',e=>{
+    if(!trascina) return;
+    const dx=(e.clientX-trascina.x0)/(scala*PT),dy=(e.clientY-trascina.y0)/(scala*PT);
+    const o=trascina.o;
+    if(trascina.man){
+      const k=Math.max(0.15,(trascina.ow+dx)/trascina.ow);
+      o.w=Math.max(12,trascina.ow*k);
+      if(o.t==='testo') o.dim=Math.max(5,trascina.dim*k); else o.h=Math.max(6,trascina.oh*k);
+      trascina.el.style.width=o.w+'pt';
+      if(o.t==='testo') trascina.el.style.fontSize=o.dim+'pt'; else trascina.el.style.height=o.h+'pt';
+    } else {
+      o.x=Math.max(0,Math.min(ctx.pagina.larghezza-8,trascina.ox+dx));
+      o.y=Math.max(0,Math.min(ctx.pagina.altezza-8,trascina.oy+dy));
+      trascina.el.style.left=o.x+'pt';trascina.el.style.top=o.y+'pt';
+    }
+  });
+  const fine=()=>{if(trascina){trascina=null;proprieta()}};
+  strato.addEventListener('pointerup',fine);strato.addEventListener('pointercancel',fine);
+  v.addEventListener('keydown',e=>{
+    if(scelto==null) return;
+    if(e.target&&/INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return;
+    const o=ctx.oggetti[scelto];const passo=e.shiftKey?5:1;
+    const k=nomeTasto(e);
+    if(k==='ArrowLeft'){o.x-=passo}else if(k==='ArrowRight'){o.x+=passo}else if(k==='ArrowUp'){o.y-=passo}else if(k==='ArrowDown'){o.y+=passo}
+    else if(k==='Delete'||k==='Backspace'){ctx.oggetti.splice(scelto,1);scelto=null;disegna();e.preventDefault();return}
+    else return;
+    e.preventDefault();disegna();
+  });
+  disegna();
+}
+// Il foglio compilato diventa una pagina di stampa dell'applicazione, con le stesse misure
+// dell'originale: da lì si stampa, si condivide o si archivia come un documento qualsiasi.
+function contenutoFoglio(r,xml){
+  const {pagina,sfondo,oggetti}=r;
+  const fine=xml?'/>':'>';
+  const dentro=[];
+  if(sfondo) dentro.push(`<img src="${h(sfondo)}" style="position:absolute;left:0;top:0;width:100%;height:100%;object-fit:contain"${fine}`);
+  else for(const e of pagina.elementi){
+    if(e.t==='testo') dentro.push(`<span style="position:absolute;left:${e.x}pt;top:${e.y-e.dim}pt;font-size:${e.dim}pt;white-space:pre;line-height:1;${e.grassetto?'font-weight:700;':''}">${h(e.testo)}</span>`);
+    else dentro.push(`<span style="position:absolute;left:${e.x}pt;top:${e.y}pt;width:${e.w}pt;height:${e.h}pt;${e.t==='riquadro'?'border:.6pt solid #333':'background:#111'}"></span>`);
+  }
+  for(const o of oggetti){
+    if(o.t==='testo'){
+      const multi=/\n/.test(o.testo||'');
+      dentro.push(`<span style="position:absolute;left:${o.x}pt;top:${o.y}pt;font-size:${o.dim}pt;line-height:1.25;${multi?'width:'+o.w+'pt;white-space:pre-wrap;':'white-space:pre;'}">${h(o.testo)}</span>`);
+    } else if(o.t==='firma') dentro.push(`<img src="${h(o.src)}" style="position:absolute;left:${o.x}pt;top:${o.y}pt;width:${o.w}pt;height:${o.h}pt;object-fit:contain"${fine}`);
+    else dentro.push(`<span style="position:absolute;left:${o.x}pt;top:${o.y}pt;width:${o.w}pt;height:${o.h}pt;background:#fff"></span>`);
+  }
+  return dentro.join('');
+}
+// Il foglio compilato diventa una pagina di stampa dell'applicazione, con le stesse misure
+// dell'originale: da lì si stampa, si condivide o si archivia come un documento qualsiasi.
+function paginaAssistenteHtml(r){
+  const mmL=r.pagina.larghezza/72*25.4,mmA=r.pagina.altezza/72*25.4;
+  return `<div class="pagina" style="width:${mmL}mm;height:${mmA}mm"><div class="corpo-pagina doc" style="position:absolute;left:0;top:0;right:0;bottom:0;overflow:hidden;font-family:Helvetica,Arial,sans-serif;color:#111;background:#fff">${contenutoFoglio(r,false)}</div></div>`;
+}
+// ...e diventa anche un'immagine da archiviare: si disegna l'HTML dentro un SVG e lo si porta su una
+// tela. Dentro il foglio ci sono solo stili in riga e immagini data:, altrimenti la tela resterebbe
+// bianca (non può caricare risorse esterne). L'HTML qui dev'essere XML valido, tag chiusi compresi.
+async function immagineDelFoglio(r){
+  const L=r.pagina.larghezza,A=r.pagina.altezza;
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${Math.round(L*2)}" height="${Math.round(A*2)}" viewBox="0 0 ${L} ${A}">`
+    +`<foreignObject x="0" y="0" width="${L}" height="${A}">`
+    +`<div xmlns="http://www.w3.org/1999/xhtml" style="width:${L}pt;height:${A}pt;position:relative;overflow:hidden;background:#ffffff;font-family:Helvetica,Arial,sans-serif;color:#111111">${contenutoFoglio(r,true)}</div>`
+    +`</foreignObject></svg>`;
+  const url='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
+  const img=await new Promise((ok,ko)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=()=>ko(new Error('il foglio non si è potuto disegnare'));i.src=url});
+  const c=document.createElement('canvas');c.width=Math.round(L*2);c.height=Math.round(A*2);
+  const ctx=c.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,c.width,c.height);ctx.drawImage(img,0,0,c.width,c.height);
+  return await canvasABlob(c,'image/jpeg',0.9);
+}
+async function esitoAssistente(file,r){
+  const nome=file.name.replace(/\.[a-z0-9]+$/i,'')+' - compilato';
+  anteprimaStampa({titolo:nome,pagineHtml:[paginaAssistenteHtml(r)],registra:false,
+    azioniExtra:`<button class="pulsante" data-ap-archivia>${icona('allega')}Archivia come documento</button>`});
+  const b=el('[data-ap-archivia]');
+  if(b) b.addEventListener('click',async()=>{
+    try{
+      const blob=await immagineDelFoglio(r);
+      dialogoDocumento({},[new File([blob],nome+'.jpg',{type:'image/jpeg'})]);
+    }catch(e){ segnalaErrore(e,'Non sono riuscito a trasformare il foglio in immagine: usa "Stampa / Salva PDF" e poi allega il PDF'); }
+  });
 }
 
 
