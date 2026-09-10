@@ -173,11 +173,38 @@ AZIONI['persona-foto']=async d=>{
   const p=persona(d.id);
   const fs=await scegliFile({multipli:false,accetta:'image/*'});
   if(!fs.length) return;
-  // ridotta e ritagliata quadrata: sta nel dato della persona come le firme, così si mostra subito
-  let dataUrl; try{ dataUrl=await ritagliaQuadrata(fs[0],320); }
+  let img; try{ img=await caricaImmagine(fs[0]); }
   catch(e){ return segnalaErrore(e,'Non sono riuscito a leggere «'+fs[0].name+'»: se è una foto HEIC dell\'iPhone riesportala in JPG'); }
+  const dataUrl=await ritagliaFoto(img,nomePersona(p));
+  if(!dataUrl) return;
   esegui('Foto di '+nomePersona(p),s=>{s.persone.find(x=>x.id===d.id).fotoImg=dataUrl});
 };
+// Il ritaglio si fa a mano: la faccia non sta quasi mai al centro della foto, e un ritaglio
+// automatico centrato taglia le teste. Si trascina l'immagine e si ingrandisce finché sta nel
+// cerchio, che è la forma con cui la foto si vede davvero negli elenchi.
+function ritagliaFoto(img,nome){
+  const LATO=320;
+  let scala=1,ox=0,oy=0;
+  const corpo=html`<p class="piccolo secondario">Trascina la foto per spostarla e usa la barra (o la rotella) per ingrandirla. Quello che resta dentro il cerchio è quello che si vedrà.</p>
+    <div class="ritaglio-foto"><canvas id="rf-tela" width="${LATO}" height="${LATO}"></canvas><div class="maschera"></div></div>
+    <div class="riga mt-s"><span class="piccolo secondario">Ingrandimento</span><input type="range" id="rf-zoom" min="100" max="400" value="100" style="flex:1"></div>`;
+  return dialogo({titolo:'Foto di '+nome,corpo,senzaFocus:true,valoreEscape:null,
+    pulsanti:[{testo:'Annulla',valore:null},{testo:'Usa questa foto',classe:'primario',primario:true,fn:v=>v.querySelector('#rf-tela').toDataURL('image/jpeg',0.85)}],
+    alMontaggio:v=>{
+      const tela=v.querySelector('#rf-tela'),ctx=tela.getContext('2d'),zoom=v.querySelector('#rf-zoom');
+      const base=Math.max(LATO/img.width,LATO/img.height); // la foto copre sempre tutto il quadrato
+      ox=(LATO-img.width*base)/2;oy=(LATO-img.height*base)/2;
+      const limita=()=>{const w=img.width*base*scala,hh=img.height*base*scala;ox=Math.min(0,Math.max(LATO-w,ox));oy=Math.min(0,Math.max(LATO-hh,oy))};
+      const disegna=()=>{limita();ctx.fillStyle='#fff';ctx.fillRect(0,0,LATO,LATO);ctx.drawImage(img,ox,oy,img.width*base*scala,img.height*base*scala)};
+      disegna();
+      zoom.addEventListener('input',()=>{const nuovo=+zoom.value/100;const c=LATO/2;ox=c-(c-ox)*(nuovo/scala);oy=c-(c-oy)*(nuovo/scala);scala=nuovo;disegna()});
+      let trascina=null;
+      tela.addEventListener('pointerdown',e=>{trascina={x:e.clientX-ox,y:e.clientY-oy};tela.setPointerCapture(e.pointerId)});
+      tela.addEventListener('pointermove',e=>{if(!trascina)return;ox=e.clientX-trascina.x;oy=e.clientY-trascina.y;disegna()});
+      const fine=()=>trascina=null;tela.addEventListener('pointerup',fine);tela.addEventListener('pointercancel',fine);
+      tela.addEventListener('wheel',e=>{e.preventDefault();const nuovo=Math.min(4,Math.max(1,scala*(e.deltaY<0?1.1:1/1.1)));const c=LATO/2;ox=c-(c-ox)*(nuovo/scala);oy=c-(c-oy)*(nuovo/scala);scala=nuovo;zoom.value=Math.round(nuovo*100);disegna()},{passive:false});
+    }});
+}
 AZIONI['persona-firma-togli']=async d=>{const p=persona(d.id);if(!(await conferma('Togliere la firma di '+nomePersona(p)+'?',{pericolo:true})))return;esegui('Tolta la firma di '+nomePersona(p),s=>{s.persone.find(x=>x.id===d.id).firmaImg=null})};
 AZIONI['persona-firma']=async d=>{
   const p=persona(d.id);

@@ -658,6 +658,16 @@ body.trascinamento iframe,body.trascinamento embed,body.trascinamento object{poi
 .ck-sezione>summary:hover{background:var(--superficie-2)}
 .ck-sezione .ck-corpo{padding:0 10px 8px;border-top:1px solid var(--bordo)}
 .ck-sezione .ck-sezione{margin:6px 0;background:var(--superficie-2)}
+select.stato-rapido{padding:2px 22px 2px 8px;font-size:var(--t-xs);font-weight:600;border-radius:999px;border:1px solid var(--bordo);background:var(--superficie-2);min-height:0}
+select.stato-rapido.accettato{background:var(--blu-chiaro);border-color:var(--blu);color:var(--blu-testo)}
+select.stato-rapido.rifiutato,select.stato-rapido.scaduto{background:var(--rosso-chiaro);border-color:var(--rosso);color:var(--rosso-testo)}
+select.stato-rapido.inviato{background:var(--giallo-chiaro);border-color:var(--giallo-bordo);color:var(--giallo)}
+.gruppo-pulsanti.stati-prev .pulsante.attivo.accettato{background:var(--blu);color:#fff}
+.gruppo-pulsanti.stati-prev .pulsante.attivo.rifiutato,.gruppo-pulsanti.stati-prev .pulsante.attivo.scaduto{background:var(--rosso);color:#fff}
+.ritaglio-foto{position:relative;width:320px;max-width:100%;margin:0 auto;touch-action:none}
+.ritaglio-foto canvas{display:block;width:100%;height:auto;border-radius:var(--raggio);background:#fff;cursor:grab}
+.ritaglio-foto canvas:active{cursor:grabbing}
+.ritaglio-foto .maschera{position:absolute;inset:0;border-radius:var(--raggio);pointer-events:none;box-shadow:0 0 0 999px rgba(0,0,0,.45) inset;-webkit-mask:radial-gradient(circle at 50% 50%, transparent 49.5%, #000 50%);mask:radial-gradient(circle at 50% 50%, transparent 49.5%, #000 50%)}
 .foto-persona{width:120px;height:120px;border-radius:var(--raggio);object-fit:cover;border:1px solid var(--bordo)}
 .segnaposto-picker{border:1px solid var(--bordo);border-radius:var(--raggio);padding:var(--sp-2);max-height:220px;overflow:auto;background:var(--superficie-2)}
 .segnaposto-picker .gruppo+.gruppo{margin-top:var(--sp-2)}
@@ -2829,11 +2839,38 @@ AZIONI['persona-foto']=async d=>{
   const p=persona(d.id);
   const fs=await scegliFile({multipli:false,accetta:'image/*'});
   if(!fs.length) return;
-  // ridotta e ritagliata quadrata: sta nel dato della persona come le firme, così si mostra subito
-  let dataUrl; try{ dataUrl=await ritagliaQuadrata(fs[0],320); }
+  let img; try{ img=await caricaImmagine(fs[0]); }
   catch(e){ return segnalaErrore(e,'Non sono riuscito a leggere «'+fs[0].name+'»: se è una foto HEIC dell\'iPhone riesportala in JPG'); }
+  const dataUrl=await ritagliaFoto(img,nomePersona(p));
+  if(!dataUrl) return;
   esegui('Foto di '+nomePersona(p),s=>{s.persone.find(x=>x.id===d.id).fotoImg=dataUrl});
 };
+// Il ritaglio si fa a mano: la faccia non sta quasi mai al centro della foto, e un ritaglio
+// automatico centrato taglia le teste. Si trascina l'immagine e si ingrandisce finché sta nel
+// cerchio, che è la forma con cui la foto si vede davvero negli elenchi.
+function ritagliaFoto(img,nome){
+  const LATO=320;
+  let scala=1,ox=0,oy=0;
+  const corpo=html`<p class="piccolo secondario">Trascina la foto per spostarla e usa la barra (o la rotella) per ingrandirla. Quello che resta dentro il cerchio è quello che si vedrà.</p>
+    <div class="ritaglio-foto"><canvas id="rf-tela" width="${LATO}" height="${LATO}"></canvas><div class="maschera"></div></div>
+    <div class="riga mt-s"><span class="piccolo secondario">Ingrandimento</span><input type="range" id="rf-zoom" min="100" max="400" value="100" style="flex:1"></div>`;
+  return dialogo({titolo:'Foto di '+nome,corpo,senzaFocus:true,valoreEscape:null,
+    pulsanti:[{testo:'Annulla',valore:null},{testo:'Usa questa foto',classe:'primario',primario:true,fn:v=>v.querySelector('#rf-tela').toDataURL('image/jpeg',0.85)}],
+    alMontaggio:v=>{
+      const tela=v.querySelector('#rf-tela'),ctx=tela.getContext('2d'),zoom=v.querySelector('#rf-zoom');
+      const base=Math.max(LATO/img.width,LATO/img.height); // la foto copre sempre tutto il quadrato
+      ox=(LATO-img.width*base)/2;oy=(LATO-img.height*base)/2;
+      const limita=()=>{const w=img.width*base*scala,hh=img.height*base*scala;ox=Math.min(0,Math.max(LATO-w,ox));oy=Math.min(0,Math.max(LATO-hh,oy))};
+      const disegna=()=>{limita();ctx.fillStyle='#fff';ctx.fillRect(0,0,LATO,LATO);ctx.drawImage(img,ox,oy,img.width*base*scala,img.height*base*scala)};
+      disegna();
+      zoom.addEventListener('input',()=>{const nuovo=+zoom.value/100;const c=LATO/2;ox=c-(c-ox)*(nuovo/scala);oy=c-(c-oy)*(nuovo/scala);scala=nuovo;disegna()});
+      let trascina=null;
+      tela.addEventListener('pointerdown',e=>{trascina={x:e.clientX-ox,y:e.clientY-oy};tela.setPointerCapture(e.pointerId)});
+      tela.addEventListener('pointermove',e=>{if(!trascina)return;ox=e.clientX-trascina.x;oy=e.clientY-trascina.y;disegna()});
+      const fine=()=>trascina=null;tela.addEventListener('pointerup',fine);tela.addEventListener('pointercancel',fine);
+      tela.addEventListener('wheel',e=>{e.preventDefault();const nuovo=Math.min(4,Math.max(1,scala*(e.deltaY<0?1.1:1/1.1)));const c=LATO/2;ox=c-(c-ox)*(nuovo/scala);oy=c-(c-oy)*(nuovo/scala);scala=nuovo;zoom.value=Math.round(nuovo*100);disegna()},{passive:false});
+    }});
+}
 AZIONI['persona-firma-togli']=async d=>{const p=persona(d.id);if(!(await conferma('Togliere la firma di '+nomePersona(p)+'?',{pericolo:true})))return;esegui('Tolta la firma di '+nomePersona(p),s=>{s.persone.find(x=>x.id===d.id).firmaImg=null})};
 AZIONI['persona-firma']=async d=>{
   const p=persona(d.id);
@@ -4266,7 +4303,7 @@ VISTE.preventivi=function(r){
   if(r.id) return vistaPreventivo(r.id);
   const righe=ordina(stato.preventivi.map(p=>({p,tot:totaliPreventivo(p)})),x=>x.p.data||'','desc');
   return html`<div class="testata"><div><h1>Preventivi</h1><div class="sotto">${stato.preventivi.length} preventivi · ${stato.listino.length} voci di listino</div></div><div class="azioni"><button class="pulsante" data-azione="preventivo-importa-voci" title="Carica il capitolato o il computo del cliente (Excel o PDF): le voci finiscono in un preventivo Pavimass">${icona('carica')}Importa voci dal cliente</button><a class="pulsante" href="#/preventivi/listino">${icona('elenco')}Listino</a><button class="pulsante primario" data-azione="preventivo-nuovo">${icona('piu')}Nuovo preventivo</button></div></div>
-  ${tabella({id:'preventivi',righe,href:x=>'#/preventivi/'+x.p.id,colonne:[{chiave:'n',titolo:'Numero',principale:true,valore:x=>(x.p.anno*1000+x.p.numero),formatta:x=>html`<b>${x.p.numero}/${x.p.anno}</b>`},{chiave:'data',titolo:'Data',valore:x=>x.p.data,formatta:x=>fData(x.p.data)},{chiave:'cl',titolo:'Cliente',valore:x=>nomeCliente(x.p.clienteId),formatta:x=>nomeCliente(x.p.clienteId)||daCompilare()},{chiave:'ogg',titolo:'Oggetto',valore:x=>x.p.oggetto||''},{chiave:'stato',titolo:'Stato',formatta:x=>pillolaStatoPreventivo(x.p.stato)},{chiave:'dq',titolo:'Da quotare',num:true,valore:x=>x.tot.daQuotare.length,formatta:x=>x.tot.daQuotare.length?html`<span class="pillola scadenza">${icona('attenzione','piccola')}${x.tot.daQuotare.length}</span>`:''},{chiave:'tot',titolo:'Totale',num:true,valore:x=>x.tot.totale,formatta:x=>fEuro(x.tot.totale)}],vuoto:vuoto({icona:'preventivi',titolo:'Nessun preventivo',testo:'Crea il primo preventivo dal listino o incollando il computo del cliente.',azione:{testo:'Nuovo preventivo',azione:'preventivo-nuovo'}})})}`;
+  ${tabella({id:'preventivi',righe,href:x=>'#/preventivi/'+x.p.id,colonne:[{chiave:'n',titolo:'Numero',principale:true,valore:x=>(x.p.anno*1000+x.p.numero),formatta:x=>html`<b>${x.p.numero}/${x.p.anno}</b>`},{chiave:'data',titolo:'Data',valore:x=>x.p.data,formatta:x=>fData(x.p.data)},{chiave:'cl',titolo:'Cliente',valore:x=>nomeCliente(x.p.clienteId),formatta:x=>nomeCliente(x.p.clienteId)||daCompilare()},{chiave:'ogg',titolo:'Oggetto',valore:x=>x.p.oggetto||''},{chiave:'stato',titolo:'Stato',valore:x=>x.p.stato,formatta:x=>html`<select class="stato-rapido ${x.p.stato}" data-cambio="preventivo-stato" data-id="${x.p.id}" aria-label="Stato del preventivo" onclick="event.stopPropagation()">${Object.entries(STATI_PREVENTIVO).map(([v,t])=>html`<option value="${v}" ${x.p.stato===v?'selected':''}>${t}</option>`)}</select>`},{chiave:'dq',titolo:'Da quotare',num:true,valore:x=>x.tot.daQuotare.length,formatta:x=>x.tot.daQuotare.length?html`<span class="pillola scadenza">${icona('attenzione','piccola')}${x.tot.daQuotare.length}</span>`:''},{chiave:'tot',titolo:'Totale',num:true,valore:x=>x.tot.totale,formatta:x=>fEuro(x.tot.totale)}],vuoto:vuoto({icona:'preventivi',titolo:'Nessun preventivo',testo:'Crea il primo preventivo dal listino o incollando il computo del cliente.',azione:{testo:'Nuovo preventivo',azione:'preventivo-nuovo'}})})}`;
 };
 AZIONI['preventivo-nuovo']=()=>nuovoPreventivo();
 async function nuovoPreventivo(clienteId){
@@ -4282,7 +4319,7 @@ function vistaPreventivo(id){
   const tot=totaliPreventivo(p);
   dopoRender(()=>{tutti('#righe-prev input[data-riga-campo="descrizione"]').forEach(i=>attivaSuggerimenti(i,()=>stato.listino.map(l=>l.descrizione)))});
   return html`<div class="briciole"><a href="#/preventivi">Preventivi</a> › ${p.numero}/${p.anno}</div>
-  <div class="testata"><div><h1>Preventivo ${p.numero}/${p.anno}</h1><div class="sotto">${pillolaStatoPreventivo(p.stato)} ${fData(p.data)} · ${nomeCliente(p.clienteId)||daCompilare('cliente')}${p.cantiereId?html` · <a href="#/cantieri/${p.cantiereId}">${nomeCantiere(p.cantiereId)}</a>`:''}</div></div>
+  <div class="testata"><div><h1>Preventivo ${p.numero}/${p.anno}</h1><div class="sotto"><span class="gruppo-pulsanti stati-prev">${Object.entries(STATI_PREVENTIVO).map(([v,t])=>html`<button class="pulsante piccolo ${p.stato===v?'attivo '+v:''}" data-azione="preventivo-stato-imposta" data-id="${p.id}" data-valore="${v}">${t}</button>`)}</span> ${fData(p.data)} · ${nomeCliente(p.clienteId)||daCompilare('cliente')}${p.cantiereId?html` · <a href="#/cantieri/${p.cantiereId}">${nomeCantiere(p.cantiereId)}</a>`:''}</div></div>
     <div class="azioni"><button class="pulsante" data-azione="preventivo-stampa" data-id="${p.id}">${icona('stampa')}Stampa</button><button class="pulsante" data-azione="preventivo-xlsx" data-id="${p.id}">${icona('scarica')}Excel</button><button class="pulsante" data-azione="preventivo-csv" data-id="${p.id}">${icona('scarica')}CSV</button><button class="pulsante primario" data-azione="preventivo-modifica" data-id="${p.id}">${icona('modifica')}Intestazione</button></div></div>
   ${tot.daQuotare.length?html`<div class="avviso-inline attenzione">${icona('attenzione')}<div class="corpo"><b>${plurale(tot.daQuotare.length,'voce da quotare','voci da quotare')}:</b> ${tot.daQuotare.map(r=>r.codice||tronca(r.descrizione,30)).join(', ')}. Restano senza prezzo finché non lo inserisci: mai prezzi inventati.</div></div>`:''}
   <div class="scheda"><h3>Righe <span class="azioni"><button class="pulsante piccolo" data-azione="preventivo-riga-listino" data-id="${p.id}">${icona('piu','piccola')}Da listino</button><button class="pulsante piccolo" data-azione="preventivo-riga-libera" data-id="${p.id}">${icona('piu','piccola')}Riga libera</button><button class="pulsante piccolo" data-azione="preventivo-incolla" data-id="${p.id}">${icona('incolla','piccola')}Incolla da Excel</button><button class="pulsante piccolo" data-azione="preventivo-importa-voci" data-id="${p.id}" title="Carica il capitolato del cliente (Excel o PDF) e prendine le voci">${icona('carica','piccola')}Importa da file</button></span></h3>
@@ -4297,6 +4334,10 @@ document.addEventListener('change',e=>{const t=e.target;if(!t.dataset||t.dataset
 AZIONI['preventivo-sconto']=(d,t)=>{const v=leggiNumero(t.value)||0;esegui('Sconto preventivo',s=>{s.preventivi.find(x=>x.id===d.id).scontoPct=v},{silenzioso:true})};
 AZIONI['preventivo-campo']=(d,t)=>{esegui('Modificato preventivo',s=>{s.preventivi.find(x=>x.id===d.id)[d.campo]=t.value},{silenzioso:true,senzaRender:true})};
 AZIONI['preventivo-modifica']=async d=>{const p=perId('preventivi',d.id);const v=await dialogoModulo('Intestazione preventivo',[{nome:'numero',etichetta:'Numero',tipo:'numero',decimali:0,obbligatorio:true},{nome:'anno',etichetta:'Anno',tipo:'numero',decimali:0,obbligatorio:true},{nome:'data',etichetta:'Data',tipo:'data',obbligatorio:true},{nome:'stato',etichetta:'Stato',tipo:'select',vuoto:false,opzioni:Object.entries(STATI_PREVENTIVO).map(([v,t])=>({v,t}))},{nome:'clienteId',etichetta:'Cliente',tipo:'select',opzioni:stato.clienti.map(c=>({v:c.id,t:c.ragioneSociale}))},{nome:'cantiereId',etichetta:'Cantiere',tipo:'select',opzioni:stato.cantieri.map(c=>({v:c.id,t:c.nome})),aiuto:'Se nel frattempo hai creato il cantiere (commessa vinta), collegalo qui'},{nome:'oggetto',etichetta:'Oggetto',largo:true,obbligatorio:true},{nome:'validitaGiorni',etichetta:'Validità (giorni)',tipo:'numero',decimali:0}],p,{pulsantiExtra:[{testo:'Elimina',classe:'pericolo',sinistra:true,fn:async()=>{if(await conferma('Eliminare il preventivo '+p.numero+'/'+p.anno+'?',{pericolo:true})){esegui('Eliminato preventivo',s=>{s.preventivi=s.preventivi.filter(x=>x.id!==p.id)});vai('preventivi');return null}return false}}]});if(!v)return;esegui('Modificato preventivo',s=>{Object.assign(s.preventivi.find(x=>x.id===p.id),v)})};
+// Lo stato si cambia da dove lo si guarda: nell'elenco con un menu, nella scheda con un pulsante.
+// Prima bisognava aprire il preventivo, aprire "Modifica" e cercarlo in mezzo agli altri campi.
+AZIONI['preventivo-stato']=(d,t)=>{const p=perId('preventivi',d.id);if(!p||p.stato===t.value)return;esegui('Preventivo '+p.numero+'/'+p.anno+': '+STATI_PREVENTIVO[t.value],s=>{s.preventivi.find(x=>x.id===d.id).stato=t.value})};
+AZIONI['preventivo-stato-imposta']=d=>{const p=perId('preventivi',d.id);if(!p||p.stato===d.valore)return;esegui('Preventivo '+p.numero+'/'+p.anno+': '+STATI_PREVENTIVO[d.valore],s=>{s.preventivi.find(x=>x.id===d.id).stato=d.valore})};
 AZIONI['preventivo-riga-libera']=d=>esegui('Aggiunta riga',s=>{s.preventivi.find(x=>x.id===d.id).righe.push({id:nuovoId('r'),codice:'',descrizione:'',um:'mq',quantita:null,prezzo:null,tipoPrezzo:'posa',esclusa:false})});
 AZIONI['preventivo-riga-elimina']=d=>esegui('Eliminata riga',s=>{s.preventivi.find(x=>x.id===d.id).righe.splice(+d.i,1)});
 AZIONI['preventivo-riga-listino']=async d=>{

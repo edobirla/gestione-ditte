@@ -600,6 +600,16 @@ body.trascinamento iframe,body.trascinamento embed,body.trascinamento object{poi
 .ck-sezione>summary:hover{background:var(--superficie-2)}
 .ck-sezione .ck-corpo{padding:0 10px 8px;border-top:1px solid var(--bordo)}
 .ck-sezione .ck-sezione{margin:6px 0;background:var(--superficie-2)}
+select.stato-rapido{padding:2px 22px 2px 8px;font-size:var(--t-xs);font-weight:600;border-radius:999px;border:1px solid var(--bordo);background:var(--superficie-2);min-height:0}
+select.stato-rapido.accettato{background:var(--blu-chiaro);border-color:var(--blu);color:var(--blu-testo)}
+select.stato-rapido.rifiutato,select.stato-rapido.scaduto{background:var(--rosso-chiaro);border-color:var(--rosso);color:var(--rosso-testo)}
+select.stato-rapido.inviato{background:var(--giallo-chiaro);border-color:var(--giallo-bordo);color:var(--giallo)}
+.gruppo-pulsanti.stati-prev .pulsante.attivo.accettato{background:var(--blu);color:#fff}
+.gruppo-pulsanti.stati-prev .pulsante.attivo.rifiutato,.gruppo-pulsanti.stati-prev .pulsante.attivo.scaduto{background:var(--rosso);color:#fff}
+.ritaglio-foto{position:relative;width:320px;max-width:100%;margin:0 auto;touch-action:none}
+.ritaglio-foto canvas{display:block;width:100%;height:auto;border-radius:var(--raggio);background:#fff;cursor:grab}
+.ritaglio-foto canvas:active{cursor:grabbing}
+.ritaglio-foto .maschera{position:absolute;inset:0;border-radius:var(--raggio);pointer-events:none;box-shadow:0 0 0 999px rgba(0,0,0,.45) inset;-webkit-mask:radial-gradient(circle at 50% 50%, transparent 49.5%, #000 50%);mask:radial-gradient(circle at 50% 50%, transparent 49.5%, #000 50%)}
 .foto-persona{width:120px;height:120px;border-radius:var(--raggio);object-fit:cover;border:1px solid var(--bordo)}
 .segnaposto-picker{border:1px solid var(--bordo);border-radius:var(--raggio);padding:var(--sp-2);max-height:220px;overflow:auto;background:var(--superficie-2)}
 .segnaposto-picker .gruppo+.gruppo{margin-top:var(--sp-2)}
