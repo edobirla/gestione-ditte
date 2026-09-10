@@ -1,33 +1,32 @@
 # Handoff — Gestionale Pavimass
 
-> Generated on 2026-09-04 — resume in a new Claude Code session.
+> Generated on 2026-09-07 — resume in a new Claude Code session.
 
 ---
 
 ## 🎯 Goal
 
-A single-file construction-company management app for Pavimass S.R.L. (Subbiano, AR), owned by Edoardo Birla. Everything lives in one file, `Gestionale Pavimass.html` — HTML, CSS, JS, images inline — that opens by double-click from `file://` on macOS and from iPhone/iPad (Files app → Safari). No external dependencies, no CDN, no build step at runtime, no network requests, except an optional AI reading of the handwritten hour sheet (off by default, key stored locally only). It manages: workers and their compliance documents, cantieri (job sites), clients/professionals, monthly attendance (libro presenze), a document archive, POS (site safety plans), preventivi (quotes), and budget/movimenti. Every paper document the company needs is produced by the app itself via print-to-PDF.
+Single-file construction-company management app for Pavimass S.R.L. (Edoardo Birla, owner). Everything lives in `Gestionale Pavimass.html`, built from `sorgente/*.css|html|js` via `python3 strumenti/costruisci.py`. No external dependencies, no CDN, no network calls, no build step at runtime. IndexedDB storage, hand-written print/ZIP/PDF-text-extraction engines.
 
-The original brief (Italian, chapters 0–14, given as one message) is the source of truth for hard rules — see "Gotchas" below. It is not saved as a file; it only exists in the first session's conversation history. If a rule is unclear, re-derive it from the seed data and existing code rather than guessing.
-
-Phase 0 delivery (architecture, seed data, all core sections, printing, backup/restore, exports) is **done and was verified in-browser** as of 2026-09-03. This handoff is for **Phase 1: a large round of UX/functionality fixes** the user identified after using the delivered app, listed in "Next Steps" below, in the user's own words (Italian) translated and organized.
+Edoardo uses the app daily now. This is **Fase 3**: a punch-list of bugs and corrections from real usage, gathered in a single brain-dump message on 2026-09-07 after Fase 2 (a ~29-item feature request, all implemented and committed — see `git log` and the project memory file). He has NOT yet said "fai tutto, non fermarti" for this list — treat this as a fresh backlog to triage/confirm scope with him where noted, not a blank check to rewrite everything.
 
 ---
 
 ## 📍 Current State
 
-**Working (verified in-browser 2026-09-03, see prior session transcript for detail):**
-- Single-file build from `sorgente/*.css|html|js` via `strumenti/costruisci.py`, `?v=N` cache-busting only matters for the local test server, not for real use.
-- IndexedDB persistence (`stato` + `file` blob stores), debounced save, undo/redo (40 steps), 5 recoverable snapshots.
-- Backup/restore as a hand-written ZIP (STORE, CRC32), schema migrations (`VERSIONE_SCHEMA=3`), merge (fusione) with per-item choice.
-- JS-driven print pagination (`impagina`) for all documents: scadenzario, dichiarazioni, preventivo, POS, libro presenze, checklist, pacchetto committenza — with letterhead on every page and `@page{margin:0}` to suppress browser print headers. **User now says the POS print result is not good** (see Next Steps) — the pagination mechanism works but the actual POS content layout is unsatisfactory.
-- PDF text extraction (hand-written inflate/DEFLATE, no libraries) + PSC field proposals (`proponiDatiDaPsc`), tested against a real PSC PDF.
-- Photo compression on ingest (canvas, ≤300 KB target), classifier for irregular file names, drag & drop **is implemented in code** (`sorgente/31-navigazione.js`, window-level `dragover`/`drop`, `fileDaDrop` with `webkitGetAsEntry` recursion) but **the user reports it does not work in practice** — needs live debugging, not a rewrite from scratch.
-- XLSX/CSV/Markdown export writers, all hand-written, validated with openpyxl.
-- Domain rules as pure functions in `sorgente/11-regole.js`, all 40 self-checks pass (`autoverifica()`).
-- Optional AI hour-sheet reading: button only exists when an API key is set (Impostazioni → Lettura assistita), calls Anthropic Messages API with the sheet photo, fills the grid with proposals all marked "incerto" (uncertain) for the user to verify before applying. This is the only network call in the whole app.
+**Working and committed (Fase 1 + Fase 2, ~30 commits, all passing `autoverifica()` — 39/39 checks):**
+Everything described in the project memory file `gestionale-pavimass-stato-consegna.md` (auto-loaded memory — read it first, it has full detail on architecture and what Fase 1/2 covered: Mezzi/Fornitori/Bonifici sections, busta-paga PDF splitting, FatturaPA XML import, XLSX in-place compiler, external-document assistant, drag&drop rewrite, libro presenze redesign, dashboard redesign, etc.)
 
-**Not working / needs this session's work:** see Next Steps — this is the bulk of the work now.
+**Broken / wrong / needs redoing (this session's brain dump, 2026-09-07 — see Next Steps for detail):**
+- Libro presenze print layout does NOT match Edoardo's real reference template (now saved in `template/Scheda Ore Mensile.pdf`) — wrong columns, wrong colors, and he says not all days show (needs re-verification).
+- Preventivo print output must match Pavimass's real invoicing-software template (now saved in `template/Prev. n.4-26-P del 25-06-26 (Isola Castelluccio Condominio).pdf`) — current output does not.
+- **Assistente documento esterno is reported as non-functional** ("doesn't let me pick images or PDFs") — likely cause identified below, needs a real-device fix+retest.
+- **Drag&drop still broken on Chrome** despite the Fase 2 rewrite — needs live diagnosis with Edoardo.
+- A genuinely useful feature ("compila operaio per operaio") was accidentally deleted in Fase 2 batch 3 along with the AI-reading feature it was bundled with — needs to be restored (minus the AI part, which he did want gone).
+- Dichiarazioni model editor exposes `{{cantiere.nome}}`-style placeholders to a non-technical user — he calls this a violation of "la regola principale del programma" (must be intuitive to someone who's never used it). This is a design problem, not a one-line fix.
+- Several smaller UX corrections (list below) — mostly small, well-located fixes.
+
+**Not started:** everything in this handoff's Next Steps is new work from the 2026-09-07 brain dump, not yet touched this session.
 
 ---
 
@@ -35,126 +34,107 @@ Phase 0 delivery (architecture, seed data, all core sections, printing, backup/r
 
 | File | Role / Status |
 |------|--------------|
-| `Gestionale Pavimass.html` | **Deliverable.** Built file — do not hand-edit for anything beyond a trivial one-line fix; edit `sorgente/` and rebuild instead. |
-| `strumenti/costruisci.py` | Concatenates `sorgente/*.css\|html\|js` (sorted) into the deliverable. Run after every `sorgente/` change: `python3 strumenti/costruisci.py`. |
-| `strumenti/estrai_pos.py` | Regenerates `sorgente/62-pos-testo.js` (`POS_TESTO`) from `POS_Pavimass_Template_v4.docx` — only needed if the Word template changes. |
-| `strumenti/immagini.py` | Regenerates `sorgente/61-immagini.js` (`IMMAGINI` — logo, signatures) — only needed if source images change. |
-| `strumenti/presenze_iniziali.py` | Regenerates `sorgente/63-presenze-iniziali.js` (seed attendance data) from the 2026 Excel libro presenze. |
-| `sorgente/00-mappa.txt` | Section map — keep it in sync if sections are added/renamed. |
-| `sorgente/01-stile.css` | All CSS: design tokens, dark theme, print pages (`.pagina`, `.doc`, `.doc.pos`), mobile responsive rules (stacked table cells ≤760px). **Likely to change a lot** for the layout/filter-density work below. |
-| `sorgente/02-guscio.html` | App shell: SVG icon sprite, `#app` bar/menu/content, `#pannello`, `#dialoghi`, `#avvisi`, `#stampa`, hidden file inputs. |
-| `sorgente/10-utilita.js` | Formatters, date parsing, escaping (`h`, `html`, `grezzo`). |
-| `sorgente/11-regole.js` | Pure domain-rule functions — idoneità, rounding, expiry logic, `autoverifica()`. |
-| `sorgente/20-stato.js` | DB open/load/save, `esegui`/`annulla`/`ripristina` (undo stack), accessors (`persona`, `cantiere`, `documentiDi`, `meseP`, …). |
-| `sorgente/21-archivio.js` | File blob store, hashing/dedup, image compression, quota. |
-| `sorgente/22-backup.js` | ZIP writer/reader, backup/restore/merge, `documentazioneSchema()`. |
-| `sorgente/30-ui.js` | Reusable UI: `dialogo`, `tabella`, `modulo`, `apriPannello`, charts. |
-| `sorgente/31-navigazione.js` | Router, menu, theme, global search, keyboard shortcuts, **drag & drop handling** (`acquisizioneRapida`, `fileDaDrop`) — needs debugging, see Next Steps #4. |
-| `sorgente/40-dashboard.js` | Dashboard tiles. |
-| `sorgente/41-operai.js` | Worker list/scheda — **needs "no longer with the company" status** (Next Steps #2) and back-navigation (#1). |
-| `sorgente/42-cantieri.js` | Cantieri list/scheda, checklist — **needs active/closed filter, year filter, location filter** (Next Steps #3). |
-| `sorgente/43-clienti.js` | Client scheda, stats. |
-| `sorgente/44-presenze.js` | Attendance grid — **user wants this rebuilt as a per-worker card view, and wants only the 8 worked hours shown, not "two sets of hours"** (Next Steps #5 and #8 — these may be the same underlying issue, see note there). |
-| `sorgente/45-documenti.js` | Archive, document previews — **PDF/image preview must not show the Chrome print/viewer chrome, and large previews must be resized** (Next Steps #6). Also home of `dialogoDocumento`, `acquisizioneRapida` (drag & drop entry point). |
-| `sorgente/46-preventivi.js` | Preventivi editor, listino — **needs to allow a preventivo for a cantiere not yet saved as a cantiere record** (Next Steps #2b). |
-| `sorgente/48-impostazioni.js` | Settings, incl. **`modelli.dichiarazioni` editor — the whole templates/dichiarazioni system needs a redesign** (Next Steps #7, biggest item). |
-| `sorgente/50-stampa.js` | Print pagination engine + `docDichiarazione`, `docPos`, etc. — **POS layout needs real rework: repeated content, missing sections, missing images** (Next Steps #5-POS). |
-| `sorgente/51-esporta.js` | Downloads, exports, `condividiOScarica` (uses `navigator.share`) — **user wants direct email/WhatsApp sharing, verify this already covers it or needs extending** (Next Steps #9). |
-| `sorgente/52-pos.js` | POS wizard + `docPos` renderer — same POS layout work as above. |
-| `../programma segreteria/Segreteria Casentino (agg. 01-09).html` | **Reference app**, not part of this project — the user wants the `dichiarazioni`/templates UX in Pavimass to take inspiration from how that app compiles and prints a precompiled letter. Look at it, don't copy code (different app, different data model), just the interaction pattern: pick a template → fill a short form → get a print-ready letter. |
+| `template/Scheda Ore Mensile.pdf` | **Edoardo's real reference for the libro presenze layout.** Read it in full before touching `docLibroPresenze()`. |
+| `template/Prev. n.4-26-P del 25-06-26 (Isola Castelluccio Condominio).pdf` | **Edoardo's real preventivo output** (from his current invoicing software). This is the exact visual target for `docPreventivo()`/`stampaPreventivo()`. |
+| `sorgente/50-stampa.js` | Print engine. `docLibroPresenze(anno,mese)` and the preventivo print function live here — both need a structural redesign, not a tweak. |
+| `sorgente/44-presenze.js` | Presenze grid + Strumenti dialog (`AZIONI['presenze-strumenti']`, line ~203) + the deleted Trascrizione feature (was here before commit `65fe9d7`, see Failed Attempts). |
+| `sorgente/45-documenti.js` | Documenti archive, `dialogoDocumento` (edit dialog, ~line 122), `apriDocumento` (side panel, ~line 57), `AZIONI['assistente-documento-esterno']`/`apriAssistenteDocumento` (~line 264, suspected bug), `vistaArchivio`'s peso column (~line 33). |
+| `sorgente/42-cantieri.js` | Cantieri list (`VISTE.cantieri`, ~line 63) — filter bar has no search input, unlike every other section. Also `checklistCantiere()` (~line 23) — the function that decides which documents are "required" per cantiere, needs to respect a committenza-specific list when one exists. |
+| `sorgente/53-fornitori.js` | `dialogoFornitore` — needs a CF field alongside P.IVA. |
+| `sorgente/55-bonifici.js` | `dialogoBonifico`/`apriAssistenteBonifico` (whichever it's called) — needs auto-extraction from the uploaded "distinta" PDF, or a UX simplification if that's not reliable. |
+| `sorgente/51-esporta.js` | `vistaPacchetto`/`AZIONI['pacchetto-genera']` (~line 142) — **already does most of what Edoardo asked** (omits missing docs, records them, lets you exclude rows via checkbox). The one real gap: a hard `blocchi` check (UNILAV/permesso di soggiorno) disables the whole "Genera" button. Read this function fully before assuming it needs a rewrite — it probably just needs Edoardo to confirm what he actually hit. |
+| `sorgente/41-operai.js` | `schedaAnagrafica`/persona scheda — needs a firma (signature) upload field with auto background removal. |
+| `sorgente/21-archivio.js` | `comprimiImmagine`/`caricaImmagine`/`canvasABlob` — the canvas primitives to reuse for signature background removal (simple luminance threshold, no ML needed). |
+| `sorgente/46-preventivi.js` | `apriCompilatoreExcel` (Fase 2's in-place XLSX filler) — Edoardo's new framing suggests he actually wants extraction-into-Pavimass's-own-template instead (see Next Steps #6). Don't delete the in-place filler yet — clarify first, it may still be useful as a secondary option. |
 
 ---
 
-## ❌ Failed Attempts
+## ❌ Failed Attempts / Known-Wrong Decisions
 
-None yet for this phase — this handoff starts a new round of work. The only thing worth flagging as *not a failed attempt but an open risk*: drag & drop is fully implemented (window-level listeners, folder recursion) and worked when tested via the browser MCP's synthetic drop events in the prior session, but the user reports it doesn't work for them in real use. Synthetic DOM events may not have exercised the exact code path a real OS-level drag exercises (e.g. `dataTransfer.types`, `effectAllowed`, or a listener attached to the wrong element/z-index layer covering it). **Start Next Steps #4 by reproducing with real mouse drag via computer-use or asking the user to describe exactly what they see (cursor icon, any console error), not by re-reading the code and assuming it's fine.**
+### Libro presenze redesign (Fase 2, commit `cee04c6`)
+- **What:** Rewrote `docLibroPresenze()` to show all days with weekend/festivo color tinting, "creative freedom" on colors (used brand purple/orange).
+- **Why it's wrong:** Edoardo already had a specific reference (`template/Scheda Ore Mensile.pdf`, only shared with me in this session, but he says he sent me the same content before) — his exact words: "il libretto delle presenze non è assolutamente come quello che ti ho mandato". The real template has 4 columns (Giorno / Committente / Località Trasferta / Ore Ordinarie), not the 3-column merged layout I built. It uses a black table header + blue accent (matching the app's own `--blu` token) + light cream/gray info boxes, not the lavender/orange tinting I invented. It has separate "NOME E COGNOME" / "QUALIFICA-RUOLO" boxes at the top (one sheet per person), and a "NOTE" + "IMPORTO TOTALE" box pair at the bottom.
+- **Also reported:** "non si vedono tutti i giorni" (not all days show) even after my fix. I verified programmatically in-browser that all days render for a fresh month — but that was before this redesign. Re-verify from scratch against the new template, don't assume the old fix still applies once the structure changes.
+
+### Presenze batch-3 cleanup (commit `65fe9d7`)
+- **What:** Removed "Trascrizione" (`AZIONI['presenze-trascrizione']`, `apriTrascrizione`, `leggiTrascrizione`) and "Incolla dati" (`AZIONI['presenze-incolla']`) together, because they were bundled with the AI foglio-ore-reading feature Edoardo explicitly asked to remove.
+- **Why it's wrong:** "Trascrizione" was actually TWO things bundled in one dialog: (a) a genuinely useful **per-worker, full-month, keyboard-driven table** (Enter = down, Tab = right, ⌘D = copy from row above, ⌘↓ = fill down to end of month, `?` = mark uncertain) for filling one operaio's whole month in one sitting, and (b) an optional "Leggi con AI" button + photo upload, shown only if `stato.impostazioni.chiaveApi` was set. I deleted the whole dialog instead of just removing (b). Edoardo confirmed: "hai tolto una funzione che mi piaceva, quella di compilare operaio per operaio, rimettila com'era" (you removed a feature I liked, the fill-worker-by-worker one, put it back like it was).
+- **Fix:** restore `apriTrascrizione`/`leggiTrascrizione`/the "Trascrizione" button, but strip out `#tr-carica` (photo upload), `#tr-ai` (AI button), and `leggiFoglioConAi` — keep only the manual keyboard-driven table. The full old code is visible via `git show 65fe9d7 -- sorgente/44-presenze.js` (look at the `-` lines). Also remove the `foglioOreId` references inside it since that field's photo-upload purpose is gone.
+
+### Assistente documento esterno (commit `d7c3a24`) — suspected root cause, unconfirmed
+- **What:** Built with `scegliFile({multipli:false,accetta:'image/*'})` — deliberately scoped to images only (a real PDF-page renderer was judged out of scope for this session).
+- **Why Edoardo says "doesn't let me choose images or PDFs":** I could never test the real native-OS file-picker click path in this sandboxed environment (`scegliFile` opens a real hidden `<input type=file>.click()`, which headless browser tools can't drive) — I only ever tested the core compositing logic by calling `apriAssistenteDocumento(file)` directly with a synthetic File object, bypassing the button and picker entirely. **This path was never actually verified end-to-end.**
+- **Most likely explanation:** he tried it on a PDF (the realistic case — "documento di un'altra azienda" arrives by email as a PDF far more often than as a photo), and `accept="image/*"` silently excludes/grays out PDFs in the OS picker with zero explanation in the UI — from his side that looks exactly like "the button doesn't do anything." The "doesn't let me choose images either" part is less explained — needs him to describe exactly what happens: does any dialog/window open at all when he clicks the button? What file type did he try?
+- **Next step:** ask Edoardo precisely what he clicked and what file type, before changing code. If confirmed as the PDF case, either (a) show a clear message when scope doesn't cover PDFs, or (b) extend scope to PDFs (needs rendering a PDF page to canvas first — a real PDF renderer, previously scoped out as too large; reconsider only if this turns out to be the actual blocker).
+
+### Drag&drop rewrite (commit `0dcf780`)
+- **What:** Consolidated 3 overlapping listeners into one window-level `dragover`/`drop` pair with `trovaZonaDrop()`.
+- **Status:** Still reported broken on Chrome. I have never been able to test real OS-level drag&drop in this environment (computer-use tools refuse to drive drag gestures across a real browser here) — the previous "fix" was verified only via synthetic `DataTransfer`+`File` drop events dispatched in JS, which proved the *handler logic* is correct but says nothing about real browser drag event sequencing/timing on Chrome specifically. **This needs Edoardo, live, describing exactly what he sees**: does the drop zone highlight at all while dragging? Does anything happen on drop (error in console)? Which Chrome version/OS?
 
 ---
 
-## ✅ Working Solutions
+## ✅ Working Solutions (keep these, don't re-litigate)
 
-- Single-file architecture via build-time concatenation of `sorgente/` — keep this. Never let the deliverable HTML and `sorgente/` drift apart; always edit `sorgente/` and rebuild.
-- Undo/redo via `esegui(descrizione, fn, opz)` wrapping every state mutation — reuse this pattern for any new mutation, don't bypass it.
-- `autoverifica()` self-check — run it after structural changes to `sorgente/11-regole.js` or the seed data shape.
-- Test loop: `.claude/launch.json` has a `"gestionale"` config running `python3 -m http.server 8765` — use the Browser MCP against `http://localhost:8765/Gestionale%20Pavimass.html?v=N` (bump N to bust cache) for all interactive testing. The in-app browser **refuses real `file://` URLs**, so file:// itself can only be checked with computer-use (screenshot-only, no interaction) or by asking the user.
+- **Pacchetto committenza already does most of what was re-requested.** Before rewriting `pacchetto-genera`, read it in full (`sorgente/51-esporta.js` lines 142–200ish): it already omits non-includible docs from the ZIP, records what's missing in `00 Indice.txt` and in the invio history, and lets the user manually exclude any row via checkbox (`data-pacchetto-escludi`). The only real gap is the hard `blocchi` check for missing/expired UNILAV or permesso di soggiorno on assigned workers, which disables "Genera" entirely (a deliberate compliance gate, not a bug). Confirm with Edoardo whether he hit specifically that gate before assuming a rewrite is needed.
+- **File dedup by content hash** (`salvaFile` in `21-archivio.js`) already prevents identical files from being stored twice. What's missing is a different thing: warning when a NEW (different-content) document of a type that already exists for that soggetto is being added — see Next Steps #12.
+- Everything else listed as "done" in the project memory file — don't re-implement, verify first if Edoardo reports something as broken (he may be testing an old cached build; always confirm `python3 strumenti/costruisci.py` was rerun and the browser hard-refreshed with a new `?v=N` before assuming a code bug).
 
 ---
 
 ## 🔧 Dependencies & Setup
 
 ```bash
-# Rebuild the deliverable after any sorgente/ change
+# Rebuild the single-file app from sorgente/
 python3 strumenti/costruisci.py
 
-# Local test server (or use the .claude/launch.json "gestionale" config with the preview tool)
-python3 -m http.server 8765
-# then open http://localhost:8765/Gestionale%20Pavimass.html?v=<bump-this>
+# Local dev server for browser testing (Claude_Browser MCP tools, not file://)
+# .claude/launch.json already has a "gestionale" config: python3 -m http.server 8765
+# Open http://localhost:8765/Gestionale%20Pavimass.html?v=N (bump N to bust cache)
 ```
 
-No package manager, no npm, no build tooling beyond the one Python script. Python 3 stdlib only (used for the `strumenti/` scripts, `openpyxl` was used ad hoc in the previous session just to validate an XLSX export, not a hard dependency).
+No package manager, no dependencies to install. `autoverifica()` in the browser console runs 39 self-checks — must stay green after every change.
 
 ---
 
 ## ➡️ Next Steps
 
-In the user's words, organized and prioritized by how self-contained each item is (not necessarily the order to work in — read all of them before starting, several touch the same files):
+Ordered roughly by how much Edoardo's language signals frustration/priority, not by ease. **Confirm scope on the ambiguous ones (marked ⚠️) before building — this list came from one unstructured brain-dump message, not a spec.**
 
-1. **Back navigation is missing.** Once inside a detail page (a worker, a cantiere, a document…) there's no way to go back. Add a back button/breadcrumb consistently across all detail views. Likely a router-level fix in `sorgente/31-navigazione.js` (`vai`/`render`) rather than per-view — check whether the hash router already tracks history depth before adding a bespoke back stack per view.
-
-2. **Worker status: "no longer with the company".**
-   - Need a way to mark a `persona` as no longer employed (there's already `attivo`/`dataCessazione` in the schema per `SCHEMA DATI.md` — check `sorgente/41-operai.js` for whether the UI actually exposes setting `dataCessazione` and toggling `attivo`, and whether inactive workers are filtered correctly everywhere they should be: idoneità/scadenzario, presenze grid, cantiere squadra picker).
-   - **Related, same conversation topic:** preventivi need to be creatable for a cantiere that isn't saved as a `cantiere` record yet — the user quotes jobs before they're won, so the cantiere doesn't exist in the system at quote time. Check `sorgente/46-preventivi.js`: does `dialogoModulo`/`cantiereId` require picking from the existing `cantieri[]` list? If so, either allow a free-text cantiere name on the preventivo (decoupled from the `cantieri[]` collection) or add a lightweight "cantiere in preventivo" pseudo-status that later gets promoted to a real cantiere record when won. Ask the user which they'd prefer if it's not obvious from re-reading `SCHEMA DATI.md`'s `preventivi[0]` shape — this is a modeling decision, not just a UI one.
-
-3. **General layout — filters take too much space, and filters are missing where needed.**
-   - Some pages have year/etc. filter controls that occupy too much vertical space for what they do — check `sorgente/01-stile.css` for the filter-bar component (search for `.filtri` or similar) and design something more compact (a single row, or a popover/dropdown pattern instead of always-expanded controls).
-   - Cantieri list specifically needs: an active/closed toggle (**not both shown mixed together — this is explicit**), a year filter, a location/place filter. Generalize: audit every list view (`sorgente/42-cantieri.js`, `sorgente/43-clienti.js`, `sorgente/45-documenti.js`, `sorgente/47-budget.js`) for what filters would actually help and add them with the same compact pattern once designed.
-
-4. **Drag & drop doesn't work in real use.** Code exists (`sorgente/31-navigazione.js`: `acquisizioneRapida`, `fileDaDrop`) but the user says dragging a file in does nothing. Debug live — don't assume the code is correct because it passed synthetic-event tests before. Reproduce with a real drag (computer-use or ask the user for exact repro steps/screen recording) before touching the code.
-
-5. **Libro presenze (attendance) needs a full redesign**, not a tweak: "qualcosa di diverso, di più moderno e leggibile, una scheda per ogni operaio" — a per-worker card layout instead of (presumably) the current grid-only view. This is `sorgente/44-presenze.js`. Given the size, treat this as its own design pass: look at the current grid's data model (`assicuraMesePersona`, `meseP`) which stays the same, but the presentation should become one card per worker (possibly with the existing grid still available as a secondary/detail view, or replaced entirely — clarify with the user before committing to "replaced" vs. "grid becomes the drill-down from the card").
-
-6. **Document preview must not show browser print chrome, and must resize large previews.** When viewing an attached PDF/image (e.g. under a worker's documents), the user doesn't want to see Chrome's own PDF-viewer toolbar/print controls, just the document; and if the file is large it should be scaled down so it doesn't dominate the page. Check `htmlAnteprimaFile` and `apriDocumento` in `sorgente/45-documenti.js` — likely rendering a bare `<embed>`/`<object>`/`<iframe>` for PDFs that inherits the browser's native viewer chrome; consider an `<img>`-based preview for images (already probably done) and, for PDFs, either constrain the iframe/embed more (some browsers support `#toolbar=0` on PDF embeds, though support varies and it's not guaranteed cross-browser) or render a bounded thumbnail with a separate "open full" action.
-
-7. **The dichiarazioni/templates system is too complicated and doesn't print well.** This is the biggest item. Current state: `sorgente/48-impostazioni.js` has a `modelli.dichiarazioni` editor (placeholder-based text templates) and `sorgente/50-stampa.js` has `contestoDichiarazione`/`docDichiarazione` to fill placeholders and print. The user finds this hard to understand and says the output isn't printable well. **Explicit direction from the user:** look at `../programma segreteria/Segreteria Casentino (agg. 01-09).html` (a separate, already-built app in a sibling project folder) — specifically how it lets someone pick a letter template, fill it in, and get a precompiled, printable letter — and take inspiration from that interaction pattern for the Pavimass dichiarazioni, not from its code (different data model, different app, do not import code from it). Goal stated directly by the user: "deve essere semplice e immediato per me compilare e stampare" (must be simple and immediate for me to fill in and print).
-
-8. **"Two sets of hours" in the libro/hour tracking should become just the 8 daily worked hours, everywhere in the app.** The user's exact words: "nel libretto delle ore che risultino solo le 8 ore giornaliere lavorate, non due set di ore, in tutta l'app questo." This needs clarification before implementing — re-read `sorgente/44-presenze.js`'s cell model (`{ore, cantiere, committente}` per day) and the printed `docLibroPresenze` layout to find where two separate hour figures currently appear (e.g. declared hours on the sheet vs. entered/computed hours — `oreDichiarate` vs. the grid total, discussed in the prior session under "riepilogo persona dialog"). **Ask the user to point at the actual screen/printout where they see two numbers** before changing logic — this could be a display fix (show one) or a data-model fix (stop tracking two), and guessing wrong here risks losing real payroll data. This is very possibly the same root issue as item 5's presenze redesign — consider tackling them together.
-
-9. **POS print output needs real layout work**, separate from and probably deeper than item 6's PDF-chrome issue: "alcune cose si ripetono, altre non si vedono del tutto, alcune immagini mancano" (some things repeat, others don't show at all, some images are missing) in the printed POS. This is `sorgente/50-stampa.js` (`impagina` pagination engine) + `sorgente/52-pos.js` (`docPos`, `renderBlocchiPos`, `renderTabellaPos`). Given the prior session already fixed several POS pagination bugs (image sizing, cover page overlap, table rowspan), this next round needs the user to open a real generated POS PDF with them and point out exactly which sections repeat, which are missing, and which images are absent — don't try to guess from the code which of the ~25 POS sections and 8 lavorazione cards are affected.
-
-10. **Direct sharing via email/WhatsApp.** Check what `condividiOScarica` in `sorgente/51-esporta.js` already does — it uses `navigator.share` with files as a fallback-to-download pattern, which on iOS/iPadOS Safari already surfaces Mail and WhatsApp in the native share sheet if those apps are installed. Verify with the user whether this already satisfies the need (test on a real iPhone/iPad, which the prior session could not do) before building anything new — this might already be done and just untested on-device.
-
-**Not in scope for this session, explicitly deferred by the user:** managing "il consorzio" (a separate business entity/consortium Pavimass is part of) inside the same app, kept fully separate from Pavimass data. The user only asked whether it's feasible — **answer: yes, architecturally straightforward** once the Pavimass gestionale is solid, following the same single-file/IndexedDB pattern but as a genuinely separate `.html` file with its own IndexedDB database name (not a multi-company mode inside this app — the brief explicitly forbids multi-company handling in one instance). Do not start building this now; it's a future, separate project.
+1. **Assistente documento esterno "does nothing"** — ask Edoardo exactly what he clicked and what file type he tried (see Failed Attempts above for the leading hypothesis). Fix based on his answer.
+2. **Drag&drop still broken on Chrome** — ask Edoardo for exact repro (does the zone highlight? any console error? Chrome version?). This cannot be diagnosed further from code alone.
+3. **Restore "compila operaio per operaio"** (the Trascrizione dialog minus AI/photo) — see Failed Attempts above, this one has a clear, low-risk fix (`git show 65fe9d7` has the exact code to restore).
+4. **Libro presenze: full redesign to match `template/Scheda Ore Mensile.pdf`.** Read the PDF, rebuild `docLibroPresenze()` in `50-stampa.js`: 4 columns (Giorno/Committente/Località Trasferta/Ore Ordinarie), separate name/qualifica header boxes, black table header + blue accent, NOTE + IMPORTO TOTALE boxes at bottom. Then, on top of that structure: weekend filigrana (⚠️ find what watermark pattern already exists in the app's own CSS/UI first — Edoardo says "tipo quella che vedo in app", implying there's already one somewhere, likely in the interactive presenze grid's CSS for weekend cells — search `01-stile.css` for existing diagonal-stripe/watermark patterns before inventing a new one), and full-row color highlight for ferie/festività/malattia rows (not just a tint — a solid/strong row color). Re-verify "all days show" from scratch once the new structure is in place.
+5. **Preventivo: full redesign to match `template/Prev. n.4-26-P...pdf`.** This is Pavimass's actual current invoicing-software output. Rebuild the preventivo print function in `50-stampa.js` to match: header (logo top-left + address, "Preventivo" box with Numero/Data/PIVA/CF, Intestatario/Destinazione box top-right, Condizioni pagamento + Banca box), table (Descrizione/Q.TA'/U.M./Prezzo/Importo/C.IVA columns), footer (Imponibili/Imposte/Totale documento box, blue accent, firma per accettazione). All Pavimass preventivi should look like this — "falli tutti uguali, con lo stesso template."
+6. ⚠️ **Preventivi: extract capitolato voci from an uploaded client Excel/PDF directly into the new standard Pavimass template**, instead of (or in addition to?) the in-place XLSX filler built in Fase 2. This is a change of direction from what he asked last time ("compila quello che carico" → now "estrai le voci e mettile nel nostro modello"). Confirm with Edoardo: does he still want the in-place filler as a fallback for when a client insists on their own file back, or should it be replaced entirely by extract-into-Pavimass-template? Either way, this needs: reading an uploaded client .xlsx/PDF, identifying rows that look like capitolato line items (description/qty/UM/maybe price), and populating them as `righe` in a new Pavimass preventivo using the redesigned template from #5.
+7. ⚠️ **Dichiarazioni model editor is too technical** ("cantiere.nome, preposto.nome... che roba è?"). Edoardo frames this as the app's core design principle: intuitive to a first-time user, both visually and functionally. The `{{segnaposto}}` curly-brace system (in `dialogoModello`, `sorgente/45-documenti.js`) needs rethinking — e.g. a field-picker UI (click "Nome del cantiere" from a list, it inserts the right token invisibly) instead of asking the user to type/understand `{{cantiere.nome}}` syntax at all. This is a design problem worth thinking through carefully, not a quick patch — possibly worth a dedicated planning pass before touching code.
+8. **Cantieri list needs a search bar.** Every other section (Operai, Documenti, Budget, Bonifici, Fornitori) has a free-text `<input type="search">` in its filter bar; Cantieri only has stato/anno/comune dropdowns. Add one in `sorgente/42-cantieri.js`'s `barra` (~line 78), filtering by nome/comune/client name, following the exact pattern used in `filtro-operai` or `filtro-archivio`.
+9. **Documenti: remove the "Peso" column** from the archivio table (`sorgente/45-documenti.js:33`, `vistaArchivio`'s `colonne` array). Note: the "Peso archivio" settings page (moved to Impostazioni in Fase 2) is a different thing and should stay — he's specifically talking about the per-row peso column in the documents list.
+10. **Remove the "Verificato" checkbox** — from `dialogoDocumento`'s campi (`sorgente/45-documenti.js` ~line 142) and its display in both `apriDocumento`'s panel (~line 66) and anywhere else it's shown. Leave the `verificato` field in the data model alone (don't migrate/strip existing data, just stop surfacing it in the UI) unless a full audit shows it's trivial to remove everywhere.
+11. **Hide the "drag files here" drop zone in the document side panel when a file is already attached.** In `apriDocumento` (`sorgente/45-documenti.js` ~line 74), the `<div class="zona-drop" data-azione="doc-aggiungi-file"...>` is currently unconditional — wrap it in `if(!files.length)` or similarly only show it when there's nothing attached yet (or always show a smaller "add another file" affordance instead — ask Edoardo which he prefers if unsure).
+12. **Warn on likely-duplicate documents.** When adding a new document via `dialogoDocumento` for a soggetto+tipoId that already has a valid (non-scaduto) document on file, show a confirmation ("Esiste già una Carta d'Identità per [nome]: aggiungerne un'altra?") instead of silently allowing it. This is different from the existing hash-based file dedup — it's about the same *type* of document being added twice, e.g. as a mistaken re-upload instead of an edit/renewal.
+13. **Fornitori: add a Codice Fiscale field** alongside P.IVA in `dialogoFornitore` (`sorgente/53-fornitori.js`) — for cases where the fornitore is a private individual (e.g. the landlord for the capannone rent), not a company.
+14. ⚠️ **Bonifici: auto-extract importo/destinatario/data from the uploaded "distinta"** instead of requiring manual entry every time — Edoardo explicitly said "io carico sempre le distinte, non voglio ricompilare sempre tutto a mano." He also offered an explicit fallback: "o sennò lasciare che sia un archivio di bonifici" (or else just make it a pure upload archive, no fields at all). Try extraction first (extend the same PDF-text-scan pattern used for document-expiry-date extraction in `45-documenti.js`'s `estraiDataDaTesto`/`proponiDateDaFile` — look for amount/IBAN/date patterns near labels like "importo", "beneficiario", "data valuta"), but if his real bank's distinta format doesn't extract reliably, fall back to his stated alternative rather than fighting a brittle parser.
+15. **Pacchetto committenza should respect a committenza-specific document list** when one has been provided via `checklist-lista-incolla`/`checklist-lista-carica`, instead of always requiring the full standard set. Currently `checklistCantiere()` (`sorgente/42-cantieri.js` ~line 23) always includes ALL persona/azienda-required doc types regardless of what a specific committenza actually asked for; the pasted/uploaded list only *adds* extra custom items, it never *restricts* the standard ones. Needs a way to mark "this cantiere has a received requirements list" and filter the checklist output against it. Non-trivial — think through the data model change carefully (e.g. a `committenzaListaRicevuta: [tipoId,...]` field on the cantiere, set by `checklist-lista-incolla`/`carica`, and `checklistCantiere()` skips standard items not in that list when it's present) before implementing.
+16. **"Compila" on assegnazione/antincendio/preposto-style dichiarazioni should place the assigned worker's own signature.** Depends on #17.
+17. **Add a firma (signature) field to each persona's scheda**, uploaded from a photo, with **automatic background removal** — Edoardo wants this so the signature composites cleanly onto documents. This does NOT need AI/ML: a simple canvas luminance threshold (make near-white/near-background pixels transparent) is standard and already buildable with the existing `caricaImmagine`/canvas primitives in `21-archivio.js` (same pattern as `comprimiImmagine`). Store as a PNG with alpha channel (`fotoId`/`firmaId` fields already exist on persona per the data model — check if `firmaId` is already meant for this and just unused, or needs a new field).
+18. **Presenze Strumenti: reduce to only "Riempi il mese" and "Copia da una persona all'altra."** ⚠️ Edoardo's exact words: "lascia solo compila tutto il mese e copia da un altro operaio" — this implies removing "Compila un intervallo di giorni" (blocco), "Copia il mese precedente" (copiaMese), and "Svuota il mese di una persona" (svuota) from the `presenze-strumenti` dialog (`sorgente/44-presenze.js` ~line 203). Before deleting "Svuota", note it may be redundant with the grid's own multi-select-delete (already documented in `presenze-aiuto`: select a range + Canc). Confirm he's fine losing "copiaMese" and "blocco" specifically — they're real functionality, not obviously mistakes, so a quick confirmation avoids re-adding them next session.
 
 ---
 
 ## ⚠️ Gotchas / Traps
 
-Hard rules from the original brief (chapters 0–14, given verbatim in the first message of the prior session — not saved to a file, so re-derive from context/seed data if in doubt, don't guess):
-
-- **"Non inventare dati, mai"** — never invent data. Missing data must show `[DA COMPILARE]` in red, everywhere, always.
-- Birla Costel Ovidiu's title is **always and only "Legale Rappresentante"** — never "Amministratore Unico".
-- **Never hours on Saturday/Sunday** in the libro presenze.
-- **FS (festività) code only valid if the holiday falls on a weekday.**
-- **Always imponibile, never the total document amount**, in movimenti/budget.
-- **Never assign an invoice to a cantiere by similarity** — mark "da verificare" instead.
-- **Company rounding**: multiples of 10, remainder 0–3 rounds down, 4–9 rounds up (1425→1430, 901→900, 2442→2440) — see `arrotondaAziendale` in `sorgente/11-regole.js`. Do not replace with standard rounding.
-- **Never include expired documents in a committenza package** without explicit forced motivation from the user.
-- **Don't load the whole archive into memory** — file blobs are fetched by hash/id on demand, not preloaded.
-- **No authentication, no server sync, no push notifications, no multi-company mode.**
-- **No system dialogs** (`confirm`/`prompt`) — everything goes through the custom `dialogo`/`avviso` UI in `sorgente/30-ui.js`.
-- **Produced file names use spaces, not underscores** — hyphens only inside dates (e.g. `Scadenzario Pavimass 03-09-26.pdf`).
-- **The AI hour-sheet reading key stays local, never enters the backup, and the button must not exist at all when no key is set** — this is already implemented correctly (`sorgente/44-presenze.js`, `leggiFoglioConAi`), don't regress it while touching the presenze redesign (item 5/8).
-- **Italian everywhere**: UI text, code identifiers, comments. This handoff file is the one intentional exception (per the skill's own convention, for token efficiency across sessions) — all code and user-facing work stays Italian.
-- **Dates `gg/mm/aaaa`, numbers `1.234,50 €`** — formatting helpers already exist in `sorgente/10-utilita.js` (`fData`, `fEuro`, `fNum`), reuse them, don't reformat inline.
-- **Never deliver without actually opening the app in a browser and looking at the produced PDFs.** This was a hard requirement from the original brief and should still apply to this round of fixes — don't report something fixed without visually verifying it, especially the print/layout items (5, 6, 7, 9).
-- The `pavimass/` folder at the project root (sibling to `sorgente/`) is the **real company document archive** (synced via a `.sync` folder), not a test fixture — never modify or delete anything in it.
-- Test artifacts from the prior session (`_risorse_prova`, `_prova_cantieri`, `_prova_immagini` symlinks/folders) were already cleaned up — if similar throwaway symlinks are created again for testing, remove them before ending the session.
-- iPhone/iPad real-device testing and real Safari `file://` interaction testing were **never possible** in the prior session (no device, and the in-app browser refuses `file://` while computer-use grants browsers read-only/screenshot-only access) — state this honestly again if it's still true rather than claiming it was verified.
+- **Never guess at Edoardo's reference templates — check `template/` first.** He drops reference files there (`Scheda Ore Mensile.pdf`, the real preventivo PDF). Read them fully before redesigning anything print-related again; last time I redesigned the libro presenze "with creative freedom" when a real reference existed and it was rejected outright.
+- **This sandboxed browser environment cannot test real native file pickers or real OS-level drag&drop.** Two of the top bugs on this list (assistente documento esterno, drag&drop) fall exactly into this gap. Don't re-attempt indirect JS-injection "verification" and call it done — be explicit that these need Edoardo's live testing, and ask precise diagnostic questions (exact click, exact file type, console errors) rather than shipping another blind fix.
+- **`pavimass/` folder is the real company archive, gitignored, never touch.**
+- **`template/` folder is untracked reference material** (not part of the app) — don't commit it into the app's git history as if it were source; it's for reading, not shipping. (It currently shows as untracked in `git status` — leave it untracked unless Edoardo asks otherwise.)
+- **Local git identity is auto-detected** (commits print a warning about it). Not fixed because never explicitly requested — don't fix it unless asked.
+- Always rebuild (`python3 strumenti/costruisci.py`) and hard-refresh with a bumped `?v=N` before concluding something is "still broken" — several past reports turned out to be stale cached builds.
+- `autoverifica()` must stay 39/39 green after every change — run it in the browser console before considering anything done.
 
 ---
 
 ## 💬 Notes
 
-- The user is the company's administrator (Edoardo Birla), not a developer — expect feedback in terms of "what I see on screen is wrong/missing" rather than technical bug reports. When a requirement is ambiguous (items 2b, 8, 9 above especially), the right move is to ask for a screenshot or a concrete example rather than guess and risk breaking a payroll/legal-compliance rule.
-- Given the size of this list, consider proposing a phase order to the user at the start of the next session rather than working top-to-bottom blindly — some items are small (1, 4, 10-verification), some are substantial redesigns (5, 7, and possibly 8 combined with 5). Splitting into "quick fixes first" then "the two big redesigns" is a reasonable default to propose, but let the user confirm priority since they may want the POS or dichiarazioni fixed first for an urgent job.
-- Re-run `python3 strumenti/costruisci.py` and `autoverifica()` after every meaningful change, and rebuild the test loop against `http://localhost:8765` — the workflow that worked well in the prior session.
+- Edoardo has NOT yet said "fai tutto, non fermarti" for this Fase 3 list (unlike Fase 2, where that explicit instruction was given). Given several items are marked ⚠️ (ambiguous or a stated behavior change from Fase 2), it's reasonable to ask 2-4 clarifying questions up front in the next session rather than assuming full autonomy — especially items #6 (preventivo extraction direction), #15 (checklist filtering design), and #18 (which Strumenti to actually remove).
+- The "intuitive above all" principle from item #7 is worth internalizing for ALL future work on this app, not just the dichiarazioni editor — Edoardo explicitly called it "la regola principale del programma."
+- Proposals from the `pavimass/` real-archive analysis (assicurazioni aziendali, banca/finanziamenti, visure camerali, DVR aziendale, dossier subappaltatori, cause legali, rifiuti/Albo Gestori, scadenzario fiscale) were presented to Edoardo at the end of the last session but not yet discussed/prioritized — worth circling back to once this punch-list settles down.
