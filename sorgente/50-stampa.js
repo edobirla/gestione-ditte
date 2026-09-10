@@ -310,8 +310,8 @@ function docLibroPresenze(anno,mese){
         const v=valoreCella(c);
         const cls=classeGiornoOre(v,we,festivo);
         const ore=v==null?'—':typeof v==='number'?fOre(v):((CODICI_ASSENZA[v]||{}).nome||v);
-        const committente=[c.committente,c.cantiere&&c.cantiere!==c.committente?c.cantiere:''].filter(Boolean).join(' · ');
-        righe.push(`<tr${cls?` class="${cls}"`:''}><td class="giorno">${g}<span class="gs"> ${h(NOMI_GIORNI_BREVI[giornoSettimana(anno,mese,g)])}</span></td><td>${h(committente)||'—'}</td><td>${h(c.trasferta||'')||'—'}</td><td class="num">${h(ore)}</td></tr>`);
+        const trasferta=c.trasferta||c.cantiere||'';
+        righe.push(`<tr${cls?` class="${cls}"`:''}><td class="giorno">${g}<span class="gs"> ${h(NOMI_GIORNI_BREVI[giornoSettimana(anno,mese,g)])}</span></td><td>${h(c.committente||'')||'—'}</td><td>${h(trasferta)||'—'}</td><td class="num">${h(ore)}</td></tr>`);
       }
       const totale=p.soloTrasferte?'—':fOre(calc.oreGriglia);
       blocchi.push({nuovaPagina:!primo,html:`<div class="ore-anagrafica"><div class="riq"><span class="et">Nome e cognome</span><div class="vl">${h(nomePersona(p))}</div></div><div class="riq"><span class="et">Qualifica / Ruolo</span><div class="vl">${h(p.mansione||(sz==='soci'?'Socio':'Operaio'))}</div></div></div>`});

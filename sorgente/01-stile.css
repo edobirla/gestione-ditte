@@ -384,7 +384,7 @@ input[type=checkbox],input[type=radio]{width:18px;height:18px;accent-color:var(-
 .codice-blocco{font-family:var(--mono);font-size:var(--t-xs);white-space:pre-wrap;background:var(--superficie-2);border:1px solid var(--bordo);border-radius:var(--raggio);padding:var(--sp-3);max-height:50vh;overflow:auto;user-select:all}
 .figura-riga{display:grid;grid-template-columns:170px 1fr auto;gap:var(--sp-2);align-items:center;padding:8px 0;border-bottom:1px solid var(--bordo)} .figura-riga .ruolo{font-size:var(--t-xs);text-transform:uppercase;letter-spacing:.04em;color:var(--testo-2);font-weight:600}
 @media (max-width:640px){.figura-riga{grid-template-columns:1fr auto}.figura-riga .ruolo{grid-column:1/-1}}
-.persona-avatar{width:36px;height:36px;border-radius:50%;background:var(--blu-chiaro);color:var(--blu-testo);display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:var(--t-sm);flex:none;overflow:hidden} .persona-avatar img{width:100%;height:100%;object-fit:cover}
+.persona-avatar{width:36px;height:36px;border-radius:50%;background:var(--blu-chiaro);color:var(--blu-testo);display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:var(--t-sm);flex:none;overflow:hidden} .persona-avatar img{width:100%;height:100%;object-fit:cover} img.persona-avatar{object-fit:cover}
 .persona-avatar.grande{width:64px;height:64px;font-size:var(--t-lg)}
 .idoneita{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:var(--raggio);font-weight:650;border:1px solid}
 .idoneita.si{background:var(--blu-tenue);color:var(--blu-testo);border-color:var(--blu-chiaro)} .idoneita.no{background:var(--rosso-chiaro);color:var(--rosso-testo);border-color:var(--rosso)}
@@ -565,6 +565,7 @@ input[type=checkbox],input[type=radio]{width:18px;height:18px;accent-color:var(-
 .doc table.ore-mensili tr.g-malattia td{background:#FBE4E4}
 .doc table.ore-mensili tr.g-assenza td{background:#ECECEC}
 body.trascinamento iframe,body.trascinamento embed,body.trascinamento object{pointer-events:none}
+.foto-persona{width:120px;height:120px;border-radius:var(--raggio);object-fit:cover;border:1px solid var(--bordo)}
 .segnaposto-picker{border:1px solid var(--bordo);border-radius:var(--raggio);padding:var(--sp-2);max-height:220px;overflow:auto;background:var(--superficie-2)}
 .segnaposto-picker .gruppo+.gruppo{margin-top:var(--sp-2)}
 .segnaposto-picker .chip{cursor:pointer}

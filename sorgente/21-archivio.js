@@ -128,6 +128,15 @@ async function caricaImmagine(blob){
   if(window.createImageBitmap){ try{ return await createImageBitmap(blob); }catch(e){} }
   return new Promise((ok,ko)=>{const u=URL.createObjectURL(blob);const i=new Image();i.onload=()=>{URL.revokeObjectURL(u);ok(i)};i.onerror=()=>{URL.revokeObjectURL(u);ko(new Error('Immagine non leggibile'))};i.src=u});
 }
+// Foto della persona: quadrata e piccola, sta dentro il dato della persona (come le firme) e si
+// mostra senza passare dall'archivio file.
+async function ritagliaQuadrata(blob,lato){
+  const img=await caricaImmagine(blob);
+  const l=Math.min(img.width,img.height);
+  const c=document.createElement('canvas');c.width=c.height=lato||320;
+  c.getContext('2d').drawImage(img,(img.width-l)/2,(img.height-l)/2,l,l,0,0,c.width,c.height);
+  return leggiComeDataUrl(await canvasABlob(c,'image/jpeg',0.82));
+}
 // Firma da foto: toglie lo sfondo del foglio e lascia solo l'inchiostro su fondo trasparente.
 // Niente riconoscimento: è una soglia di luminosità, che è quello che serve per una firma a penna
 // su carta bianca. La soglia resta regolabile perché la carta vera non è mai bianca allo stesso

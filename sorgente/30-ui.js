@@ -199,7 +199,8 @@ function avvisoInline(tipo,testo,iconaNome){return html`<div class="avviso-inlin
 function linguette(id,voci,attiva){return html`<div class="linguette" role="tablist">${voci.map(v=>html`<button role="tab" class="${v.id===attiva?'attiva':''}" data-linguetta="${id}" data-valore="${v.id}" aria-selected="${v.id===attiva}">${v.icona?icona(v.icona):''}${v.testo}${v.contatore!=null?html`<span class="contatore ${v.critico?'critico':''}">${v.contatore}</span>`:''}</button>`)}</div>`}
 document.addEventListener('click',e=>{const b=e.target.closest('[data-linguetta]');if(b){ui.filtri['ling:'+b.dataset.linguetta]=b.dataset.valore;render()}});
 function linguettaAttiva(id,predef){return ui.filtri['ling:'+id]||predef}
-function avatar(p,grande){const nome=nomePersona(p);return html`<span class="persona-avatar ${grande?'grande':''}" data-avatar="${p.id}" title="${nome}">${iniziali(nome)}</span>`}
+// con la foto caricata l'avatar la mostra: negli elenchi si riconosce l'operaio senza leggere
+function avatar(p,grande){const nome=nomePersona(p);return p&&p.fotoImg?html`<img class="persona-avatar ${grande?'grande':''}" src="${p.fotoImg}" alt="${nome}" title="${nome}">`:html`<span class="persona-avatar ${grande?'grande':''}" data-avatar="${p.id}" title="${nome}">${iniziali(nome)}</span>`}
 function riepilogoPersona(p){return html`<span class="riga stretta">${avatar(p)}<span><b>${nomePersona(p)}</b><br><span class="piccolo secondario">${p.mansione||''}</span></span></span>`}
 function contattoCliccabile(tipo,valore){if(!valore)return '';const href=tipo==='tel'?'tel:'+String(valore).replace(/\s+/g,''):tipo==='mail'?'mailto:'+valore:valore;return html`<a href="${href}" class="riga stretta" style="display:inline-flex">${icona(tipo==='tel'?'telefono':tipo==='mail'?'mail':'esterno','piccola')}${valore}</a>`}
 

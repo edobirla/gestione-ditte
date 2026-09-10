@@ -159,6 +159,8 @@ function schedaAnagrafica(p){
     <div class="campo"><span class="etichetta-campo">Va in cantiere</span><div>${p.inCantiere!==false?'sì':'no'}</div></div>
     ${p.schemaOrario?html`<div class="campo largo"><span class="etichetta-campo">Schema orario personale</span><div>${['lun','mar','mer','gio','ven'].map(g=>g+' '+(p.schemaOrario[g]||0)).join(' · ')}</div></div>`:''}
   </div></div>
+  <div class="scheda"><h3>${icona('fotocamera')}Foto <span class="azioni"><button class="pulsante piccolo" data-azione="persona-foto" data-id="${p.id}">${icona('fotocamera','piccola')}${p.fotoImg?'Sostituisci':'Carica'}</button>${p.fotoImg?html`<button class="pulsante piccolo pericolo" data-azione="persona-foto-togli" data-id="${p.id}">${icona('elimina','piccola')}Togli</button>`:''}</span></h3>
+    ${p.fotoImg?html`<img src="${p.fotoImg}" alt="Foto di ${nomePersona(p)}" class="foto-persona">`:html`<p class="secondario piccolo">Nessuna foto. Serve a riconoscere l'operaio a colpo d'occhio negli elenchi.</p>`}</div>
   <div class="scheda"><h3>${icona('firma')}Firma <span class="azioni"><button class="pulsante piccolo" data-azione="persona-firma" data-id="${p.id}">${icona('fotocamera','piccola')}${p.firmaImg?'Sostituisci':'Carica da una foto'}</button>${p.firmaImg?html`<button class="pulsante piccolo pericolo" data-azione="persona-firma-togli" data-id="${p.id}">${icona('elimina','piccola')}Togli</button>`:''}</span></h3>
     ${p.firmaImg?html`<div class="riquadro-firma"><img src="${p.firmaImg}" alt="Firma di ${nomePersona(p)}"></div>`:html`<p class="secondario piccolo">Nessuna firma. Fotografa la firma su un foglio bianco: l'app toglie lo sfondo e la usa nelle nomine che questa persona deve firmare per accettazione.</p>`}</div>
   ${p.note?html`<div class="scheda"><h3>${icona('info')}Note</h3><p>${p.note}</p></div>`:''}
@@ -166,6 +168,16 @@ function schedaAnagrafica(p){
 }
 // Firma da foto: si sceglie la soglia guardando l'anteprima, perché la carta fotografata non è mai
 // bianca allo stesso modo (ombra, foglio giallino, scansione chiara).
+AZIONI['persona-foto-togli']=async d=>{const p=persona(d.id);if(!(await conferma('Togliere la foto di '+nomePersona(p)+'?',{pericolo:true})))return;esegui('Tolta la foto di '+nomePersona(p),s=>{s.persone.find(x=>x.id===d.id).fotoImg=null})};
+AZIONI['persona-foto']=async d=>{
+  const p=persona(d.id);
+  const fs=await scegliFile({multipli:false,accetta:'image/*'});
+  if(!fs.length) return;
+  // ridotta e ritagliata quadrata: sta nel dato della persona come le firme, così si mostra subito
+  let dataUrl; try{ dataUrl=await ritagliaQuadrata(fs[0],320); }
+  catch(e){ return segnalaErrore(e,'Non sono riuscito a leggere «'+fs[0].name+'»: se è una foto HEIC dell\'iPhone riesportala in JPG'); }
+  esegui('Foto di '+nomePersona(p),s=>{s.persone.find(x=>x.id===d.id).fotoImg=dataUrl});
+};
 AZIONI['persona-firma-togli']=async d=>{const p=persona(d.id);if(!(await conferma('Togliere la firma di '+nomePersona(p)+'?',{pericolo:true})))return;esegui('Tolta la firma di '+nomePersona(p),s=>{s.persone.find(x=>x.id===d.id).firmaImg=null})};
 AZIONI['persona-firma']=async d=>{
   const p=persona(d.id);
