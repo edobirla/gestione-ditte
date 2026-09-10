@@ -565,6 +565,15 @@ input[type=checkbox],input[type=radio]{width:18px;height:18px;accent-color:var(-
 .doc table.ore-mensili tr.g-malattia td{background:#FBE4E4}
 .doc table.ore-mensili tr.g-assenza td{background:#ECECEC}
 body.trascinamento iframe,body.trascinamento embed,body.trascinamento object{pointer-events:none}
+.ck-sezione{border:1px solid var(--bordo);border-radius:var(--raggio);margin-bottom:var(--sp-2);background:var(--superficie)}
+.ck-sezione>summary{display:flex;align-items:center;gap:var(--sp-2);padding:8px 10px;cursor:pointer;list-style:none;font-size:var(--t-sm)}
+.ck-sezione>summary::-webkit-details-marker{display:none}
+.ck-sezione>summary .freccia{display:inline-flex;transition:transform .12s;color:var(--testo-3)}
+.ck-sezione[open]>summary .freccia{transform:rotate(90deg)}
+.ck-sezione>summary .spazio{flex:1;min-width:0}
+.ck-sezione>summary:hover{background:var(--superficie-2)}
+.ck-sezione .ck-corpo{padding:0 10px 8px;border-top:1px solid var(--bordo)}
+.ck-sezione .ck-sezione{margin:6px 0;background:var(--superficie-2)}
 .foto-persona{width:120px;height:120px;border-radius:var(--raggio);object-fit:cover;border:1px solid var(--bordo)}
 .segnaposto-picker{border:1px solid var(--bordo);border-radius:var(--raggio);padding:var(--sp-2);max-height:220px;overflow:auto;background:var(--superficie-2)}
 .segnaposto-picker .gruppo+.gruppo{margin-top:var(--sp-2)}

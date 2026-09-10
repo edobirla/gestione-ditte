@@ -621,6 +621,15 @@ input[type=checkbox],input[type=radio]{width:18px;height:18px;accent-color:var(-
 .doc table.ore-mensili tr.g-malattia td{background:#FBE4E4}
 .doc table.ore-mensili tr.g-assenza td{background:#ECECEC}
 body.trascinamento iframe,body.trascinamento embed,body.trascinamento object{pointer-events:none}
+.ck-sezione{border:1px solid var(--bordo);border-radius:var(--raggio);margin-bottom:var(--sp-2);background:var(--superficie)}
+.ck-sezione>summary{display:flex;align-items:center;gap:var(--sp-2);padding:8px 10px;cursor:pointer;list-style:none;font-size:var(--t-sm)}
+.ck-sezione>summary::-webkit-details-marker{display:none}
+.ck-sezione>summary .freccia{display:inline-flex;transition:transform .12s;color:var(--testo-3)}
+.ck-sezione[open]>summary .freccia{transform:rotate(90deg)}
+.ck-sezione>summary .spazio{flex:1;min-width:0}
+.ck-sezione>summary:hover{background:var(--superficie-2)}
+.ck-sezione .ck-corpo{padding:0 10px 8px;border-top:1px solid var(--bordo)}
+.ck-sezione .ck-sezione{margin:6px 0;background:var(--superficie-2)}
 .foto-persona{width:120px;height:120px;border-radius:var(--raggio);object-fit:cover;border:1px solid var(--bordo)}
 .segnaposto-picker{border:1px solid var(--bordo);border-radius:var(--raggio);padding:var(--sp-2);max-height:220px;overflow:auto;background:var(--superficie-2)}
 .segnaposto-picker .gruppo+.gruppo{margin-top:var(--sp-2)}
@@ -3082,13 +3091,43 @@ AZIONI['cantiere-prodotto-file']=async d=>{const fs=await scegliFile({multipli:f
 AZIONI['cantiere-prodotto-nuovo']=async d=>{const v=await dialogoModulo('Registra documento prodotto',[{nome:'tipo',etichetta:'Tipo',tipo:'select',vuoto:false,opzioni:['POS','PSC','Dichiarazione','Denuncia apertura cantiere','Nomina','Verbale','Altro'].map(x=>({v:x,t:x}))},{nome:'titolo',etichetta:'Titolo',obbligatorio:true},{nome:'data',etichetta:'Data',tipo:'data',obbligatorio:true},{nome:'revisione',etichetta:'Revisione',tipo:'numero',decimali:0},{nome:'note',etichetta:'Note',tipo:'textarea',largo:true}],{data:oggi()});if(!v)return;esegui('Registrato documento '+v.titolo,s=>{s.cantieri.find(x=>x.id===d.id).documentiProdotti.push(Object.assign({id:nuovoId('dp'),fileId:null},v))})};
 AZIONI['cantiere-prodotto-elimina']=async d=>{if(!(await conferma('Eliminare questo documento dal cantiere?',{pericolo:true})))return;esegui('Eliminato documento del cantiere',s=>{const c=s.cantieri.find(x=>x.id===d.id);c.documentiProdotti=c.documentiProdotti.filter(x=>x.id!==d.prod);cestinaFileOrfani(s)})};
 
+
+// La checklist mostrava tutte le voci di tutti, sempre aperte: su un cantiere con quattro operai
+// sono cinquanta righe da leggere per trovare le tre che non vanno. Ora ogni gruppo (e ogni operaio)
+// è una sezione che si apre e si chiude, aperta solo se c'è qualcosa che non va: quello che è a
+// posto si vede da una riga sola.
+const CK_PROBLEMA=v=>v.stato==='scaduto'||v.stato==='richiedere'||v.stato==='senzafile'||v.stato==='preparare';
+function riassuntoChecklist(voci){
+  const cont={};for(const v of voci){if(v.stato==='na')continue;cont[v.stato]=(cont[v.stato]||0)+1}
+  const parti=[];
+  if(cont.scaduto)parti.push({t:cont.scaduto+' scadut'+(cont.scaduto===1?'o':'i'),cl:'scaduto'});
+  if(cont.richiedere)parti.push({t:cont.richiedere+' da richiedere',cl:'mancante'});
+  if(cont.senzafile)parti.push({t:cont.senzafile+(cont.senzafile===1?' senza file':' senza file'),cl:'scadenza'});
+  if(cont.preparare)parti.push({t:cont.preparare+' da preparare',cl:'pianificare'});
+  return parti;
+}
+function vociChecklist(voci,c){
+  return html`${voci.map(v=>{const st=STATI_CHECKLIST[v.stato];return html`<div class="checklist-voce"><span class="pillola ${st.cl}">${icona(st.ic,'piccola')}${st.t}</span><span><b>${v.nome}</b> <span class="secondario">· ${v.soggetto}</span>${v.info&&v.info.data?html` <span class="piccolo ${v.info.stato==='scaduto'?'da-compilare':'secondario'}">${v.info.stato==='scaduto'?'scaduto il':'scade il'} ${fData(v.info.data)}</span>`:''}${v.motivo?html`<br><span class="piccolo secondario">${v.motivo}</span>`:''}</span><span>${v.doc?html`<button class="pulsante piccolo" data-azione="doc-apri" data-id="${v.doc.id}">${icona('occhio','piccola')}</button>`:v.azione==='pos'?html`<a class="pulsante piccolo" href="#/cantieri/${c.id}/pos">Genera</a>`:v.azione&&v.azione.startsWith('dichiarazione:')?html`<button class="pulsante piccolo" data-azione="dichiarazione-compila" data-cantiere="${c.id}" data-modello="${v.azione.split(':')[1]}">Compila</button>`:v.persona?html`<a class="pulsante piccolo" href="#/operai/${v.persona.id}">Vai</a>`:''}${v.extra?html`<button class="pulsante piccolo icona pericolo" data-azione="checklist-voce-elimina" data-id="${c.id}" data-voce="${v.id}" aria-label="Togli">${icona('chiudi','piccola')}</button>`:''}</span></div>`})}`;
+}
+function sezioneChecklist(titolo,voci,c,extra){
+  const parti=riassuntoChecklist(voci);
+  const fatte=voci.filter(v=>v.stato==='ok').length,tot=voci.filter(v=>v.stato!=='na').length;
+  return html`<details class="ck-sezione" ${parti.length?'open':''}><summary><span class="freccia">${icona('destra','piccola')}</span>${extra||''}<b class="spazio">${titolo}</b>${parti.length?html`${parti.map(x=>html`<span class="pillola ${x.cl} piccolo">${x.t}</span> `)}`:html`<span class="pillola valido piccolo">${icona('ok','piccola')}tutto in regola</span>`}<span class="conteggio">${fatte}/${tot}</span></summary><div class="ck-corpo">${vociChecklist(voci,c)}</div></details>`;
+}
+function rendiGruppoChecklist(gruppo,voci,c){
+  if(gruppo!=='Operai') return sezioneChecklist(gruppo,voci,c);
+  // un operaio per riga: si apre solo chi ha qualcosa da sistemare
+  const perPersona=raggruppa(voci,v=>v.persona?v.persona.id:v.soggetto);
+  const parti=riassuntoChecklist(voci);
+  return html`<details class="ck-sezione grande" ${parti.length?'open':''}><summary><span class="freccia">${icona('destra','piccola')}</span><b class="spazio">Operai</b>${parti.length?parti.map(x=>html`<span class="pillola ${x.cl} piccolo">${x.t}</span> `):html`<span class="pillola valido piccolo">${icona('ok','piccola')}tutti in regola</span>`}<span class="conteggio">${perPersona.size} person${perPersona.size===1?'a':'e'}</span></summary><div class="ck-corpo">${Array.from(perPersona.entries()).map(([k,vv])=>{const p=vv[0].persona;return sezioneChecklist(p?nomePersona(p):String(k),vv,c,p?avatar(p):'')})}</div></details>`;
+}
 function schedaCantiereChecklist(c,ck){
   const gruppi=raggruppa(ck.voci,v=>v.gruppo);
   return html`<div class="scheda"><h3>Checklist della committenza <span class="azioni"><button class="pulsante piccolo" data-azione="checklist-lista-incolla" data-id="${c.id}">${icona('incolla','piccola')}Incolla lista ricevuta</button><button class="pulsante piccolo" data-azione="checklist-lista-carica" data-id="${c.id}" title="Carica un PDF o un file di testo con la lista">${icona('carica','piccola')}Carica lista (PDF)</button><button class="pulsante piccolo" data-azione="checklist-voce-nuova" data-id="${c.id}">${icona('piu','piccola')}Voce</button><button class="pulsante piccolo" data-azione="checklist-copia" data-id="${c.id}">${icona('copia','piccola')}Copia testo</button><button class="pulsante piccolo" data-azione="checklist-stampa" data-id="${c.id}">${icona('stampa','piccola')}Stampa</button></span></h3>
   ${c.listaRicevuta?html`<div class="avviso-inline">${icona('info')}<div class="corpo">Ristretta alla lista ricevuta dalla committenza il ${fData(c.listaRicevuta.data)} (${plurale(c.listaRicevuta.richieste,'richiesta','richieste')}). Restano comunque i documenti che bloccano l'ingresso in cantiere e la sicurezza del cantiere.<div class="mt-s"><button class="pulsante piccolo" data-azione="checklist-tutto">${ui.filtri.checklistTutto?'Torna alla lista della committenza':'Mostra tutti i documenti'}</button> <button class="pulsante piccolo pericolo" data-azione="checklist-lista-togli" data-id="${c.id}">Togli la lista</button></div></div></div>`:''}
   <p class="secondario piccolo">${c.listaRicevuta&&!ui.filtri.checklistTutto?'Solo i documenti chiesti da questa committenza.':'Generata dai documenti d\'impresa obbligatori e dai documenti obbligatori per ciascun operaio assegnato, più sicurezza e dichiarazioni.'} <b>${ck.pronti}</b> su ${ck.totale} pronti.</p>
   <div class="progresso mb"><div style="width:${ck.totale?Math.round(ck.pronti/ck.totale*100):0}%"></div></div>
-  ${Array.from(gruppi.entries()).map(([g,voci])=>html`<div class="sezione-titolo">${g} · ${voci.filter(v=>v.stato==='ok').length}/${voci.filter(v=>v.stato!=='na').length}</div>${voci.map(v=>{const st=STATI_CHECKLIST[v.stato];return html`<div class="checklist-voce"><span class="pillola ${st.cl}">${icona(st.ic,'piccola')}${st.t}</span><span><b>${v.nome}</b> <span class="secondario">· ${v.soggetto}</span>${v.info&&v.info.data?html` <span class="piccolo ${v.info.stato==='scaduto'?'da-compilare':'secondario'}">${v.info.stato==='scaduto'?'scaduto il':'scade il'} ${fData(v.info.data)}</span>`:''}${v.motivo?html`<br><span class="piccolo secondario">${v.motivo}</span>`:''}</span><span>${v.doc?html`<button class="pulsante piccolo" data-azione="doc-apri" data-id="${v.doc.id}">${icona('occhio','piccola')}</button>`:v.azione==='pos'?html`<a class="pulsante piccolo" href="#/cantieri/${c.id}/pos">Genera</a>`:v.azione&&v.azione.startsWith('dichiarazione:')?html`<button class="pulsante piccolo" data-azione="dichiarazione-compila" data-cantiere="${c.id}" data-modello="${v.azione.split(':')[1]}">Compila</button>`:v.persona?html`<a class="pulsante piccolo" href="#/operai/${v.persona.id}">Vai</a>`:''}${v.extra?html`<button class="pulsante piccolo icona pericolo" data-azione="checklist-voce-elimina" data-id="${c.id}" data-voce="${v.id}" aria-label="Togli">${icona('chiudi','piccola')}</button>`:''}</span></div>`})}`)}</div>`;
+  ${Array.from(gruppi.entries()).map(([g,voci])=>rendiGruppoChecklist(g,voci,c))}</div>`;
 }
 AZIONI['doc-apri']=d=>apriDocumento(d.id);
 AZIONI['checklist-tutto']=()=>{ui.filtri.checklistTutto=!ui.filtri.checklistTutto;render()};
