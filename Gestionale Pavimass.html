@@ -5039,7 +5039,8 @@ function blocchiDaMarkdown(testo,contesto){
 function bloccoFirma(opz){
   opz=opz||{};
   const a=stato.azienda;
-  return html`<div class="blocco-firma"><div class="luogo">${a.indirizzo.comune||'Subbiano'} (${a.indirizzo.provincia||'AR'}), ${fData(opz.data||oggi())}</div><div class="firma"><div>${opz.etichetta||'Timbro e firma impresa/società'}</div><div class="linea">${opz.senzaFirma?'':html`<img src="{{IMG:${opz.immagine||'firmaTimbro'}}}" alt="">`}</div></div></div>`.s;
+  const src=opz.src?h(opz.src):'{{IMG:'+(opz.immagine||'firmaTimbro')+'}}';
+  return html`<div class="blocco-firma"><div class="luogo">${a.indirizzo.comune||'Subbiano'} (${a.indirizzo.provincia||'AR'}), ${fData(opz.data||oggi())}</div><div class="firma"><div>${opz.etichetta||'Timbro e firma impresa/società'}</div><div class="linea">${opz.senzaFirma?'':grezzo('<img src="'+src+'" alt="">')}</div></div></div>`.s;
 }
 // Contesto dei segnaposto per le dichiarazioni di un cantiere
 function contestoDichiarazione(c,opz){
@@ -5072,7 +5073,7 @@ function contestoDichiarazione(c,opz){
     'oggi':fData(opz.data||oggi()),
   };
   return (k)=>{
-    if(k==='luogoData') return {blocco:bloccoFirma({data:opz.data,senzaFirma:opz.senzaFirma,etichetta:opz.etichettaFirma})};
+    if(k==='luogoData') return {blocco:bloccoFirma({data:opz.data,senzaFirma:opz.senzaFirma,etichetta:opz.etichettaFirma,src:opz.firmaSrc})};
     if(k==='operai.elenco') return {blocco:elencoOperai()};
     if(k==='operai.tabella') return {blocco:tabellaOperai()};
     if(k==='cantiere.lavorazioniElenco') return {blocco:'<ol>'+(lavNomi.length?lavNomi.map(x=>'<li>'+h(x)+'</li>').join(''):'<li><span class="da-compilare">[DA COMPILARE: lavorazioni]</span></li>')+'</ol>'};
@@ -5088,7 +5089,7 @@ function contestoDichiarazione(c,opz){
 // ---- documenti ----
 function docDichiarazione(modello,c,opz){
   opz=opz||{};
-  const blocchi=blocchiDaMarkdown(modello.testo,contestoDichiarazione(c,{data:opz.data,senzaFirma:!modello.firma}));
+  const blocchi=blocchiDaMarkdown(opz.testo!==undefined?opz.testo:modello.testo,contestoDichiarazione(c,{data:opz.data,senzaFirma:opz.senzaFirma!==undefined?opz.senzaFirma:!modello.firma,firmaSrc:opz.firmaSrc}));
   return {titolo:modello.nome,cartaIntestata:modello.cartaIntestata!==false,blocchi,pie:pieStandard(modello.nome+(c?' · '+c.nome:''))};
 }
 AZIONI['dichiarazione-compila']=async d=>{
@@ -5106,93 +5107,48 @@ AZIONI['dichiarazione-compila']=async d=>{
     d.data=scelta.data;
   }
   const m=stato.modelli.dichiarazioni.find(x=>x.id===modelloId);if(!m)return;
-  const doc=docDichiarazione(m,c,{data:d.data});
-  anteprimaStampa({titolo:m.nome+(c?' · '+c.nome:''),doc,riferimento:c?c.nome:'',dopoRegistrazione:(s,g)=>{if(c){const cc=s.cantieri.find(x=>x.id===c.id);cc.documentiProdotti.push({id:nuovoId('dp'),tipo:'Dichiarazione',titolo:m.nome,data:d.data||oggi(),modelloId:m.id,generatoId:g.id,fileId:null,note:m.firma?'Firma grafica applicata. Se la committenza richiede firma digitale, il PDF va firmato con dispositivo.':''})}}});
+  await compilaDichiarazione(m,c,{data:d.data||oggi()});
 };
-function docScadenzario(){
-  const sc=riepilogoScadenze();
-  const conData=sc.righe.filter(x=>x.info.data).sort((a,b)=>a.info.data<b.info.data?-1:1);
-  const gruppi=raggruppa(conData,x=>x.info.data.slice(0,7));
-  const blocchi=[`<h1>Scadenzario documenti</h1><p class="sx">Aggiornato al ${h(fData(sc.oggi))}. Stati: scaduto (data passata), in scadenza entro ${sc.soglie.scadenza} giorni, da pianificare entro ${sc.soglie.pianificare} giorni. Le date seguite da ~ sono stimate dalla validità tipica: la data sul documento prevale.</p>`];
-  blocchi.push(`<table><tbody><tr><td><b>Scaduti</b></td><td class="num">${sc.scaduti.length}</td><td><b>Mancanti</b></td><td class="num">${sc.mancanti.length}</td><td><b>In scadenza</b></td><td class="num">${sc.entro60.length}</td><td><b>Da pianificare</b></td><td class="num">${sc.entro90.length}</td></tr></tbody></table>`);
-  if(sc.mancanti.length) blocchi.push({html:'<h2>Documenti mancanti</h2>',tieniConSuccessivo:true},`<table><thead><tr><th>Persona</th><th>Documento</th><th>Effetto</th></tr></thead><tbody>${sc.mancanti.map(m=>`<tr><td>${h(nomePersona(m.persona))}</td><td>${h(m.nome)}</td><td class="${m.bloccante?'stato-scaduto':''}">${m.bloccante?'Blocca l\'ingresso in cantiere':'Richiesto dalle committenze'}</td></tr>`).join('')}</tbody></table>`);
-  for(const [k,righe] of gruppi){const {anno,mese}=daChiaveMese(k);blocchi.push({html:`<div class="scadenzario-gruppo">${h(fMeseAnno(anno,mese))}</div>`,tieniConSuccessivo:true},`<table><thead><tr><th style="width:24mm">Scadenza</th><th>Chi</th><th>Documento</th><th style="width:22mm">Emissione</th><th style="width:30mm">Stato</th></tr></thead><tbody>${righe.map(x=>`<tr><td>${h(fData(x.info.data))}${x.info.stimata?' ~':''}</td><td>${h(x.soggetto)}</td><td>${h((x.tipo||{}).nome||'')}${x.doc.titolo?' <span class="mini">'+h(x.doc.titolo)+'</span>':''}</td><td>${h(fData(x.doc.dataEmissione)||'')}</td><td class="stato-doc stato-${x.info.stato}">${h(STATI_DOC[x.info.stato].etichetta)}${x.info.giorni!=null&&x.info.giorni>=0?' ('+x.info.giorni+' gg)':''}</td></tr>`).join('')}</tbody></table>`)}
-  if(sc.senzaScadenza.length) blocchi.push({html:'<h2>Documenti senza scadenza</h2>',tieniConSuccessivo:true},`<table><thead><tr><th>Chi</th><th>Documento</th><th>Emissione</th><th>File</th></tr></thead><tbody>${sc.senzaScadenza.map(x=>`<tr><td>${h(x.soggetto)}</td><td>${h((x.tipo||{}).nome||'')}${x.doc.titolo?' <span class="mini">'+h(x.doc.titolo)+'</span>':''}</td><td>${h(fData(x.doc.dataEmissione)||'—')}</td><td>${(x.doc.file||[]).length?'sì':'<span class="da-compilare">manca</span>'}</td></tr>`).join('')}</tbody></table>`);
-  blocchi.push(bloccoFirma({}));
-  return {titolo:'Scadenzario Pavimass',cartaIntestata:true,blocchi};
+// L'anteprima non salva niente: si guarda, si corregge quello che serve (testo, data, firma) e solo
+// premendo "Salva" la dichiarazione entra fra i documenti del cantiere e la checklist la dà per
+// fatta. Prima veniva registrata appena si apriva l'anteprima, anche se poi si chiudeva.
+async function compilaDichiarazione(m,c,iniziale){
+  const st={data:(iniziale&&iniziale.data)||oggi(),testo:m.testo,firmaSrc:null,firmaNome:'quella prevista dal modello',senzaFirma:!m.firma};
+  const mostra=()=>{
+    const doc=docDichiarazione(m,c,{data:st.data,testo:st.testo,firmaSrc:st.firmaSrc,senzaFirma:st.senzaFirma});
+    const ant=anteprimaStampa({titolo:m.nome+(c?' · '+c.nome:''),doc,riferimento:c?c.nome:'',registra:false,
+      azioniExtra:`<button class="pulsante" data-dich-modifica>${icona('modifica')}Modifica</button><button class="pulsante primario" data-dich-salva>${icona('ok')}Salva</button>`});
+    const bm=el('[data-dich-modifica]');
+    if(bm) bm.onclick=async()=>{ ant.chiudi(); if(await modificaDichiarazione(st,m)) mostra(); else mostra(); };
+    const bs=el('[data-dich-salva]');
+    if(bs) bs.onclick=()=>{ ant.chiudi(); salvaDichiarazione(m,c,st,ant.pagine); };
+  };
+  mostra();
 }
-AZIONI['stampa-scadenzario']=()=>anteprimaStampa({titolo:'Scadenzario Pavimass',doc:docScadenzario()});
-// Preventivo: stessa impaginazione del gestionale di fatturazione usato in azienda
-// (template/Prev. n.4-26-P ...pdf), così tutte le offerte Pavimass escono uguali.
-function docPreventivo(p){
-  const tot=totaliPreventivo(p);const cl=cliente(p.clienteId);const c=cantiere(p.cantiereId);const a=stato.azienda;
-  const righe=(p.righe||[]);
-  const dc=(v,et)=>v?h(v):`<span class="da-compilare">[DA COMPILARE${et?': '+et:''}]</span>`;
-  const riq=(et,corpo,cls)=>`<div class="riq-prev ${cls||''}"><span class="et">${h(et)}</span><div class="vl">${corpo}</div></div>`;
-  const intestatario=cl?`<b>Spett.le</b><br>${h(cl.ragioneSociale)}<br>${h(indirizzoTesto(cl.indirizzo))}`:'<span class="da-compilare">[DA COMPILARE: cliente]</span>';
-  const destinazione=c?h(c.nome)+(c.indirizzo&&c.indirizzo.comune?'<br>'+h(indirizzoTesto(c.indirizzo)):''):(p.oggetto?h(p.oggetto):'—');
-  const testata=`<div class="prev-testa">
-    <div class="prev-mittente"><img src="{{IMG:logo}}" alt="${h(a.ragioneSociale)}"><div class="ind">${h(a.indirizzo.via||'')}<br>${h(a.indirizzo.cap||'')} ${h(a.indirizzo.comune||'')} (${h(a.indirizzo.provincia||'')})<br>Italia<br>P.IVA e C.F. ${h(a.piva||'')}</div>
-      <div class="prev-numero"><div class="barra"><b>Preventivo</b></div><div class="celle"><div><span class="et">Numero</span><span class="vl">${h(p.numero)}/${h(String(p.anno).slice(-2))}/P</span></div><div><span class="et">Data</span><span class="vl">${h(fData(p.data))}</span></div><div><span class="et">Partita Iva</span><span class="vl">${cl&&cl.piva?h(cl.piva):''}</span></div><div><span class="et">Codice fiscale</span><span class="vl">${cl&&cl.cf?h(cl.cf):''}</span></div></div></div></div>
-    <div class="prev-destinatario">${riq('Intestatario',intestatario,'alto')}${riq('Destinazione',destinazione,'alto')}</div>
-  </div>
-  <div class="prev-condizioni">${riq('Condizioni di pagamento',dc((cl&&cl.condizioniPagamento)||a.condizioniPagamento,'condizioni di pagamento'))}${riq('Banca e Coordinate',(a.banca?h(a.banca):'')+(a.iban?(a.banca?' - ':'')+h(a.iban)+'<br>IBAN: '+h(a.iban):(a.banca?'':'<span class="da-compilare">[DA COMPILARE: banca e IBAN in Impostazioni → Azienda]</span>')))}</div>`;
-  const corpoRighe=righe.map(r=>{
-    const imp=(r.prezzo==null||r.prezzo==='')?null:(+r.quantita||0)*+r.prezzo;
-    const desc=h(r.descrizione||'')+(r.descrizioneEstesa?'<div class="mini">'+h(r.descrizioneEstesa)+'</div>':'')+(r.esclusa?'<div class="mini"><b>SOLO POSA — esclusa fornitura</b></div>':'');
-    return `<tr><td>${desc}</td><td class="num">${r.quantita!=null&&r.quantita!==''?h(fNum(r.quantita,Number.isInteger(+r.quantita)?0:2)):''}</td><td class="um">${h(r.um||'')}</td><td class="num">${r.esclusa?'—':imp==null?'<span class="da-compilare">[DA QUOTARE]</span>':h(fNum(r.prezzo,2))}</td><td class="num">${r.esclusa?'escl.':imp==null?'':h(fNum(imp,2))}</td><td class="civa">${h(p.codiceIva||'N6.7')}</td></tr>`;
-  }).join('');
-  const tabella=`<table class="prev-voci"><thead><tr><th>Descrizione</th><th class="num q">Q.tà</th><th class="um">U.M.</th><th class="num pz">Prezzo</th><th class="num imp">Importo</th><th class="civa">C.IVA</th></tr></thead><tbody>${corpoRighe||'<tr><td colspan="6" class="mini">Nessuna voce inserita.</td></tr>'}</tbody></table>`;
-  const notePiede=[a.notePreventivo,p.validitaGiorni?'Validità preventivo: '+fNum(p.validitaGiorni,0)+' giorni':null,a.cellulare?'Cell. '+a.cellulare:null].filter(Boolean);
-  const piede=`<div class="prev-piede">
-    <div class="prev-fascia">${notePiede.map(x=>`<span>${h(x)}</span>`).join('')}</div>
-    <div class="prev-totali"><div class="col"><span class="et">Imponibili</span><span class="vl">${h(fEuro(tot.totale))}</span></div><div class="col"><span class="et">Descrizione imposta</span><span class="vl piccolo">${h(p.descrizioneImposta||'inversione contabile')}</span></div><div class="col"><span class="et">Imposta</span><span class="vl">${h(fEuro(0))}</span></div><div class="col tot"><span class="et">Totale documento</span><span class="vl">${h(fEuro(tot.totale))}</span></div></div>
-    <div class="prev-totali sotto"><div class="col"><span class="et">Tot. imponibile</span><span class="vl">${h(fEuro(tot.totale))}</span></div><div class="col"><span class="et">Tot. imposte</span><span class="vl">${h(fEuro(0))}</span></div></div>
-    <div class="prev-fondo">${riq('Note',(p.condizioni?h(p.condizioni).replace(/\n/g,'<br>'):'')+(tot.daQuotare.length?`<div class="da-compilare mini">Voci ancora da quotare: ${h(tot.daQuotare.map(r=>r.codice||tronca(r.descrizione,30)).join(', '))}</div>`:''),'note')}<div class="firma-acc"><i>Firma per accettazione</i><div class="linea"></div></div></div>
-    <p class="prev-privacy">Ai sensi del D.Lgs. 196/2003 Vi informiamo che i Vs. dati saranno utilizzati esclusivamente per i fini connessi ai rapporti commerciali tra di noi in essere. Vi preghiamo di controllare i Vs. dati anagrafici, la P. IVA e il Cod. Fiscale. Non ci riteniamo responsabili di eventuali errori.</p></div>`;
-  return {titolo:'Preventivo '+p.numero+'/'+p.anno,cartaIntestata:false,classe:'prev',blocchi:[testata,tabella,piede]};
+async function modificaDichiarazione(st,m){
+  const firme=firmeDisponibili();
+  const v=await dialogoModulo('Modifica prima di salvare',[
+    {nome:'data',etichetta:'Data',tipo:'data',obbligatorio:true},
+    {nome:'firma',etichetta:'Firma da usare',tipo:'select',vuoto:false,opzioni:[{v:'',t:'Quella prevista dal modello'},{v:'nessuna',t:'Nessuna firma (si firma a mano)'},...firme.map(f=>({v:f.id,t:f.nome}))]},
+    {nome:'testo',etichetta:'Testo della dichiarazione',tipo:'textarea',righe:16,largo:true,obbligatorio:true,aiuto:'Vale solo per questa compilazione: il modello non viene toccato'},
+  ],{data:st.data,firma:st.firmaId||'',testo:st.testo},{ok:'Rivedi l\'anteprima'});
+  if(!v) return false;
+  st.data=v.data;st.testo=v.testo;st.firmaId=v.firma;
+  if(v.firma==='nessuna'){st.senzaFirma=true;st.firmaSrc=null;st.firmaNome='nessuna'}
+  else if(v.firma){const f=firme.find(x=>x.id===v.firma);st.senzaFirma=false;st.firmaSrc=f?f.src:null;st.firmaNome=f?f.nome:''}
+  else {st.senzaFirma=!m.firma;st.firmaSrc=null;st.firmaNome='quella prevista dal modello'}
+  return true;
 }
-function stampaPreventivo(p){anteprimaStampa({titolo:'Preventivo '+p.numero+' '+p.anno,doc:docPreventivo(p),riferimento:nomeCliente(p.clienteId)})}
-// Libro presenze: una scheda per persona, fedele al modello aziendale "Scheda Ore Mensile"
-// (testata con logo + titolo, riquadri nome/qualifica, tabella Giorno/Committente/Località trasferta/Ore).
-function classeGiornoOre(v,we,festivo){
-  if(v==='FE') return 'g-ferie';
-  if(v==='FS'||(festivo&&v==null)) return 'g-festivo';
-  if(v==='M'||v==='I') return 'g-malattia';
-  if(typeof v==='string') return 'g-assenza';
-  if(we) return 'g-we';
-  return '';
+function salvaDichiarazione(m,c,st,pagine){
+  const g={id:nuovoId('g'),titolo:m.nome+(c?' · '+c.nome:''),quando:new Date().toISOString(),pagine,orientamento:'verticale',riferimento:c?c.nome:''};
+  esegui('Salvata dichiarazione: '+m.nome,s=>{
+    s.generati.push(g);if(s.generati.length>200)s.generati.shift();
+    if(c){const cc=s.cantieri.find(x=>x.id===c.id);cc.documentiProdotti.push({id:nuovoId('dp'),tipo:'Dichiarazione',titolo:m.nome,data:st.data||oggi(),modelloId:m.id,generatoId:g.id,fileId:null,note:(st.firmaNome&&st.firmaNome!=='nessuna'?'Firma applicata: '+st.firmaNome+'. ':'')+'Se la committenza richiede firma digitale, il PDF va firmato con dispositivo.'});}
+  });
+  if(c){ ui.filtri['ling:cantiere:'+c.id]='checklist'; vai('cantieri/'+c.id); avviso('«'+m.nome+'» salvata: nella checklist risulta fatta.'); }
+  else avviso('«'+m.nome+'» salvata fra i documenti generati.');
 }
-function docLibroPresenze(anno,mese){
-  const m=meseP(anno,mese)||{persone:{}};const persone=personePresenze(anno,mese);const n=giorniNelMese(anno,mese);const fest=festivitaAnno(anno,stato.impostazioni.festivitaLocali);const k=chiaveMese(anno,mese);
-  const blocchi=[];
-  let primo=true;
-  for(const sz of ['soci','dipendenti']){
-    const pp=persone.filter(p=>(p.sezionePresenze||'dipendenti')===sz);if(!pp.length)continue;
-    for(const p of pp){
-      const mp=m.persone[p.id]||{giorni:{}};const calc=calcolaMesePersona(mp,p);
-      const righe=[];
-      for(let g=1;g<=n;g++){
-        const we=eFineSettimana(anno,mese,g);const c=mp.giorni[String(g)]||{};const iso=k+'-'+pad2(g);const festivo=fest.has(iso);
-        const v=valoreCella(c);
-        const cls=classeGiornoOre(v,we,festivo);
-        const ore=v==null?'—':typeof v==='number'?fOre(v):((CODICI_ASSENZA[v]||{}).nome||v);
-        const trasferta=c.trasferta||c.cantiere||'';
-        righe.push(`<tr${cls?` class="${cls}"`:''}><td class="giorno">${g}<span class="gs"> ${h(NOMI_GIORNI_BREVI[giornoSettimana(anno,mese,g)])}</span></td><td>${h(c.committente||'')||'—'}</td><td>${h(trasferta)||'—'}</td><td class="num">${h(ore)}</td></tr>`);
-      }
-      const totale=p.soloTrasferte?'—':fOre(calc.oreGriglia);
-      blocchi.push({nuovaPagina:!primo,html:`<div class="ore-anagrafica"><div class="riq"><span class="et">Nome e cognome</span><div class="vl">${h(nomePersona(p))}</div></div><div class="riq"><span class="et">Qualifica / Ruolo</span><div class="vl">${h(p.mansione||(sz==='soci'?'Socio':'Operaio'))}</div></div></div>`});
-      blocchi.push(`<table class="ore-mensili"><thead><tr><th class="giorno">Giorno</th><th>Committente</th><th class="trasf">Località Trasferta</th><th class="num ore">Ore Ordinarie</th></tr></thead><tbody>${righe.join('')}</tbody><tfoot><tr class="totale"><td colspan="3" class="num">Totale mese</td><td class="num">${h(totale)}</td></tr></tfoot></table>`);
-      const assenze=Object.entries(calc.perCodice).map(([cc,nn])=>((CODICI_ASSENZA[cc]||{}).nome||cc)+' '+nn).join(' · ');
-      blocchi.push(`<div class="ore-piede"><div class="riq note"><span class="et">Note</span><div class="vl">${h(mp.note||'')}${assenze?`<div class="mini">${h(assenze)}</div>`:''}</div></div><div class="riq importo"><span class="et">Importo totale</span><div class="vl">${h(calc.importo!=null?fEuro(calc.importo,0):'—')}${mp.importoForzato?' <span class="mini">(forzato)</span>':''}</div></div></div>`);
-      primo=false;
-    }
-  }
-  if(!blocchi.length) blocchi.push('<p class="sx">Nessuna persona in presenze per questo mese.</p>');
-  const testa=`<div class="carta-intestata ore-testa"><img src="{{IMG:logo}}" alt="${h(stato.azienda.ragioneSociale)}"><div class="dati"><b>${h(stato.azienda.ragioneSociale)}</b>${(((stato.azienda.cartaIntestata||{}).righe)||[]).map(r=>h(r)+'<br>').join('')}</div><div class="titolo-scheda"><b>SCHEDA ORE MENSILE</b><span>${h(capitalizza(fMeseAnno(anno,mese)))}</span></div></div>`;
-  return {titolo:'Scheda ore mensile '+capitalizza(nomeMese(mese))+' '+anno,intestazione:testa,classe:'ore-mensili-doc',blocchi};
-}
-function stampaLibroPresenze(anno,mese){anteprimaStampa({titolo:'Scheda ore mensile '+capitalizza(nomeMese(mese))+' '+anno,doc:docLibroPresenze(anno,mese)})}
+
 function docChecklist(c){
   const ck=checklistCantiere(c);const g=raggruppa(ck.voci,v=>v.gruppo);
   const blocchi=[`<h1 class="sx">Checklist documenti — ${h(c.nome)}</h1><p class="sx">Committente: ${nomeCliente(c.committenteId)?h(nomeCliente(c.committenteId)):'<span class="da-compilare">[DA COMPILARE]</span>'} · Impresa affidataria: ${nomeCliente(c.affidatariaId)?h(nomeCliente(c.affidatariaId)):'<span class="da-compilare">[DA COMPILARE]</span>'} · Aggiornata al ${h(fData(oggi()))} · ${ck.pronti} su ${ck.totale} pronti</p>`];
