@@ -21,6 +21,22 @@ Per l'uso quotidiano: **[LEGGIMI.md](LEGGIMI.md)**.
 Per capire com'è costruito: **[ARCHITETTURA.md](ARCHITETTURA.md)** e
 **[SCHEMA DATI.md](SCHEMA%20DATI.md)**.
 
+## I due rami del repository
+
+- **`sorgenti`** (questo): il codice, gli strumenti, la documentazione. È il ramo su cui si lavora.
+- **`main`**: solo `index.html`, l'applicazione pronta senza i dati di nessuna ditta. È quello che
+  GitHub Pages pubblica e da cui l'applicazione si installa sul telefono e sul computer.
+
+Per pubblicare una versione nuova:
+
+```bash
+python3 strumenti/pubblica.py
+```
+
+Costruisce l'applicazione senza dati, controlla che dentro non sia finito nessun codice fiscale o
+IBAN, e aggiorna `main`. **Non cambiare ramo a mano** per farlo: `git switch main` svuoterebbe la
+cartella di lavoro, perché su `main` non esiste nient'altro che `index.html`.
+
 ## I dati non stanno nel programma
 
 L'applicazione non contiene i dati di nessuna ditta. Una ditta si configura da dentro
@@ -32,10 +48,10 @@ apertura parte già compilata.
 
 ```bash
 python3 strumenti/costruisci.py            # Gestionale Pavimass.html   — include azienda/ se c'è
-python3 strumenti/costruisci.py --vuoto    # Gestionale (senza dati).html — mai nessun dato dentro
+python3 strumenti/costruisci.py --vuoto    # index.html — mai nessun dato dentro, con manifesto e icone
 ```
 
-Il file da dare a chiunque altro è quello costruito con `--vuoto`.
+Il file da dare a chiunque altro è quello costruito con `--vuoto`: è anche quello che si pubblica.
 
 ## Come si lavora al codice
 
