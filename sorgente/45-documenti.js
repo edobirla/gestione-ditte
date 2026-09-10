@@ -365,7 +365,7 @@ function vistaBustePaga(r){
     </div>
     <div class="scheda"><h3>Consultazione per operaio</h3>
       <div class="chip-lista mb">${persone.map(pp=>html`<a class="chip ${pid===pp.id?'attiva':''}" href="#/documenti/buste?persona=${pp.id}">${nomePersona(pp)} <span class="piccolo secondario">${stato.bustePaga.filter(b=>b.personaId===pp.id).length}</span></a>`)}</div>
-      ${p?anni.map(anno=>html`<div class="sezione-titolo">${anno}</div><div class="griglia-mesi">${Array.from({length:12},(_,i)=>i+1).map(mm=>{const b=buste.find(x=>x.anno===anno&&x.mese===mm);const futuro=anno>oggiD.getFullYear()||(anno===oggiD.getFullYear()&&mm>oggiD.getMonth());const lavorato=!!(meseP(anno,mm)&&meseP(anno,mm).persone[p.id]);return html`<div class="mese-cella ${b?'presente':futuro?'futuro':lavorato?'mancante':''}" ${b?html`data-azione="busta-apri" data-id="${b.id}"`:''} title="${b?'Busta presente':lavorato&&!futuro?'Mese lavorato senza busta':''}">${NOMI_MESI_BREVI[mm-1]}${b?html`<br>${icona('ok','piccola')}`:lavorato&&!futuro?html`<br>${icona('attenzione','piccola')}`:''}</div>`})}</div>`):html`<p class="secondario">Scegli una persona per vedere le buste per anno e mese, con i mesi mancanti evidenziati.</p>`}
+      ${p?anni.map(anno=>html`<div class="sezione-titolo">${anno}</div><div class="griglia-mesi">${Array.from({length:12},(_,i)=>i+1).map(mm=>{const b=buste.find(x=>x.anno===anno&&x.mese===mm);const futuro=anno>oggiD.getFullYear()||(anno===oggiD.getFullYear()&&mm>oggiD.getMonth());const lavorato=!!(meseP(anno,mm)&&meseP(anno,mm).persone[p.id]);return html`<div class="mese-cella ${b?'presente':futuro?'futuro':lavorato?'mancante':''}" ${b?html`data-azione="busta-apri" data-id="${b.id}"`:''} title="${b?'Busta presente':lavorato&&!futuro?'Mese lavorato senza busta':''}">${NOMI_MESI_BREVI[mm-1]}${b?html`<br>${(()=>{const c=confrontoBusta(b);const scarto=c&&Math.abs(c.diff)>0.5&&!b.verifica;return html`${icona(scarto?'attenzione':'ok','piccola')}${b.fileId?html`<button class="pulsante piccolo icona" data-azione="file-condividi" data-id="${b.fileId}" title="Condividi la busta" onclick="event.stopPropagation()">${icona('condividi','piccola')}</button>`:''}`})()}`:lavorato&&!futuro?html`<br>${icona('attenzione','piccola')}`:''}</div>`})}</div>`):html`<p class="secondario">Scegli una persona per vedere le buste per anno e mese, con i mesi mancanti evidenziati.</p>`}
     </div></div>`;
 }
 document.addEventListener('change',e=>{const t=e.target;if(!t.dataset||!t.dataset.busta||!ui.busteCoda)return;const c=ui.busteCoda[+t.dataset.i];if(!c)return;const k=t.dataset.busta;const v=t.value;if(k==='personaId'){c.personaId=v||null;c.corretto=true}else if(k==='anno')c.anno=v?+v:null;else if(k==='mese')c.mese=v?+v:null});
@@ -411,8 +411,10 @@ async function smistaBustaPdf(file){
   const voci=[];
   for(const [pid,pg] of perPersona){
     const p=persona(pid);
+    const let_=leggiTotaliBusta(pg.map(n=>pagine[n-1]));
     voci.push({f:file,personaId:pid,anno:+periodo.anno,mese:+periodo.mese,pagine:pg,paginaInizio:pg[0],paginaFine:pg[pg.length-1],fiducia:0.9,
-      motivi:['nome trovato sulle pagine: '+nomePersona(p),(pg.length===1?'pag. ':'pagg. ')+pg.join(', ')]});
+      lordo:let_.lordo,netto:let_.netto,oreBusta:let_.ore,
+      motivi:['nome trovato sulle pagine: '+nomePersona(p),(pg.length===1?'pag. ':'pagg. ')+pg.join(', '),let_.netto!=null?'netto letto '+fEuro(let_.netto,2)+(let_.lordo!=null?' su lordo '+fEuro(let_.lordo,2):''):'netto non riconosciuto: da scrivere a mano']});
   }
   voci.sort((a,b)=>a.paginaInizio-b.paginaInizio);
   if(orfane.length) voci.push({f:file,personaId:null,anno:+periodo.anno,mese:+periodo.mese,pagine:orfane,paginaInizio:orfane[0],paginaFine:orfane[orfane.length-1],fiducia:0,motivi:['nessun nome riconosciuto','pagg. '+orfane.join(', ')]});
@@ -421,23 +423,91 @@ async function smistaBustaPdf(file){
   const pagTot=voci.reduce((a,v)=>a+(v.pagine?v.pagine.length:1),0);
   avviso(`${pagTot} pagine di busta raggruppate su ${voci.filter(v=>v.personaId).length} persone${voci.some(v=>!v.personaId)?', più le pagine senza nome riconosciuto da assegnare a mano':''}`);
 }
+// Netto, lordo e ore lavorate della busta. Il netto non è quasi mai scritto in modo leggibile (il
+// riquadro lo spezza), ma è per definizione competenze meno trattenute, e quelle due sono la coppia
+// che precede l'IRPEF lorda ripetuta due volte in fondo al cedolino: si ricava, non si indovina.
+function leggiTotaliBusta(testiPagina){
+  const num=x=>{const v=parseFloat(String(x).replace(/\./g,'').replace(',','.'));return isNaN(v)?null:v};
+  const normalizza=t=>t.replace(/(\d)\s+([.,])/g,'$1$2').replace(/([.,])\s+(\d)/g,'$1$2').replace(/\s+/g,' ');
+  let out={lordo:null,netto:null,ore:null};
+  for(const t of testiPagina){
+    if(!t) continue;
+    const testo=normalizza(t);
+    if(out.netto==null){
+      const v=[...testo.matchAll(/-?\d{1,3}(?:\.\d{3})*,\d{2}/g)].map(m=>num(m[0]));
+      for(let i=5;i<v.length;i++){
+        if(v[i]!==v[i-1]||!(v[i]>0)) continue;
+        const lordo=v[i-5],tratt=v[i-4];
+        if(lordo>tratt&&tratt>0&&lordo>50){out.lordo=lordo;out.netto=+(lordo-tratt).toFixed(2);break}
+      }
+    }
+    if(out.ore==null){
+      const m=/LAVORO\s+ORDINARIO[^\d]{0,40}(\d{1,3}(?:\.\d{3})*,\d{2})/i.exec(testo);
+      if(m) out.ore=num(m[1]);
+    }
+  }
+  return out;
+}
 AZIONI['buste-applica']=async()=>{
   const coda=ui.busteCoda||[]; if(!coda.length) return;
   const prog=dialogoAvanzamento('Archiviazione buste paga');
   const nuove=[];const regole=[];
-  for(let i=0;i<coda.length;i++){const c=coda[i];await prog.aggiorna(i,coda.length,c.f.name);try{const es=await acquisisciFile(c.f,{senzaCompressione:true});nuove.push({id:nuovoId('b'),personaId:c.personaId||null,anno:c.anno||null,mese:c.mese||null,netto:null,lordo:null,oreRetribuite:null,fileId:es.rec.id,paginaInizio:c.paginaInizio||null,paginaFine:c.paginaFine||null,pagine:c.pagine||null,note:c.pagine?('Smistata da '+c.f.name+', '+(c.pagine.length===1?'pag. ':'pagg. ')+c.pagine.join(', ')):c.paginaInizio?('Smistata da '+c.f.name+', pag. '+c.paginaInizio):('File: '+c.f.name),creato:new Date().toISOString()});
-    // apprendimento: se l'utente ha corretto la persona, associa i segni del nome file a quella persona
-    if(c.corretto&&c.personaId){const toks=normalizzaTesto(c.f.name.replace(/\.[a-z0-9]+$/i,'')).split(' ').filter(t=>t.length>=3&&!/^\d+$/.test(t)&&!NOMI_MESI.includes(t)&&!/busta|paga|cedolino|pdf|lul/.test(t));const per=persona(c.personaId);const nomi=[per.cognome,per.nome].flatMap(x=>normalizzaTesto(x).split(' '));for(const t of toks){if(!nomi.includes(t)&&!(stato.regoleBuste||[]).find(r=>r.segno===t))regole.push({segno:t,personaId:c.personaId})}}
-  }catch(e){segnalaErrore(e,'Busta non archiviata: '+c.f.name)}}
+  for(let i=0;i<coda.length;i++){
+    const c=coda[i];await prog.aggiorna(i,coda.length,c.f.name);
+    try{
+      // ogni operaio si porta a casa un PDF con le sue sole pagine, senza le bianche e senza quelle
+      // degli altri: la busta paga è un documento personale, non si archivia quella di tutti
+      let file=c.f,pagine=c.pagine||null;
+      if(c.pagine&&c.pagine.length){
+        const est=await estraiPaginePdf(c.f,c.pagine.map(n=>n-1));
+        const nome=(c.personaId?nomePersona(persona(c.personaId)):'da assegnare')+' — '+(c.anno&&c.mese?capitalizza(nomeMese(c.mese))+' '+c.anno:'busta')+'.pdf';
+        file=new File([est],nome,{type:'application/pdf'});
+        pagine=c.pagine.map((_,k)=>k+1);
+      }
+      const es=await acquisisciFile(file,{senzaCompressione:true});
+      nuove.push({id:nuovoId('b'),personaId:c.personaId||null,anno:c.anno||null,mese:c.mese||null,netto:c.netto!=null?c.netto:null,lordo:c.lordo!=null?c.lordo:null,oreRetribuite:c.oreBusta!=null?c.oreBusta:null,fileId:es.rec.id,
+        paginaInizio:1,paginaFine:pagine?pagine.length:null,pagine,verifica:null,
+        note:c.pagine?('Estratta da '+c.f.name+', '+(c.pagine.length===1?'pagina ':'pagine ')+c.pagine.join(', ')):('File: '+c.f.name),creato:new Date().toISOString()});
+      if(c.corretto&&c.personaId){const toks=normalizzaTesto(c.f.name.replace(/\.[a-z0-9]+$/i,'')).split(' ').filter(t=>t.length>=3&&!/^\d+$/.test(t)&&!NOMI_MESI.includes(t)&&!/busta|paga|cedolino|pdf|lul/.test(t));const per=persona(c.personaId);const nomi=[per.cognome,per.nome].flatMap(x=>normalizzaTesto(x).split(' '));for(const t of toks){if(!nomi.includes(t)&&!(stato.regoleBuste||[]).find(r=>r.segno===t))regole.push({segno:t,personaId:c.personaId})}}
+    }catch(e){segnalaErrore(e,'Busta non archiviata: '+c.f.name)}
+  }
   prog.chiudi();
   esegui(`Archiviate ${nuove.length} buste paga`,s=>{s.bustePaga.push(...nuove);for(const r of regole)if(!s.regoleBuste.find(x=>x.segno===r.segno))s.regoleBuste.push(r)});
   ui.busteCoda=[];
-  if(regole.length) avviso('Imparate '+regole.length+' nuove regole dai nomi dei file',{silenzioso:false});
+  if(regole.length) avviso('Imparate '+regole.length+' nuove regole dai nomi dei file');
 };
+// Confronto fra le ore che scrive Edoardo in presenze e quelle che il commercialista mette in busta:
+// se non tornano è una cosa da guardare, non un errore dell'app. Si accetta la differenza o si
+// segna la busta da rivedere, e resta scritto.
+function confrontoBusta(b){
+  if(!b.personaId||!b.anno||!b.mese||b.oreRetribuite==null) return null;
+  const mp=(meseP(b.anno,b.mese)||{persone:{}}).persone[b.personaId];
+  if(!mp) return null;
+  const calc=calcolaMesePersona(mp,persona(b.personaId));
+  const diff=+(b.oreRetribuite-calc.oreGriglia).toFixed(2);
+  return {oreBusta:b.oreRetribuite,oreGriglia:calc.oreGriglia,diff,importoGriglia:calc.importo};
+}
+AZIONI['busta-verifica']=d=>{
+  const b=perId('bustePaga',d.id);const c=confrontoBusta(b);
+  esegui(d.valore==='accettata'?'Differenza accettata':'Busta segnata da rivedere',s=>{
+    s.bustePaga.find(x=>x.id===d.id).verifica={stato:d.valore,quando:oggi(),oreBusta:c?c.oreBusta:null,oreGriglia:c?c.oreGriglia:null};
+  },{senzaRender:true});
+  AZIONI['busta-apri']({id:d.id});render();
+};
+AZIONI['busta-verifica-annulla']=d=>{esegui('Verifica da rifare',s=>{s.bustePaga.find(x=>x.id===d.id).verifica=null},{senzaRender:true});AZIONI['busta-apri']({id:d.id});render()};
+function bloccoConfrontoBusta(b){
+  const c=confrontoBusta(b);
+  if(!c) return b.oreRetribuite==null?html`<p class="piccolo secondario mt-s">Ore non lette dalla busta: scrivile con «Modifica» per poterle confrontare con le presenze.</p>`:'';
+  const scarto=Math.abs(c.diff)>0.5;
+  if(b.verifica) return html`<div class="avviso-inline ${b.verifica.stato==='revisione'?'attenzione':''} mt-s">${icona(b.verifica.stato==='revisione'?'attenzione':'ok')}<div class="corpo">${b.verifica.stato==='revisione'?'Segnata da rivedere':'Differenza accettata'} il ${fData(b.verifica.quando)} · busta ${fOre(c.oreBusta)} h, presenze ${fOre(c.oreGriglia)} h.<div class="mt-s"><button class="pulsante piccolo" data-azione="busta-verifica-annulla" data-id="${b.id}">Rivedi la verifica</button></div></div></div>`;
+  if(!scarto) return html`<div class="avviso-inline mt-s">${icona('ok')}<div class="corpo">Ore uguali alle presenze: ${fOre(c.oreGriglia)} h.</div></div>`;
+  return html`<div class="avviso-inline attenzione mt-s">${icona('attenzione')}<div class="corpo"><b>Le ore non tornano.</b> In busta ${fOre(c.oreBusta)} h, nelle tue presenze ${fOre(c.oreGriglia)} h: ${c.diff>0?'in busta ce ne sono '+fOre(c.diff)+' in più':'in busta ce ne sono '+fOre(-c.diff)+' in meno'}.
+    <div class="mt-s"><button class="pulsante piccolo" data-azione="busta-verifica" data-id="${b.id}" data-valore="accettata">${icona('ok','piccola')}Va bene così</button> <button class="pulsante piccolo pericolo" data-azione="busta-verifica" data-id="${b.id}" data-valore="revisione">${icona('attenzione','piccola')}Da rivedere</button></div></div></div>`;
+}
 AZIONI['busta-apri']=async d=>{
   const b=perId('bustePaga',d.id); if(!b) return;
   const m=fileMeta(b.fileId);
-  apriPannello({titolo:'Busta paga '+(b.anno&&b.mese?fMeseAnno(b.anno,b.mese):'da assegnare')+(b.personaId?' · '+nomePersona(persona(b.personaId)):''),largo:true,corpo:html`<div class="campi"><div class="campo"><span class="etichetta-campo">File</span><div>${m?m.nome:'?'}${b.paginaInizio?html` <span class="piccolo secondario">(pag. ${b.paginaInizio}${b.paginaFine>b.paginaInizio?'–'+b.paginaFine:''} di un file condiviso)</span>`:''}</div></div><div class="campo"><span class="etichetta-campo">Netto</span><div>${b.netto!=null?fEuro(b.netto):html`<span class="silenzioso">—</span>`}</div></div><div class="campo"><span class="etichetta-campo">Lordo</span><div>${b.lordo!=null?fEuro(b.lordo):html`<span class="silenzioso">—</span>`}</div></div><div class="campo"><span class="etichetta-campo">Ore retribuite</span><div>${b.oreRetribuite!=null?fOre(b.oreRetribuite):html`<span class="silenzioso">—</span>`}</div></div></div><div id="anteprima-busta" class="mt"></div>`,piede:html`<button class="pulsante primario" data-azione="busta-modifica" data-id="${b.id}">${icona('modifica')}Modifica</button><button class="pulsante" data-azione="file-condividi" data-id="${b.fileId}">${icona('condividi')}Condividi</button><span class="spazio"></span><button class="pulsante pericolo" data-azione="busta-elimina" data-id="${b.id}">${icona('elimina')}Elimina</button>`});
+  apriPannello({titolo:'Busta paga '+(b.anno&&b.mese?fMeseAnno(b.anno,b.mese):'da assegnare')+(b.personaId?' · '+nomePersona(persona(b.personaId)):''),largo:true,corpo:html`<div class="campi"><div class="campo"><span class="etichetta-campo">File</span><div>${m?m.nome:'?'}${b.pagine&&b.pagine.length>1?html` <span class="piccolo secondario">(${b.pagine.length} pagine)</span>`:b.paginaInizio&&!b.pagine?html` <span class="piccolo secondario">(pag. ${b.paginaInizio}${b.paginaFine>b.paginaInizio?'–'+b.paginaFine:''} del file caricato)</span>`:''}</div></div><div class="campo"><span class="etichetta-campo">Netto</span><div>${b.netto!=null?fEuro(b.netto):html`<span class="silenzioso">—</span>`}</div></div><div class="campo"><span class="etichetta-campo">Lordo</span><div>${b.lordo!=null?fEuro(b.lordo):html`<span class="silenzioso">—</span>`}</div></div><div class="campo"><span class="etichetta-campo">Ore retribuite</span><div>${b.oreRetribuite!=null?fOre(b.oreRetribuite):html`<span class="silenzioso">—</span>`}</div></div></div>${bloccoConfrontoBusta(b)}<div id="anteprima-busta" class="mt"></div>`,piede:html`<button class="pulsante primario" data-azione="busta-modifica" data-id="${b.id}">${icona('modifica')}Modifica</button><button class="pulsante" data-azione="file-condividi" data-id="${b.fileId}">${icona('condividi')}Condividi</button><span class="spazio"></span><button class="pulsante pericolo" data-azione="busta-elimina" data-id="${b.id}">${icona('elimina')}Elimina</button>`});
   const a=await htmlAnteprimaFile(b.fileId,b.paginaInizio);const c=el('#anteprima-busta');if(c)c.innerHTML=a;
 };
 AZIONI['busta-modifica']=async d=>{const b=perId('bustePaga',d.id);const v=await dialogoModulo('Busta paga',[{nome:'personaId',etichetta:'Persona',tipo:'select',obbligatorio:true,opzioni:stato.persone.map(p=>({v:p.id,t:nomePersona(p)}))},{nome:'anno',etichetta:'Anno',tipo:'numero',decimali:0,obbligatorio:true},{nome:'mese',etichetta:'Mese',tipo:'select',obbligatorio:true,opzioni:NOMI_MESI.map((m,i)=>({v:i+1,t:m}))},{nome:'netto',etichetta:'Netto',tipo:'euro'},{nome:'lordo',etichetta:'Lordo',tipo:'euro'},{nome:'oreRetribuite',etichetta:'Ore retribuite',tipo:'ore'},{nome:'note',etichetta:'Note',tipo:'textarea',largo:true}],b);if(!v)return;v.mese=+v.mese;const vecchia=b.personaId;esegui('Modificata busta paga',s=>{Object.assign(s.bustePaga.find(x=>x.id===b.id),v);if(vecchia!==v.personaId){const m=fileMeta(b.fileId);if(m){const toks=normalizzaTesto(m.nome.replace(/\.[a-z0-9]+$/i,'')).split(' ').filter(t=>t.length>=3&&!/^\d+$/.test(t)&&!NOMI_MESI.includes(t)&&!/busta|paga|cedolino|pdf|lul/.test(t));const per=s.persone.find(p=>p.id===v.personaId);const nomi=[per.cognome,per.nome].flatMap(x=>normalizzaTesto(x).split(' '));for(const t of toks)if(!nomi.includes(t)&&!s.regoleBuste.find(r=>r.segno===t))s.regoleBuste.push({segno:t,personaId:v.personaId})}}});AZIONI['busta-apri']({id:b.id})};

@@ -85,7 +85,8 @@ async function analizzaPdf(blob){
     let contenuti=[];const cm=/\/Contents\s*(?:\[([^\]]*)\]|(\d+)\s+0\s+R)/.exec(p.dict);if(cm){const refs=cm[1]?Array.from(cm[1].matchAll(/(\d+)\s+0\s+R/g)).map(x=>+x[1]):[+cm[2]];for(const r of refs){const o=oggetti.get(r);if(!o)continue;const d=await flusso(o);if(d)contenuti.push(latin1(d,0,d.length))}}
     return {contenuto:await espandi(contenuti.join('\n'),p.dict,fonts,0),fonts,dict:p.dict};
   };
-  return {pagine,contenutoPagina,oggetti,flusso,dictDi};
+  const corpo=(n)=>{const o=oggetti.get(n);return o?(o.inline!==undefined?o.inline:testo.slice(o.inizio,o.fine)):''};
+  return {pagine,contenutoPagina,oggetti,flusso,dictDi,corpo,bytes};
 }
 async function estraiTestoPdf(blob,avanzamento){
   const pdf=await analizzaPdf(blob);

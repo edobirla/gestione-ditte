@@ -36,11 +36,12 @@ function elementiPagina(c,fonts,altezza){
     const dim=corpo*scala;
     if(dim<1||dim>200) return;
     const ult=elementi[elementi.length-1];
-    // le lettere messe una a una si riuniscono in una parola sola se stanno sulla stessa riga e vicine
-    if(ult&&ult.t==='testo'&&Math.abs(ult.y-(altezza-y))<0.6&&Math.abs(ult.dim-dim)<0.6&&x-ult.xFine<dim*0.9&&x>=ult.xFine-dim*0.2){
-      ult.testo+=(x-ult.xFine>dim*0.22?' ':'')+testo;ult.xFine=x+testo.length*dim*0.5;return;
+    if(ult&&ult.t==='testo'&&Math.abs(ult.y-(altezza-y))<0.6&&Math.abs(ult.dim-dim)<0.7){
+      const salto=x-ult.xUltimo;
+      if(salto>=-dim*0.1&&salto<dim*0.95){ult.testo+=testo;ult.xUltimo=x;return}
+      if(salto>=0&&salto<dim*2.1){ult.testo+=' '+testo;ult.xUltimo=x;return}
     }
-    elementi.push({t:'testo',x,y:altezza-y,dim,testo,grassetto,xFine:x+testo.length*dim*0.5});
+    elementi.push({t:'testo',x,y:altezza-y,dim,testo,grassetto,xUltimo:x});
   };
   const chiudiPercorso=(riempi)=>{
     if(!haPercorso)return;
@@ -113,4 +114,75 @@ async function rendiPaginaPdf(blob,indice){
   // se non c'è testo da ricostruire, il foglio è una scansione: si usa la fotografia che sta dentro
   const scansione=elementi.filter(e=>e.t==='testo').length?null:await immagineDiPagina(pdf,c.dict);
   return {larghezza,altezza,elementi,scansione,pagine:pdf.pagine.length,indice:i};
+}
+
+// ---------------------------------------------------------------------
+// ESTRAZIONE DI PAGINE IN UN NUOVO PDF.
+// Serve per le buste paga: dal PDF unico del commercialista si ricava un file per operaio con le
+// sole pagine sue. Le pagine non si ridisegnano: si copiano dal file originale byte per byte, con
+// tutto quello a cui fanno riferimento (font, immagini, contenuti). Si tengono i numeri d'oggetto
+// originali, così i riferimenti interni restano validi e non c'è niente da riscrivere: si aggiungono
+// solo un nuovo catalogo e un nuovo albero delle pagine.
+// ---------------------------------------------------------------------
+function byte(s){const b=new Uint8Array(s.length);for(let i=0;i<s.length;i++)b[i]=s.charCodeAt(i)&0xff;return b}
+async function estraiPaginePdf(blob,indici){
+  const pdf=await analizzaPdf(blob);
+  const scelte=indici.map(i=>pdf.pagine[i]).filter(Boolean);
+  if(!scelte.length) throw new Error('nessuna pagina da estrarre');
+  // 1) chiusura: tutto ciò che le pagine richiamano, e ciò che quello richiama a sua volta
+  const dentro=new Set();
+  const numeriPagina=new Set(scelte.map(p=>p.num));
+  const coda=scelte.map(p=>p.num);
+  while(coda.length){
+    const n=coda.pop();
+    if(dentro.has(n)||!pdf.oggetti.has(n)) continue;
+    dentro.add(n);
+    // il /Parent di una pagina porta all'albero originale, che elenca TUTTE le pagine del file:
+    // seguirlo si porterebbe dietro l'intero documento. Le pagine scelte avranno un albero nuovo.
+    const c=pdf.corpo(n).replace(/\/Parent\s+\d+\s+0\s+R/g,'');
+    const re=/(\d+)\s+0\s+R/g;let m;
+    while((m=re.exec(c))) if(!dentro.has(+m[1])) coda.push(+m[1]);
+  }
+  let massimo=0;for(const n of dentro) massimo=Math.max(massimo,n);
+  const nPages=massimo+1,nCatalogo=massimo+2;
+  // 2) scrittura: stessi numeri d'oggetto, nuovo albero delle pagine
+  const pezzi=[];let lunghezza=0;
+  const scrivi=(x)=>{const b=typeof x==='string'?byte(x):x;pezzi.push(b);lunghezza+=b.length};
+  scrivi('%PDF-1.7\n%\xE2\xE3\xCF\xD3\n');
+  const posizioni=new Map();
+  for(const n of Array.from(dentro).sort((a,b)=>a-b)){
+    const o=pdf.oggetti.get(n);
+    posizioni.set(n,lunghezza);
+    scrivi(n+' 0 obj');
+    if(o.inline!==undefined){
+      let d=o.inline;
+      if(numeriPagina.has(n)) d=sistemaParent(d,nPages);
+      scrivi('\n'+d+'\n');
+    } else if(numeriPagina.has(n)){
+      scrivi('\n'+sistemaParent(pdf.corpo(n),nPages)+'\n');
+    } else {
+      scrivi(pdf.bytes.subarray(o.inizio,o.fine));
+    }
+    scrivi('endobj\n');
+  }
+  posizioni.set(nPages,lunghezza);
+  scrivi(nPages+' 0 obj\n<< /Type /Pages /Count '+scelte.length+' /Kids ['+scelte.map(p=>p.num+' 0 R').join(' ')+'] >>\nendobj\n');
+  posizioni.set(nCatalogo,lunghezza);
+  scrivi(nCatalogo+' 0 obj\n<< /Type /Catalog /Pages '+nPages+' 0 R >>\nendobj\n');
+  // 3) tabella dei riferimenti incrociati: una riga per oggetto, quelli assenti marcati liberi
+  const inizioXref=lunghezza;
+  const totale=nCatalogo+1;
+  let xref='xref\n0 '+totale+'\n0000000000 65535 f \n';
+  for(let n=1;n<totale;n++){
+    const p=posizioni.get(n);
+    xref+=p!==undefined?String(p).padStart(10,'0')+' 00000 n \n':'0000000000 65535 f \n';
+  }
+  scrivi(xref);
+  scrivi('trailer\n<< /Size '+totale+' /Root '+nCatalogo+' 0 R >>\nstartxref\n'+inizioXref+'\n%%EOF\n');
+  return new Blob(pezzi,{type:'application/pdf'});
+}
+function sistemaParent(corpo,nPages){
+  return /\/Parent\s+\d+\s+0\s+R/.test(corpo)
+    ? corpo.replace(/\/Parent\s+\d+\s+0\s+R/,'/Parent '+nPages+' 0 R')
+    : corpo.replace(/<<\s*/,'<< /Parent '+nPages+' 0 R ');
 }
