@@ -171,7 +171,7 @@ AZIONI['copia']=d=>copiaNegliAppunti(d.testo).then(()=>avviso('Copiato negli app
 // dragenter/dragleave da tenere in sincronia, che su Chrome si disallineava facilmente e lasciava
 // il drop "morto" nonostante il cursore mostrasse la copia.
 let zonaDropAttiva=null;
-function trovaZonaDrop(target){return target&&target.closest&&(target.closest('[data-drop-doc]')||target.closest('[data-drop-soggetto]')||target.closest('[data-drop-caricamento]')||target.closest('[data-drop-buste]')||target.closest('.zona-drop'))}
+function trovaZonaDrop(target){return target&&target.closest&&(target.closest('[data-drop-bonifico]')||target.closest('[data-drop-doc]')||target.closest('[data-drop-soggetto]')||target.closest('[data-drop-caricamento]')||target.closest('[data-drop-buste]')||target.closest('.zona-drop'))}
 function evidenziaZona(z){if(z===zonaDropAttiva)return;if(zonaDropAttiva)zonaDropAttiva.classList.remove('sopra');if(z)z.classList.add('sopra');zonaDropAttiva=z}
 // Mentre si trascina un file, le anteprime dei PDF (iframe) devono farsi da parte: un iframe è un
 // documento a sé, gli eventi di trascinamento sopra di lui non arrivano mai a questa pagina e il
@@ -198,6 +198,7 @@ window.addEventListener('drop',async e=>{
   const files=await fileDaDrop(e.dataTransfer);
   if(!files.length) return;
   if(z){
+    if(z.dataset.dropBonifico) return allegaDistinta(z.dataset.dropBonifico,files[0]);
     if(z.dataset.dropDoc) return allegaFilesADocumento(z.dataset.dropDoc,files);
     if(z.dataset.dropSoggetto){const [tipo,id]=z.dataset.dropSoggetto.split(':');return dialogoDocumento({soggettoTipo:tipo,soggettoId:id},files)}
     if(z.hasAttribute('data-drop-caricamento')){ui.caricamentoFiles=files;ui.caricamentoRighe=null;return render()}
