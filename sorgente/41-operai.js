@@ -76,7 +76,7 @@ VISTE.operai=function(r){
   const righe=persone.map(p=>{const idn=p.inCantiere!==false?idoneita(p):null;const crit=documentoPiuCritico(p);const prossima=documentiPersona(p.id).map(d=>infoDocumento(d)).filter(i=>i.data&&i.giorni>=0).sort((a,b)=>a.giorni-b.giorni)[0];return {p,idn,crit,prossima}});
   const sc=riepilogoScadenze();
   return html`<div class="testata"><div><h1>Operai</h1><div class="sotto">${plurale(stato.persone.filter(p=>p.attivo).length,'persona attiva','persone attive')} · ${sc.scaduti.length} documenti scaduti · ${sc.mancanti.filter(m=>m.bloccante).length} mancanti bloccanti</div></div>
-    <div class="azioni"><a class="pulsante" href="#/operai/scadenzario">${icona('calendario')}Scadenzario</a><button class="pulsante primario" data-azione="persona-nuova">${icona('piu')}Nuova persona</button></div></div>
+    <div class="azioni"><a class="pulsante" href="#/operai/scadenzario">${icona('calendario')}Scadenzario</a><button class="pulsante" data-azione="persona-da-documento" title="Carica l'UNILAV (o un altro PDF con i dati scritti) e compilo l'anagrafica">${icona('magia')}Da UNILAV o documento</button><button class="pulsante primario" data-azione="persona-nuova">${icona('piu')}Nuova persona</button></div></div>
   <div class="strumenti-tabella"><input type="search" placeholder="Cerca per nome, mansione, codice fiscale" value="${filtro.cerca}" data-cambio="filtro-operai" data-campo="cerca" aria-label="Cerca persone"><div class="gruppo-pulsanti">${['attivi','tutti','cessati'].map(s=>html`<button class="pulsante piccolo ${filtro.stato===s?'attivo':''}" data-azione="filtro-operai-stato" data-valore="${s}">${capitalizza(s)}</button>`)}</div>${pulsanteCancellaFiltri(!!filtro.cerca||filtro.stato!=='attivi','filtro-operai-reset')}<span class="conteggio">${righe.length} persone</span></div>
   ${tabella({id:'operai',righe,chiaveOrd:'nome',href:r=>'#/operai/'+r.p.id,classeRiga:r=>'riga-'+r.crit.stato,colonne:[
     {chiave:'nome',titolo:'Persona',principale:true,valore:r=>nomePersona(r.p),formatta:r=>html`<span class="riga stretta">${avatar(r.p)}<span><b>${nomePersona(r.p)}</b><br><span class="piccolo secondario">${r.p.mansione||''}${r.p.attivo?'':' · cessato'}</span></span></span>`},
@@ -93,6 +93,82 @@ document.addEventListener('input',debounce(e=>{const t=e.target;if(t.matches&&t.
 AZIONI['filtro-operai-stato']=d=>{ui.filtri.operai=Object.assign({stato:'attivi',cerca:''},ui.filtri.operai,{stato:d.valore});render()};
 AZIONI['filtro-operai-reset']=()=>{ui.filtri.operai={stato:'attivi',cerca:''};render()};
 AZIONI['persona-nuova']=()=>dialogoPersona(null);
+// ---- anagrafica ricavata da un documento (UNILAV, o qualsiasi PDF con i dati scritti) ----
+// L'UNILAV è il caso buono: è un modulo con "etichetta: valore", e la sezione del lavoratore è
+// separata da quella del datore di lavoro (che ha gli stessi nomi di campo, e senza distinguerle si
+// finirebbe per registrare la Pavimass come persona).
+function daCodiceFiscale(cf){
+  const MESI={A:1,B:2,C:3,D:4,E:5,H:6,L:7,M:8,P:9,R:10,S:11,T:12};
+  if(!cf||!validaCodiceFiscale(cf).ok) return null;
+  cf=cf.toUpperCase();
+  const dec=(x)=>x.replace(/[LMNPQRSTUV]/g,c=>String('LMNPQRSTUV'.indexOf(c)));
+  const anno=+dec(cf.slice(6,8)),mese=MESI[cf[8]],giorno=+dec(cf.slice(9,11));
+  if(!mese||!giorno) return null;
+  const donna=giorno>40;const g=donna?giorno-40:giorno;
+  const secolo=anno>(new Date().getFullYear()%100)?1900:2000;
+  return {dataNascita:(secolo+anno)+'-'+pad2(mese)+'-'+pad2(g),sesso:donna?'F':'M'};
+}
+function anagraficaDaTesto(testo){
+  const t=testo.replace(/\r/g,'');
+  const eUnilav=/unilav|comunicazione\s+obbligatoria/i.test(t);
+  // nell'UNILAV si guarda solo da "Lavoratore" in poi, altrimenti si prende il datore di lavoro
+  const zona=eUnilav?t.slice(Math.max(0,t.search(/\bLavoratore\b/))):t;
+  const campo=(...etichette)=>{
+    for(const e of etichette){
+      const re=new RegExp(e+'\\s*[:\\.]?\\s*([^\\n]{1,90})','i');
+      const m=re.exec(zona);
+      if(m){const v=m[1].trim().replace(/\s{2,}/g,' ');if(v&&!/^[:\-–]/.test(v))return v}
+    }
+    return null;
+  };
+  const data=(x)=>{const m=x&&/(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/.exec(x);return m?interpretaData(m[0]):null};
+  let cf=campo('codice\\s*fiscale','codice\\s*f');
+  if(cf) cf=(cf.match(/[A-Z0-9]{16}/i)||[cf])[0].toUpperCase();
+  if(!cf||!validaCodiceFiscale(cf).ok){const m=zona.match(/\b[A-Z]{6}\d{2}[A-Z]\d{2}[A-Z]\d{3}[A-Z]\b/);if(m&&validaCodiceFiscale(m[0]).ok)cf=m[0]}
+  const capM=/\bCAP[^\n:]{0,20}:\s*(\d{5})\b/i.exec(zona);
+  const cap=capM?capM[1]:null;
+  const comune=campo('comune\\s+di\\s+domicilio','comune\\s+di\\s+residenza','comune'),via=campo('indirizzo\\s+di\\s+domicilio','indirizzo\\s+di\\s+residenza','indirizzo');
+  const dalCf=daCodiceFiscale(cf);
+  const out={
+    cognome:campo('cognome'),nome:campo('^nome','\\bnome\\b'),cf:cf||null,
+    dataNascita:data(campo('data\\s+di\\s+nascita','nato\\s+il','nata\\s+il'))||(dalCf?dalCf.dataNascita:null),
+    luogoNascita:campo('comune\\s+o\\s+in\\s+alternativa\\s+stato\\s+straniero\\s+di\\s+nascita','luogo\\s+di\\s+nascita','comune\\s+di\\s+nascita','nato\\s+a','nata\\s+a'),
+    nazionalita:campo('cittadinanza','nazionalit'),
+    residenza:[via,[cap,comune&&capitalizzaNome(comune)].filter(Boolean).join(' ')].filter(Boolean).join(', ')||campo('residenza')||null,
+    mansione:campo('qualifica\\s+professionale[^:]*','qualifica'),
+    dataAssunzione:data(campo('data\\s+inizio\\s+rapporto')),
+  };
+  if(out.cognome) out.cognome=capitalizzaNome(out.cognome);
+  if(out.nome) out.nome=capitalizzaNome(out.nome);
+  if(out.luogoNascita) out.luogoNascita=capitalizzaNome(out.luogoNascita);
+  if(out.nazionalita) out.nazionalita=capitalizzaNome(out.nazionalita);
+  if(out.mansione) out.mansione=capitalizzaNome(out.mansione);
+  const scadPermesso=data(campo('scadenza\\s+titolo\\s+di\\s+soggiorno'));
+  return {dati:out,eUnilav,scadenzaPermesso:scadPermesso,trovati:Object.entries(out).filter(([k,v])=>v).map(([k])=>k)};
+}
+function capitalizzaNome(x){return String(x||'').toLowerCase().replace(/(^|[\s'\-])([a-zà-ù])/g,(m,a,b)=>a+b.toUpperCase())}
+AZIONI['persona-da-documento']=async d=>{
+  const fs=await scegliFile({multipli:false});
+  if(!fs.length) return;
+  const f=fs[0];
+  if(!ePdf(f.type,f.name)) return informa('Serve un documento con il testo dentro','Da una fotografia o da una scansione l’applicazione non sa leggere le lettere: servirebbe un riconoscimento del testo che non ha.\n\nFunziona con l’UNILAV e con i PDF scaricati (non fotografati). Con la carta d’identità in fotografia, compila a mano: i campi sono gli stessi.');
+  const prog=dialogoAvanzamento('Lettura del documento',{testo:'Leggo «'+f.name+'»…'});
+  let testo=''; try{ testo=(await estraiTestoPdf(f)).testo }catch(e){ prog.chiudi(); return segnalaErrore(e,'Non sono riuscito a leggere il PDF') }
+  prog.chiudi();
+  if(!testo||testo.replace(/\s/g,'').length<40) return informa('Niente testo in questo PDF','Sembra una scansione: le lettere sono un’immagine, non testo. Compila a mano oppure usa il PDF originale scaricato.');
+  const r=anagraficaDaTesto(testo);
+  if(!r.dati.cognome&&!r.dati.cf) return informa('Non ho riconosciuto un’anagrafica','In questo documento non ho trovato né un cognome né un codice fiscale validi.');
+  const esistente=r.dati.cf?stato.persone.find(x=>x.cf&&x.cf.toUpperCase()===r.dati.cf):null;
+  const conferma_=await dialogo({titolo:'Dati letti da «'+f.name+'»',corpo:html`<p class="piccolo secondario">${r.eUnilav?'Riconosciuto come UNILAV: ho letto la sezione del lavoratore, non quella del datore di lavoro.':'Letto come modulo con etichette.'} Controlla e correggi nella scheda che si apre: niente viene salvato finché non premi Salva.</p>
+    <table class="tabella densa"><tbody>${Object.entries({Cognome:r.dati.cognome,Nome:r.dati.nome,'Codice fiscale':r.dati.cf,'Data di nascita':r.dati.dataNascita?fData(r.dati.dataNascita):null,'Luogo di nascita':r.dati.luogoNascita,'Cittadinanza':r.dati.nazionalita,'Residenza':r.dati.residenza,'Mansione':r.dati.mansione,'Assunzione':r.dati.dataAssunzione?fData(r.dati.dataAssunzione):null}).map(([k,v])=>html`<tr><td>${k}</td><td>${v?html`<b>${v}</b>`:html`<span class="silenzioso">non trovato</span>`}</td></tr>`)}</tbody></table>
+    ${esistente?html`<div class="avviso-inline attenzione mt-s">${icona('attenzione')}<div class="corpo">Questo codice fiscale è già di <b>${nomePersona(esistente)}</b>: aggiorno la sua scheda invece di crearne una nuova.</div></div>`:''}
+    ${r.scadenzaPermesso?html`<p class="piccolo secondario mt-s">Il documento indica un permesso di soggiorno in scadenza il ${fData(r.scadenzaPermesso)}: registralo fra i documenti della persona.</p>`:''}`,
+    pulsanti:[{testo:'Annulla',valore:false},{testo:esistente?'Aggiorna la scheda':'Apri la scheda compilata',classe:'primario',primario:true,valore:true}]});
+  if(!conferma_) return;
+  const base=esistente?Object.assign({},esistente):{attivo:true,inLibroPresenze:true,sezionePresenze:'dipendenti',inCantiere:true,qualifiche:[],retribuzione:{tipo:'oraria'},tipo:'dipendente'};
+  for(const [k,v] of Object.entries(r.dati)) if(v) base[k]=v;
+  dialogoPersona(esistente?base:Object.assign(base,{id:undefined}));
+};
 AZIONI['persona-modifica']=d=>dialogoPersona(persona(d.id));
 AZIONI['persona-cessa']=async d=>{
   const p=persona(d.id);
