@@ -26,7 +26,8 @@ function vai(percorso){location.hash='#/'+percorso.replace(/^#?\/?/,'')}
 function disegnaMenu(){
   const r=leggiRotta();
   const n=contatoriMenu();
-  el('#menu').innerHTML=html`${MENU.map(m=>html`<a href="#/${m.id}" class="${r.sezione===m.id?'attivo':''} ${m.soloDesktop?'solo-desktop':''}" aria-current="${r.sezione===m.id?'page':'false'}">${icona(m.icona)}<span class="testo">${m.testo}</span>${n[m.id]?html`<span class="contatore" title="${n[m.id]} elementi da vedere">${n[m.id]}</span>`:''}</a>`)}<a href="#" class="altro" data-azione="menu-altro">${icona('altro')}<span class="testo">Altro</span></a><div class="fondo">Pavimass S.R.L.<br>v${VERSIONE_SCHEMA} · ${stato.impostazioni.dispositivo||''}</div>`;
+  const mn=el('#marchio-nome');if(mn)mn.textContent='Gestionale'+(nomeImpresa(true)?' '+nomeImpresa(true):'');
+  el('#menu').innerHTML=html`${MENU.map(m=>html`<a href="#/${m.id}" class="${r.sezione===m.id?'attivo':''} ${m.soloDesktop?'solo-desktop':''}" aria-current="${r.sezione===m.id?'page':'false'}">${icona(m.icona)}<span class="testo">${m.testo}</span>${n[m.id]?html`<span class="contatore" title="${n[m.id]} elementi da vedere">${n[m.id]}</span>`:''}</a>`)}<a href="#" class="altro" data-azione="menu-altro">${icona('altro')}<span class="testo">Altro</span></a><div class="fondo">${nomeImpresa()||'Gestionale'}<br>v${VERSIONE_SCHEMA} · ${stato.impostazioni.dispositivo||''}</div>`;
 }
 function contatoriMenu(){
   const out={};
@@ -55,7 +56,7 @@ function render(){
   document.title=titoloPagina(r);
 }
 function dopoRender(fn){(ui.montaggi=ui.montaggi||[]).push(fn)}
-function titoloPagina(r){const m=MENU.find(x=>x.id===r.sezione);return (m?m.testo+' · ':'')+'Gestionale Pavimass'}
+function titoloPagina(r){const m=MENU.find(x=>x.id===r.sezione);return (m?m.testo+' · ':'')+('Gestionale'+(nomeImpresa()?' '+nomeImpresa():''))}
 window.addEventListener('hashchange',()=>{ui.storicoProfondita=(ui.storicoProfondita||0)+1;chiudiPannello();chiudiRicerca();render();el('#contenuto').scrollTop=0;window.scrollTo(0,0)});
 
 // ---- tema: sistema / chiaro / scuro, ricordato ----

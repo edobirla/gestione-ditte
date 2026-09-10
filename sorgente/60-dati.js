@@ -1,5 +1,6 @@
 // ---------------------------------------------------------------------
-// DATI INIZIALI — i dati reali di Pavimass S.R.L. (fotografia al 02/07/2026).
+// DATI INIZIALI dell'applicazione: solo cataloghi generali (tipi di documento, modelli di
+// dichiarazione, lavorazioni). I dati di una ditta stanno fuori, in azienda/ (vedi README).
 // Sono facili da aggiornare: sono tutti qui. Dove un dato manca resta null: l'interfaccia mostra [DA COMPILARE].
 // datiIniziali(true) restituisce solo la struttura (usata da normalizzaStato per integrare i campi nuovi).
 // ---------------------------------------------------------------------
@@ -7,27 +8,27 @@ function datiIniziali(soloStruttura){
   const s={
     versioneSchema:VERSIONE_SCHEMA,
     azienda:{
-      ragioneSociale:'PAVIMASS S.R.L.',piva:'02188850511',cf:'02188850511',formaGiuridica:'Società a Responsabilità Limitata',dataCostituzione:'2014-05-29',capitaleSociale:'€ 10.000,00 i.v.',
-      indirizzo:{via:'Via G. Natta, 221',cap:'52010',comune:'Subbiano',provincia:'AR',frazione:'Castelnuovo'},
-      pec:'pavimasssrl@pec.it',email:'info@pavimass.it',sito:'www.pavimass.it',telefono:'0575 48549',cellulare:'334 8661519',fax:'0575 042321',
-      rea:'AR-168277',codiceSdi:'WP7SE2Q',ateco:'43.33.00',inail:'19548392',inps:'0504900998',cassaEdile:'Falea 08700',
-      patenteCrediti:{codice:'PAC-BI-027-DW',dataRilascio:'2024-10-24'},
-      attivita:'Pavimentazioni, rivestimenti, massetti, impermeabilizzazioni',
-      banca:'Banca MPS',iban:'IT72G0103071640000000976514',condizioniPagamento:'Bonifico Bancario',notePreventivo:'Lavori in economia: 35 €/ora',
-      legaleRappresentanteId:'p_ovidiu',rsppId:'p_ovidiu',rlsId:'p_edvalt',rlsEletto:'2024-10-07',
-      medicoCompetente:{nome:'Dott. Mario Martinelli',telefono:'3474502772',email:'martinellimario55@gmail.com',professionistaId:'pr_martinelli'},
-      consulenteSicurezza:{nome:'Studio Tecnico Boncompagni Ghezzi',indirizzo:'Via Calamandrei 185, 52100 Arezzo (AR)',professionistaId:'pr_boncompagni'},
-      immagini:{logo:'incorporato',firmaTimbro:'incorporato',firmaLegale:'incorporato',firmaRspp:'incorporato'},
+      ragioneSociale:'',piva:null,cf:null,formaGiuridica:null,dataCostituzione:null,capitaleSociale:null,
+      indirizzo:{via:null,cap:null,comune:null,provincia:null,frazione:null},
+      pec:null,email:null,sito:null,telefono:null,cellulare:null,fax:null,
+      rea:null,codiceSdi:null,ateco:null,inail:null,inps:null,cassaEdile:null,
+      patenteCrediti:{codice:null,dataRilascio:null},
+      attivita:null,
+      banca:null,iban:null,condizioniPagamento:null,notePreventivo:null,
+      legaleRappresentanteId:null,rsppId:null,rlsId:null,rlsEletto:null,
+      medicoCompetente:{nome:null,telefono:null,email:null,professionistaId:null},
+      consulenteSicurezza:{nome:null,indirizzo:null,professionistaId:null},
+      immagini:{},
       logoId:null,firmaTimbroId:null,timbroId:null,firmaId:null,
-      cartaIntestata:{righe:['Sede Legale e Amministrativa:','Via G. Natta, 221 - Subbiano 52010 (AR)  P.I./C.F. 02188850511','Tel. 0575 48549 – Fax: 0575 042321 - Cell.: 334 8661519','info@pavimass.it - www.pavimass.it - Nr. R.E.A. 168277 – Codice SDI: WP7SE2Q','Registro Imprese di Arezzo n. 02188850511 - Capitale Sociale € 10.000,00 i.v.']},
+      cartaIntestata:{righe:[]},
     },
     persone:[],tipiDocumento:[],documenti:[],file:[],clienti:[],professionisti:[],lavorazioni:[],cantieri:[],pos:[],
     modelli:{dichiarazioni:[],posTesto:null,posMacchine:null,posDpiDotazione:null},
     presenze:{},bustePaga:[],regoleBuste:[],listino:[],preventivi:[],movimenti:[],generati:[],cestino:[],
     mezzi:[],fornitori:[],bonifici:[],
-    impostazioni:{nomeUtente:'Edoardo Birla',dispositivo:'',tema:'sistema',ultimoBackup:null,modificheDopoBackup:0,ultimaModifica:null,soglie:Object.assign({},SOGLIE_PREDEFINITE),densita:'normale',festivitaLocali:[],arrotondamento:'aziendale',compressioneImmagini:true,obiettivoKb:300,avvisaPdfMb:2,creato:new Date().toISOString()},
+    impostazioni:{nomeUtente:'',dispositivo:'',tema:'sistema',ultimoBackup:null,modificheDopoBackup:0,ultimaModifica:null,soglie:Object.assign({},SOGLIE_PREDEFINITE),densita:'normale',festivitaLocali:[],arrotondamento:'aziendale',compressioneImmagini:true,obiettivoKb:300,avvisaPdfMb:2,creato:new Date().toISOString()},
   };
-  s.lavorazioni=LAVORAZIONI_PAVIMASS.map(l=>Object.assign({},l));
+  s.lavorazioni=LAVORAZIONI_INIZIALI.map(l=>Object.assign({},l));
   s.tipiDocumento=TIPI_DOCUMENTO_INIZIALI.map(t=>Object.assign({},t));
   s.modelli.dichiarazioni=MODELLI_DICHIARAZIONI_INIZIALI.map(d=>Object.assign({},d));
   if(soloStruttura){
@@ -37,148 +38,14 @@ function datiIniziali(soloStruttura){
     s.tipiDocumento=[];s.modelli.dichiarazioni=[];s.lavorazioni=[];
     return s;
   }
-  // ---- persone ----
-  const P=(o)=>Object.assign({id:null,cognome:'',nome:'',tipo:'dipendente',mansione:'',cf:null,dataNascita:null,luogoNascita:null,nazionalita:null,residenza:null,telefono:null,email:null,dataAssunzione:null,dataCessazione:null,attivo:true,qualifiche:[],retribuzione:{tipo:'oraria',tariffaOraria:null,importoFisso:null},schemaOrario:null,inLibroPresenze:true,sezionePresenze:'dipendenti',soloTrasferte:false,inCantiere:true,fotoId:null,fotoImg:null,firmaId:null,firmaImg:null,firmaIncorporata:null,note:''},o);
-  s.persone=[
-    P({id:'p_ovidiu',cognome:'Birla',nome:'Costel Ovidiu',tipo:'legale_rappresentante',mansione:'Legale Rappresentante',cf:'BRLCTL76L04Z129C',dataNascita:'1976-07-04',luogoNascita:'Romania',nazionalita:'Romania',residenza:'Loc. Marcena 32/B, 52100 Arezzo (AR)',qualifiche:['rspp','datoreLavoro'],retribuzione:{tipo:'fissa',tariffaOraria:null,importoFisso:5000},sezionePresenze:'soci',soloTrasferte:true,firmaIncorporata:'firmaLegale',note:'Socio e Legale Rappresentante, RSPP e datore di lavoro. Nel libro presenze si compila solo la riga trasferte (località toscane, mai Subbiano).'}),
-    P({id:'p_edvalt',cognome:'Gostima',nome:'Edvalt',tipo:'dipendente',mansione:'Piastrellista',cf:'GSTDLT83T17Z100X',dataNascita:'1983-12-17',luogoNascita:'Albania',nazionalita:'Albania',qualifiche:['rls','preposto','antincendio','primoSoccorso'],retribuzione:{tipo:'oraria',tariffaOraria:17,importoFisso:null},firmaIncorporata:'firmaRls',note:'Unico preposto qualificato dell\'azienda. RLS eletto il 07/10/2024.'}),
-    P({id:'p_marian',cognome:'Raciula',nome:'Marian',tipo:'dipendente',mansione:'Operaio',cf:null,dataNascita:'1973-07-11',luogoNascita:'Romania',nazionalita:'Romania',qualifiche:['antincendio','primoSoccorso'],retribuzione:{tipo:'oraria',tariffaOraria:15,importoFisso:null},note:'Va fra i dipendenti, non fra i soci, anche se in vecchi fogli compariva fra i soci.'}),
-    P({id:'p_ibra',cognome:'Diop',nome:'Ibra',tipo:'dipendente',mansione:'Pavimentatore',cf:'DPIBRI93C24Z343L',dataNascita:'1993-03-24',luogoNascita:'Senegal',nazionalita:'Senegal',qualifiche:[],retribuzione:{tipo:'oraria',tariffaOraria:11,importoFisso:null},note:'Tariffa corretta a 11 €/h (inizialmente comunicata 10).'}),
-    P({id:'p_ebrima',cognome:'Jallow',nome:'Ebrima',tipo:'dipendente',mansione:'Operaio',cf:null,dataNascita:'1991-05-15',luogoNascita:'Gambia',nazionalita:'Gambia',qualifiche:[],retribuzione:{tipo:'oraria',tariffaOraria:10,importoFisso:null}}),
-    P({id:'p_sajid',cognome:'Sajid',nome:'Muhammad',tipo:'dipendente',mansione:'Operaio',cf:'SJDMMM94A01Z236O',dataNascita:'1994-01-01',luogoNascita:'Pakistan',nazionalita:'Pakistan',qualifiche:[],retribuzione:{tipo:'oraria',tariffaOraria:null,importoFisso:null},inLibroPresenze:false,note:'In ingresso: ha solo la ricevuta della questura per il rinnovo del permesso di soggiorno (Terni, pratica 26TR003835 del 09/06/2026). Retribuzione da definire.'}),
-    P({id:'p_elena',cognome:'Birla',nome:'Elena',tipo:'amministrativo',mansione:'Amministrazione',cf:null,qualifiche:[],retribuzione:{tipo:'fissa',tariffaOraria:null,importoFisso:3000},inCantiere:false,note:'Non ha foglio ore: nel libro presenze va sempre a 8 ore su tutti i giorni lavorativi, importo fisso.'}),
-    P({id:'p_edoardo',cognome:'Birla',nome:'Edoardo',tipo:'dipendente',mansione:'Amministrazione e cantiere',cf:'BRLDRD02B06A390S',dataNascita:'2002-02-06',luogoNascita:'Arezzo',nazionalita:'Italia',dataAssunzione:'2024-09-02',qualifiche:[],retribuzione:{tipo:'mista',tariffaOraria:10,importoFisso:1000},schemaOrario:{lun:8,mar:8,mer:0,gio:0,ven:4},note:'10 €/h sulle ore della sua scheda + fisso 1.000 €/mese. Aggiustamenti mensili con sigle (brc, mt, mac): contano solo gli importi.'}),
-    P({id:'p_alexey',cognome:'Vasilyev',nome:'Alexey',tipo:'dipendente',mansione:'Operaio',attivo:false,dataCessazione:'2026-07-31',inLibroPresenze:false,qualifiche:[],note:'Cessato: uscito dall\'organico, escluso dal libro presenze da agosto 2026.'}),
-    P({id:'p_saleh',cognome:'Saleh',nome:'Mohamed',tipo:'dipendente',mansione:'Operaio',attivo:false,inLibroPresenze:false,inCantiere:false,qualifiche:[],note:'Presente solo nel libro presenze di giugno 2026 (importato dall\'Excel). Dati anagrafici non disponibili.'}),
-    P({id:'p_ahmed',cognome:'Mohamed',nome:'Ahmed',tipo:'dipendente',mansione:'Operaio',attivo:false,inLibroPresenze:false,inCantiere:false,qualifiche:[],note:'Presente solo nel libro presenze di giugno 2026 (importato dall\'Excel). Dati anagrafici non disponibili.'}),
-  ];
-  // ---- documenti reali (senza file: i file si allegano con il caricamento iniziale) ----
-  const D=(o)=>Object.assign({id:nuovoId('d'),soggettoTipo:'persona',soggettoId:null,tipoId:null,titolo:'',dataEmissione:null,dataScadenza:null,senzaScadenza:false,file:[],verificato:false,note:'',creato:'2026-07-02T00:00:00.000Z'},o);
-  s.documenti=[
-    D({id:'d_durc',soggettoTipo:'azienda',soggettoId:'azienda',tipoId:'durc',dataEmissione:'2026-05-11',dataScadenza:'2026-09-08',verificato:true}),
-    D({id:'d_visura',soggettoTipo:'azienda',soggettoId:'azienda',tipoId:'visura',titolo:'Visura camerale 06/2026',note:'Emessa a giugno 2026 (giorno non indicato). Le committenze la vogliono recente: entro 6 mesi.'}),
-    D({id:'d_patente',soggettoTipo:'azienda',soggettoId:'azienda',tipoId:'patente_crediti',dataEmissione:'2024-10-24',senzaScadenza:true,titolo:'Patente a crediti PAC-BI-027-DW',verificato:true}),
-    D({id:'d_nomina_rspp',soggettoTipo:'azienda',soggettoId:'azienda',tipoId:'nomina_rspp',senzaScadenza:true}),
-    D({id:'d_nomina_medico',soggettoTipo:'azienda',soggettoId:'azienda',tipoId:'nomina_medico',senzaScadenza:true}),
-    ...['principale','chimico','incendio','rumore','stress','vibrazioni'].map(k=>D({id:'d_dvr_'+k,soggettoTipo:'azienda',soggettoId:'azienda',tipoId:'dvr',titolo:'DVR '+k,senzaScadenza:true})),
-    // Birla Costel Ovidiu
-    D({id:'d_ov_rspp',soggettoId:'p_ovidiu',tipoId:'rspp_datore',titolo:'Aggiornamento RSPP',dataEmissione:'2021-10-29',note:'Scadenza stimata a 5 anni: verificare sull\'attestato.'}),
-    D({id:'d_ov_visita',soggettoId:'p_ovidiu',tipoId:'visita_medica',dataEmissione:'2026-07-01',dataScadenza:'2027-06-30'}),
-    D({id:'d_ov_ci',soggettoId:'p_ovidiu',tipoId:'carta_identita',note:'Da verificare: data di scadenza da leggere sulla scansione.'}),
-    // Diop Ibra
-    D({id:'d_ib_visita',soggettoId:'p_ibra',tipoId:'visita_medica',dataEmissione:'2026-07-01',dataScadenza:'2027-06-30'}),
-    D({id:'d_ib_ra',soggettoId:'p_ibra',tipoId:'rischio_alto_16',dataEmissione:'2025-01-16',dataScadenza:'2030-01-16'}),
-    D({id:'d_ib_unilav',soggettoId:'p_ibra',tipoId:'unilav',dataEmissione:'2025-04-28',senzaScadenza:true}),
-    D({id:'d_ib_ci',soggettoId:'p_ibra',tipoId:'carta_identita',titolo:'Documento d\'identità (scansione)',note:'Da verificare: data di scadenza da leggere sulla scansione.'}),
-    // Gostima Edvalt
-    D({id:'d_ed_visita',soggettoId:'p_edvalt',tipoId:'visita_medica',dataEmissione:'2026-07-01',dataScadenza:'2027-06-30'}),
-    D({id:'d_ed_ra',soggettoId:'p_edvalt',tipoId:'rischio_alto_16',dataEmissione:'2021-09-14',note:'Scadenza stimata a 5 anni (~14/09/2026): in scadenza, programmare l\'aggiornamento 6h.'}),
-    D({id:'d_ed_preposto',soggettoId:'p_edvalt',tipoId:'corso_preposto',dataEmissione:'2025-10-20',dataScadenza:'2027-10-20'}),
-    D({id:'d_ed_antinc',soggettoId:'p_edvalt',tipoId:'antincendio_2',dataEmissione:'2022-11-09',dataScadenza:'2027-11-09'}),
-    D({id:'d_ed_rls',soggettoId:'p_edvalt',tipoId:'corso_rls',titolo:'Aggiornamento RLS',dataEmissione:'2024-10-08',dataScadenza:'2025-10-08'}),
-    D({id:'d_ed_ps',soggettoId:'p_edvalt',tipoId:'primo_soccorso',dataEmissione:'2024-09-20',dataScadenza:'2027-09-20'}),
-    D({id:'d_ed_nom_prep',soggettoId:'p_edvalt',tipoId:'nomina_persona',titolo:'Nomina Preposto',senzaScadenza:true}),
-    D({id:'d_ed_nom_ant',soggettoId:'p_edvalt',tipoId:'nomina_persona',titolo:'Nomina Addetto Antincendio e Primo Soccorso',senzaScadenza:true}),
-    D({id:'d_ed_unilav',soggettoId:'p_edvalt',tipoId:'unilav',senzaScadenza:true}),
-    D({id:'d_ed_ci',soggettoId:'p_edvalt',tipoId:'carta_identita',titolo:'Documento d\'identità (scansione)',note:'Da verificare: data di scadenza da leggere sulla scansione.'}),
-    // Jallow Ebrima
-    D({id:'d_eb_visita',soggettoId:'p_ebrima',tipoId:'visita_medica',dataEmissione:'2026-07-01',dataScadenza:'2027-06-30'}),
-    D({id:'d_eb_ra',soggettoId:'p_ebrima',tipoId:'rischio_alto_16',dataEmissione:'2024-09-04',dataScadenza:'2029-09-04'}),
-    D({id:'d_eb_unilav',soggettoId:'p_ebrima',tipoId:'unilav',titolo:'UNILAV tempo indeterminato',senzaScadenza:true}),
-    D({id:'d_eb_ci',soggettoId:'p_ebrima',tipoId:'carta_identita',titolo:'Documento d\'identità (scansione)',note:'Da verificare: data di scadenza da leggere sulla scansione.'}),
-    // Raciula Marian
-    D({id:'d_ma_visita',soggettoId:'p_marian',tipoId:'visita_medica',dataEmissione:'2026-07-01',dataScadenza:'2027-06-30'}),
-    D({id:'d_ma_ra',soggettoId:'p_marian',tipoId:'rischio_alto_16',dataEmissione:'2024-09-04',dataScadenza:'2029-09-04'}),
-    D({id:'d_ma_antinc',soggettoId:'p_marian',tipoId:'antincendio_2',dataEmissione:'2022-11-09',dataScadenza:'2027-11-09'}),
-    D({id:'d_ma_ps',soggettoId:'p_marian',tipoId:'primo_soccorso',dataEmissione:'2024-09-20',dataScadenza:'2027-09-20'}),
-    D({id:'d_ma_nom_ant',soggettoId:'p_marian',tipoId:'nomina_persona',titolo:'Nomina Addetto Antincendio e Primo Soccorso',senzaScadenza:true}),
-    D({id:'d_ma_unilav',soggettoId:'p_marian',tipoId:'unilav',dataEmissione:'2025-04-03',senzaScadenza:true}),
-    D({id:'d_ma_ci',soggettoId:'p_marian',tipoId:'carta_identita',titolo:'Documento d\'identità (scansione)',note:'Da verificare: data di scadenza da leggere sulla scansione.'}),
-    // Sajid Muhammad
-    D({id:'d_sa_ps',soggettoId:'p_sajid',tipoId:'permesso_soggiorno',titolo:'Ricevuta Questura rinnovo permesso di soggiorno — Terni, pratica 26TR003835',dataEmissione:'2026-06-09',note:'Ricevuta della questura (richiesta asilo). Da verificare: non è il permesso definitivo.'}),
-  ];
-  // ---- clienti ----
-  const C=(o)=>Object.assign({id:null,ragioneSociale:'',ruoli:[],piva:null,cf:null,indirizzo:{via:null,cap:null,comune:null,provincia:null},telefono:null,email:null,pec:null,sito:null,referenti:[],condizioniPagamento:null,valutazione:null,stato:'attivo',interazioni:[],documenti:[],note:''},o);
-  s.clienti=[
-    C({id:'cl_lidl',ragioneSociale:'LIDL ITALIA s.r.l.',ruoli:['committente'],piva:'02275030233',indirizzo:{via:'Via Augusto Ruffo 36',cap:'37040',comune:'Arcole',provincia:'VR'},telefono:'0587 259390'}),
-    C({id:'cl_lgc',ragioneSociale:'LGC SRL',ruoli:['affidataria'],piva:'02498190517',indirizzo:{via:'Via Giacomo Leopardi 31/B',cap:'52025',comune:'Montevarchi',provincia:'AR'},telefono:'353 4759487',pec:'lgc@arubapec.it',note:'General contractor (ditta esecutrice) nel cantiere Lidl Arezzo.'}),
-    C({id:'cl_lam',ragioneSociale:'Lam Ambiente s.r.l.',ruoli:['affidataria'],indirizzo:{via:'Via Nazionale 55',cap:'52010',comune:'Chiusi della Verna',provincia:'AR'}}),
-    C({id:'cl_fabbri',ragioneSociale:'Fabbri Services Srl',ruoli:['affidataria']}),
-    C({id:'cl_pecorelli',ragioneSociale:'Pecorelli',ruoli:['committente'],indirizzo:{comune:'Anghiari',provincia:'AR'}}),
-    C({id:'cl_disma',ragioneSociale:'Disma',ruoli:['committente'],indirizzo:{comune:'Levane',provincia:'AR'}}),
-    C({id:'cl_guidelli',ragioneSociale:'Guidelli Giuliano',ruoli:['committente'],indirizzo:{via:'Loc. Olmo 138',cap:'52100',comune:'Arezzo',provincia:'AR'}}),
-  ];
-  // ---- professionisti ----
-  const PR=(o)=>Object.assign({id:null,titolo:'',nome:'',ruoli:[],indirizzo:{via:null,cap:null,comune:null,provincia:null},telefoni:[],email:null,pec:null,cf:null,note:''},o);
-  s.professionisti=[
-    PR({id:'pr_romeo',titolo:'Arch.',nome:'Pietro Romeo',ruoli:['progettista'],indirizzo:{via:'Via Fra Bartolomeo 124',cap:'59100',comune:'Prato',provincia:'PO'},telefoni:['348 3349132'],email:'pietroromeo@archiworldpec.it'}),
-    PR({id:'pr_nieddu',titolo:'Ing.',nome:'Maria Antonietta Nieddu',ruoli:['direttoreLavori'],indirizzo:{via:'Via E. Bosso 6',cap:'56121',comune:'Pisa',provincia:'PI'},telefoni:['377 6610282'],email:'integra.mn@outlook.it'}),
-    PR({id:'pr_manetti',titolo:'Geom.',nome:'Lorenzo Manetti',ruoli:['cse','csp'],indirizzo:{via:'Via Firenze 27',cap:'59100',comune:'Prato',provincia:'PO'},telefoni:['338 4542403','0574 572644'],email:'geo.manetti1@gmail.com',cf:'MNTLNZ78H10D612N'}),
-    PR({id:'pr_morelli',titolo:'Arch.',nome:'Bruno Morelli',ruoli:['progettista','direttoreLavori'],indirizzo:{via:'Via della Magnanina 23',cap:'52100',comune:'Arezzo',provincia:'AR'}}),
-    PR({id:'pr_ciabattini',titolo:'Ing.',nome:'Stefano Ciabattini',ruoli:['cse','csp'],indirizzo:{via:'Via Nazario Sauro 5/a',cap:'52100',comune:'Arezzo',provincia:'AR'}}),
-    PR({id:'pr_martinelli',titolo:'Dott.',nome:'Mario Martinelli',ruoli:['medicoCompetente'],telefoni:['3474502772'],email:'martinellimario55@gmail.com'}),
-    PR({id:'pr_boncompagni',titolo:'',nome:'Studio Tecnico Boncompagni Ghezzi',ruoli:['consulenteSicurezza'],indirizzo:{via:'Via Calamandrei 185',cap:'52100',comune:'Arezzo',provincia:'AR'}}),
-  ];
-  // ---- cantieri ----
-  const CA=(o)=>Object.assign({id:null,nome:'',anno:2026,stato:'attivo',descrizione:'',indirizzo:{via:null,comune:null,provincia:null,cap:null},committenteId:null,affidatariaId:null,progettistaId:null,direttoreLavoriId:null,cseId:null,cspId:null,dataInizio:null,dataFine:null,periodoTesto:null,lavorazioni:[],uominiGiorno:null,orari:null,prepostoId:null,operai:[],importoContratto:null,psc:{data:null,redattore:null,prescrizioni:null,fileId:null,periodoTesto:null},denuncia:{data:null,dal:null,al:null,importoComplessivo:null,importoPavimass:null,fileId:null},documentiProdotti:[],checklistExtra:[],invii:[],note:'',diario:[],creato:'2026-07-02T00:00:00.000Z'},o);
-  s.cantieri=[
-    CA({id:'ca_lidl',nome:'Lidl Arezzo',stato:'chiuso',descrizione:'Posa pavimenti e massetti presso punto vendita Lidl. Realizzazione di edificio ad uso commerciale.',indirizzo:{via:'Via del Gavardello angolo Viale Amendola',comune:'Arezzo',provincia:'AR',cap:'52100'},committenteId:'cl_lidl',affidatariaId:'cl_lgc',progettistaId:'pr_romeo',direttoreLavoriId:'pr_nieddu',cseId:'pr_manetti',cspId:'pr_manetti',dataInizio:'2026-06-25',dataFine:'2026-08-15',lavorazioni:[2,1],uominiGiorno:4,orari:'lun-ven 08:00–12:00 / 13:00–17:00',prepostoId:'p_edvalt',operai:['p_edvalt','p_ibra','p_marian','p_ebrima'],importoContratto:30000,
-      denuncia:{data:'2026-08-10',dal:'2026-08-10',al:'2026-09-15',importoComplessivo:4500000,importoPavimass:30000,fileId:null},
-      documentiProdotti:[{id:'dp_lidl_pos4',tipo:'POS',titolo:'POS revisione 4',revisione:4,dataEmissione:'2026-06-17',data:'2026-07-06',fileId:null,note:'POS_Lidl-Arezzo_Pavimass_2026-06_v4.docx — revisione del 06/07/2026: aggiunti gli orari di lavoro.'},{id:'dp_lidl_denuncia',tipo:'Denuncia apertura cantiere',titolo:'Apertura Cantiere - Denuncia USL',data:'2026-08-10',fileId:null,note:'Apertura Cantiere Lidl Arezzo 10-08-26.pdf'}],
-      diario:[{data:'2026-06-17',testo:'Emesso POS revisione iniziale.'},{data:'2026-07-06',testo:'POS revisione 4: aggiunti orari di lavoro lun-ven 08:00–12:00 / 13:00–17:00.'},{data:'2026-08-10',testo:'Denuncia di apertura cantiere (periodo 10/08 → 15/09/2026).'}]}),
-    CA({id:'ca_guidelli',nome:'Guidelli Sant\'Anastasio',stato:'chiuso',descrizione:'Manutenzione straordinaria e ristrutturazione di fabbricato civile abitazione. Lavorazioni Pavimass: posa pavimenti e rivestimenti.',indirizzo:{via:'Loc. Sant\'Anastasio',comune:'Arezzo',provincia:'AR',cap:'52100'},committenteId:'cl_guidelli',affidatariaId:'cl_lam',progettistaId:'pr_morelli',direttoreLavoriId:'pr_morelli',cseId:'pr_ciabattini',cspId:'pr_ciabattini',dataInizio:'2026-06-26',dataFine:'2026-07-04',lavorazioni:[2,5],uominiGiorno:5,prepostoId:'p_edvalt',operai:['p_edvalt','p_marian','p_ebrima','p_ibra'],
-      psc:{data:null,periodoTesto:'Novembre 2022',redattore:null,prescrizioni:null,fileId:null},
-      documentiProdotti:[{id:'dp_gui_pos8',tipo:'POS',titolo:'POS revisione 8',revisione:8,data:'2026-06-25',fileId:null,note:'POS_Guidelli-SantAnastasio_Pavimass_2026-06_v8.pdf'}]}),
-    CA({id:'ca_prada',nome:'Prada Piancastagnaio',stato:'attivo',descrizione:'Opere edili relative alla realizzazione del nuovo stabilimento PRADA di Piancastagnaio.',indirizzo:{comune:'Piancastagnaio',provincia:'SI'},affidatariaId:'cl_fabbri',documentiProdotti:[{id:'dp_prada_fisc',tipo:'Dichiarazione',titolo:'Dichiarazione sostitutiva regolarità fiscale (subappalto)',data:'2026-06-17',fileId:null,note:'All 7_Dichiarazione Regolarità fiscale sub pavimass.pdf'}]}),
-    CA({id:'ca_pignone',nome:'Fabbri Services Nuovo Pignone',stato:'attivo',descrizione:'Posa pavimenti in gres, PVC, linoleum e moquette; rivestimento scale in linoleum e PVC; rivestimento bagni in gres, presso Nuovo Pignone.',indirizzo:{via:'Via Felice Matteucci 2',comune:'Firenze',provincia:'FI'},affidatariaId:'cl_fabbri',documentiProdotti:[{id:'dp_pignone_posa',tipo:'Dichiarazione',titolo:'Dichiarazione di corretta posa',data:'2026-07-06',fileId:null,note:'Dichiarazione Corretta Posa Pavimass NuovoPignone.pdf'}]}),
-    CA({id:'ca_anghiari',nome:'Anghiari',stato:'chiuso',indirizzo:{comune:'Anghiari',provincia:'AR'},affidatariaId:'cl_pecorelli',periodoTesto:'luglio 2026'}),
-    CA({id:'ca_levane',nome:'Levane',stato:'attivo',indirizzo:{comune:'Levane',provincia:'AR'},affidatariaId:'cl_disma',periodoTesto:'da luglio 2026'}),
-    CA({id:'ca_olmo',nome:'Olmo',stato:'chiuso',indirizzo:{comune:'Arezzo',provincia:'AR'},affidatariaId:'cl_lam',periodoTesto:'luglio 2026'}),
-  ];
-  // ---- listino: sette categorie, voci tipo dai capitolati reali, prezzi volutamente vuoti ----
-  const V=(cat,codice,descrizione,um,estesa)=>({id:'l_'+codice.toLowerCase().replace(/[^a-z0-9]+/g,'_'),codice,categoriaId:cat,descrizione,descrizioneEstesa:estesa||'',um,prezzoPosa:null,prezzoFornituraPosa:null,note:''});
-  s.listino=[
-    V(1,'MAS.01','Massetto tradizionale in sabbia e cemento sp. 6 cm','mq','Realizzazione di massetto comune in conglomerato cementizio, spessore 6 cm, tirato a regolo per la posa di pavimenti.'),
-    V(1,'MAS.02','Massetto tradizionale con rete sp. 10 cm','mq','Realizzazione di massetto comune con rete elettrosaldata, spessore 10 cm.'),
-    V(1,'MAS.03','Massetto alleggerito in cls cellulare','mq','Massetto alleggerito in calcestruzzo cellulare, per riempimenti e isolamento.'),
-    V(1,'MAS.04','Massetto premiscelato autolivellante','mq','Massetto premiscelato autolivellante per sottofondi di pavimenti.'),
-    V(1,'MAS.05','Massetto per le pendenze fino a 6 cm','mq','Formazione di pendenze e riempimenti in massetto, spessore fino a 6 cm.'),
-    V(1,'MAS.06','Massetto per rettifica gradini scale interne','mq','Esecuzione di massetti di rettifica su gradini di scale interne, escluso legname di armatura.'),
-    V(2,'PAV.01','Posa di pavimento in gres porcellanato','mq','Posa in opera di pavimento in gres porcellanato con collante, secondo le geometrie di progetto, compresa stuccatura.'),
-    V(2,'PAV.02','Posa di pavimento in marmo / pietra / travertino','mq','Posa in opera di pavimento in lastre di marmo, pietra o travertino con collante o malta.'),
-    V(2,'PAV.03','Posa di pavimento in cotto','mq','Posa in opera di pavimento in cotto.'),
-    V(2,'PAV.04','Posa di pavimento in gres grandi formati (oltre 60x60)','mq','Posa in opera di pavimento in gres porcellanato di grande formato con doppia spalmatura.'),
-    V(3,'LEG.01','Posa di pavimento in legno incollato','mq','Posa in opera di pavimento in legno prefinito con collante.'),
-    V(3,'LEG.02','Posa di pavimento in legno flottante','mq','Posa in opera di pavimento in legno prefinito flottante su materassino.'),
-    V(4,'GAL.01','Posa di pavimento galleggiante su supporti','mq','Posa di quadrotti di pavimento galleggiante su appositi supporti regolabili, per coperture piane e terrazzi.'),
-    V(5,'RIV.01','Posa di rivestimento in gres porcellanato','mq','Posa in opera di rivestimento in gres porcellanato a parete, secondo le geometrie di progetto, compresa stuccatura.'),
-    V(5,'RIV.02','Posa di rivestimento scale (alzate e pedate)','ml','Posa in opera di rivestimento di scale in gres, marmo o pietra.'),
-    V(5,'RIV.03','Posa di mosaico','mq','Posa in opera di mosaico su rete a parete o a pavimento.'),
-    V(6,'BAT.01','Posa di zoccolino battiscopa in gres','ml','Posa di zoccolino battiscopa in gres porcellanato con collante e stuccatura.'),
-    V(6,'BAT.02','Posa di battiscopa in marmo / travertino / pietra','ml','Posa di battiscopa in marmo, travertino o pietra.'),
-    V(6,'BAT.03','Posa di battiscopa in legno','ml','Posa di battiscopa in legno con collante e fissaggio meccanico.'),
-    V(7,'IMP.01','Impermeabilizzazione con guaina bituminosa','mq','Impermeabilizzazione di balconi, terrazzi e marciapiedi con guaina bituminosa posata a caldo.'),
-    V(7,'IMP.02','Impermeabilizzazione con guaina liquida','mq','Impermeabilizzazione con guaina liquida spalmabile in due mani.'),
-    V(7,'IMP.03','Fornitura e posa di foglio in sughero sp. 3 mm','mq','Fornitura e posa in opera di foglio di sughero, spessore 3 mm, come strato di desolidarizzazione.'),
-    V(7,'VAR.01','Trasporto e movimentazione materiali al piano','a corpo','Trasporto e movimentazione dei materiali al piano di posa.'),
-    V(7,'VAR.02','Pulizia finale e lavaggio pavimenti','mq','Pulizia finale con lavaggio acido dei pavimenti posati.'),
-  ];
-  // ---- presenze reali 2026 (da Excel) ----
-  s.presenze=clona(PRESENZE_INIZIALI);
-  // ---- mezzi, fornitori, bonifici: dati d'esempio, da sostituire con quelli reali ----
-  s.mezzi=[
-    {id:'mz1',targa:'AB123CD',tipo:'Furgone',marca:'Fiat',modello:'Ducato',anno:2019,assegnatoA:null,note:'Esempio: sostituire con il parco mezzi reale.'},
-    {id:'mz2',targa:'EF456GH',tipo:'Autocarro',marca:'Iveco',modello:'Daily',anno:2021,assegnatoA:null,note:'Esempio: sostituire con il parco mezzi reale.'},
-  ];
-  s.fornitori=[
-    {id:'fr1',ragioneSociale:'Esempio Materiali Edili S.r.l.',cosaFornisce:'Materiali edili e massetti',piva:null,telefono:null,email:null,note:'Dato d\'esempio: da sostituire con l\'elenco reale dei fornitori.'},
-    {id:'fr2',ragioneSociale:'Esempio Noleggi S.r.l.',cosaFornisce:'Noleggio attrezzature e mezzi',piva:null,telefono:null,email:null,note:'Dato d\'esempio: da sostituire con l\'elenco reale dei fornitori.'},
-  ];
-  s.bonifici=[];
+  // I dati veri dell'azienda stanno fuori dall'applicazione, in azienda/ (vedi README): se quel file
+  // è stato incluso nella costruzione, la prima apertura parte già compilata; altrimenti
+  // l'applicazione parte vuota e i dati si inseriscono a mano o si ripristinano da un backup.
+  if(typeof datiAzienda==='function') datiAzienda(s);
   return s;
 }
 
-const LAVORAZIONI_PAVIMASS=[
+const LAVORAZIONI_INIZIALI=[
   {id:1,nome:'Massetti (alleggeriti/tradizionali in cls cellulare, sabbia e cemento, premiscelati)',breve:'Massetti',copertina:'MASSETTI',um:'mq',descrizioneOpera:'Posa in opera di massetti alleggeriti in cls cellulare, massetti tradizionali in sabbia e cemento, premiscelati e autolivellanti.'},
   {id:2,nome:'Posa pavimenti in gres/ceramica/marmo/pietra/travertino/cotto',breve:'Pavimenti in gres/ceramica/pietra',copertina:'PAVIMENTI',um:'mq',descrizioneOpera:'Posa in opera di pavimenti interni ed esterni in gres porcellanato, marmo, pietra, travertino, cotto etc'},
   {id:3,nome:'Posa pavimenti in legno',breve:'Pavimenti in legno',copertina:'PAVIMENTI IN LEGNO',um:'mq',descrizioneOpera:'Posa in opera di pavimenti in legno con collante o flottante prefinito'},

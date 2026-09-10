@@ -203,10 +203,10 @@ function autoverifica(){
   t('sabato non lavorativo',!eLavorativo('2026-09-05'));
   t('giorni lavorativi gen 2026 = 20',giorniLavorativiMese(2026,1).length===20);
   t('giorni lavorativi ago 2026 = 21',giorniLavorativiMese(2026,8).length===21);
-  t('CF valido',validaCodiceFiscale('BRLCTL76L04Z129C').ok);
-  t('CF errato',!validaCodiceFiscale('BRLCTL76L04Z129X').ok);
-  t('PIVA valida',validaPartitaIva('02188850511').ok);
-  t('PIVA errata',!validaPartitaIva('02188850512').ok);
+  t('CF valido',validaCodiceFiscale('RSSMRA85M01H501Q').ok);
+  t('CF errato',!validaCodiceFiscale('RSSMRA85M01H501X').ok);
+  t('PIVA valida',validaPartitaIva('01234567897').ok);
+  t('PIVA errata',!validaPartitaIva('01234567898').ok);
   t('fEuro',fEuro(1234.5)==='1.234,50 €');
   t('fNum negativo',fNum(-1234.567)==='-1.234,57');
   t('leggiNumero it',leggiNumero('1.234,50')===1234.5);

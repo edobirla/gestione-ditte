@@ -1,7 +1,13 @@
 .DS_Store
 Icon?
 
-# archivio documentale vero dell'azienda: non va versionato
+# dati di una ditta: non stanno nel programma
+azienda/
+# archivio documentale vero dell'azienda
 pavimass/
-# documenti di riferimento (preventivi e schede reali) da cui sono ricavate le stampe
+# documenti di riferimento da cui sono ricavate le stampe
 template/
+
+# file costruiti: si rifanno con strumenti/costruisci.py e possono contenere i dati di una ditta
+*.html
+!sorgente/*.html

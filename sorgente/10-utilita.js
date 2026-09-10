@@ -22,6 +22,8 @@ function html(parti,...valori){
   }
   return new Grezzo(out);
 }
+// Nome dell’impresa configurata, per le frasi e i nomi di file che la nominano.
+function nomeImpresa(corto){const r=(stato&&stato.azienda&&stato.azienda.ragioneSociale)||'';return corto?r.replace(/\s*(S\.?R\.?L\.?|S\.?P\.?A\.?|S\.?N\.?C\.?|S\.?A\.?S\.?)\s*$/i,'').trim()||r:r}
 function icona(nome,classe){return grezzo(`<svg class="ic ${classe||''}" aria-hidden="true"><use href="#i-${nome}"/></svg>`)}
 function daCompilare(testo){return grezzo(`<span class="da-compilare">[${h(testo||'DA COMPILARE')}]</span>`)}
 function valoreODaCompilare(v,formatta){

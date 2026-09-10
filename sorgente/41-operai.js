@@ -96,7 +96,7 @@ AZIONI['persona-nuova']=()=>dialogoPersona(null);
 // ---- anagrafica ricavata da un documento (UNILAV, o qualsiasi PDF con i dati scritti) ----
 // L'UNILAV è il caso buono: è un modulo con "etichetta: valore", e la sezione del lavoratore è
 // separata da quella del datore di lavoro (che ha gli stessi nomi di campo, e senza distinguerle si
-// finirebbe per registrare la Pavimass come persona).
+// finirebbe per registrare l'impresa stessa come persona).
 function daCodiceFiscale(cf){
   const MESI={A:1,B:2,C:3,D:4,E:5,H:6,L:7,M:8,P:9,R:10,S:11,T:12};
   if(!cf||!validaCodiceFiscale(cf).ok) return null;

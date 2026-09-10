@@ -70,13 +70,13 @@ async function eseguiBackup(opz){
   const soloDati=!!opz.soloDati;
   await salvaSubito();
   const dati=clona(stato);
-  const manifesto={applicazione:'Gestionale Pavimass',versioneSchema:VERSIONE_SCHEMA,quando:new Date().toISOString(),soloDati,numeroFile:0,dispositivo:stato.impostazioni.dispositivo||''};
+  const manifesto={applicazione:'Gestionale',versioneSchema:VERSIONE_SCHEMA,quando:new Date().toISOString(),soloDati,numeroFile:0,dispositivo:stato.impostazioni.dispositivo||''};
   const voci=[];
   const fileVivi=soloDati?[]:stato.file.filter(f=>!f.cestinato);
   manifesto.numeroFile=fileVivi.length;
   voci.push({nome:'manifesto.json',dati:JSON.stringify(manifesto,null,1)});
   voci.push({nome:'dati.json',dati:JSON.stringify(dati)});
-  voci.push({nome:'LEGGIMI.txt',dati:'Backup del Gestionale Pavimass del '+fDataOra(manifesto.quando)+'.\nPer ripristinarlo: apri Gestionale Pavimass.html → Impostazioni → Ripristina backup.\nLa cartella documenti/ contiene i file originali, nominati con la loro impronta; l\'elenco con i nomi veri è in indice documenti.txt.\n'});
+  voci.push({nome:'LEGGIMI.txt',dati:'Backup del gestionale del '+fDataOra(manifesto.quando)+'.\nPer ripristinarlo: apri il file del gestionale → Impostazioni → Ripristina backup.\nLa cartella documenti/ contiene i file originali, nominati con la loro impronta; l\'elenco con i nomi veri è in indice documenti.txt.\n'});
   let indice='';
   for(const f of fileVivi){
     const b=await leggiFile(f.hash);
@@ -87,7 +87,7 @@ async function eseguiBackup(opz){
   }
   voci.push({nome:'indice documenti.txt',dati:indice});
   const blob=await creaZip(voci,opz.avanzamento);
-  const nome=nomeFileData(soloDati?'Backup dati Pavimass':'Backup Pavimass','zip');
+  const nome=nomeFileData(soloDati?'Backup dati '+(stato.azienda.ragioneSociale||'gestionale'):'Backup '+(stato.azienda.ragioneSociale||'gestionale'),'zip');
   return {blob,nome,manifesto};
 }
 function registraBackupFatto(){
@@ -188,7 +188,7 @@ function documentazioneSchema(st){
   const s=st||stato;
   const es=(v)=>JSON.stringify(v,null,2);
   const campione=(arr,n)=>arr&&arr.length?es(Object.fromEntries(Object.entries(arr[0]).map(([k,v])=>[k,Array.isArray(v)?(v.length?[v[0]]:[]):v]))):'(nessun elemento)';
-  return `# Schema dati — Gestionale Pavimass
+  return `# Schema dati — Gestionale
 *Versione schema: ${VERSIONE_SCHEMA} · generato il ${fData(oggi())}*
 
 Il backup è uno ZIP con:
@@ -204,7 +204,7 @@ Un backup con versione precedente viene migrato all'apertura (\`migrazioni\` nel
 
 | Chiave | Contenuto | Esempio (primo elemento) |
 |---|---|---|
-| \`azienda\` | anagrafica Pavimass, figure di sicurezza, immagini | vedi sotto |
+| \`azienda\` | anagrafica della ditta, figure di sicurezza, immagini | vedi sotto |
 | \`persone[]\` | operai, soci, amministrativi | vedi sotto |
 | \`tipiDocumento[]\` | catalogo tipi con validità e obbligatorietà | vedi sotto |
 | \`documenti[]\` | documenti di persona/azienda/cantiere: date, file allegati | vedi sotto |

@@ -5,6 +5,8 @@
 // I documenti (blob) NON stanno qui: vedi ARCHIVIO. Qui solo i metadati.
 // ---------------------------------------------------------------------
 const VERSIONE_SCHEMA=5;
+// Non cambiare mai questo nome: è la chiave con cui il browser conserva l'archivio. Cambiandolo,
+// i dati già salvati resterebbero nel browser ma l'applicazione non li troverebbe più.
 const NOME_DB='GestionalePavimass';
 let db=null;
 let stato=null;

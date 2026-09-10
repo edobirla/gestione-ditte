@@ -9,7 +9,7 @@
 const MM=96/25.4;
 function intestazioneCartaIntestata(){
   const a=stato.azienda;const righe=(a.cartaIntestata&&a.cartaIntestata.righe)||[];
-  return html`<div class="carta-intestata"><img src="{{IMG:logo}}" alt="Pavimass"><div class="dati"><b>${a.ragioneSociale}</b>${righe.map(r=>html`${r}<br>`)}</div></div>`;
+  return html`<div class="carta-intestata"><img src="{{IMG:logo}}" alt=""><div class="dati"><b>${a.ragioneSociale}</b>${righe.map(r=>html`${r}<br>`)}</div></div>`;
 }
 function pieStandard(titolo){return html`<span>${titolo||''}</span><span class="numero-pagina">Pagina <span data-n></span> di <span data-m></span></span>`}
 // Sostituisce i segnaposto immagine nelle pagine (le immagini non si salvano nello storico dei generati)

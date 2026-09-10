@@ -21,13 +21,26 @@ Per l'uso quotidiano: **[LEGGIMI.md](LEGGIMI.md)**.
 Per capire com'è costruito: **[ARCHITETTURA.md](ARCHITETTURA.md)** e
 **[SCHEMA DATI.md](SCHEMA%20DATI.md)**.
 
-## Come si lavora al codice
+## I dati non stanno nel programma
 
-Il file unico non si modifica a mano: si modificano i pezzi in `sorgente/` e si ricostruisce.
+L'applicazione non contiene i dati di nessuna ditta. Una ditta si configura da dentro
+(Impostazioni → Azienda) oppure si ripristina un backup.
+
+Chi lo usa per la propria azienda può tenere i dati di partenza in una cartella `azienda/`
+accanto a `sorgente/` (non versionata): se c'è, viene inclusa nella costruzione e la prima
+apertura parte già compilata.
 
 ```bash
-python3 strumenti/costruisci.py
+python3 strumenti/costruisci.py            # Gestionale Pavimass.html   — include azienda/ se c'è
+python3 strumenti/costruisci.py --vuoto    # Gestionale (senza dati).html — mai nessun dato dentro
 ```
+
+Il file da dare a chiunque altro è quello costruito con `--vuoto`.
+
+## Come si lavora al codice
+
+Il file unico non si modifica a mano: si modificano i pezzi in `sorgente/` e si ricostruisce con il
+comando qui sopra.
 
 I pezzi sono numerati e vengono uniti in quest'ordine (`sorgente/00-mappa.txt` è la mappa):
 stile, guscio HTML, utilità, regole di dominio, stato e archivio, interfaccia, poi una sezione per
@@ -56,6 +69,13 @@ tutti verdi prima di considerare finita una modifica.**
 
 ## Cosa non c'è in questo repository
 
-`pavimass/` — l'archivio documentale vero dell'azienda — e `template/` — i documenti di
-riferimento da cui sono ricavate le stampe — non sono versionati: contengono documenti aziendali e
-dati di persone.
+Niente che riguardi una ditta in particolare:
+
+- `azienda/` — i dati di partenza di una ditta (anagrafica, persone, cantieri, logo, firme);
+- `pavimass/` — un archivio documentale vero;
+- `template/` — i documenti di riferimento da cui sono ricavate le stampe;
+- i file `.html` costruiti, che sono un prodotto della costruzione (e possono contenere i dati di
+  una ditta).
+
+Il nome del database nel browser (`GestionalePavimass`) non va cambiato: è la chiave con cui il
+browser conserva l'archivio, e cambiandolo i dati già salvati diventerebbero irraggiungibili.
