@@ -2971,11 +2971,11 @@ AZIONI['persona-foto']=async d=>{
   const p=persona(d.id);
   const fs=await scegliFile({multipli:false,accetta:'image/*'});
   if(!fs.length) return;
-  let img,originale; try{ originale=await comprimiImmagine(fs[0],{maxLato:1200,obiettivo:200*1024}); img=await caricaImmagine(originale); }
+  let img,originale; try{ originale=await comprimiImmagine(fs[0],{maxLato:1200,obiettivo:200*1024}); img=await caricaImmagine(originale.blob); }
   catch(e){ return segnalaErrore(e,'Non sono riuscito a leggere «'+fs[0].name+'»: se è una foto HEIC dell\'iPhone riesportala in JPG'); }
   const dataUrl=await ritagliaFoto(img,nomePersona(p));
   if(!dataUrl) return;
-  const orig=await leggiComeDataUrl(originale);
+  const orig=await leggiComeDataUrl(originale.blob);
   esegui('Foto di '+nomePersona(p),s=>{const x=s.persone.find(x=>x.id===d.id);x.fotoImg=dataUrl;x.fotoOrig=orig});
 };
 // Ritaglio di nuovo la foto già caricata: la inquadratura si aggiusta senza ricercare il file.
