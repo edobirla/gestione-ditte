@@ -40,6 +40,7 @@ function render(){
   if(!stato) return;
   const r=leggiRotta(); ui.rotta=r;
   disegnaMenu();
+  el('#marchio-logo').src=immagineAzienda('logo'); // il logo dell'azienda, non quello generico dell'app
   const bi=el('#btn-indietro'); if(bi){ if(r.id){bi.classList.remove('nascosto');bi.dataset.genitore=r.sezione}else bi.classList.add('nascosto') }
   const cont=el('#contenuto');
   const fn=VISTE[r.sezione];

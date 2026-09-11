@@ -86,29 +86,60 @@ function datiAziendaDaTesto(testo){
   const data=(x)=>{const m=x&&/(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/.exec(x);return m?interpretaData(m[0]):null};
   let piva=campo('partita\\s*iva','p\\.\\s*iva');
   if(piva){const m=piva.match(/\d{11}/);piva=m?m[0]:null}
-  let cf=campo('codice\\s*fiscale(?:\\s+e\\s+n\\S?\\s*iscrizione[^:\\n]*)?','c\\.\\s*f\\.');
+  let cf=campo('codice\\s*fiscale','c\\.\\s*f\\.');
   if(cf){const m=cf.match(/[A-Z0-9]{11,16}/i);cf=m?m[0].toUpperCase():null}
-  if(!piva&&cf&&/^\d{11}$/.test(cf)) piva=cf; // nelle società spesso coincidono
+  if(!piva&&cf&&/^\d{11}$/.test(cf)) piva=cf; // nelle società spesso coincidono, e il valore
+  if(!cf&&piva&&/^\d{11}$/.test(piva)) cf=piva; // può finire sulla stessa riga solo dell'uno o dell'altro
   let rea=campo('numero\\s*rea','n\\S?\\s*rea','rea');
   if(rea) rea=(rea.match(/[A-Z]{0,2}\s*-?\s*\d{3,8}/)||[rea])[0].replace(/\s+/g,' ').trim();
-  const sede=campo('sede\\s+legale','sede(?!\\s+secondaria)');
-  const capM=sede&&/\b(\d{5})\b/.exec(sede);
-  const cap=capM?capM[1]:null;
-  let via=null,comune=null,provincia=null;
-  if(sede){
-    const provM=/\(([A-Z]{2})\)/.exec(sede); provincia=provM?provM[1]:null;
-    if(cap){const idx=sede.indexOf(cap); via=sede.slice(0,idx).replace(/[,\s]+$/,'').trim()||null; comune=sede.slice(idx+5).replace(/\([A-Z]{2}\)/,'').replace(/[,\s]+$/,'').trim()||null}
+  // la denominazione ha un'etichetta diretta quasi ovunque; se manca, ogni pagina della visura
+  // ripete "Registro Imprese <NOME>" seguito da "Archivio ufficiale della CCIAA"
+  const ragioneSociale=campo('denominazione')||(()=>{const m=/Registro\s+Imprese\s+([A-Z][^\n]{2,90}?)\s*\n\s*Archivio/i.exec(t);return m?m[1].trim():null})();
+  // capitale: si preferisce il "Sottoscritto" (compare da solo su una riga, sotto "Capitale
+  // sociale in Euro Deliberato: ..."), altrimenti la prima cifra dopo "Capitale sociale"
+  const capSub=/sottoscritto\s*:?\s*([\d.,]+\s*(?:€|euro)?)/i.exec(t);
+  let capitaleSociale=(capSub?capSub[1].trim():null)||campo('capitale\\s+sociale\\s+sottoscritto','capitale\\s+sociale');
+  if(capitaleSociale&&!/€|euro/i.test(capitaleSociale)) capitaleSociale+=' €';
+  // l'indirizzo PEC si riconosce più affidabilmente cercando un'email vicino alla parola "pec"
+  // che con l'etichetta esatta: nella visura è "Domicilio digitale/PEC", altre volte "Indirizzo PEC"
+  const pecM=/[\w.+-]+@[\w.-]+\.[a-z]{2,}/i.exec(t);
+  const pec=pecM?pecM[0]:null;
+  // codice ATECO e attività prevalente sono due etichette diverse e non sempre entrambe presenti
+  let atecoCod=campo('codice\\s+ateco');
+  if(atecoCod){const m=atecoCod.match(/\d{2}\.\d{2}(?:\.\d{2})?/);atecoCod=m?m[0]:null} // scarta il testo della colonna accanto, agganciato per come il PDF linearizza le tabelle
+  let attPrev=campo('attivit\\S*\\s+prevalente');
+  if(attPrev) attPrev=attPrev.replace(/\(.*$/,'').trim()||null;
+  const ateco=atecoCod&&attPrev?atecoCod+' - '+attPrev:(atecoCod||attPrev||null);
+  // sede: nella visura viene "Comune (Prov) Via CAP nnnnn Frazione: ...", quasi sempre su più
+  // righe che l'estrazione del PDF spezza in punti diversi dal previsto — si prende un blocco di
+  // testo dopo l'etichetta e si legge cercando gli ancoraggi (Prov)/CAP invece di riga per riga.
+  const sedeM=/sede\s+legale|\bsede\b(?!\s+secondaria)/i.exec(t);
+  let via=null,cap=null,comune=null,provincia=null,frazione=null;
+  if(sedeM){
+    let blob=t.slice(sedeM.index+sedeM[0].length,sedeM.index+sedeM[0].length+300).replace(/\n/g,' ').replace(/\s{2,}/g,' ').trim();
+    const fine=/domicilio\s+digitale|partita\s*iva|numero\s*rea|numero\s+repertorio/i.exec(blob);
+    if(fine) blob=blob.slice(0,fine.index).trim();
+    const provM=/\(([A-Z]{2})\)/.exec(blob);
+    if(provM){
+      provincia=provM[1];
+      comune=blob.slice(0,provM.index).replace(/^[:\.]?\s*/,'').replace(/[,\s]+$/,'').trim()||null;
+      const resto=blob.slice(provM.index+provM[0].length);
+      const capM=/CAP\s*(\d{5})/i.exec(resto)||/\b(\d{5})\b/.exec(resto);
+      if(capM){cap=capM[1];via=resto.slice(0,capM.index).trim()||null}else{via=resto.trim()||null}
+      const frazM=/frazione\s*:?\s*([^\n]{1,60})/i.exec(resto);
+      if(frazM) frazione=frazM[1].trim();
+    }
   }
   return {
-    ragioneSociale:campo('denominazione'),
+    ragioneSociale,
     formaGiuridica:campo('forma\\s+giuridica'),
     piva:piva||null,cf:cf||null,
     rea:rea||null,
-    pec:campo('indirizzo\\s+pec','pec'),
+    pec,
     dataCostituzione:data(campo('data\\s+atto\\s+di\\s+costituzione','data\\s+di\\s+costituzione','data\\s+iscrizione')),
-    capitaleSociale:campo('capitale\\s+sociale\\s+sottoscritto','capitale\\s+sociale'),
-    ateco:campo('codice\\s+e\\s+descrizione\\s+dell.attivit\\S*\\s+di\\s+sede[^:\\n]*','attivit\\S*\\s+prevalente','codice\\s+ateco'),
-    indirizzo:{via,cap,comune:comune?capitalizzaNome(comune):null,provincia},
+    capitaleSociale:capitaleSociale||null,
+    ateco,
+    indirizzo:{via,cap,comune:comune?capitalizzaNome(comune):null,provincia,frazione:frazione?capitalizzaNome(frazione):null},
   };
 }
 AZIONI['azienda-da-visura']=async()=>{

@@ -81,8 +81,9 @@ function elementiPagina(c,fonts,altezza){
   return elementi;
 }
 // Pagina scansionata: il foglio è una fotografia dentro il PDF. Non c'è niente da ricostruire, ma
-// l'immagine si può tirare fuori così com'è (le scansioni sono quasi sempre JPEG) e ci si lavora
-// sopra come su una foto.
+// l'immagine si può tirare fuori così com'è: quasi sempre JPEG, ma un "Stampa in PDF" di Word/WPS
+// con dentro una foto incollata la salva spesso come bitmap grezzo (FlateDecode, non JPEG) — senza
+// questo secondo caso la pagina restava del tutto vuota: né testo (non ce n'è) né immagine.
 async function immagineDiPagina(pdf,dictPagina){
   const rr=/\/Resources\s+(\d+)\s+0\s+R/.exec(dictPagina);
   const res=rr?pdf.dictDi(+rr[1]):dictPagina;
@@ -92,14 +93,46 @@ async function immagineDiPagina(pdf,dictPagina){
   const re=/\/[^\s\/\]<>]+\s+(\d+)\s+0\s+R/g;let m;
   while((m=re.exec(xo))){
     const o=pdf.oggetti.get(+m[1]);if(!o||!/\/Subtype\s*\/Image/.test(o.dict))continue;
-    if(!/\/DCTDecode/.test(o.dict))continue; // solo JPEG: gli altri vorrebbero un decodificatore
+    const jpeg=/\/DCTDecode/.test(o.dict),flate=/\/FlateDecode/.test(o.dict);
+    if(!jpeg&&!flate)continue; // altri filtri (CCITT, JPX...) vorrebbero un decodificatore che non c'è
     const w=+((/\/Width\s+(\d+)/.exec(o.dict)||[])[1]||0);
-    if(!migliore||w>migliore.w) migliore={o,w};
+    if(!migliore||w>migliore.w) migliore={o,w,jpeg};
   }
   if(!migliore) return null;
   const dati=await pdf.flusso(migliore.o);
   if(!dati) return null;
-  return leggiComeDataUrl(new Blob([dati],{type:'image/jpeg'}));
+  if(migliore.jpeg) return leggiComeDataUrl(new Blob([dati],{type:'image/jpeg'}));
+  return bitmapGrezzoADataUrl(dati,migliore.o.dict,pdf);
+}
+// Numero di componenti per pixel della colorspace dell'immagine: le uniche che servono per un
+// bitmap grezzo (Indexed e le altre vorrebbero una tavolozza o un decodificatore che non c'è).
+function componentiColorSpace(pdf,dict){
+  const rifIndiretto=/\/ColorSpace\s+(\d+)\s+0\s+R/.exec(dict);
+  const cs=rifIndiretto?pdf.dictDi(+rifIndiretto[1]):((/\/ColorSpace\s*\/(\w+)/.exec(dict)||[])[1]||null);
+  if(!cs) return null;
+  if(/DeviceGray|CalGray/.test(cs)) return 1;
+  if(/DeviceRGB|CalRGB/.test(cs)) return 3;
+  if(/DeviceCMYK/.test(cs)) return 4;
+  const icc=/\/ICCBased\s+(\d+)\s+0\s+R/.exec(cs);
+  if(icc){const n=/\/N\s+(\d+)/.exec(pdf.dictDi(+icc[1]));if(n)return +n[1]}
+  return null;
+}
+async function bitmapGrezzoADataUrl(dati,dict,pdf){
+  const w=+((/\/Width\s+(\d+)/.exec(dict)||[])[1]||0),h=+((/\/Height\s+(\d+)/.exec(dict)||[])[1]||0);
+  const bpc=+((/\/BitsPerComponent\s+(\d+)/.exec(dict)||[])[1]||8);
+  const n=componentiColorSpace(pdf,dict);
+  if(!w||!h||bpc!==8||!n||n>4||dati.length<w*h*n) return null; // solo il caso comune: 8 bit, Gray/RGB/CMYK
+  const c=document.createElement('canvas');c.width=w;c.height=h;
+  const ctx=c.getContext('2d');const img=ctx.createImageData(w,h);
+  for(let i=0,p=0;i<w*h;i++,p+=n){
+    const o=i*4;
+    if(n===1){img.data[o]=img.data[o+1]=img.data[o+2]=dati[p]}
+    else if(n===3){img.data[o]=dati[p];img.data[o+1]=dati[p+1];img.data[o+2]=dati[p+2]}
+    else{const k=dati[p+3]/255;img.data[o]=255*(1-dati[p]/255)*(1-k);img.data[o+1]=255*(1-dati[p+1]/255)*(1-k);img.data[o+2]=255*(1-dati[p+2]/255)*(1-k)}
+    img.data[o+3]=255;
+  }
+  ctx.putImageData(img,0,0);
+  return leggiComeDataUrl(await canvasABlob(c,'image/png'));
 }
 // Ricostruisce una pagina: misure in punti PDF (1/72"), che è anche l'unità del motore di stampa.
 async function rendiPaginaPdf(blob,indice){

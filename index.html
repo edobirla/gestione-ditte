@@ -2366,6 +2366,7 @@ function render(){
   if(!stato) return;
   const r=leggiRotta(); ui.rotta=r;
   disegnaMenu();
+  el('#marchio-logo').src=immagineAzienda('logo'); // il logo dell'azienda, non quello generico dell'app
   const bi=el('#btn-indietro'); if(bi){ if(r.id){bi.classList.remove('nascosto');bi.dataset.genitore=r.sezione}else bi.classList.add('nascosto') }
   const cont=el('#contenuto');
   const fn=VISTE[r.sezione];
@@ -4989,29 +4990,60 @@ function datiAziendaDaTesto(testo){
   const data=(x)=>{const m=x&&/(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/.exec(x);return m?interpretaData(m[0]):null};
   let piva=campo('partita\\s*iva','p\\.\\s*iva');
   if(piva){const m=piva.match(/\d{11}/);piva=m?m[0]:null}
-  let cf=campo('codice\\s*fiscale(?:\\s+e\\s+n\\S?\\s*iscrizione[^:\\n]*)?','c\\.\\s*f\\.');
+  let cf=campo('codice\\s*fiscale','c\\.\\s*f\\.');
   if(cf){const m=cf.match(/[A-Z0-9]{11,16}/i);cf=m?m[0].toUpperCase():null}
-  if(!piva&&cf&&/^\d{11}$/.test(cf)) piva=cf; // nelle società spesso coincidono
+  if(!piva&&cf&&/^\d{11}$/.test(cf)) piva=cf; // nelle società spesso coincidono, e il valore
+  if(!cf&&piva&&/^\d{11}$/.test(piva)) cf=piva; // può finire sulla stessa riga solo dell'uno o dell'altro
   let rea=campo('numero\\s*rea','n\\S?\\s*rea','rea');
   if(rea) rea=(rea.match(/[A-Z]{0,2}\s*-?\s*\d{3,8}/)||[rea])[0].replace(/\s+/g,' ').trim();
-  const sede=campo('sede\\s+legale','sede(?!\\s+secondaria)');
-  const capM=sede&&/\b(\d{5})\b/.exec(sede);
-  const cap=capM?capM[1]:null;
-  let via=null,comune=null,provincia=null;
-  if(sede){
-    const provM=/\(([A-Z]{2})\)/.exec(sede); provincia=provM?provM[1]:null;
-    if(cap){const idx=sede.indexOf(cap); via=sede.slice(0,idx).replace(/[,\s]+$/,'').trim()||null; comune=sede.slice(idx+5).replace(/\([A-Z]{2}\)/,'').replace(/[,\s]+$/,'').trim()||null}
+  // la denominazione ha un'etichetta diretta quasi ovunque; se manca, ogni pagina della visura
+  // ripete "Registro Imprese <NOME>" seguito da "Archivio ufficiale della CCIAA"
+  const ragioneSociale=campo('denominazione')||(()=>{const m=/Registro\s+Imprese\s+([A-Z][^\n]{2,90}?)\s*\n\s*Archivio/i.exec(t);return m?m[1].trim():null})();
+  // capitale: si preferisce il "Sottoscritto" (compare da solo su una riga, sotto "Capitale
+  // sociale in Euro Deliberato: ..."), altrimenti la prima cifra dopo "Capitale sociale"
+  const capSub=/sottoscritto\s*:?\s*([\d.,]+\s*(?:€|euro)?)/i.exec(t);
+  let capitaleSociale=(capSub?capSub[1].trim():null)||campo('capitale\\s+sociale\\s+sottoscritto','capitale\\s+sociale');
+  if(capitaleSociale&&!/€|euro/i.test(capitaleSociale)) capitaleSociale+=' €';
+  // l'indirizzo PEC si riconosce più affidabilmente cercando un'email vicino alla parola "pec"
+  // che con l'etichetta esatta: nella visura è "Domicilio digitale/PEC", altre volte "Indirizzo PEC"
+  const pecM=/[\w.+-]+@[\w.-]+\.[a-z]{2,}/i.exec(t);
+  const pec=pecM?pecM[0]:null;
+  // codice ATECO e attività prevalente sono due etichette diverse e non sempre entrambe presenti
+  let atecoCod=campo('codice\\s+ateco');
+  if(atecoCod){const m=atecoCod.match(/\d{2}\.\d{2}(?:\.\d{2})?/);atecoCod=m?m[0]:null} // scarta il testo della colonna accanto, agganciato per come il PDF linearizza le tabelle
+  let attPrev=campo('attivit\\S*\\s+prevalente');
+  if(attPrev) attPrev=attPrev.replace(/\(.*$/,'').trim()||null;
+  const ateco=atecoCod&&attPrev?atecoCod+' - '+attPrev:(atecoCod||attPrev||null);
+  // sede: nella visura viene "Comune (Prov) Via CAP nnnnn Frazione: ...", quasi sempre su più
+  // righe che l'estrazione del PDF spezza in punti diversi dal previsto — si prende un blocco di
+  // testo dopo l'etichetta e si legge cercando gli ancoraggi (Prov)/CAP invece di riga per riga.
+  const sedeM=/sede\s+legale|\bsede\b(?!\s+secondaria)/i.exec(t);
+  let via=null,cap=null,comune=null,provincia=null,frazione=null;
+  if(sedeM){
+    let blob=t.slice(sedeM.index+sedeM[0].length,sedeM.index+sedeM[0].length+300).replace(/\n/g,' ').replace(/\s{2,}/g,' ').trim();
+    const fine=/domicilio\s+digitale|partita\s*iva|numero\s*rea|numero\s+repertorio/i.exec(blob);
+    if(fine) blob=blob.slice(0,fine.index).trim();
+    const provM=/\(([A-Z]{2})\)/.exec(blob);
+    if(provM){
+      provincia=provM[1];
+      comune=blob.slice(0,provM.index).replace(/^[:\.]?\s*/,'').replace(/[,\s]+$/,'').trim()||null;
+      const resto=blob.slice(provM.index+provM[0].length);
+      const capM=/CAP\s*(\d{5})/i.exec(resto)||/\b(\d{5})\b/.exec(resto);
+      if(capM){cap=capM[1];via=resto.slice(0,capM.index).trim()||null}else{via=resto.trim()||null}
+      const frazM=/frazione\s*:?\s*([^\n]{1,60})/i.exec(resto);
+      if(frazM) frazione=frazM[1].trim();
+    }
   }
   return {
-    ragioneSociale:campo('denominazione'),
+    ragioneSociale,
     formaGiuridica:campo('forma\\s+giuridica'),
     piva:piva||null,cf:cf||null,
     rea:rea||null,
-    pec:campo('indirizzo\\s+pec','pec'),
+    pec,
     dataCostituzione:data(campo('data\\s+atto\\s+di\\s+costituzione','data\\s+di\\s+costituzione','data\\s+iscrizione')),
-    capitaleSociale:campo('capitale\\s+sociale\\s+sottoscritto','capitale\\s+sociale'),
-    ateco:campo('codice\\s+e\\s+descrizione\\s+dell.attivit\\S*\\s+di\\s+sede[^:\\n]*','attivit\\S*\\s+prevalente','codice\\s+ateco'),
-    indirizzo:{via,cap,comune:comune?capitalizzaNome(comune):null,provincia},
+    capitaleSociale:capitaleSociale||null,
+    ateco,
+    indirizzo:{via,cap,comune:comune?capitalizzaNome(comune):null,provincia,frazione:frazione?capitalizzaNome(frazione):null},
   };
 }
 AZIONI['azienda-da-visura']=async()=>{
@@ -6148,6 +6180,103 @@ async function inflateZlib(dati){
   }
   return inflateRaw(dati);
 }
+// ---- decifratura PDF (Standard Security Handler, password utente vuota) ----
+// Molti PDF "ufficiali" (visure camerali, certificati) sono protetti da modifica ma liberi da
+// leggere: hanno comunque la password utente vuota da applicare secondo lo standard, altrimenti
+// ogni flusso resta un blocco di rumore e l'inflate fallisce (o peggio, non fallisce e produce
+// spazzatura). Serve solo MD5 e RC4 fatti a mano: l'AES lo fa il browser (Web Crypto).
+function md5(bytes){
+  const K=new Int32Array(64);for(let i=0;i<64;i++)K[i]=(Math.floor(Math.abs(Math.sin(i+1))*4294967296))|0;
+  const S=[7,12,17,22,7,12,17,22,7,12,17,22,7,12,17,22,5,9,14,20,5,9,14,20,5,9,14,20,5,9,14,20,4,11,16,23,4,11,16,23,4,11,16,23,4,11,16,23,6,10,15,21,6,10,15,21,6,10,15,21,6,10,15,21];
+  const msgLen=bytes.length;
+  let totale=Math.ceil((msgLen+9)/64)*64;
+  const buf=new Uint8Array(totale);buf.set(bytes,0);buf[msgLen]=0x80;
+  const dv=new DataView(buf.buffer);
+  dv.setUint32(totale-8,(msgLen*8)>>>0,true);dv.setUint32(totale-4,Math.floor(msgLen/536870912),true);
+  let a0=0x67452301,b0=0xefcdab89|0,c0=0x98badcfe|0,d0=0x10325476;
+  const rotl=(x,n)=>(x<<n)|(x>>>(32-n));
+  for(let off=0;off<totale;off+=64){
+    const M=new Int32Array(16);for(let i=0;i<16;i++)M[i]=dv.getInt32(off+i*4,true);
+    let A=a0,B=b0,C=c0,D=d0;
+    for(let i=0;i<64;i++){
+      let F,g;
+      if(i<16){F=(B&C)|(~B&D);g=i} else if(i<32){F=(D&B)|(~D&C);g=(5*i+1)%16}
+      else if(i<48){F=B^C^D;g=(3*i+5)%16} else {F=C^(B|~D);g=(7*i)%16}
+      F=(F+A+K[i]+M[g])|0; A=D;D=C;C=B; B=(B+rotl(F,S[i]))|0;
+    }
+    a0=(a0+A)|0;b0=(b0+B)|0;c0=(c0+C)|0;d0=(d0+D)|0;
+  }
+  const out=new Uint8Array(16);const od=new DataView(out.buffer);
+  od.setInt32(0,a0,true);od.setInt32(4,b0,true);od.setInt32(8,c0,true);od.setInt32(12,d0,true);
+  return out;
+}
+function rc4(chiave,dati){
+  const S=new Uint8Array(256);for(let i=0;i<256;i++)S[i]=i;
+  let j=0;for(let i=0;i<256;i++){j=(j+S[i]+chiave[i%chiave.length])&255;const t=S[i];S[i]=S[j];S[j]=t}
+  const out=new Uint8Array(dati.length);let i=0;j=0;
+  for(let k=0;k<dati.length;k++){i=(i+1)&255;j=(j+S[i])&255;const t=S[i];S[i]=S[j];S[j]=t;out[k]=dati[k]^S[(S[i]+S[j])&255]}
+  return out;
+}
+async function aesCbcDecifra(chiave,dati){
+  if(dati.length<=16) return new Uint8Array(0);
+  try{
+    const k=await crypto.subtle.importKey('raw',chiave,{name:'AES-CBC'},false,['decrypt']);
+    return new Uint8Array(await crypto.subtle.decrypt({name:'AES-CBC',iv:dati.subarray(0,16)},k,dati.subarray(16)));
+  }catch(e){return new Uint8Array(0)}
+}
+const PDF_PAD=Uint8Array.from([0x28,0xBF,0x4E,0x5E,0x4E,0x75,0x8A,0x41,0x64,0x00,0x4E,0x56,0xFF,0xFA,0x01,0x08,0x2E,0x2E,0x00,0xB6,0xD0,0x68,0x3E,0x80,0x2F,0x0C,0xA9,0xFE,0x64,0x53,0x69,0x7A]);
+// Algoritmo 2 (spec PDF 1.7): chiave del file da password utente vuota + /O + /P + /ID + parametri
+function chiaveFilePdf(O,P,idPrimo,keyLenByte,revisione,cifraMetadati){
+  const coda=(revisione>=4&&!cifraMetadati)?Uint8Array.from([0xff,0xff,0xff,0xff]):new Uint8Array(0);
+  const buf=new Uint8Array(PDF_PAD.length+O.length+4+idPrimo.length+coda.length);
+  let off=0;buf.set(PDF_PAD,off);off+=PDF_PAD.length;buf.set(O,off);off+=O.length;
+  new DataView(buf.buffer,off,4).setInt32(0,P,true);off+=4;
+  buf.set(idPrimo,off);off+=idPrimo.length;buf.set(coda,off);
+  let hash=md5(buf);
+  if(revisione>=3) for(let i=0;i<50;i++) hash=md5(hash.subarray(0,keyLenByte));
+  return hash.subarray(0,keyLenByte);
+}
+// Algoritmo 1: chiave per-oggetto, derivata dalla chiave del file più numero e generazione
+function chiaveOggettoPdf(fileKey,num,gen,aes){
+  const extra=aes?4:0;
+  const buf=new Uint8Array(fileKey.length+5+extra);
+  buf.set(fileKey,0);
+  buf[fileKey.length]=num&255;buf[fileKey.length+1]=(num>>8)&255;buf[fileKey.length+2]=(num>>16)&255;
+  buf[fileKey.length+3]=gen&255;buf[fileKey.length+4]=(gen>>8)&255;
+  if(aes) buf.set([0x73,0x41,0x6C,0x54],fileKey.length+5); // "sAlT"
+  return md5(buf).subarray(0,Math.min(fileKey.length+5,16));
+}
+// Legge una stringa PDF "(...)" (con le sue barre di escape) o "<esadecimale>" come byte grezzi
+function stringaPdfByte(dict,nome){
+  const mTonda=new RegExp('/'+nome+'\\s*\\(((?:\\\\.|[^\\\\)])*)\\)').exec(dict);
+  if(mTonda){const raw=mTonda[1];const out=[];for(let i=0;i<raw.length;i++){if(raw[i]==='\\'){const c=raw[i+1];if(c==='n'){out.push(10);i++}else if(c==='r'){out.push(13);i++}else if(c==='t'){out.push(9);i++}else if(/[0-7]/.test(c||'')){const oct=(raw.substr(i+1,3).match(/^[0-7]{1,3}/)||[''])[0];out.push(parseInt(oct,8));i+=oct.length}else{out.push(raw.charCodeAt(i+1));i++}}else out.push(raw.charCodeAt(i)&0xff)}return Uint8Array.from(out)}
+  const mHex=new RegExp('/'+nome+'\\s*<([0-9a-fA-F]*)>').exec(dict);
+  if(mHex){const hex=mHex[1];const out=new Uint8Array(Math.floor(hex.length/2));for(let i=0;i<out.length;i++)out[i]=parseInt(hex.substr(i*2,2),16);return out}
+  return null;
+}
+// Prepara la funzione di decifratura di un PDF protetto, se lo è: null altrimenti (caso comune)
+function preparaDecifraPdf(testo,oggetti){
+  const trailerRe=/trailer\s*<<([\s\S]*?)>>/g;let tm,trailer=null;while((tm=trailerRe.exec(testo)))trailer=tm[1];
+  if(!trailer) return null;
+  const encM=/\/Encrypt\s+(\d+)\s+0\s+R/.exec(trailer);
+  const idM=/\/ID\s*\[\s*<([0-9a-fA-F]*)>/.exec(trailer);
+  if(!encM||!idM) return null;
+  const encObj=oggetti.get(+encM[1]);if(!encObj) return null;
+  const ed=encObj.dict;
+  if(/\/Filter\s*\/(?!Standard\b)\w+/.test(ed)) return null; // gestori non standard: non gestiti
+  const O=stringaPdfByte(ed,'O'),U=stringaPdfByte(ed,'U');
+  if(!O||!U) return null;
+  const P=parseInt((/\/P\s+(-?\d+)/.exec(ed)||[])[1]||'0',10);
+  const R=+((/\/R\s+(\d+)/.exec(ed)||[])[1]||2);
+  const V=+((/\/V\s+(\d+)/.exec(ed)||[])[1]||1);
+  const lunghezzaBit=+((/\/Length\s+(\d+)/.exec(ed)||[])[1]||40);
+  const cifraMetadati=(/\/EncryptMetadata\s+false/.test(ed))?false:true;
+  const aes=/AESV2|AESV3/.test(ed);
+  if(V>=5) return null; // AES-256/R6: algoritmo diverso (SHA-256), non implementato
+  const hex=idM[1];const idPrimo=new Uint8Array(Math.floor(hex.length/2));for(let i=0;i<idPrimo.length;i++)idPrimo[i]=parseInt(hex.substr(i*2,2),16);
+  const fileKey=chiaveFilePdf(O,P,idPrimo,Math.max(5,Math.floor(lunghezzaBit/8)),R,cifraMetadati);
+  return async(num,gen,dati)=>{const ok=chiaveOggettoPdf(fileKey,num,gen,aes);return aes?await aesCbcDecifra(ok,dati):rc4(ok,dati)};
+}
 // ---- lettura PDF ----
 function latin1(bytes,da,a){let s='';const CH=8192;for(let i=da;i<a;i+=CH)s+=String.fromCharCode.apply(null,bytes.subarray(i,Math.min(a,i+CH)));return s}
 // Apre il PDF una volta sola e restituisce gli strumenti per leggerlo: oggetti, flussi, pagine,
@@ -6158,8 +6287,9 @@ async function analizzaPdf(blob){
   // 1) tutti gli oggetti "n g obj ... endobj" (senza fidarsi della xref)
   const oggetti=new Map();
   const re=/(\d+)\s+(\d+)\s+obj\b/g;let m;
-  while((m=re.exec(testo))){const inizio=m.index+m[0].length;const fine=testo.indexOf('endobj',inizio);if(fine<0)break;oggetti.set(+m[1],{inizio,fine,dict:testo.slice(inizio,Math.min(fine,inizio+4000))});re.lastIndex=fine}
-  const flusso=async(o)=>{const si=testo.indexOf('stream',o.inizio);if(si<0||si>o.fine)return null;let ds=si+6;if(testo[ds]==='\r')ds++;if(testo[ds]==='\n')ds++;const lm=/\/Length\s+(\d+)(?:\s+0\s+R)?/.exec(o.dict);let len=lm?+lm[1]:null;if(lm&&/R/.test(lm[0])){const lo=oggetti.get(+lm[1]);len=lo?parseInt(testo.slice(lo.inizio,lo.fine)):null}let de=len!=null?ds+len:testo.indexOf('endstream',ds);if(de>o.fine||de<ds)de=testo.indexOf('endstream',ds);let dati=bytes.subarray(ds,de);const filtri=(o.dict.match(/\/Filter\s*(?:\[([^\]]*)\]|\/(\w+))/)||[]);const f=(filtri[1]||filtri[2]||'');if(/FlateDecode/.test(f)){try{dati=await inflateZlib(dati)}catch(e){return null}}else if(f&&!/DCT|JPX|CCITT/.test(f)){return null}return dati};
+  while((m=re.exec(testo))){const inizio=m.index+m[0].length;const fine=testo.indexOf('endobj',inizio);if(fine<0)break;oggetti.set(+m[1],{inizio,fine,dict:testo.slice(inizio,Math.min(fine,inizio+4000)),num:+m[1],gen:+m[2]});re.lastIndex=fine}
+  const decifra=preparaDecifraPdf(testo,oggetti);
+  const flusso=async(o)=>{const si=testo.indexOf('stream',o.inizio);if(si<0||si>o.fine)return null;let ds=si+6;if(testo[ds]==='\r')ds++;if(testo[ds]==='\n')ds++;const lm=/\/Length\s+(\d+)(?:\s+0\s+R)?/.exec(o.dict);let len=lm?+lm[1]:null;if(lm&&/R/.test(lm[0])){const lo=oggetti.get(+lm[1]);len=lo?parseInt(testo.slice(lo.inizio,lo.fine)):null}let de=len!=null?ds+len:testo.indexOf('endstream',ds);if(de>o.fine||de<ds)de=testo.indexOf('endstream',ds);let dati=bytes.subarray(ds,de);if(decifra&&o.num!==undefined){try{dati=await decifra(o.num,o.gen||0,dati)}catch(e){return null}}const filtri=(o.dict.match(/\/Filter\s*(?:\[([^\]]*)\]|\/(\w+))/)||[]);const f=(filtri[1]||filtri[2]||'');if(/FlateDecode/.test(f)){try{dati=await inflateZlib(dati)}catch(e){return null}}else if(f&&!/DCT|JPX|CCITT/.test(f)){return null}return dati};
   // 2) espandi gli object stream (PDF 1.5+)
   for(const [num,o] of Array.from(oggetti.entries())){if(!/\/Type\s*\/ObjStm/.test(o.dict))continue;const d=await flusso(o);if(!d)continue;const s=latin1(d,0,d.length);const nm=/\/N\s+(\d+)/.exec(o.dict),fm=/\/First\s+(\d+)/.exec(o.dict);if(!nm||!fm)continue;const testa=s.slice(0,+fm[1]).trim().split(/\s+/).map(Number);for(let i=0;i<+nm[1];i++){const on=testa[i*2],off=testa[i*2+1];const next=i+1<+nm[1]?testa[i*2+3]:s.length-+fm[1];const corpo=s.slice(+fm[1]+off,+fm[1]+next);if(!oggetti.has(on))oggetti.set(on,{inizio:0,fine:0,dict:corpo.slice(0,4000),inline:corpo})}}
   const dictDi=n=>{const o=oggetti.get(n);return o?(o.inline!==undefined?o.inline:o.dict):''};
@@ -6532,8 +6662,9 @@ function elementiPagina(c,fonts,altezza){
   return elementi;
 }
 // Pagina scansionata: il foglio è una fotografia dentro il PDF. Non c'è niente da ricostruire, ma
-// l'immagine si può tirare fuori così com'è (le scansioni sono quasi sempre JPEG) e ci si lavora
-// sopra come su una foto.
+// l'immagine si può tirare fuori così com'è: quasi sempre JPEG, ma un "Stampa in PDF" di Word/WPS
+// con dentro una foto incollata la salva spesso come bitmap grezzo (FlateDecode, non JPEG) — senza
+// questo secondo caso la pagina restava del tutto vuota: né testo (non ce n'è) né immagine.
 async function immagineDiPagina(pdf,dictPagina){
   const rr=/\/Resources\s+(\d+)\s+0\s+R/.exec(dictPagina);
   const res=rr?pdf.dictDi(+rr[1]):dictPagina;
@@ -6543,14 +6674,46 @@ async function immagineDiPagina(pdf,dictPagina){
   const re=/\/[^\s\/\]<>]+\s+(\d+)\s+0\s+R/g;let m;
   while((m=re.exec(xo))){
     const o=pdf.oggetti.get(+m[1]);if(!o||!/\/Subtype\s*\/Image/.test(o.dict))continue;
-    if(!/\/DCTDecode/.test(o.dict))continue; // solo JPEG: gli altri vorrebbero un decodificatore
+    const jpeg=/\/DCTDecode/.test(o.dict),flate=/\/FlateDecode/.test(o.dict);
+    if(!jpeg&&!flate)continue; // altri filtri (CCITT, JPX...) vorrebbero un decodificatore che non c'è
     const w=+((/\/Width\s+(\d+)/.exec(o.dict)||[])[1]||0);
-    if(!migliore||w>migliore.w) migliore={o,w};
+    if(!migliore||w>migliore.w) migliore={o,w,jpeg};
   }
   if(!migliore) return null;
   const dati=await pdf.flusso(migliore.o);
   if(!dati) return null;
-  return leggiComeDataUrl(new Blob([dati],{type:'image/jpeg'}));
+  if(migliore.jpeg) return leggiComeDataUrl(new Blob([dati],{type:'image/jpeg'}));
+  return bitmapGrezzoADataUrl(dati,migliore.o.dict,pdf);
+}
+// Numero di componenti per pixel della colorspace dell'immagine: le uniche che servono per un
+// bitmap grezzo (Indexed e le altre vorrebbero una tavolozza o un decodificatore che non c'è).
+function componentiColorSpace(pdf,dict){
+  const rifIndiretto=/\/ColorSpace\s+(\d+)\s+0\s+R/.exec(dict);
+  const cs=rifIndiretto?pdf.dictDi(+rifIndiretto[1]):((/\/ColorSpace\s*\/(\w+)/.exec(dict)||[])[1]||null);
+  if(!cs) return null;
+  if(/DeviceGray|CalGray/.test(cs)) return 1;
+  if(/DeviceRGB|CalRGB/.test(cs)) return 3;
+  if(/DeviceCMYK/.test(cs)) return 4;
+  const icc=/\/ICCBased\s+(\d+)\s+0\s+R/.exec(cs);
+  if(icc){const n=/\/N\s+(\d+)/.exec(pdf.dictDi(+icc[1]));if(n)return +n[1]}
+  return null;
+}
+async function bitmapGrezzoADataUrl(dati,dict,pdf){
+  const w=+((/\/Width\s+(\d+)/.exec(dict)||[])[1]||0),h=+((/\/Height\s+(\d+)/.exec(dict)||[])[1]||0);
+  const bpc=+((/\/BitsPerComponent\s+(\d+)/.exec(dict)||[])[1]||8);
+  const n=componentiColorSpace(pdf,dict);
+  if(!w||!h||bpc!==8||!n||n>4||dati.length<w*h*n) return null; // solo il caso comune: 8 bit, Gray/RGB/CMYK
+  const c=document.createElement('canvas');c.width=w;c.height=h;
+  const ctx=c.getContext('2d');const img=ctx.createImageData(w,h);
+  for(let i=0,p=0;i<w*h;i++,p+=n){
+    const o=i*4;
+    if(n===1){img.data[o]=img.data[o+1]=img.data[o+2]=dati[p]}
+    else if(n===3){img.data[o]=dati[p];img.data[o+1]=dati[p+1];img.data[o+2]=dati[p+2]}
+    else{const k=dati[p+3]/255;img.data[o]=255*(1-dati[p]/255)*(1-k);img.data[o+1]=255*(1-dati[p+1]/255)*(1-k);img.data[o+2]=255*(1-dati[p+2]/255)*(1-k)}
+    img.data[o+3]=255;
+  }
+  ctx.putImageData(img,0,0);
+  return leggiComeDataUrl(await canvasABlob(c,'image/png'));
 }
 // Ricostruisce una pagina: misure in punti PDF (1/72"), che è anche l'unità del motore di stampa.
 async function rendiPaginaPdf(blob,indice){
