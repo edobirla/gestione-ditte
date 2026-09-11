@@ -4947,7 +4947,7 @@ function impAzienda(){
   const a=stato.azienda;const leg=persona(a.legaleRappresentanteId);
   const campo=(et,v,fmt)=>html`<div class="campo"><span class="etichetta-campo">${et}</span><div>${valoreODaCompilare(v,fmt)}</div></div>`;
   const piva=validaPartitaIva(a.piva);
-  return html`<div class="griglia due"><div class="scheda"><h3>Dati aziendali <span class="azioni"><button class="pulsante piccolo" data-azione="azienda-modifica">${icona('modifica','piccola')}Modifica</button></span></h3><div class="campi">
+  return html`<div class="griglia due"><div class="scheda"><h3>Dati aziendali <span class="azioni"><button class="pulsante piccolo" data-azione="azienda-da-visura" title="Leggi denominazione, P.IVA, sede e gli altri dati dal PDF della visura camerale">${icona('magia','piccola')}Da Visura</button><button class="pulsante piccolo" data-azione="azienda-modifica">${icona('modifica','piccola')}Modifica</button></span></h3><div class="campi">
     ${campo('Ragione sociale',a.ragioneSociale)}<div class="campo"><span class="etichetta-campo">P.IVA / C.F.</span><div class="mono">${a.piva} ${piva.ok?'':html`<span class="da-compilare piccolo">${piva.errore}</span>`}</div></div>${campo('Forma giuridica',a.formaGiuridica)}${campo('Costituzione',a.dataCostituzione,fData)}${campo('Capitale sociale',a.capitaleSociale)}
     <div class="campo largo"><span class="etichetta-campo">Sede</span><div>${indirizzoTesto(a.indirizzo)}</div></div>
     ${campo('PEC',a.pec)}${campo('Email',a.email)}${campo('Sito',a.sito)}${campo('Telefono',a.telefono)}${campo('Cellulare',a.cellulare)}${campo('Fax',a.fax)}${campo('REA',a.rea)}${campo('Codice SDI',a.codiceSdi)}${campo('ATECO',a.ateco)}${campo('INAIL codice ditta',a.inail)}${campo('INPS',a.inps)}${campo('Cassa Edile',a.cassaEdile)}
@@ -4964,13 +4964,75 @@ function impAzienda(){
     <div class="sezione-titolo">Immagini</div><div class="riga"><img src="${immagineAzienda('logo')||IMMAGINI.logo}" alt="Logo" style="height:48px"><div class="riquadro-firma"><img src="${immagineAzienda('firmaTimbro')}" alt="Timbro e firma" style="max-height:48px"></div><a class="pulsante piccolo" href="#/documenti/modelli" data-azione="vai-modelli-carta">${icona('firma','piccola')}Carta intestata e firme</a></div></div></div>`;
 }
 AZIONI['vai-modelli-carta']=()=>{ui.filtri.modelli='carta';vai('documenti/modelli')};
-AZIONI['azienda-modifica']=async()=>{
-  const a=stato.azienda;
+// override: dati letti da una visura, da precompilare senza ancora salvarli (vedi azienda-da-visura)
+AZIONI['azienda-modifica']=async(d,t,e,override)=>{
+  const a=Object.assign({},stato.azienda,override||{});
   const campi=[{nome:'ragioneSociale',etichetta:'Ragione sociale',obbligatorio:true,largo:true},{nome:'piva',etichetta:'Partita IVA',obbligatorio:true,valida:validatorePIVA},{nome:'cf',etichetta:'Codice fiscale'},{nome:'formaGiuridica',etichetta:'Forma giuridica'},{nome:'dataCostituzione',etichetta:'Data costituzione',tipo:'data'},{nome:'capitaleSociale',etichetta:'Capitale sociale'},{nome:'indirizzo.via',etichetta:'Via',largo:true},{nome:'indirizzo.cap',etichetta:'CAP'},{nome:'indirizzo.comune',etichetta:'Comune'},{nome:'indirizzo.provincia',etichetta:'Provincia',maiuscolo:true},{nome:'indirizzo.frazione',etichetta:'Frazione'},{nome:'pec',etichetta:'PEC',tipo:'email'},{nome:'email',etichetta:'Email',tipo:'email'},{nome:'sito',etichetta:'Sito'},{nome:'telefono',etichetta:'Telefono'},{nome:'cellulare',etichetta:'Cellulare'},{nome:'fax',etichetta:'Fax'},{nome:'rea',etichetta:'REA'},{nome:'codiceSdi',etichetta:'Codice SDI'},{nome:'ateco',etichetta:'ATECO'},{nome:'inail',etichetta:'INAIL codice ditta'},{nome:'inps',etichetta:'Matricola INPS'},{nome:'cassaEdile',etichetta:'Cassa Edile'},{nome:'patenteCrediti.codice',etichetta:'Patente a crediti: codice'},{nome:'patenteCrediti.dataRilascio',etichetta:'Patente a crediti: rilascio',tipo:'data'},{nome:'attivita',etichetta:'Attività',largo:true},{nome:'banca',etichetta:'Banca'},{nome:'iban',etichetta:'IBAN',maiuscolo:true},{nome:'condizioniPagamento',etichetta:'Condizioni di pagamento',segnaposto:'Bonifico Bancario'},{nome:'notePreventivo',etichetta:'Nota fissa nei preventivi',largo:true,segnaposto:'Lavori in economia: 35 €/ora'},
     {nome:'legaleRappresentanteId',etichetta:'Legale Rappresentante',tipo:'select',opzioni:stato.persone.map(p=>({v:p.id,t:nomePersona(p)}))},{nome:'rsppId',etichetta:'RSPP',tipo:'select',opzioni:stato.persone.map(p=>({v:p.id,t:nomePersona(p)}))},{nome:'rlsId',etichetta:'RLS',tipo:'select',opzioni:stato.persone.map(p=>({v:p.id,t:nomePersona(p)}))},{nome:'rlsEletto',etichetta:'RLS eletto il',tipo:'data'},
     {nome:'medicoCompetente.nome',etichetta:'Medico competente'},{nome:'medicoCompetente.telefono',etichetta:'Medico: telefono'},{nome:'medicoCompetente.email',etichetta:'Medico: email',tipo:'email'},{nome:'consulenteSicurezza.nome',etichetta:'Consulente sicurezza'},{nome:'consulenteSicurezza.indirizzo',etichetta:'Consulente: indirizzo',largo:true}];
   const v=await dialogoModulo('Dati aziendali',campi,a);if(!v)return;
   esegui('Modificati dati aziendali',s=>{const x=s.azienda;Object.assign(x,v);x.indirizzo=Object.assign({},a.indirizzo,v.indirizzo);x.patenteCrediti=Object.assign({},a.patenteCrediti,v.patenteCrediti);x.medicoCompetente=Object.assign({},a.medicoCompetente,v.medicoCompetente);x.consulenteSicurezza=Object.assign({},a.consulenteSicurezza,v.consulenteSicurezza)});
+};
+// ---- dati aziendali ricavati dalla visura camerale (PDF scaricato dal Registro Imprese) ----
+// Stessa idea dell'anagrafica da UNILAV: etichette note in un modulo di testo, valori accanto.
+function datiAziendaDaTesto(testo){
+  const t=testo.replace(/\r/g,'');
+  const campo=(...etichette)=>{
+    for(const e of etichette){
+      const re=new RegExp(e+'\\s*[:\\.]?\\s*([^\\n]{1,120})','i');
+      const m=re.exec(t);
+      if(m){const v=m[1].trim().replace(/\s{2,}/g,' ');if(v&&!/^[:\-–]/.test(v))return v}
+    }
+    return null;
+  };
+  const data=(x)=>{const m=x&&/(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/.exec(x);return m?interpretaData(m[0]):null};
+  let piva=campo('partita\\s*iva','p\\.\\s*iva');
+  if(piva){const m=piva.match(/\d{11}/);piva=m?m[0]:null}
+  let cf=campo('codice\\s*fiscale(?:\\s+e\\s+n\\S?\\s*iscrizione[^:\\n]*)?','c\\.\\s*f\\.');
+  if(cf){const m=cf.match(/[A-Z0-9]{11,16}/i);cf=m?m[0].toUpperCase():null}
+  if(!piva&&cf&&/^\d{11}$/.test(cf)) piva=cf; // nelle società spesso coincidono
+  let rea=campo('numero\\s*rea','n\\S?\\s*rea','rea');
+  if(rea) rea=(rea.match(/[A-Z]{0,2}\s*-?\s*\d{3,8}/)||[rea])[0].replace(/\s+/g,' ').trim();
+  const sede=campo('sede\\s+legale','sede(?!\\s+secondaria)');
+  const capM=sede&&/\b(\d{5})\b/.exec(sede);
+  const cap=capM?capM[1]:null;
+  let via=null,comune=null,provincia=null;
+  if(sede){
+    const provM=/\(([A-Z]{2})\)/.exec(sede); provincia=provM?provM[1]:null;
+    if(cap){const idx=sede.indexOf(cap); via=sede.slice(0,idx).replace(/[,\s]+$/,'').trim()||null; comune=sede.slice(idx+5).replace(/\([A-Z]{2}\)/,'').replace(/[,\s]+$/,'').trim()||null}
+  }
+  return {
+    ragioneSociale:campo('denominazione'),
+    formaGiuridica:campo('forma\\s+giuridica'),
+    piva:piva||null,cf:cf||null,
+    rea:rea||null,
+    pec:campo('indirizzo\\s+pec','pec'),
+    dataCostituzione:data(campo('data\\s+atto\\s+di\\s+costituzione','data\\s+di\\s+costituzione','data\\s+iscrizione')),
+    capitaleSociale:campo('capitale\\s+sociale\\s+sottoscritto','capitale\\s+sociale'),
+    ateco:campo('codice\\s+e\\s+descrizione\\s+dell.attivit\\S*\\s+di\\s+sede[^:\\n]*','attivit\\S*\\s+prevalente','codice\\s+ateco'),
+    indirizzo:{via,cap,comune:comune?capitalizzaNome(comune):null,provincia},
+  };
+}
+AZIONI['azienda-da-visura']=async()=>{
+  const fs=await scegliFile({multipli:false});
+  if(!fs.length) return;
+  const f=fs[0];
+  if(!ePdf(f.type,f.name)) return informa('Serve un documento con il testo dentro','Funziona con il PDF della visura scaricato dal Registro Imprese, non con una foto o una scansione.');
+  const prog=dialogoAvanzamento('Lettura del documento',{testo:'Leggo «'+f.name+'»…'});
+  let testo=''; try{ testo=(await estraiTestoPdf(f)).testo }catch(e){ prog.chiudi(); return segnalaErrore(e,'Non sono riuscito a leggere il PDF') }
+  prog.chiudi();
+  if(!testo||testo.replace(/\s/g,'').length<40) return informa('Niente testo in questo PDF','Sembra una scansione: le lettere sono un\'immagine, non testo.');
+  const r=datiAziendaDaTesto(testo);
+  if(!r.ragioneSociale&&!r.piva) return informa('Non ho riconosciuto i dati','In questo documento non ho trovato né una denominazione né una partita IVA: sembra che non sia una visura camerale.');
+  const conferma_=await dialogo({titolo:'Dati letti da «'+f.name+'»',corpo:html`<p class="piccolo secondario">Controlla e correggi nella scheda che si apre: niente viene salvato finché non premi Salva.</p>
+    <table class="tabella densa"><tbody>${Object.entries({'Ragione sociale':r.ragioneSociale,'Forma giuridica':r.formaGiuridica,'Partita IVA':r.piva,'Codice fiscale':r.cf,'REA':r.rea,'PEC':r.pec,'Costituzione':r.dataCostituzione?fData(r.dataCostituzione):null,'Capitale sociale':r.capitaleSociale,'Sede':indirizzoTesto(r.indirizzo)||null,'ATECO / Attività':r.ateco}).map(([k,v])=>html`<tr><td>${k}</td><td>${v?html`<b>${v}</b>`:html`<span class="silenzioso">non trovato</span>`}</td></tr>`)}</tbody></table>`,
+    pulsanti:[{testo:'Annulla',valore:false},{testo:'Apri la scheda compilata',classe:'primario',primario:true,valore:true}]});
+  if(!conferma_) return;
+  const a=stato.azienda;
+  const override=Object.assign({},a);
+  for(const k of ['ragioneSociale','formaGiuridica','piva','cf','rea','pec','dataCostituzione','capitaleSociale','ateco']) if(r[k]) override[k]=r[k];
+  override.indirizzo=Object.assign({},a.indirizzo,Object.fromEntries(Object.entries(r.indirizzo||{}).filter(([,v])=>v)));
+  AZIONI['azienda-modifica'](null,null,null,override);
 };
 function impBackup(){
   const imp=stato.impostazioni;const peso=pesoArchivio();
