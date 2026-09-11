@@ -1124,6 +1124,7 @@ function idoneitaPersona(persona,documentiPersona,tipi,oggiIso,soglie){
   const visti=new Set();
   for(const tipo of tipi){
     if(!tipoApplicabile(tipo,persona)) continue;
+    if(tipo.soloCantiere) continue; // si valuta per cantiere (vedi checklistCantiere), non come requisito generico della persona
     const gruppo=gruppoAlternativo(tipo.id);
     const chiaveGruppo=gruppo?gruppo.join('|'):tipo.id;
     if(visti.has(chiaveGruppo)) continue; visti.add(chiaveGruppo);
@@ -1285,7 +1286,7 @@ function autoverifica(){
 // (in coda, con ritardo per accorpare) e registra un'istantanea per annulla.
 // I documenti (blob) NON stanno qui: vedi ARCHIVIO. Qui solo i metadati.
 // ---------------------------------------------------------------------
-const VERSIONE_SCHEMA=6;
+const VERSIONE_SCHEMA=7;
 // Non cambiare mai questo nome: è la chiave con cui il browser conserva l'archivio. Cambiandolo,
 // i dati già salvati resterebbero nel browser ma l'applicazione non li troverebbe più.
 const NOME_DB='GestionalePavimass';
@@ -1444,6 +1445,11 @@ const migrazioni={
   6:s=>{ // primo soccorso e antincendio erano richiesti a tutti: vanno chiesti solo a chi ha la qualifica
     const fix={primo_soccorso:'primoSoccorso',antincendio_2:'antincendio'};
     for(const t of (s.tipiDocumento||[])) if(fix[t.id]&&t.obbligatorio==='si') t.obbligatorio=fix[t.id];
+    return s;
+  },
+  7:s=>{ // le nomine preposto/antincendio/primo soccorso sono specifiche del cantiere: non vanno
+        // segnalate come mancanti nella scheda della persona (restano valutate nella checklist del cantiere)
+    for(const t of (s.tipiDocumento||[])) if(t.id==='nomina_persona') t.soloCantiere=true;
     return s;
   },
 };
@@ -7282,7 +7288,7 @@ const TIPI_DOCUMENTO_INIZIALI=[
   {id:'ple',nome:'Abilitazione PLE',ambito:'persona',validitaMesi:60,obbligatorio:'ple',bloccaIdoneita:false,categoria:'formazione',note:'Se usa piattaforme elevabili.',sinonimi:['ple','piattaforme elevabili','piattaforma']},
   {id:'pimus',nome:'Addetto montaggio ponteggi (PiMUS)',ambito:'persona',validitaMesi:48,obbligatorio:'ponteggi',bloccaIdoneita:false,categoria:'formazione',note:'Se monta ponteggi.',sinonimi:['pimus','ponteggi','ponteggiatore','montaggio ponteggi']},
   {id:'consegna_dpi',nome:'Consegna DPI',ambito:'persona',validitaMesi:null,obbligatorio:'si',bloccaIdoneita:false,categoria:'sicurezza',sinonimi:['dpi','consegna dpi','verbale consegna dpi']},
-  {id:'nomina_persona',nome:'Nomina Preposto / Antincendio / Primo Soccorso',ambito:'persona',validitaMesi:null,obbligatorio:'ruolo',bloccaIdoneita:false,categoria:'nomina',sinonimi:['nomina','nomina preposto','nomina antincendio','nomina primo soccorso','designazione']},
+  {id:'nomina_persona',nome:'Nomina Preposto / Antincendio / Primo Soccorso',ambito:'persona',validitaMesi:null,obbligatorio:'ruolo',bloccaIdoneita:false,soloCantiere:true,categoria:'nomina',sinonimi:['nomina','nomina preposto','nomina antincendio','nomina primo soccorso','designazione']},
   {id:'busta_paga',nome:'Busta Paga',ambito:'persona',validitaMesi:null,obbligatorio:'no',bloccaIdoneita:false,categoria:'amministrativo',sinonimi:['busta paga','cedolino','lul']},
   {id:'altro_persona',nome:'Altro documento personale',ambito:'persona',validitaMesi:null,obbligatorio:'no',bloccaIdoneita:false,categoria:'amministrativo',sinonimi:[]},
   {id:'durc',nome:'DURC',ambito:'azienda',validitaMesi:null,validitaGiorni:120,obbligatorio:'si',bloccaIdoneita:false,categoria:'impresa',note:'Validità 120 giorni dall\'emissione.',sinonimi:['durc','regolarità contributiva','documento unico di regolarità contributiva']},

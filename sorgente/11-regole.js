@@ -87,6 +87,7 @@ function idoneitaPersona(persona,documentiPersona,tipi,oggiIso,soglie){
   const visti=new Set();
   for(const tipo of tipi){
     if(!tipoApplicabile(tipo,persona)) continue;
+    if(tipo.soloCantiere) continue; // si valuta per cantiere (vedi checklistCantiere), non come requisito generico della persona
     const gruppo=gruppoAlternativo(tipo.id);
     const chiaveGruppo=gruppo?gruppo.join('|'):tipo.id;
     if(visti.has(chiaveGruppo)) continue; visti.add(chiaveGruppo);

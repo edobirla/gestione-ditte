@@ -4,7 +4,7 @@
 // (in coda, con ritardo per accorpare) e registra un'istantanea per annulla.
 // I documenti (blob) NON stanno qui: vedi ARCHIVIO. Qui solo i metadati.
 // ---------------------------------------------------------------------
-const VERSIONE_SCHEMA=6;
+const VERSIONE_SCHEMA=7;
 // Non cambiare mai questo nome: è la chiave con cui il browser conserva l'archivio. Cambiandolo,
 // i dati già salvati resterebbero nel browser ma l'applicazione non li troverebbe più.
 const NOME_DB='GestionalePavimass';
@@ -163,6 +163,11 @@ const migrazioni={
   6:s=>{ // primo soccorso e antincendio erano richiesti a tutti: vanno chiesti solo a chi ha la qualifica
     const fix={primo_soccorso:'primoSoccorso',antincendio_2:'antincendio'};
     for(const t of (s.tipiDocumento||[])) if(fix[t.id]&&t.obbligatorio==='si') t.obbligatorio=fix[t.id];
+    return s;
+  },
+  7:s=>{ // le nomine preposto/antincendio/primo soccorso sono specifiche del cantiere: non vanno
+        // segnalate come mancanti nella scheda della persona (restano valutate nella checklist del cantiere)
+    for(const t of (s.tipiDocumento||[])) if(t.id==='nomina_persona') t.soloCantiere=true;
     return s;
   },
 };
