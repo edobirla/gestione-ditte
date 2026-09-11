@@ -3069,7 +3069,7 @@ function schedaRetribuzione(p){
 }
 // ---- dialogo persona ----
 function dialogoPersona(p){
-  const nuovo=!p; p=p||{attivo:true,inLibroPresenze:true,sezionePresenze:'dipendenti',inCantiere:true,qualifiche:[],retribuzione:{tipo:'oraria'}};
+  const nuovo=!p||!p.id; p=p||{attivo:true,inLibroPresenze:true,sezionePresenze:'dipendenti',inCantiere:true,qualifiche:[],retribuzione:{tipo:'oraria'}};
   const campi=[
     {nome:'cognome',etichetta:'Cognome',obbligatorio:true},{nome:'nome',etichetta:'Nome',obbligatorio:true},
     {nome:'tipo',etichetta:'Tipo',tipo:'select',vuoto:false,opzioni:Object.entries(TIPI_PERSONA).map(([v,t])=>({v,t}))},{nome:'mansione',etichetta:'Mansione'},
@@ -3086,7 +3086,21 @@ function dialogoPersona(p){
     {nome:'note',etichetta:'Note',tipo:'textarea',largo:true},
   );
   const val=clona(p);
-  return dialogoModulo(nuovo?'Nuova persona':'Modifica '+nomePersona(p),campi,val,{validaTutto:v=>{if(v.dataAssunzione&&v.dataCessazione&&v.dataCessazione<v.dataAssunzione)return 'La cessazione non può precedere l\'assunzione';return null}}).then(v=>{
+  return dialogoModulo(nuovo?'Nuova persona':'Modifica '+nomePersona(p),campi,val,{validaTutto:v=>{if(v.dataAssunzione&&v.dataCessazione&&v.dataCessazione<v.dataAssunzione)return 'La cessazione non può precedere l\'assunzione';return null},pulsantiExtra:nuovo?[]:[{testo:'Elimina',classe:'pericolo',sinistra:true,fn:async()=>{
+    const a=stato.azienda;
+    if(p.id===a.legaleRappresentanteId||p.id===a.rsppId||p.id===a.rlsId){avviso('È il Legale Rappresentante, RSPP o RLS: cambialo prima nei Dati aziendali (Impostazioni)',{tipo:'errore'});return false}
+    if(!(await conferma('Eliminare definitivamente '+nomePersona(p)+'? Vengono cancellati anche i suoi documenti, le buste paga e le presenze registrate. Non si può annullare.',{pericolo:true,ok:'Elimina'})))return false;
+    esegui('Eliminata '+nomePersona(p),s=>{
+      s.persone=s.persone.filter(x=>x.id!==p.id);
+      s.documenti=s.documenti.filter(d=>!(d.soggettoTipo==='persona'&&d.soggettoId===p.id));
+      s.bustePaga=s.bustePaga.filter(b=>b.personaId!==p.id);
+      s.regoleBuste=(s.regoleBuste||[]).filter(r=>r.personaId!==p.id);
+      for(const k of Object.keys(s.presenze||{})) delete s.presenze[k].persone[p.id];
+      cestinaFileOrfani(s);
+    });
+    vai('operai');
+    return null;
+  }}]}).then(v=>{
     if(!v) return;
     // lo schema orario non si modifica più a mano: resta quello già salvato, se c'era
     delete v.schemaOrarioAttivo;delete v.schemaOrario;
