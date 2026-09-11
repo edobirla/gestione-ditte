@@ -669,10 +669,12 @@ select.stato-rapido.inviato{background:var(--giallo-chiaro);border-color:var(--g
 .gruppo-pulsanti.stati-prev .pulsante.attivo.accettato{background:var(--blu);color:#fff}
 .gruppo-pulsanti.stati-prev .pulsante.attivo.rifiutato,.gruppo-pulsanti.stati-prev .pulsante.attivo.scaduto{background:var(--rosso);color:#fff}
 .ritaglio-foto{position:relative;width:320px;max-width:100%;margin:0 auto;touch-action:none}
-.ritaglio-foto canvas{display:block;width:100%;height:auto;border-radius:var(--raggio);background:#fff;cursor:grab}
+.ritaglio-foto canvas{display:block;width:100%;height:auto;border-radius:var(--raggio-grande);background:#fff;cursor:grab}
 .ritaglio-foto canvas:active{cursor:grabbing}
-.ritaglio-foto .maschera{position:absolute;inset:0;border-radius:var(--raggio);pointer-events:none;box-shadow:0 0 0 999px rgba(0,0,0,.45) inset;-webkit-mask:radial-gradient(circle at 50% 50%, transparent 49.5%, #000 50%);mask:radial-gradient(circle at 50% 50%, transparent 49.5%, #000 50%)}
-.foto-persona{width:120px;height:120px;border-radius:var(--raggio);object-fit:cover;border:1px solid var(--bordo)}
+.foto-persona{width:140px;height:140px;border-radius:var(--raggio-grande);object-fit:cover;border:1px solid var(--bordo);flex:none}
+.foto-persona.placeholder{display:flex;align-items:center;justify-content:center;background:var(--blu-chiaro);color:var(--blu-testo);font-weight:700;font-size:36px}
+.foto-persona-bottone{padding:0;border:none;background:none;cursor:pointer;display:inline-flex;border-radius:var(--raggio-grande)}
+.foto-persona-bottone:hover .foto-persona{opacity:.85}
 .segnaposto-picker{border:1px solid var(--bordo);border-radius:var(--raggio);padding:var(--sp-2);max-height:220px;overflow:auto;background:var(--superficie-2)}
 .segnaposto-picker .gruppo+.gruppo{margin-top:var(--sp-2)}
 .segnaposto-picker .chip{cursor:pointer}
@@ -1282,7 +1284,7 @@ function autoverifica(){
 // (in coda, con ritardo per accorpare) e registra un'istantanea per annulla.
 // I documenti (blob) NON stanno qui: vedi ARCHIVIO. Qui solo i metadati.
 // ---------------------------------------------------------------------
-const VERSIONE_SCHEMA=5;
+const VERSIONE_SCHEMA=6;
 // Non cambiare mai questo nome: è la chiave con cui il browser conserva l'archivio. Cambiandolo,
 // i dati già salvati resterebbero nel browser ma l'applicazione non li troverebbe più.
 const NOME_DB='GestionalePavimass';
@@ -1436,6 +1438,11 @@ const migrazioni={
       nomina_antincendio_cantiere:['Per accettazione: ______________________________','{{addettiAntincendio.accettazione}}'],
       nomina_primo_soccorso_cantiere:['Per accettazione: ______________________________','{{addettiPrimoSoccorso.accettazione}}']};
     for(const m of ((s.modelli||{}).dichiarazioni||[])){const r=righe[m.id];if(r&&m.testo&&m.testo.includes(r[0]))m.testo=m.testo.replace(r[0],r[1])}
+    return s;
+  },
+  6:s=>{ // primo soccorso e antincendio erano richiesti a tutti: vanno chiesti solo a chi ha la qualifica
+    const fix={primo_soccorso:'primoSoccorso',antincendio_2:'antincendio'};
+    for(const t of (s.tipiDocumento||[])) if(fix[t.id]&&t.obbligatorio==='si') t.obbligatorio=fix[t.id];
     return s;
   },
 };
@@ -1656,7 +1663,9 @@ async function firmaSenzaSfondo(blob,soglia){
   const scala=Math.min(1,900/Math.max(img.width,img.height));
   const w=Math.max(1,Math.round(img.width*scala)),hh=Math.max(1,Math.round(img.height*scala));
   const c=document.createElement('canvas');c.width=w;c.height=hh;
-  const ctx=c.getContext('2d');ctx.drawImage(img,0,0,w,hh);
+  // sfondo bianco prima di disegnare: se la foto è già un PNG trasparente, altrimenti il
+  // trasparente del canvas (nero a soglia 0) verrebbe letto come inchiostro scurissimo
+  const ctx=c.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,w,hh);ctx.drawImage(img,0,0,w,hh);
   const dati=ctx.getImageData(0,0,w,hh);const px=dati.data;
   let x0=w,y0=hh,x1=-1,y1=-1;
   for(let i=0,p=0;i<px.length;i+=4,p++){
@@ -2714,12 +2723,15 @@ function riepilogoScadenze(){
   for(const d of documentiAzienda()){righe.push({doc:d,info:infoDocumento(d),soggetto:stato.azienda.ragioneSociale,persona:null,tipo:tipoDoc(d.tipoId)})}
   for(const m of stato.mezzi){for(const d of documentiDi('mezzo',m.id)){righe.push({doc:d,info:infoDocumento(d),soggetto:'Mezzo '+nomeMezzo(m),persona:null,tipo:tipoDoc(d.tipoId)})}}
   const conData=righe.filter(r=>r.info.data);
+  // Un documento facoltativo (es. tessera sanitaria) non deve creare allarmi: resta comunque
+  // visibile con il suo stato reale accanto al documento, nella scheda del soggetto.
+  const richiesto=r=>!r.tipo||r.tipo.obbligatorio!=='no';
   const s=soglie();
   return {
     righe,mancanti,
-    scaduti:conData.filter(r=>r.info.stato==='scaduto'),
-    entro60:conData.filter(r=>r.info.stato==='scadenza'),
-    entro90:conData.filter(r=>r.info.stato==='pianificare'),
+    scaduti:conData.filter(r=>r.info.stato==='scaduto'&&richiesto(r)),
+    entro60:conData.filter(r=>r.info.stato==='scadenza'&&richiesto(r)),
+    entro90:conData.filter(r=>r.info.stato==='pianificare'&&richiesto(r)),
     validi:conData.filter(r=>r.info.stato==='valido'),
     senzaScadenza:righe.filter(r=>!r.info.data),
     soglie:s,oggi:oggiIso,
@@ -2896,7 +2908,9 @@ function vistaPersona(id,r){
   const docs=documentiPersona(p.id);
   const nDocCritici=docs.filter(d=>['scaduto','scadenza'].includes(infoDocumento(d).stato)).length+(idn?idn.dettagliTutti.filter(x=>x.stato==='mancante').length:0);
   return html`<div class="briciole"><a href="#/operai">Operai</a> › ${nomePersona(p)}</div>
-  <div class="testata"><div class="riga stretta" style="gap:14px">${avatar(p,true)}<div><h1>${nomePersona(p)}</h1><div class="sotto">${p.mansione||''} · ${TIPI_PERSONA[p.tipo]||p.tipo}${p.attivo?'':' · cessato il '+fData(p.dataCessazione)}${(p.qualifiche||[]).length?' · '+p.qualifiche.map(q=>QUALIFICHE[q]||q).join(', '):''}</div></div></div>
+  <div class="testata"><div class="riga stretta" style="gap:14px">
+    <button class="foto-persona-bottone" data-azione="persona-foto-menu" data-id="${p.id}" aria-label="Foto di ${nomePersona(p)}" title="Cambia o ritaglia la foto">${p.fotoImg?html`<img src="${p.fotoImg}" alt="Foto di ${nomePersona(p)}" class="foto-persona">`:html`<span class="foto-persona placeholder">${iniziali(nomePersona(p))}</span>`}</button>
+    <div><h1>${nomePersona(p)}</h1><div class="sotto">${p.mansione||''} · ${TIPI_PERSONA[p.tipo]||p.tipo}${p.attivo?'':' · cessato il '+fData(p.dataCessazione)}${(p.qualifiche||[]).length?' · '+p.qualifiche.map(q=>QUALIFICHE[q]||q).join(', '):''}</div></div></div>
     <div class="azioni"><button class="pulsante" data-azione="documento-nuovo" data-soggetto-tipo="persona" data-soggetto-id="${p.id}" data-drop-soggetto="persona:${p.id}" title="Puoi anche trascinare qui le scansioni">${icona('allega')}Aggiungi documento</button><button class="pulsante" data-azione="persona-modifica" data-id="${p.id}">${icona('modifica')}Modifica</button>${p.attivo?html`<button class="pulsante pericolo" data-azione="persona-cessa" data-id="${p.id}">${icona('elimina')}Cessa</button>`:html`<button class="pulsante" data-azione="persona-riattiva" data-id="${p.id}">${icona('aggiorna')}Riattiva</button>`}</div></div>
   ${idn?html`<div class="mb">${idn.idonea?html`<span class="idoneita si">${icona('ok')}Può entrare in cantiere oggi</span>`:html`<span class="idoneita no">${icona('blocco')}Non può entrare in cantiere: ${idn.motivi.join('; ')}</span>`}${idn.avvisi.length?html`<div class="piccolo secondario mt-s">Da regolarizzare (richiesti dalle committenze, non bloccanti): ${idn.avvisi.join('; ')}</div>`:''}</div>`:html`<div class="mb piccolo secondario">Questa persona non va in cantiere: l'idoneità non viene calcolata.</div>`}
   ${linguette('persona:'+p.id,[{id:'documenti',testo:'Documenti',icona:'documenti',contatore:nDocCritici||null,critico:nDocCritici>0},{id:'anagrafica',testo:'Anagrafica',icona:'persona'},{id:'buste',testo:'Buste paga',icona:'busta-paga'},{id:'ore',testo:'Ore',icona:'presenze'},{id:'cantieri',testo:'Cantieri',icona:'cantieri'},{id:'retribuzione',testo:'Retribuzione',icona:'euro'}],ling)}
@@ -2957,8 +2971,6 @@ function schedaAnagrafica(p){
     <div class="campo"><span class="etichetta-campo">Va in cantiere</span><div>${p.inCantiere!==false?'sì':'no'}</div></div>
 
   </div></div>
-  <div class="scheda"><h3>${icona('fotocamera')}Foto <span class="azioni"><button class="pulsante piccolo" data-azione="persona-foto" data-id="${p.id}">${icona('fotocamera','piccola')}${p.fotoImg?'Sostituisci':'Carica'}</button>${p.fotoImg?html`<button class="pulsante piccolo" data-azione="persona-foto-ritaglia" data-id="${p.id}">${icona('modifica','piccola')}Ritaglia</button><button class="pulsante piccolo pericolo" data-azione="persona-foto-togli" data-id="${p.id}">${icona('elimina','piccola')}Togli</button>`:''}</span></h3>
-    ${p.fotoImg?html`<img src="${p.fotoImg}" alt="Foto di ${nomePersona(p)}" class="foto-persona">`:html`<p class="secondario piccolo">Nessuna foto. Serve a riconoscere l'operaio a colpo d'occhio negli elenchi.</p>`}</div>
   <div class="scheda"><h3>${icona('firma')}Firma <span class="azioni"><button class="pulsante piccolo" data-azione="persona-firma" data-id="${p.id}">${icona('fotocamera','piccola')}${p.firmaImg?'Sostituisci':'Carica da una foto'}</button>${p.firmaImg?html`<button class="pulsante piccolo pericolo" data-azione="persona-firma-togli" data-id="${p.id}">${icona('elimina','piccola')}Togli</button>`:''}</span></h3>
     ${p.firmaImg?html`<div class="riquadro-firma"><img src="${p.firmaImg}" alt="Firma di ${nomePersona(p)}"></div>`:html`<p class="secondario piccolo">Nessuna firma. Fotografa la firma su un foglio bianco: l'app toglie lo sfondo e la usa nelle nomine che questa persona deve firmare per accettazione.</p>`}</div>
   ${p.note?html`<div class="scheda"><h3>${icona('info')}Note</h3><p>${p.note}</p></div>`:''}
@@ -2988,14 +3000,25 @@ AZIONI['persona-foto-ritaglia']=async d=>{
   if(!dataUrl) return;
   esegui('Ritagliata la foto di '+nomePersona(p),s=>{s.persone.find(x=>x.id===d.id).fotoImg=dataUrl});
 };
+// Click sulla foto grande nella scheda: senza foto va dritto a scegliere il file, con la foto
+// già presente chiede cosa fare (come si tocca la foto profilo su WhatsApp).
+AZIONI['persona-foto-menu']=async d=>{
+  const p=persona(d.id);
+  if(!p.fotoImg) return AZIONI['persona-foto'](d);
+  const scelta=await dialogo({titolo:'Foto di '+nomePersona(p),corpo:html`<div class="riga" style="justify-content:center"><img src="${p.fotoImg}" alt="Foto di ${nomePersona(p)}" class="foto-persona" style="width:180px;height:180px"></div>`,
+    pulsanti:[{testo:'Annulla',valore:null},{testo:'Togli',classe:'pericolo',sinistra:true,valore:'togli'},{testo:'Ritaglia',valore:'ritaglia'},{testo:'Cambia foto',classe:'primario',primario:true,valore:'cambia'}]});
+  if(scelta==='cambia') return AZIONI['persona-foto'](d);
+  if(scelta==='ritaglia') return AZIONI['persona-foto-ritaglia'](d);
+  if(scelta==='togli') return AZIONI['persona-foto-togli'](d);
+};
 // Il ritaglio si fa a mano: la faccia non sta quasi mai al centro della foto, e un ritaglio
-// automatico centrato taglia le teste. Si trascina l'immagine e si ingrandisce finché sta nel
-// cerchio, che è la forma con cui la foto si vede davvero negli elenchi.
+// automatico centrato taglia le teste. Si trascina l'immagine e si ingrandisce finché il
+// riquadro (quadrato con angoli stondati, com'è mostrata la foto grande nella scheda) va bene.
 function ritagliaFoto(img,nome){
   const LATO=320;
   let scala=1,ox=0,oy=0;
-  const corpo=html`<p class="piccolo secondario">Trascina la foto per spostarla e usa la barra (o la rotella) per ingrandirla. Quello che resta dentro il cerchio è quello che si vedrà.</p>
-    <div class="ritaglio-foto"><canvas id="rf-tela" width="${LATO}" height="${LATO}"></canvas><div class="maschera"></div></div>
+  const corpo=html`<p class="piccolo secondario">Trascina la foto per spostarla e usa la barra (o la rotella) per ingrandirla. Quello che vedi nel riquadro è quello che si vedrà.</p>
+    <div class="ritaglio-foto"><canvas id="rf-tela" width="${LATO}" height="${LATO}"></canvas></div>
     <div class="riga mt-s"><span class="piccolo secondario">Ingrandimento</span><input type="range" id="rf-zoom" min="100" max="400" value="100" style="flex:1"></div>`;
   return dialogo({titolo:'Foto di '+nome,corpo,senzaFocus:true,valoreEscape:null,
     pulsanti:[{testo:'Annulla',valore:null},{testo:'Usa questa foto',classe:'primario',primario:true,fn:v=>v.querySelector('#rf-tela').toDataURL('image/jpeg',0.85)}],
@@ -6924,8 +6947,8 @@ const TIPI_DOCUMENTO_INIZIALI=[
   {id:'aggiornamento_rischio_alto',nome:'Aggiornamento Rischio Alto 6h',ambito:'persona',validitaMesi:60,obbligatorio:'no',bloccaIdoneita:false,categoria:'formazione',note:'Rinnova il corso rischio alto: vale come alternativa al corso 16h.',sinonimi:['aggiornamento rischio alto','aggiornamento sicurezza','6h','6 ore']},
   {id:'corso_preposto',nome:'Corso Preposto',ambito:'persona',validitaMesi:24,obbligatorio:'preposto',bloccaIdoneita:true,categoria:'formazione',sinonimi:['preposto','corso preposto']},
   {id:'corso_rls',nome:'Corso / Aggiornamento RLS',ambito:'persona',validitaMesi:12,obbligatorio:'rls',bloccaIdoneita:true,categoria:'formazione',sinonimi:['rls','aggiornamento rls','corso rls','elezione rls']},
-  {id:'primo_soccorso',nome:'Primo Soccorso 16h',ambito:'persona',validitaMesi:36,obbligatorio:'si',bloccaIdoneita:false,categoria:'formazione',sinonimi:['primo soccorso','pronto soccorso','ps','p.s.']},
-  {id:'antincendio_2',nome:'Antincendio Livello 2',ambito:'persona',validitaMesi:60,obbligatorio:'si',bloccaIdoneita:false,categoria:'formazione',sinonimi:['antincendio','prevenzione incendi','livello 2','rischio medio']},
+  {id:'primo_soccorso',nome:'Primo Soccorso 16h',ambito:'persona',validitaMesi:36,obbligatorio:'primoSoccorso',bloccaIdoneita:false,categoria:'formazione',sinonimi:['primo soccorso','pronto soccorso','ps','p.s.']},
+  {id:'antincendio_2',nome:'Antincendio Livello 2',ambito:'persona',validitaMesi:60,obbligatorio:'antincendio',bloccaIdoneita:false,categoria:'formazione',sinonimi:['antincendio','prevenzione incendi','livello 2','rischio medio']},
   {id:'rspp_datore',nome:'RSPP Datore di Lavoro',ambito:'persona',validitaMesi:60,obbligatorio:'rspp',bloccaIdoneita:true,categoria:'formazione',sinonimi:['rspp','aggiornamento rspp','datore di lavoro']},
   {id:'ple',nome:'Abilitazione PLE',ambito:'persona',validitaMesi:60,obbligatorio:'ple',bloccaIdoneita:false,categoria:'formazione',note:'Se usa piattaforme elevabili.',sinonimi:['ple','piattaforme elevabili','piattaforma']},
   {id:'pimus',nome:'Addetto montaggio ponteggi (PiMUS)',ambito:'persona',validitaMesi:48,obbligatorio:'ponteggi',bloccaIdoneita:false,categoria:'formazione',note:'Se monta ponteggi.',sinonimi:['pimus','ponteggi','ponteggiatore','montaggio ponteggi']},
