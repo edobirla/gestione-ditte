@@ -184,7 +184,7 @@ async function analizzaPdf(blob){
     return {contenuto:await espandi(contenuti.join('\n'),p.dict,fonts,0),fonts,dict:p.dict};
   };
   const corpo=(n)=>{const o=oggetti.get(n);return o?(o.inline!==undefined?o.inline:testo.slice(o.inizio,o.fine)):''};
-  return {pagine,contenutoPagina,oggetti,flusso,dictDi,corpo,bytes};
+  return {pagine,contenutoPagina,oggetti,flusso,dictDi,corpo,bytes,cifrato:!!decifra};
 }
 async function estraiTestoPdf(blob,avanzamento){
   const pdf=await analizzaPdf(blob);
@@ -197,6 +197,68 @@ async function estraiTestoPdf(blob,avanzamento){
     tutto+=testoPagina+'\n\n';
   }
   return {testo:tutto,pagine:paginaTesti};
+}
+// ---------------------------------------------------------------------
+// RIDUZIONE PESO DI UN PDF: quasi sempre il peso sta nelle fotografie incorporate (una scansione o
+// una foto incollata, mai ricompressa). Si ricomprimono con lo stesso motore delle immagini
+// dell'archivio e si riscrive il PDF con le stesse pagine e la stessa struttura, sostituendo solo
+// quei flussi — stesso principio già usato per estraiPaginePdf.
+// ponytail: non tocca i PDF cifrati (andrebbe riscritta anche la cifratura) né quelli con object
+// stream (rischierebbe di perdere oggetti che stanno solo lì dentro): in quei casi restituisce null.
+async function comprimiPdf(blob,opz){
+  opz=Object.assign({maxLato:1600,obiettivoKb:150},opz||{});
+  const pdf=await analizzaPdf(blob);
+  if(pdf.cifrato) return null;
+  if(Array.from(pdf.oggetti.values()).some(o=>o.inline!==undefined)) return null;
+  const sostituzioni=new Map();
+  for(const [num,o] of pdf.oggetti){
+    if(!/\/Subtype\s*\/Image/.test(o.dict)) continue;
+    const dati=await pdf.flusso(o); if(!dati||!dati.length) continue;
+    let sorgente=null;
+    if(/\/DCTDecode/.test(o.dict)) sorgente=new Blob([dati],{type:'image/jpeg'});
+    else if(/\/FlateDecode/.test(o.dict)){ const durl=await bitmapGrezzoADataUrl(dati,o.dict,pdf); if(durl) sorgente=dataUrlABlob(durl); }
+    if(!sorgente||sorgente.size<40*1024) continue; // le immagini piccole non valgono lo sforzo
+    try{
+      const c=await comprimiImmagine(sorgente,{maxLato:opz.maxLato,obiettivo:opz.obiettivoKb*1024,qualitaMin:0.4});
+      if(c.blob.size<sorgente.size*0.85) sostituzioni.set(num,c);
+    }catch(e){}
+  }
+  if(!sostituzioni.size) return null;
+  return riscriviPdfConImmagini(pdf,sostituzioni);
+}
+async function riscriviPdfConImmagini(pdf,sostituzioni){
+  const testoOriginale=latin1(pdf.bytes,0,pdf.bytes.length);
+  const pezzi=[];let lunghezza=0;
+  const scrivi=(x)=>{const b=typeof x==='string'?byte(x):x;pezzi.push(b);lunghezza+=b.length};
+  scrivi('%PDF-1.7\n%\xE2\xE3\xCF\xD3\n');
+  const posizioni=new Map();
+  const numeri=Array.from(pdf.oggetti.keys()).sort((a,b)=>a-b);
+  for(const n of numeri){
+    const o=pdf.oggetti.get(n);
+    posizioni.set(n,lunghezza);
+    if(sostituzioni.has(n)){
+      const c=sostituzioni.get(n);
+      const nuovo=new Uint8Array(await c.blob.arrayBuffer());
+      let dict=o.dict;
+      dict=dict.replace(/\/Filter\s*(?:\[[^\]]*\]|\/\w+)/,'/Filter/DCTDecode');
+      dict=dict.replace(/\/DecodeParms\s*(?:\[[^\]]*\]|<<[\s\S]*?>>)/,'');
+      dict=dict.replace(/\/Length\s+\d+(\s+0\s+R)?/,'/Length '+nuovo.length);
+      dict=dict.replace(/\/Width\s+\d+/,'/Width '+c.larghezza).replace(/\/Height\s+\d+/,'/Height '+c.altezza);
+      dict=dict.replace(/\/ColorSpace\s*(?:\[[^\]]*\]|\/\w+|\d+\s+0\s+R)/,'/ColorSpace/DeviceRGB'); // il canvas produce sempre RGB
+      scrivi(n+' 0 obj\n'+dict+'\nstream\n');scrivi(nuovo);scrivi('\nendstream\nendobj\n');
+    }else{
+      scrivi(n+' 0 obj');scrivi(pdf.bytes.subarray(o.inizio,o.fine));scrivi('endobj\n');
+    }
+  }
+  const inizioXref=lunghezza;
+  const totale=numeri[numeri.length-1]+1;
+  let xref='xref\n0 '+totale+'\n0000000000 65535 f \n';
+  for(let n=1;n<totale;n++){const p=posizioni.get(n);xref+=p!==undefined?String(p).padStart(10,'0')+' 00000 n \n':'0000000000 65535 f \n'}
+  scrivi(xref);
+  const trailerM=/trailer\s*<<([\s\S]*?)>>/g;let tm,trailer=null;while((tm=trailerM.exec(testoOriginale)))trailer=tm[1];
+  const rootM=trailer&&/\/Root\s+(\d+)\s+0\s+R/.exec(trailer);
+  scrivi('trailer\n<< /Size '+totale+(rootM?' /Root '+rootM[1]+' 0 R':'')+' >>\nstartxref\n'+inizioXref+'\n%%EOF\n');
+  return new Blob(pezzi,{type:'application/pdf'});
 }
 function leggiCMap(s){
   const mappa=new Map();let m;

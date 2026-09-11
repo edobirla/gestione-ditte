@@ -574,6 +574,7 @@ body.trascinamento iframe,body.trascinamento embed,body.trascinamento object{poi
 .assistente .ap-sfondo{position:absolute;left:0;top:0;width:100%;height:100%;object-fit:contain}
 .assistente .ap-t{position:absolute;white-space:pre;line-height:1}
 .assistente .ap-l{position:absolute;background:#111}
+.assistente .ap-img{position:absolute;object-fit:contain;pointer-events:none}
 .assistente .ap-proposte .ap-prop{position:absolute;transform:translateY(-2pt);font-size:8px;padding:1px 5px;border-radius:9px;border:1px dashed var(--blu);background:var(--blu-tenue);color:var(--blu-testo);cursor:pointer;white-space:nowrap;opacity:.92}
 .assistente .ap-proposte .ap-prop:hover{background:var(--blu);color:#fff}
 .assistente .ap-proposte .ap-prop.usata{opacity:.35}

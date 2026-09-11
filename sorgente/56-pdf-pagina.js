@@ -13,7 +13,7 @@ function moltiplicaMatrici(a,b){
 function applicaMatrice(m,x,y){return [m[0]*x+m[2]*y+m[4], m[1]*x+m[3]*y+m[5]]}
 // Legge il contenuto di una pagina e restituisce testo e tratti con le loro coordinate (origine in
 // alto a sinistra, come sullo schermo: il PDF le ha in basso a sinistra).
-function elementiPagina(c,fonts,altezza){
+function elementiPagina(c,fonts,altezza,immagini){
   const elementi=[];
   let ctm=[1,0,0,1,0,0];const pila=[];
   let tm=[1,0,0,1,0,0],tlm=[1,0,0,1,0,0];
@@ -75,34 +75,45 @@ function elementiPagina(c,fonts,altezza){
       case 'S': case 's': chiudiPercorso(false); break;
       case 'f': case 'F': case 'f*': case 'B': case 'B*': chiudiPercorso(true); break;
       case 'n': haPercorso=false; break;
+      case 'Do': {
+        const nome=(pila_op.filter(x=>typeof x==='string'&&x[0]==='/').pop()||'').slice(1);
+        const src=immagini&&immagini.get(nome);
+        if(src){
+          // un'immagine occupa il quadrato unitario: i suoi 4 angoli trasformati dalla ctm corrente
+          // danno la posizione e la dimensione reali sulla pagina (non necessariamente allineati agli
+          // assi, ma per un modulo da compilare basta il rettangolo che li contiene)
+          const p=[applicaMatrice(ctm,0,0),applicaMatrice(ctm,1,0),applicaMatrice(ctm,0,1),applicaMatrice(ctm,1,1)];
+          const xs=p.map(q=>q[0]),ys=p.map(q=>q[1]);
+          const x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys);
+          elementi.push({t:'immagine',x:x0,y:altezza-y1,w:x1-x0,h:y1-y0,src});
+        }
+        break;
+      }
     }
     pila_op.length=0;
   }
   return elementi;
 }
-// Pagina scansionata: il foglio è una fotografia dentro il PDF. Non c'è niente da ricostruire, ma
-// l'immagine si può tirare fuori così com'è: quasi sempre JPEG, ma un "Stampa in PDF" di Word/WPS
-// con dentro una foto incollata la salva spesso come bitmap grezzo (FlateDecode, non JPEG) — senza
-// questo secondo caso la pagina restava del tutto vuota: né testo (non ce n'è) né immagine.
-async function immagineDiPagina(pdf,dictPagina){
+// Tutte le immagini nelle risorse di una pagina, decodificate: nome della risorsa → data URL.
+// Quasi sempre JPEG, ma un "Stampa in PDF" di Word/WPS con dentro una foto incollata la salva
+// spesso come bitmap grezzo (FlateDecode, non JPEG) — senza questo secondo caso l'immagine
+// veniva scartata e la pagina restava del tutto vuota: né testo (non ce n'è) né immagine.
+async function immaginiRisorsa(pdf,dictPagina){
   const rr=/\/Resources\s+(\d+)\s+0\s+R/.exec(dictPagina);
   const res=rr?pdf.dictDi(+rr[1]):dictPagina;
   let xo='';const xm=/\/XObject\s+(\d+)\s+0\s+R/.exec(res);
   if(xm)xo=pdf.dictDi(+xm[1]);else{const xi=/\/XObject\s*<<([\s\S]*?)>>/.exec(res);if(xi)xo=xi[1]}
-  let migliore=null;
-  const re=/\/[^\s\/\]<>]+\s+(\d+)\s+0\s+R/g;let m;
+  const mappa=new Map();
+  const re=/\/([^\s\/\]<>]+)\s+(\d+)\s+0\s+R/g;let m;
   while((m=re.exec(xo))){
-    const o=pdf.oggetti.get(+m[1]);if(!o||!/\/Subtype\s*\/Image/.test(o.dict))continue;
+    const o=pdf.oggetti.get(+m[2]);if(!o||!/\/Subtype\s*\/Image/.test(o.dict))continue;
     const jpeg=/\/DCTDecode/.test(o.dict),flate=/\/FlateDecode/.test(o.dict);
     if(!jpeg&&!flate)continue; // altri filtri (CCITT, JPX...) vorrebbero un decodificatore che non c'è
-    const w=+((/\/Width\s+(\d+)/.exec(o.dict)||[])[1]||0);
-    if(!migliore||w>migliore.w) migliore={o,w,jpeg};
+    const dati=await pdf.flusso(o);if(!dati)continue;
+    const durl=jpeg?await leggiComeDataUrl(new Blob([dati],{type:'image/jpeg'})):await bitmapGrezzoADataUrl(dati,o.dict,pdf);
+    if(durl) mappa.set(m[1],durl);
   }
-  if(!migliore) return null;
-  const dati=await pdf.flusso(migliore.o);
-  if(!dati) return null;
-  if(migliore.jpeg) return leggiComeDataUrl(new Blob([dati],{type:'image/jpeg'}));
-  return bitmapGrezzoADataUrl(dati,migliore.o.dict,pdf);
+  return mappa;
 }
 // Numero di componenti per pixel della colorspace dell'immagine: le uniche che servono per un
 // bitmap grezzo (Indexed e le altre vorrebbero una tavolozza o un decodificatore che non c'è).
@@ -143,9 +154,15 @@ async function rendiPaginaPdf(blob,indice){
   if(!c) throw new Error('pagina non leggibile');
   const mb=/\/MediaBox\s*\[\s*(-?[\d.]+)\s+(-?[\d.]+)\s+(-?[\d.]+)\s+(-?[\d.]+)/.exec(c.dict)||[0,0,0,595.28,841.89];
   const larghezza=Math.abs(+mb[3]-+mb[1]),altezza=Math.abs(+mb[4]-+mb[2]);
-  const elementi=elementiPagina(c.contenuto,c.fonts,altezza);
-  // se non c'è testo da ricostruire, il foglio è una scansione: si usa la fotografia che sta dentro
-  const scansione=elementi.filter(e=>e.t==='testo').length?null:await immagineDiPagina(pdf,c.dict);
+  const immagini=await immaginiRisorsa(pdf,c.dict);
+  const elementi=elementiPagina(c.contenuto,c.fonts,altezza,immagini);
+  // pagina scansionata: un'unica immagine che copre quasi tutto il foglio e niente testo — si usa
+  // la fotografia come sfondo. Un'immagine piccola (un logo, un timbro) resta invece fra gli
+  // elementi ricostruiti, nella sua posizione vera: altrimenti si vedrebbe solo quella, spalmata a
+  // riempire tutta la pagina, e il resto del modulo (tabelle, testo) sparirebbe.
+  const conTesto=elementi.some(e=>e.t==='testo');
+  const grande=!conTesto&&elementi.filter(e=>e.t==='immagine').find(e=>e.w*e.h>=larghezza*altezza*0.7);
+  const scansione=grande?grande.src:null;
   return {larghezza,altezza,elementi,scansione,pagine:pdf.pagine.length,indice:i};
 }
 

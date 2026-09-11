@@ -93,6 +93,7 @@ function postazioneAssistente(file,pagina,sfondo,nPagine,indice){
     if(sfondo) return `<img class="ap-sfondo" src="${h(sfondo)}" alt="${h(file.name)}">`;
     return pagina.elementi.map(e=>e.t==='testo'
       ? `<span class="ap-t" style="left:${e.x}pt;top:${e.y-e.dim}pt;font-size:${e.dim}pt;${e.grassetto?'font-weight:700;':''}">${h(e.testo)}</span>`
+      : e.t==='immagine' ? `<img class="ap-img" src="${h(e.src)}" alt="" style="left:${e.x}pt;top:${e.y}pt;width:${e.w}pt;height:${e.h}pt">`
       : `<span class="ap-l" style="left:${e.x}pt;top:${e.y}pt;width:${e.w}pt;height:${e.h}pt;${e.t==='riquadro'?'background:none;border:.6pt solid #333;':''}"></span>`).join('');
   };
   const corpo=html`<div class="assistente">

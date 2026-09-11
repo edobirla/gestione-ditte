@@ -115,10 +115,24 @@ async function acquisisciConAnteprima(files,opz){
   if(compressi.length||avvisi.length||duplicati.length){
     const urls=[];
     const corpo=html`${duplicati.length?html`<div class="avviso-inline info">${icona('info')}<div class="corpo">${plurale(duplicati.length,'file era già','file erano già')} nell'archivio: non occupano spazio due volte.</div></div>`:''}
-    ${avvisi.map(e=>html`<div class="avviso-inline attenzione">${icona('attenzione')}<div class="corpo"><b>${e.file.name}</b>: ${e.avviso}</div></div>`)}
+    ${avvisi.map((e,i)=>html`<div class="avviso-inline attenzione">${icona('attenzione')}<div class="corpo"><b>${e.file.name}</b>: ${e.avviso}${ePdf(e.file.type,e.file.name)?html` <button type="button" class="pulsante piccolo" data-riduci="${i}">${icona('magia','piccola')}Riduci</button><span class="piccolo secondario" data-riduci-esito="${i}"></span>`:''}</div></div>`)}
     ${compressi.length?html`<p>Immagini ricompresse per l'archivio (documenti da leggere, non fotografie). Se la qualità non basta, tieni l'originale.</p>`:''}
     ${compressi.map((e,i)=>{const u1=URL.createObjectURL(e.compressione.originale);urls.push(u1);return html`<div class="scheda mb-s"><div class="riga stretta"><b class="spazio taglia">${e.file.name}</b><label class="spunta piccolo"><input type="checkbox" data-originale="${i}"> Tieni l'originale</label></div><div class="confronto-immagini mt-s"><figure><img src="${u1}" alt="prima"><figcaption>Prima: ${fPeso(e.compressione.prima)}</figcaption></figure><figure><img data-dopo="${i}" alt="dopo"><figcaption>Dopo: ${fPeso(e.compressione.dopo)} · ${e.compressione.larghezza}×${e.compressione.altezza}</figcaption></figure></div></div>`})}`;
-    const scelte=await dialogo({titolo:'Controllo acquisizione',largo:true,corpo,pulsanti:[{testo:'Ok',classe:'primario',primario:true,fn:v=>tutti('[data-originale]:checked',v).map(x=>+x.dataset.originale)}],alMontaggio:async v=>{for(let i=0;i<compressi.length;i++){const u=await urlFile(compressi[i].rec.hash);const img=v.querySelector(`[data-dopo="${i}"]`);if(img)img.src=u}}});
+    const scelte=await dialogo({titolo:'Controllo acquisizione',largo:true,corpo,pulsanti:[{testo:'Ok',classe:'primario',primario:true,fn:v=>tutti('[data-originale]:checked',v).map(x=>+x.dataset.originale)}],alMontaggio:async v=>{
+      for(let i=0;i<compressi.length;i++){const u=await urlFile(compressi[i].rec.hash);const img=v.querySelector(`[data-dopo="${i}"]`);if(img)img.src=u}
+      tutti('[data-riduci]',v).forEach(b=>b.addEventListener('click',async()=>{
+        const i=+b.dataset.riduci;const e=avvisi[i];const esito=v.querySelector('[data-riduci-esito="'+i+'"]');
+        b.disabled=true;b.textContent='Riduco…';
+        try{
+          const nuovo=await comprimiPdf(e.file);
+          if(!nuovo){ if(esito)esito.textContent=' non si riesce a ridurre questo file.'; b.remove(); return }
+          const vecchioId=e.rec.id;const {rec}=await salvaFile(nuovo,{nome:e.file.name});e.rec=rec;
+          await eliminaFileDefinitivo(vecchioId);
+          if(esito)esito.textContent=' fatto: ora '+fPeso(nuovo.size)+' (prima '+fPeso(e.file.size)+').';
+          b.remove();
+        }catch(err){ segnalaErrore(err,'Riduzione non riuscita'); b.disabled=false; b.textContent='Riduci' }
+      }));
+    }});
     urls.forEach(u=>URL.revokeObjectURL(u));
     if(scelte&&scelte.length){
       for(const i of scelte){ const e=compressi[i]; const {rec}=await salvaFile(e.compressione.originale,{nome:e.file.name}); e.rec=rec; }
