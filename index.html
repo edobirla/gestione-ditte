@@ -636,6 +636,7 @@ body.trascinamento iframe,body.trascinamento embed,body.trascinamento object{poi
 .assistente .ap-sfondo{position:absolute;left:0;top:0;width:100%;height:100%;object-fit:contain}
 .assistente .ap-t{position:absolute;white-space:pre;line-height:1}
 .assistente .ap-l{position:absolute;background:#111}
+.assistente .ap-img{position:absolute;object-fit:contain;pointer-events:none}
 .assistente .ap-proposte .ap-prop{position:absolute;transform:translateY(-2pt);font-size:8px;padding:1px 5px;border-radius:9px;border:1px dashed var(--blu);background:var(--blu-tenue);color:var(--blu-testo);cursor:pointer;white-space:nowrap;opacity:.92}
 .assistente .ap-proposte .ap-prop:hover{background:var(--blu);color:#fff}
 .assistente .ap-proposte .ap-prop.usata{opacity:.35}
@@ -4044,10 +4045,24 @@ async function acquisisciConAnteprima(files,opz){
   if(compressi.length||avvisi.length||duplicati.length){
     const urls=[];
     const corpo=html`${duplicati.length?html`<div class="avviso-inline info">${icona('info')}<div class="corpo">${plurale(duplicati.length,'file era già','file erano già')} nell'archivio: non occupano spazio due volte.</div></div>`:''}
-    ${avvisi.map(e=>html`<div class="avviso-inline attenzione">${icona('attenzione')}<div class="corpo"><b>${e.file.name}</b>: ${e.avviso}</div></div>`)}
+    ${avvisi.map((e,i)=>html`<div class="avviso-inline attenzione">${icona('attenzione')}<div class="corpo"><b>${e.file.name}</b>: ${e.avviso}${ePdf(e.file.type,e.file.name)?html` <button type="button" class="pulsante piccolo" data-riduci="${i}">${icona('magia','piccola')}Riduci</button><span class="piccolo secondario" data-riduci-esito="${i}"></span>`:''}</div></div>`)}
     ${compressi.length?html`<p>Immagini ricompresse per l'archivio (documenti da leggere, non fotografie). Se la qualità non basta, tieni l'originale.</p>`:''}
     ${compressi.map((e,i)=>{const u1=URL.createObjectURL(e.compressione.originale);urls.push(u1);return html`<div class="scheda mb-s"><div class="riga stretta"><b class="spazio taglia">${e.file.name}</b><label class="spunta piccolo"><input type="checkbox" data-originale="${i}"> Tieni l'originale</label></div><div class="confronto-immagini mt-s"><figure><img src="${u1}" alt="prima"><figcaption>Prima: ${fPeso(e.compressione.prima)}</figcaption></figure><figure><img data-dopo="${i}" alt="dopo"><figcaption>Dopo: ${fPeso(e.compressione.dopo)} · ${e.compressione.larghezza}×${e.compressione.altezza}</figcaption></figure></div></div>`})}`;
-    const scelte=await dialogo({titolo:'Controllo acquisizione',largo:true,corpo,pulsanti:[{testo:'Ok',classe:'primario',primario:true,fn:v=>tutti('[data-originale]:checked',v).map(x=>+x.dataset.originale)}],alMontaggio:async v=>{for(let i=0;i<compressi.length;i++){const u=await urlFile(compressi[i].rec.hash);const img=v.querySelector(`[data-dopo="${i}"]`);if(img)img.src=u}}});
+    const scelte=await dialogo({titolo:'Controllo acquisizione',largo:true,corpo,pulsanti:[{testo:'Ok',classe:'primario',primario:true,fn:v=>tutti('[data-originale]:checked',v).map(x=>+x.dataset.originale)}],alMontaggio:async v=>{
+      for(let i=0;i<compressi.length;i++){const u=await urlFile(compressi[i].rec.hash);const img=v.querySelector(`[data-dopo="${i}"]`);if(img)img.src=u}
+      tutti('[data-riduci]',v).forEach(b=>b.addEventListener('click',async()=>{
+        const i=+b.dataset.riduci;const e=avvisi[i];const esito=v.querySelector('[data-riduci-esito="'+i+'"]');
+        b.disabled=true;b.textContent='Riduco…';
+        try{
+          const nuovo=await comprimiPdf(e.file);
+          if(!nuovo){ if(esito)esito.textContent=' non si riesce a ridurre questo file.'; b.remove(); return }
+          const vecchioId=e.rec.id;const {rec}=await salvaFile(nuovo,{nome:e.file.name});e.rec=rec;
+          await eliminaFileDefinitivo(vecchioId);
+          if(esito)esito.textContent=' fatto: ora '+fPeso(nuovo.size)+' (prima '+fPeso(e.file.size)+').';
+          b.remove();
+        }catch(err){ segnalaErrore(err,'Riduzione non riuscita'); b.disabled=false; b.textContent='Riduci' }
+      }));
+    }});
     urls.forEach(u=>URL.revokeObjectURL(u));
     if(scelte&&scelte.length){
       for(const i of scelte){ const e=compressi[i]; const {rec}=await salvaFile(e.compressione.originale,{nome:e.file.name}); e.rec=rec; }
@@ -4924,12 +4939,20 @@ function vistaPeso(){
       <div class="sezione-titolo">Per soggetto</div>${p.perSoggetto.map(x=>html`<div class="riga stretta piccolo" style="margin-bottom:4px"><span style="width:160px" class="taglia">${x.nome}</span><div class="barra-peso spazio"><span style="width:${Math.round(x.peso/max*100)}%;background:var(--blu)"></span></div><span class="num" style="width:70px">${fPeso(x.peso)}</span></div>`)}
       <div class="sezione-titolo">Per tipo</div>${p.perTipo.map(x=>html`<div class="riga stretta piccolo" style="margin-bottom:4px"><span style="width:160px" class="taglia">${x.nome}</span><div class="barra-peso spazio"><span style="width:${Math.round(x.peso/max*100)}%;background:var(--grigio)"></span></div><span class="num" style="width:70px">${fPeso(x.peso)}</span></div>`)}
     </div>
-    <div class="scheda"><h3>I file più pesanti</h3>${tabella({righe:p.pesanti,colonne:[{chiave:'nome',titolo:'File',principale:true,formatta:f=>html`<span class="taglia" style="display:block;max-width:240px" title="${f.nome}">${f.nome}</span><span class="piccolo secondario">${(riferimentiFile(f.id)[0]||{}).tipo||'senza riferimenti'}</span>`},{chiave:'dimensione',titolo:'Peso',num:true,formatta:f=>html`<b>${fPeso(f.dimensione)}</b>${f.compresso?html`<br><span class="piccolo secondario">da ${fPeso(f.dimensioneOriginale)}</span>`:''}`},{chiave:'az',titolo:'',classe:'azioni',formatta:f=>html`<button class="pulsante piccolo" data-azione="file-apri" data-id="${f.id}" title="Vedi">${icona('occhio','piccola')}</button> ${eImmagine(f.mime,f.nome)?html`<button class="pulsante piccolo" data-azione="file-ricomprimi" data-id="${f.id}" title="Ricomprimi">${icona('magia','piccola')}</button>`:''} <button class="pulsante piccolo" data-azione="file-sostituisci" data-id="${f.id}" title="Sostituisci con una versione più leggera">${icona('aggiorna','piccola')}</button></td>`}]})}
+    <div class="scheda"><h3>I file più pesanti</h3>${tabella({righe:p.pesanti,colonne:[{chiave:'nome',titolo:'File',principale:true,formatta:f=>html`<span class="taglia" style="display:block;max-width:240px" title="${f.nome}">${f.nome}</span><span class="piccolo secondario">${(riferimentiFile(f.id)[0]||{}).tipo||'senza riferimenti'}</span>`},{chiave:'dimensione',titolo:'Peso',num:true,formatta:f=>html`<b>${fPeso(f.dimensione)}</b>${f.compresso?html`<br><span class="piccolo secondario">da ${fPeso(f.dimensioneOriginale)}</span>`:''}`},{chiave:'az',titolo:'',classe:'azioni',formatta:f=>html`<button class="pulsante piccolo" data-azione="file-apri" data-id="${f.id}" title="Vedi">${icona('occhio','piccola')}</button> ${eImmagine(f.mime,f.nome)||ePdf(f.mime,f.nome)?html`<button class="pulsante piccolo" data-azione="file-ricomprimi" data-id="${f.id}" title="Ricomprimi">${icona('magia','piccola')}</button>`:''} <button class="pulsante piccolo" data-azione="file-sostituisci" data-id="${f.id}" title="Sostituisci con una versione più leggera">${icona('aggiorna','piccola')}</button></td>`}]})}
       <div class="sezione-titolo">Per alleggerire</div><ul class="piccolo"><li>Le scansioni pesanti (oltre 2 MB) si rifanno a 150–200 dpi in bianco e nero, o si fotografano: l'immagine viene compressa automaticamente sotto ${stato.impostazioni.obiettivoKb||300} KB.</li><li>I PDF non si possono ricomprimere qui: usa «Sostituisci» dopo averne creato una versione più leggera.</li><li>I file eliminati restano nel cestino per 30 giorni, poi lo spazio si libera.</li></ul>
       ${cestino.length?html`<div class="sezione-titolo">Cestino (${cestino.length})</div><ul class="elenco-piatto piccolo">${cestino.map(f=>html`<li><span class="spazio taglia">${f.nome}</span><span class="secondario">${fPeso(f.dimensione)} · ${fData(f.cestinato.slice(0,10))}</span><button class="pulsante piccolo pericolo" data-azione="file-elimina-definitivo" data-id="${f.id}">Elimina ora</button></li>`)}</ul><button class="pulsante piccolo mt-s" data-azione="cestino-svuota">Svuota il cestino</button>`:''}
     </div></div>`;
 }
-AZIONI['file-ricomprimi']=async d=>{const m=fileMeta(d.id);const b=await leggiFile(m.hash);if(!b)return;const c=await comprimiImmagine(b,{obiettivo:(stato.impostazioni.obiettivoKb||300)*1024});if(c.blob.size>=b.size*0.95)return avviso('Non si comprime ulteriormente in modo utile');const u1=URL.createObjectURL(b),u2=URL.createObjectURL(c.blob);const ok=await dialogo({titolo:'Ricompressione',largo:true,corpo:html`<div class="confronto-immagini"><figure><img src="${u1}"><figcaption>Prima: ${fPeso(b.size)}</figcaption></figure><figure><img src="${u2}"><figcaption>Dopo: ${fPeso(c.blob.size)}</figcaption></figure></div>`,pulsanti:[{testo:'Annulla',valore:false},{testo:'Sostituisci',classe:'primario',valore:true,primario:true}]});URL.revokeObjectURL(u1);URL.revokeObjectURL(u2);if(!ok)return;await sostituisciFile(m.id,c.blob,m.nome.replace(/\.[a-z]+$/i,'.jpg'),{compresso:true,dimensioneOriginale:m.dimensioneOriginale||m.dimensione})};
+AZIONI['file-ricomprimi']=async d=>{
+  const m=fileMeta(d.id);const b=await leggiFile(m.hash);if(!b)return;
+  if(ePdf(m.mime,m.nome)){
+    const nuovo=await comprimiPdf(b);
+    if(!nuovo) return avviso('Non si riesce a ridurre questo PDF: è già leggero, protetto, o non ha fotografie incorporate da ricomprimere');
+    if(!(await conferma('Sostituire con una versione più leggera: '+fPeso(nuovo.size)+' invece di '+fPeso(b.size)+'?'))) return;
+    return sostituisciFile(m.id,nuovo,m.nome,{compresso:true,dimensioneOriginale:m.dimensioneOriginale||m.dimensione});
+  }
+  const c=await comprimiImmagine(b,{obiettivo:(stato.impostazioni.obiettivoKb||300)*1024});if(c.blob.size>=b.size*0.95)return avviso('Non si comprime ulteriormente in modo utile');const u1=URL.createObjectURL(b),u2=URL.createObjectURL(c.blob);const ok=await dialogo({titolo:'Ricompressione',largo:true,corpo:html`<div class="confronto-immagini"><figure><img src="${u1}"><figcaption>Prima: ${fPeso(b.size)}</figcaption></figure><figure><img src="${u2}"><figcaption>Dopo: ${fPeso(c.blob.size)}</figcaption></figure></div>`,pulsanti:[{testo:'Annulla',valore:false},{testo:'Sostituisci',classe:'primario',valore:true,primario:true}]});URL.revokeObjectURL(u1);URL.revokeObjectURL(u2);if(!ok)return;await sostituisciFile(m.id,c.blob,m.nome.replace(/\.[a-z]+$/i,'.jpg'),{compresso:true,dimensioneOriginale:m.dimensioneOriginale||m.dimensione})};
 AZIONI['file-sostituisci']=async d=>{const fs=await scegliFile({multipli:false,accetta:'.pdf,image/*'});if(!fs.length)return;const m=fileMeta(d.id);const es=await acquisisciFile(fs[0],{});await sostituisciRiferimenti(m.id,es.rec.id);avviso('File sostituito')};
 async function sostituisciFile(vecchioId,blob,nome,meta){const {rec}=await salvaFile(blob,Object.assign({nome},meta||{}));await sostituisciRiferimenti(vecchioId,rec.id)}
 async function sostituisciRiferimenti(vecchioId,nuovoId_){
@@ -6330,7 +6353,7 @@ async function analizzaPdf(blob){
     return {contenuto:await espandi(contenuti.join('\n'),p.dict,fonts,0),fonts,dict:p.dict};
   };
   const corpo=(n)=>{const o=oggetti.get(n);return o?(o.inline!==undefined?o.inline:testo.slice(o.inizio,o.fine)):''};
-  return {pagine,contenutoPagina,oggetti,flusso,dictDi,corpo,bytes};
+  return {pagine,contenutoPagina,oggetti,flusso,dictDi,corpo,bytes,cifrato:!!decifra};
 }
 async function estraiTestoPdf(blob,avanzamento){
   const pdf=await analizzaPdf(blob);
@@ -6343,6 +6366,68 @@ async function estraiTestoPdf(blob,avanzamento){
     tutto+=testoPagina+'\n\n';
   }
   return {testo:tutto,pagine:paginaTesti};
+}
+// ---------------------------------------------------------------------
+// RIDUZIONE PESO DI UN PDF: quasi sempre il peso sta nelle fotografie incorporate (una scansione o
+// una foto incollata, mai ricompressa). Si ricomprimono con lo stesso motore delle immagini
+// dell'archivio e si riscrive il PDF con le stesse pagine e la stessa struttura, sostituendo solo
+// quei flussi — stesso principio già usato per estraiPaginePdf.
+// ponytail: non tocca i PDF cifrati (andrebbe riscritta anche la cifratura) né quelli con object
+// stream (rischierebbe di perdere oggetti che stanno solo lì dentro): in quei casi restituisce null.
+async function comprimiPdf(blob,opz){
+  opz=Object.assign({maxLato:1600,obiettivoKb:150},opz||{});
+  const pdf=await analizzaPdf(blob);
+  if(pdf.cifrato) return null;
+  if(Array.from(pdf.oggetti.values()).some(o=>o.inline!==undefined)) return null;
+  const sostituzioni=new Map();
+  for(const [num,o] of pdf.oggetti){
+    if(!/\/Subtype\s*\/Image/.test(o.dict)) continue;
+    const dati=await pdf.flusso(o); if(!dati||!dati.length) continue;
+    let sorgente=null;
+    if(/\/DCTDecode/.test(o.dict)) sorgente=new Blob([dati],{type:'image/jpeg'});
+    else if(/\/FlateDecode/.test(o.dict)){ const durl=await bitmapGrezzoADataUrl(dati,o.dict,pdf); if(durl) sorgente=dataUrlABlob(durl); }
+    if(!sorgente||sorgente.size<40*1024) continue; // le immagini piccole non valgono lo sforzo
+    try{
+      const c=await comprimiImmagine(sorgente,{maxLato:opz.maxLato,obiettivo:opz.obiettivoKb*1024,qualitaMin:0.4});
+      if(c.blob.size<sorgente.size*0.85) sostituzioni.set(num,c);
+    }catch(e){}
+  }
+  if(!sostituzioni.size) return null;
+  return riscriviPdfConImmagini(pdf,sostituzioni);
+}
+async function riscriviPdfConImmagini(pdf,sostituzioni){
+  const testoOriginale=latin1(pdf.bytes,0,pdf.bytes.length);
+  const pezzi=[];let lunghezza=0;
+  const scrivi=(x)=>{const b=typeof x==='string'?byte(x):x;pezzi.push(b);lunghezza+=b.length};
+  scrivi('%PDF-1.7\n%\xE2\xE3\xCF\xD3\n');
+  const posizioni=new Map();
+  const numeri=Array.from(pdf.oggetti.keys()).sort((a,b)=>a-b);
+  for(const n of numeri){
+    const o=pdf.oggetti.get(n);
+    posizioni.set(n,lunghezza);
+    if(sostituzioni.has(n)){
+      const c=sostituzioni.get(n);
+      const nuovo=new Uint8Array(await c.blob.arrayBuffer());
+      let dict=o.dict;
+      dict=dict.replace(/\/Filter\s*(?:\[[^\]]*\]|\/\w+)/,'/Filter/DCTDecode');
+      dict=dict.replace(/\/DecodeParms\s*(?:\[[^\]]*\]|<<[\s\S]*?>>)/,'');
+      dict=dict.replace(/\/Length\s+\d+(\s+0\s+R)?/,'/Length '+nuovo.length);
+      dict=dict.replace(/\/Width\s+\d+/,'/Width '+c.larghezza).replace(/\/Height\s+\d+/,'/Height '+c.altezza);
+      dict=dict.replace(/\/ColorSpace\s*(?:\[[^\]]*\]|\/\w+|\d+\s+0\s+R)/,'/ColorSpace/DeviceRGB'); // il canvas produce sempre RGB
+      scrivi(n+' 0 obj\n'+dict+'\nstream\n');scrivi(nuovo);scrivi('\nendstream\nendobj\n');
+    }else{
+      scrivi(n+' 0 obj');scrivi(pdf.bytes.subarray(o.inizio,o.fine));scrivi('endobj\n');
+    }
+  }
+  const inizioXref=lunghezza;
+  const totale=numeri[numeri.length-1]+1;
+  let xref='xref\n0 '+totale+'\n0000000000 65535 f \n';
+  for(let n=1;n<totale;n++){const p=posizioni.get(n);xref+=p!==undefined?String(p).padStart(10,'0')+' 00000 n \n':'0000000000 65535 f \n'}
+  scrivi(xref);
+  const trailerM=/trailer\s*<<([\s\S]*?)>>/g;let tm,trailer=null;while((tm=trailerM.exec(testoOriginale)))trailer=tm[1];
+  const rootM=trailer&&/\/Root\s+(\d+)\s+0\s+R/.exec(trailer);
+  scrivi('trailer\n<< /Size '+totale+(rootM?' /Root '+rootM[1]+' 0 R':'')+' >>\nstartxref\n'+inizioXref+'\n%%EOF\n');
+  return new Blob(pezzi,{type:'application/pdf'});
 }
 function leggiCMap(s){
   const mappa=new Map();let m;
@@ -6594,7 +6679,7 @@ function moltiplicaMatrici(a,b){
 function applicaMatrice(m,x,y){return [m[0]*x+m[2]*y+m[4], m[1]*x+m[3]*y+m[5]]}
 // Legge il contenuto di una pagina e restituisce testo e tratti con le loro coordinate (origine in
 // alto a sinistra, come sullo schermo: il PDF le ha in basso a sinistra).
-function elementiPagina(c,fonts,altezza){
+function elementiPagina(c,fonts,altezza,immagini){
   const elementi=[];
   let ctm=[1,0,0,1,0,0];const pila=[];
   let tm=[1,0,0,1,0,0],tlm=[1,0,0,1,0,0];
@@ -6656,34 +6741,45 @@ function elementiPagina(c,fonts,altezza){
       case 'S': case 's': chiudiPercorso(false); break;
       case 'f': case 'F': case 'f*': case 'B': case 'B*': chiudiPercorso(true); break;
       case 'n': haPercorso=false; break;
+      case 'Do': {
+        const nome=(pila_op.filter(x=>typeof x==='string'&&x[0]==='/').pop()||'').slice(1);
+        const src=immagini&&immagini.get(nome);
+        if(src){
+          // un'immagine occupa il quadrato unitario: i suoi 4 angoli trasformati dalla ctm corrente
+          // danno la posizione e la dimensione reali sulla pagina (non necessariamente allineati agli
+          // assi, ma per un modulo da compilare basta il rettangolo che li contiene)
+          const p=[applicaMatrice(ctm,0,0),applicaMatrice(ctm,1,0),applicaMatrice(ctm,0,1),applicaMatrice(ctm,1,1)];
+          const xs=p.map(q=>q[0]),ys=p.map(q=>q[1]);
+          const x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys);
+          elementi.push({t:'immagine',x:x0,y:altezza-y1,w:x1-x0,h:y1-y0,src});
+        }
+        break;
+      }
     }
     pila_op.length=0;
   }
   return elementi;
 }
-// Pagina scansionata: il foglio è una fotografia dentro il PDF. Non c'è niente da ricostruire, ma
-// l'immagine si può tirare fuori così com'è: quasi sempre JPEG, ma un "Stampa in PDF" di Word/WPS
-// con dentro una foto incollata la salva spesso come bitmap grezzo (FlateDecode, non JPEG) — senza
-// questo secondo caso la pagina restava del tutto vuota: né testo (non ce n'è) né immagine.
-async function immagineDiPagina(pdf,dictPagina){
+// Tutte le immagini nelle risorse di una pagina, decodificate: nome della risorsa → data URL.
+// Quasi sempre JPEG, ma un "Stampa in PDF" di Word/WPS con dentro una foto incollata la salva
+// spesso come bitmap grezzo (FlateDecode, non JPEG) — senza questo secondo caso l'immagine
+// veniva scartata e la pagina restava del tutto vuota: né testo (non ce n'è) né immagine.
+async function immaginiRisorsa(pdf,dictPagina){
   const rr=/\/Resources\s+(\d+)\s+0\s+R/.exec(dictPagina);
   const res=rr?pdf.dictDi(+rr[1]):dictPagina;
   let xo='';const xm=/\/XObject\s+(\d+)\s+0\s+R/.exec(res);
   if(xm)xo=pdf.dictDi(+xm[1]);else{const xi=/\/XObject\s*<<([\s\S]*?)>>/.exec(res);if(xi)xo=xi[1]}
-  let migliore=null;
-  const re=/\/[^\s\/\]<>]+\s+(\d+)\s+0\s+R/g;let m;
+  const mappa=new Map();
+  const re=/\/([^\s\/\]<>]+)\s+(\d+)\s+0\s+R/g;let m;
   while((m=re.exec(xo))){
-    const o=pdf.oggetti.get(+m[1]);if(!o||!/\/Subtype\s*\/Image/.test(o.dict))continue;
+    const o=pdf.oggetti.get(+m[2]);if(!o||!/\/Subtype\s*\/Image/.test(o.dict))continue;
     const jpeg=/\/DCTDecode/.test(o.dict),flate=/\/FlateDecode/.test(o.dict);
     if(!jpeg&&!flate)continue; // altri filtri (CCITT, JPX...) vorrebbero un decodificatore che non c'è
-    const w=+((/\/Width\s+(\d+)/.exec(o.dict)||[])[1]||0);
-    if(!migliore||w>migliore.w) migliore={o,w,jpeg};
+    const dati=await pdf.flusso(o);if(!dati)continue;
+    const durl=jpeg?await leggiComeDataUrl(new Blob([dati],{type:'image/jpeg'})):await bitmapGrezzoADataUrl(dati,o.dict,pdf);
+    if(durl) mappa.set(m[1],durl);
   }
-  if(!migliore) return null;
-  const dati=await pdf.flusso(migliore.o);
-  if(!dati) return null;
-  if(migliore.jpeg) return leggiComeDataUrl(new Blob([dati],{type:'image/jpeg'}));
-  return bitmapGrezzoADataUrl(dati,migliore.o.dict,pdf);
+  return mappa;
 }
 // Numero di componenti per pixel della colorspace dell'immagine: le uniche che servono per un
 // bitmap grezzo (Indexed e le altre vorrebbero una tavolozza o un decodificatore che non c'è).
@@ -6724,9 +6820,15 @@ async function rendiPaginaPdf(blob,indice){
   if(!c) throw new Error('pagina non leggibile');
   const mb=/\/MediaBox\s*\[\s*(-?[\d.]+)\s+(-?[\d.]+)\s+(-?[\d.]+)\s+(-?[\d.]+)/.exec(c.dict)||[0,0,0,595.28,841.89];
   const larghezza=Math.abs(+mb[3]-+mb[1]),altezza=Math.abs(+mb[4]-+mb[2]);
-  const elementi=elementiPagina(c.contenuto,c.fonts,altezza);
-  // se non c'è testo da ricostruire, il foglio è una scansione: si usa la fotografia che sta dentro
-  const scansione=elementi.filter(e=>e.t==='testo').length?null:await immagineDiPagina(pdf,c.dict);
+  const immagini=await immaginiRisorsa(pdf,c.dict);
+  const elementi=elementiPagina(c.contenuto,c.fonts,altezza,immagini);
+  // pagina scansionata: un'unica immagine che copre quasi tutto il foglio e niente testo — si usa
+  // la fotografia come sfondo. Un'immagine piccola (un logo, un timbro) resta invece fra gli
+  // elementi ricostruiti, nella sua posizione vera: altrimenti si vedrebbe solo quella, spalmata a
+  // riempire tutta la pagina, e il resto del modulo (tabelle, testo) sparirebbe.
+  const conTesto=elementi.some(e=>e.t==='testo');
+  const grande=!conTesto&&elementi.filter(e=>e.t==='immagine').find(e=>e.w*e.h>=larghezza*altezza*0.7);
+  const scansione=grande?grande.src:null;
   return {larghezza,altezza,elementi,scansione,pagine:pdf.pagine.length,indice:i};
 }
 
@@ -6900,6 +7002,7 @@ function postazioneAssistente(file,pagina,sfondo,nPagine,indice){
     if(sfondo) return `<img class="ap-sfondo" src="${h(sfondo)}" alt="${h(file.name)}">`;
     return pagina.elementi.map(e=>e.t==='testo'
       ? `<span class="ap-t" style="left:${e.x}pt;top:${e.y-e.dim}pt;font-size:${e.dim}pt;${e.grassetto?'font-weight:700;':''}">${h(e.testo)}</span>`
+      : e.t==='immagine' ? `<img class="ap-img" src="${h(e.src)}" alt="" style="left:${e.x}pt;top:${e.y}pt;width:${e.w}pt;height:${e.h}pt">`
       : `<span class="ap-l" style="left:${e.x}pt;top:${e.y}pt;width:${e.w}pt;height:${e.h}pt;${e.t==='riquadro'?'background:none;border:.6pt solid #333;':''}"></span>`).join('');
   };
   const corpo=html`<div class="assistente">
