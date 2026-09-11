@@ -607,10 +607,12 @@ select.stato-rapido.inviato{background:var(--giallo-chiaro);border-color:var(--g
 .gruppo-pulsanti.stati-prev .pulsante.attivo.accettato{background:var(--blu);color:#fff}
 .gruppo-pulsanti.stati-prev .pulsante.attivo.rifiutato,.gruppo-pulsanti.stati-prev .pulsante.attivo.scaduto{background:var(--rosso);color:#fff}
 .ritaglio-foto{position:relative;width:320px;max-width:100%;margin:0 auto;touch-action:none}
-.ritaglio-foto canvas{display:block;width:100%;height:auto;border-radius:var(--raggio);background:#fff;cursor:grab}
+.ritaglio-foto canvas{display:block;width:100%;height:auto;border-radius:var(--raggio-grande);background:#fff;cursor:grab}
 .ritaglio-foto canvas:active{cursor:grabbing}
-.ritaglio-foto .maschera{position:absolute;inset:0;border-radius:var(--raggio);pointer-events:none;box-shadow:0 0 0 999px rgba(0,0,0,.45) inset;-webkit-mask:radial-gradient(circle at 50% 50%, transparent 49.5%, #000 50%);mask:radial-gradient(circle at 50% 50%, transparent 49.5%, #000 50%)}
-.foto-persona{width:120px;height:120px;border-radius:var(--raggio);object-fit:cover;border:1px solid var(--bordo)}
+.foto-persona{width:140px;height:140px;border-radius:var(--raggio-grande);object-fit:cover;border:1px solid var(--bordo);flex:none}
+.foto-persona.placeholder{display:flex;align-items:center;justify-content:center;background:var(--blu-chiaro);color:var(--blu-testo);font-weight:700;font-size:36px}
+.foto-persona-bottone{padding:0;border:none;background:none;cursor:pointer;display:inline-flex;border-radius:var(--raggio-grande)}
+.foto-persona-bottone:hover .foto-persona{opacity:.85}
 .segnaposto-picker{border:1px solid var(--bordo);border-radius:var(--raggio);padding:var(--sp-2);max-height:220px;overflow:auto;background:var(--superficie-2)}
 .segnaposto-picker .gruppo+.gruppo{margin-top:var(--sp-2)}
 .segnaposto-picker .chip{cursor:pointer}

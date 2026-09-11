@@ -148,7 +148,9 @@ async function firmaSenzaSfondo(blob,soglia){
   const scala=Math.min(1,900/Math.max(img.width,img.height));
   const w=Math.max(1,Math.round(img.width*scala)),hh=Math.max(1,Math.round(img.height*scala));
   const c=document.createElement('canvas');c.width=w;c.height=hh;
-  const ctx=c.getContext('2d');ctx.drawImage(img,0,0,w,hh);
+  // sfondo bianco prima di disegnare: se la foto è già un PNG trasparente, altrimenti il
+  // trasparente del canvas (nero a soglia 0) verrebbe letto come inchiostro scurissimo
+  const ctx=c.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,w,hh);ctx.drawImage(img,0,0,w,hh);
   const dati=ctx.getImageData(0,0,w,hh);const px=dati.data;
   let x0=w,y0=hh,x1=-1,y1=-1;
   for(let i=0,p=0;i<px.length;i+=4,p++){

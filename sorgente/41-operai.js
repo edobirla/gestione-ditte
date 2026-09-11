@@ -39,12 +39,15 @@ function riepilogoScadenze(){
   for(const d of documentiAzienda()){righe.push({doc:d,info:infoDocumento(d),soggetto:stato.azienda.ragioneSociale,persona:null,tipo:tipoDoc(d.tipoId)})}
   for(const m of stato.mezzi){for(const d of documentiDi('mezzo',m.id)){righe.push({doc:d,info:infoDocumento(d),soggetto:'Mezzo '+nomeMezzo(m),persona:null,tipo:tipoDoc(d.tipoId)})}}
   const conData=righe.filter(r=>r.info.data);
+  // Un documento facoltativo (es. tessera sanitaria) non deve creare allarmi: resta comunque
+  // visibile con il suo stato reale accanto al documento, nella scheda del soggetto.
+  const richiesto=r=>!r.tipo||r.tipo.obbligatorio!=='no';
   const s=soglie();
   return {
     righe,mancanti,
-    scaduti:conData.filter(r=>r.info.stato==='scaduto'),
-    entro60:conData.filter(r=>r.info.stato==='scadenza'),
-    entro90:conData.filter(r=>r.info.stato==='pianificare'),
+    scaduti:conData.filter(r=>r.info.stato==='scaduto'&&richiesto(r)),
+    entro60:conData.filter(r=>r.info.stato==='scadenza'&&richiesto(r)),
+    entro90:conData.filter(r=>r.info.stato==='pianificare'&&richiesto(r)),
     validi:conData.filter(r=>r.info.stato==='valido'),
     senzaScadenza:righe.filter(r=>!r.info.data),
     soglie:s,oggi:oggiIso,
@@ -221,7 +224,9 @@ function vistaPersona(id,r){
   const docs=documentiPersona(p.id);
   const nDocCritici=docs.filter(d=>['scaduto','scadenza'].includes(infoDocumento(d).stato)).length+(idn?idn.dettagliTutti.filter(x=>x.stato==='mancante').length:0);
   return html`<div class="briciole"><a href="#/operai">Operai</a> › ${nomePersona(p)}</div>
-  <div class="testata"><div class="riga stretta" style="gap:14px">${avatar(p,true)}<div><h1>${nomePersona(p)}</h1><div class="sotto">${p.mansione||''} · ${TIPI_PERSONA[p.tipo]||p.tipo}${p.attivo?'':' · cessato il '+fData(p.dataCessazione)}${(p.qualifiche||[]).length?' · '+p.qualifiche.map(q=>QUALIFICHE[q]||q).join(', '):''}</div></div></div>
+  <div class="testata"><div class="riga stretta" style="gap:14px">
+    <button class="foto-persona-bottone" data-azione="persona-foto-menu" data-id="${p.id}" aria-label="Foto di ${nomePersona(p)}" title="Cambia o ritaglia la foto">${p.fotoImg?html`<img src="${p.fotoImg}" alt="Foto di ${nomePersona(p)}" class="foto-persona">`:html`<span class="foto-persona placeholder">${iniziali(nomePersona(p))}</span>`}</button>
+    <div><h1>${nomePersona(p)}</h1><div class="sotto">${p.mansione||''} · ${TIPI_PERSONA[p.tipo]||p.tipo}${p.attivo?'':' · cessato il '+fData(p.dataCessazione)}${(p.qualifiche||[]).length?' · '+p.qualifiche.map(q=>QUALIFICHE[q]||q).join(', '):''}</div></div></div>
     <div class="azioni"><button class="pulsante" data-azione="documento-nuovo" data-soggetto-tipo="persona" data-soggetto-id="${p.id}" data-drop-soggetto="persona:${p.id}" title="Puoi anche trascinare qui le scansioni">${icona('allega')}Aggiungi documento</button><button class="pulsante" data-azione="persona-modifica" data-id="${p.id}">${icona('modifica')}Modifica</button>${p.attivo?html`<button class="pulsante pericolo" data-azione="persona-cessa" data-id="${p.id}">${icona('elimina')}Cessa</button>`:html`<button class="pulsante" data-azione="persona-riattiva" data-id="${p.id}">${icona('aggiorna')}Riattiva</button>`}</div></div>
   ${idn?html`<div class="mb">${idn.idonea?html`<span class="idoneita si">${icona('ok')}Può entrare in cantiere oggi</span>`:html`<span class="idoneita no">${icona('blocco')}Non può entrare in cantiere: ${idn.motivi.join('; ')}</span>`}${idn.avvisi.length?html`<div class="piccolo secondario mt-s">Da regolarizzare (richiesti dalle committenze, non bloccanti): ${idn.avvisi.join('; ')}</div>`:''}</div>`:html`<div class="mb piccolo secondario">Questa persona non va in cantiere: l'idoneità non viene calcolata.</div>`}
   ${linguette('persona:'+p.id,[{id:'documenti',testo:'Documenti',icona:'documenti',contatore:nDocCritici||null,critico:nDocCritici>0},{id:'anagrafica',testo:'Anagrafica',icona:'persona'},{id:'buste',testo:'Buste paga',icona:'busta-paga'},{id:'ore',testo:'Ore',icona:'presenze'},{id:'cantieri',testo:'Cantieri',icona:'cantieri'},{id:'retribuzione',testo:'Retribuzione',icona:'euro'}],ling)}
@@ -282,8 +287,6 @@ function schedaAnagrafica(p){
     <div class="campo"><span class="etichetta-campo">Va in cantiere</span><div>${p.inCantiere!==false?'sì':'no'}</div></div>
 
   </div></div>
-  <div class="scheda"><h3>${icona('fotocamera')}Foto <span class="azioni"><button class="pulsante piccolo" data-azione="persona-foto" data-id="${p.id}">${icona('fotocamera','piccola')}${p.fotoImg?'Sostituisci':'Carica'}</button>${p.fotoImg?html`<button class="pulsante piccolo" data-azione="persona-foto-ritaglia" data-id="${p.id}">${icona('modifica','piccola')}Ritaglia</button><button class="pulsante piccolo pericolo" data-azione="persona-foto-togli" data-id="${p.id}">${icona('elimina','piccola')}Togli</button>`:''}</span></h3>
-    ${p.fotoImg?html`<img src="${p.fotoImg}" alt="Foto di ${nomePersona(p)}" class="foto-persona">`:html`<p class="secondario piccolo">Nessuna foto. Serve a riconoscere l'operaio a colpo d'occhio negli elenchi.</p>`}</div>
   <div class="scheda"><h3>${icona('firma')}Firma <span class="azioni"><button class="pulsante piccolo" data-azione="persona-firma" data-id="${p.id}">${icona('fotocamera','piccola')}${p.firmaImg?'Sostituisci':'Carica da una foto'}</button>${p.firmaImg?html`<button class="pulsante piccolo pericolo" data-azione="persona-firma-togli" data-id="${p.id}">${icona('elimina','piccola')}Togli</button>`:''}</span></h3>
     ${p.firmaImg?html`<div class="riquadro-firma"><img src="${p.firmaImg}" alt="Firma di ${nomePersona(p)}"></div>`:html`<p class="secondario piccolo">Nessuna firma. Fotografa la firma su un foglio bianco: l'app toglie lo sfondo e la usa nelle nomine che questa persona deve firmare per accettazione.</p>`}</div>
   ${p.note?html`<div class="scheda"><h3>${icona('info')}Note</h3><p>${p.note}</p></div>`:''}
@@ -313,14 +316,25 @@ AZIONI['persona-foto-ritaglia']=async d=>{
   if(!dataUrl) return;
   esegui('Ritagliata la foto di '+nomePersona(p),s=>{s.persone.find(x=>x.id===d.id).fotoImg=dataUrl});
 };
+// Click sulla foto grande nella scheda: senza foto va dritto a scegliere il file, con la foto
+// già presente chiede cosa fare (come si tocca la foto profilo su WhatsApp).
+AZIONI['persona-foto-menu']=async d=>{
+  const p=persona(d.id);
+  if(!p.fotoImg) return AZIONI['persona-foto'](d);
+  const scelta=await dialogo({titolo:'Foto di '+nomePersona(p),corpo:html`<div class="riga" style="justify-content:center"><img src="${p.fotoImg}" alt="Foto di ${nomePersona(p)}" class="foto-persona" style="width:180px;height:180px"></div>`,
+    pulsanti:[{testo:'Annulla',valore:null},{testo:'Togli',classe:'pericolo',sinistra:true,valore:'togli'},{testo:'Ritaglia',valore:'ritaglia'},{testo:'Cambia foto',classe:'primario',primario:true,valore:'cambia'}]});
+  if(scelta==='cambia') return AZIONI['persona-foto'](d);
+  if(scelta==='ritaglia') return AZIONI['persona-foto-ritaglia'](d);
+  if(scelta==='togli') return AZIONI['persona-foto-togli'](d);
+};
 // Il ritaglio si fa a mano: la faccia non sta quasi mai al centro della foto, e un ritaglio
-// automatico centrato taglia le teste. Si trascina l'immagine e si ingrandisce finché sta nel
-// cerchio, che è la forma con cui la foto si vede davvero negli elenchi.
+// automatico centrato taglia le teste. Si trascina l'immagine e si ingrandisce finché il
+// riquadro (quadrato con angoli stondati, com'è mostrata la foto grande nella scheda) va bene.
 function ritagliaFoto(img,nome){
   const LATO=320;
   let scala=1,ox=0,oy=0;
-  const corpo=html`<p class="piccolo secondario">Trascina la foto per spostarla e usa la barra (o la rotella) per ingrandirla. Quello che resta dentro il cerchio è quello che si vedrà.</p>
-    <div class="ritaglio-foto"><canvas id="rf-tela" width="${LATO}" height="${LATO}"></canvas><div class="maschera"></div></div>
+  const corpo=html`<p class="piccolo secondario">Trascina la foto per spostarla e usa la barra (o la rotella) per ingrandirla. Quello che vedi nel riquadro è quello che si vedrà.</p>
+    <div class="ritaglio-foto"><canvas id="rf-tela" width="${LATO}" height="${LATO}"></canvas></div>
     <div class="riga mt-s"><span class="piccolo secondario">Ingrandimento</span><input type="range" id="rf-zoom" min="100" max="400" value="100" style="flex:1"></div>`;
   return dialogo({titolo:'Foto di '+nome,corpo,senzaFocus:true,valoreEscape:null,
     pulsanti:[{testo:'Annulla',valore:null},{testo:'Usa questa foto',classe:'primario',primario:true,fn:v=>v.querySelector('#rf-tela').toDataURL('image/jpeg',0.85)}],

@@ -4,7 +4,7 @@
 // (in coda, con ritardo per accorpare) e registra un'istantanea per annulla.
 // I documenti (blob) NON stanno qui: vedi ARCHIVIO. Qui solo i metadati.
 // ---------------------------------------------------------------------
-const VERSIONE_SCHEMA=5;
+const VERSIONE_SCHEMA=6;
 // Non cambiare mai questo nome: è la chiave con cui il browser conserva l'archivio. Cambiandolo,
 // i dati già salvati resterebbero nel browser ma l'applicazione non li troverebbe più.
 const NOME_DB='GestionalePavimass';
@@ -158,6 +158,11 @@ const migrazioni={
       nomina_antincendio_cantiere:['Per accettazione: ______________________________','{{addettiAntincendio.accettazione}}'],
       nomina_primo_soccorso_cantiere:['Per accettazione: ______________________________','{{addettiPrimoSoccorso.accettazione}}']};
     for(const m of ((s.modelli||{}).dichiarazioni||[])){const r=righe[m.id];if(r&&m.testo&&m.testo.includes(r[0]))m.testo=m.testo.replace(r[0],r[1])}
+    return s;
+  },
+  6:s=>{ // primo soccorso e antincendio erano richiesti a tutti: vanno chiesti solo a chi ha la qualifica
+    const fix={primo_soccorso:'primoSoccorso',antincendio_2:'antincendio'};
+    for(const t of (s.tipiDocumento||[])) if(fix[t.id]&&t.obbligatorio==='si') t.obbligatorio=fix[t.id];
     return s;
   },
 };
