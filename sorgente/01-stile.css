@@ -174,7 +174,7 @@ tr.riga-valido>td:first-child{box-shadow:inset 4px 0 0 var(--blu-chiaro)}
 .etichetta-tag{display:inline-block;padding:1px 7px;border-radius:4px;background:var(--superficie-3);font-size:var(--t-xs);color:var(--testo-2);font-weight:600}
 
 /* ---- tabelle ---- */
-.tabella-scorri{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--bordo);border-radius:var(--raggio-grande);background:var(--superficie)}
+.tabella-scorri{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;border:1px solid var(--bordo);border-radius:var(--raggio-grande);background:var(--superficie)}
 table.tabella{width:100%;border-collapse:collapse;font-size:var(--t-sm)}
 table.tabella th,table.tabella td{padding:8px 10px;text-align:left;vertical-align:middle;border-bottom:1px solid var(--bordo)}
 table.tabella th{font-weight:600;color:var(--testo-2);font-size:var(--t-xs);text-transform:uppercase;letter-spacing:.04em;background:var(--superficie-2);position:sticky;top:0;z-index:1;white-space:nowrap}
@@ -249,7 +249,7 @@ input[type=checkbox],input[type=radio]{width:18px;height:18px;accent-color:var(-
 .zona-drop svg.ic{width:28px;height:28px;margin:0 auto var(--sp-2);stroke-width:1.5}
 
 /* ---- schede a linguette ---- */
-.linguette{display:flex;gap:2px;border-bottom:1px solid var(--bordo);margin-bottom:var(--sp-4);overflow-x:auto;-webkit-overflow-scrolling:touch}
+.linguette{display:flex;gap:2px;border-bottom:1px solid var(--bordo);margin-bottom:var(--sp-4);overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch}
 .linguette button{background:none;border:0;border-bottom:2px solid transparent;padding:10px 14px;color:var(--testo-2);font-weight:550;cursor:pointer;white-space:nowrap;margin-bottom:-1px;min-height:var(--tocco);display:inline-flex;align-items:center;gap:6px}
 .linguette button:hover{color:var(--testo)} .linguette button.attiva{color:var(--blu-testo);border-bottom-color:var(--blu)}
 .linguette button .contatore{font-size:var(--t-xs);background:var(--superficie-3);border-radius:10px;padding:0 6px;color:var(--testo-2)}
@@ -261,7 +261,7 @@ input[type=checkbox],input[type=radio]{width:18px;height:18px;accent-color:var(-
 #pannello.largo{width:min(860px,100%)}
 #pannello .testa{display:flex;align-items:center;gap:var(--sp-2);padding:var(--sp-3) var(--sp-4);border-bottom:1px solid var(--bordo);flex:none}
 #pannello .testa h2{flex:1;min-width:0;font-size:var(--t-md);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#pannello .corpo{flex:1;overflow:auto;padding:var(--sp-4);-webkit-overflow-scrolling:touch}
+#pannello .corpo{flex:1;overflow:auto;scrollbar-gutter:stable;padding:var(--sp-4);-webkit-overflow-scrolling:touch}
 #pannello .corpo.pieno{padding:0}
 #pannello .piede{border-top:1px solid var(--bordo);padding:var(--sp-3) var(--sp-4);display:flex;gap:var(--sp-2);flex-wrap:wrap;flex:none;padding-bottom:calc(var(--sp-3) + env(safe-area-inset-bottom))}
 #velo-pannello{position:fixed;inset:0;background:rgba(10,10,30,.25);z-index:44;display:none}

@@ -401,6 +401,22 @@ function interpretaNomeBusta(nome){
   out.fiducia=Math.min(1,out.fiducia);
   return out;
 }
+// File originali del mese, interi (mai smistati: lo smistamento crea solo bustaPaga con
+// paginaInizio/paginaFine sullo stesso fileId condiviso). Servono a ritrovare "tutte le buste di
+// luglio" come un unico PDF, invece di passare da un operaio alla volta.
+function fileBustePerMese(){
+  const mesi=new Map(); // 'anno-mese' -> Set(fileId)
+  for(const b of stato.bustePaga){ if(!b.anno||!b.mese||!b.fileId) continue; const k=b.anno+'-'+b.mese; if(!mesi.has(k)) mesi.set(k,new Set()); mesi.get(k).add(b.fileId) }
+  return mesi;
+}
+function vistaBustePagaMese(){
+  const mesi=fileBustePerMese();
+  if(!mesi.size) return '';
+  const anni=unici(Array.from(mesi.keys()).map(k=>+k.split('-')[0])).sort((a,b)=>b-a);
+  return html`<div class="scheda mb"><h3>${icona('cartella')}Buste paga per mese</h3><p class="secondario">I PDF originali interi (mai smistati per operaio), per ritrovare in un colpo tutte le buste di un mese.</p>
+    ${anni.map(anno=>html`<div class="sezione-titolo">${anno}</div><div class="griglia-mesi">${Array.from({length:12},(_,i)=>i+1).map(mm=>{const ids=Array.from(mesi.get(anno+'-'+mm)||[]);return html`<div class="mese-cella ${ids.length?'presente':''}" style="${ids.length?'':'cursor:default'}">${NOMI_MESI_BREVI[mm-1]}${ids.length?html`<br>${ids.map(id=>html` <button class="pulsante piccolo icona" data-azione="file-apri" data-id="${id}" title="Apri il PDF intero">${icona('pdf','piccola')}</button>`)}`:''}</div>`})}</div>`)}
+  </div>`;
+}
 function vistaBustePaga(r){
   const pid=r.query.persona||ui.filtri.bustePersona||null;
   const coda=ui.busteCoda||[];
@@ -410,7 +426,7 @@ function vistaBustePaga(r){
   const buste=p?stato.bustePaga.filter(b=>b.personaId===p.id):[];
   const anni=unici([...buste.map(b=>b.anno),new Date().getFullYear()]).sort((a,b)=>b-a);
   const oggiD=new Date();
-  return html`<div class="griglia due">
+  return html`${vistaBustePagaMese()}<div class="griglia due">
     <div class="scheda"><h3>${icona('busta-paga')}Smistamento buste paga</h3><p class="secondario">Trascina qui tutti i PDF del mese: per ciascuno propongo operaio, anno e mese dal nome del file. Le tue correzioni insegnano all'applicazione come leggere i nomi la volta dopo.</p>
       <div class="zona-drop" data-azione="buste-scegli" data-drop-buste>${icona('carica')}Trascina i PDF delle buste paga o clicca per sceglierli</div>
       <button class="pulsante piccolo mt-s" data-azione="buste-smistamento-scegli">${icona('magia','piccola')}Oppure carica un unico PDF con tutte le buste del mese (separate da pagine bianche): le smisto da solo</button>
@@ -420,7 +436,7 @@ function vistaBustePaga(r){
     </div>
     <div class="scheda"><h3>Consultazione per operaio</h3>
       <div class="chip-lista mb">${persone.map(pp=>html`<a class="chip ${pid===pp.id?'attiva':''}" href="#/documenti/buste?persona=${pp.id}">${nomePersona(pp)} <span class="piccolo secondario">${stato.bustePaga.filter(b=>b.personaId===pp.id).length}</span></a>`)}</div>
-      ${p?anni.map(anno=>html`<div class="sezione-titolo">${anno}</div><div class="griglia-mesi">${Array.from({length:12},(_,i)=>i+1).map(mm=>{const b=buste.find(x=>x.anno===anno&&x.mese===mm);const futuro=anno>oggiD.getFullYear()||(anno===oggiD.getFullYear()&&mm>oggiD.getMonth());const lavorato=!!(meseP(anno,mm)&&meseP(anno,mm).persone[p.id]);return html`<div class="mese-cella ${b?'presente':futuro?'futuro':lavorato?'mancante':''}" ${b?html`data-azione="busta-apri" data-id="${b.id}"`:''} title="${b?'Busta presente':lavorato&&!futuro?'Mese lavorato senza busta':''}">${NOMI_MESI_BREVI[mm-1]}${b?html`<br>${(()=>{const c=confrontoBusta(b);const scarto=c&&Math.abs(c.diff)>0.5&&!b.verifica;return html`${icona(scarto?'attenzione':'ok','piccola')}${b.fileId?html`<button class="pulsante piccolo icona" data-azione="file-condividi" data-id="${b.fileId}" title="Condividi la busta" onclick="event.stopPropagation()">${icona('condividi','piccola')}</button>`:''}`})()}`:lavorato&&!futuro?html`<br>${icona('attenzione','piccola')}`:''}</div>`})}</div>`):html`<p class="secondario">Scegli una persona per vedere le buste per anno e mese, con i mesi mancanti evidenziati.</p>`}
+      ${p?anni.map(anno=>html`<div class="sezione-titolo">${anno}</div><div class="griglia-mesi">${Array.from({length:12},(_,i)=>i+1).map(mm=>{const b=buste.find(x=>x.anno===anno&&x.mese===mm);const futuro=anno>oggiD.getFullYear()||(anno===oggiD.getFullYear()&&mm>oggiD.getMonth());const lavorato=!!(meseP(anno,mm)&&meseP(anno,mm).persone[p.id]);return html`<div class="mese-cella ${b?'presente':futuro?'futuro':lavorato?'mancante':''}" ${b?html`data-azione="busta-apri" data-id="${b.id}"`:''} title="${b?'Busta presente':lavorato&&!futuro?'Mese lavorato senza busta':''}">${NOMI_MESI_BREVI[mm-1]}${b?html`<br>${(()=>{const c=confrontoBusta(b);const scarto=c&&Math.abs(c.diff)>0.5&&!b.verifica;return html`${icona(scarto?'attenzione':'ok','piccola')}${b.fileId?html`<button class="pulsante piccolo icona" data-azione="file-condividi" data-id="${b.fileId}" title="Condividi la busta">${icona('condividi','piccola')}</button>`:''}`})()}`:lavorato&&!futuro?html`<br>${icona('attenzione','piccola')}`:''}</div>`})}</div>`):html`<p class="secondario">Scegli una persona per vedere le buste per anno e mese, con i mesi mancanti evidenziati.</p>`}
     </div></div>`;
 }
 document.addEventListener('change',e=>{const t=e.target;if(!t.dataset||!t.dataset.busta||!ui.busteCoda)return;const c=ui.busteCoda[+t.dataset.i];if(!c)return;const k=t.dataset.busta;const v=t.value;if(k==='personaId'){c.personaId=v||null;c.corretto=true}else if(k==='anno')c.anno=v?+v:null;else if(k==='mese')c.mese=v?+v:null});

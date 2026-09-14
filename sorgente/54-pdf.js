@@ -213,14 +213,18 @@ async function comprimiPdf(blob,opz){
   const sostituzioni=new Map();
   for(const [num,o] of pdf.oggetti){
     if(!/\/Subtype\s*\/Image/.test(o.dict)) continue;
+    // Immagini CMYK (rare ma non rarissime da alcuni scanner): il canvas del browser non le
+    // decodifica in modo affidabile, spesso vengono fuori nere o con i colori invertiti. Meglio
+    // lasciarle come sono che rischiare di rovinare il documento per risparmiare qualche KB.
+    if(componentiColorSpace(pdf,o.dict)===4) continue;
     const dati=await pdf.flusso(o); if(!dati||!dati.length) continue;
-    let sorgente=null;
-    if(/\/DCTDecode/.test(o.dict)) sorgente=new Blob([dati],{type:'image/jpeg'});
+    let sorgente=null;const eraJpeg=/\/DCTDecode/.test(o.dict);
+    if(eraJpeg) sorgente=new Blob([dati],{type:'image/jpeg'});
     else if(/\/FlateDecode/.test(o.dict)){ const durl=await bitmapGrezzoADataUrl(dati,o.dict,pdf); if(durl) sorgente=dataUrlABlob(durl); }
     if(!sorgente||sorgente.size<40*1024) continue; // le immagini piccole non valgono lo sforzo
     try{
       const c=await comprimiImmagine(sorgente,{maxLato:opz.maxLato,obiettivo:opz.obiettivoKb*1024,qualitaMin:0.4});
-      if(c.blob.size<sorgente.size*0.85) sostituzioni.set(num,c);
+      if(c.blob.size<sorgente.size*0.85){ c.eraJpeg=eraJpeg; sostituzioni.set(num,c); }
     }catch(e){}
   }
   if(!sostituzioni.size) return null;
@@ -242,6 +246,12 @@ async function riscriviPdfConImmagini(pdf,sostituzioni){
       let dict=o.dict;
       dict=dict.replace(/\/Filter\s*(?:\[[^\]]*\]|\/\w+)/,'/Filter/DCTDecode');
       dict=dict.replace(/\/DecodeParms\s*(?:\[[^\]]*\]|<<[\s\S]*?>>)/,'');
+      // Un /Decode sull'originale va tolto solo se la fonte era già un JPEG: il decoder nativo del
+      // browser lo ignora (decodifica lo standard JPEG e basta), quindi il pixel che otteniamo è già
+      // "finale" e un vecchio Decode invertirebbe di nuovo. Se invece la fonte era un bitmap grezzo,
+      // bitmapGrezzoADataUrl legge i byte così come sono (senza applicare Decode): lasciarlo intatto
+      // fa sì che un lettore lo applichi uguale a prima, con lo stesso risultato di sempre.
+      if(c.eraJpeg) dict=dict.replace(/\/Decode\s*\[[^\]]*\]/,'');
       dict=dict.replace(/\/Length\s+\d+(\s+0\s+R)?/,'/Length '+nuovo.length);
       dict=dict.replace(/\/Width\s+\d+/,'/Width '+c.larghezza).replace(/\/Height\s+\d+/,'/Height '+c.altezza);
       dict=dict.replace(/\/ColorSpace\s*(?:\[[^\]]*\]|\/\w+|\d+\s+0\s+R)/,'/ColorSpace/DeviceRGB'); // il canvas produce sempre RGB
