@@ -130,11 +130,15 @@ function calcolaMesePersona(mese,persona){
   }
   const r=persona&&persona.retribuzione||{};
   const tariffa=+r.tariffaOraria||0; const fisso=+r.importoFisso||0;
+  const escluse=(mese&&mese.festivitaEscluse)||[];
+  const giorniFS=Object.keys(giorni).filter(g=>valoreCella(giorni[g])==='FS');
+  const giorniFestivitaPagati=(persona&&persona.festivitaPagate)?giorniFS.filter(g=>!escluse.includes(+g)):[];
+  const oreFestivitaPagate=giorniFestivitaPagati.length*8;
   const aggiustamenti=somma((mese&&mese.aggiustamenti)||[],a=>+a.importo||0);
-  const importoBase=tariffa*oreGriglia;
+  const importoBase=tariffa*(oreGriglia+oreFestivitaPagate);
   const importoCalcolato=arrotondaAziendale(importoBase+aggiustamenti+fisso);
   const importo=(mese&&mese.importoForzato&&mese.importoManuale!=null)?+mese.importoManuale:importoCalcolato;
-  return {oreGriglia,giorniLavorati,perCodice,tariffa,fisso,aggiustamenti,importoBase,importoCalcolato,importo};
+  return {oreGriglia,giorniLavorati,perCodice,tariffa,fisso,aggiustamenti,importoBase,importoCalcolato,importo,giorniFS,giorniFestivitaPagati,oreFestivitaPagate};
 }
 // Ore da scrivere in un giorno per una persona: 8 salvo schema orario personale
 function oreStandardGiorno(persona,iso){

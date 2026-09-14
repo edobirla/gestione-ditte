@@ -419,6 +419,7 @@ function dialogoPersona(p){
     {nome:'retribuzione.tipo',etichetta:'Retribuzione',tipo:'select',vuoto:false,opzioni:[{v:'oraria',t:'Oraria'},{v:'fissa',t:'Fissa mensile'},{v:'mista',t:'Oraria + fisso mensile'}]},
     {nome:'retribuzione.tariffaOraria',etichetta:'Tariffa oraria',tipo:'euro'},{nome:'retribuzione.importoFisso',etichetta:'Importo fisso mensile',tipo:'euro'},
     {nome:'attivo',tipo:'spunta',testo:'In forza (attivo)'},{nome:'inCantiere',tipo:'spunta',testo:'Va in cantiere (calcola idoneità)'},{nome:'inLibroPresenze',tipo:'spunta',testo:'Compare nel libro presenze'},
+    {nome:'festivitaPagate',tipo:'spunta',testo:'Festività pagate',aiuto:'Le festività cadute in giorno feriale (FS) si aggiungono all\'importo del mese; si può togliere una singola festività dal riepilogo del mese.'},
   ];
   if(!nuovo) campi.push(
     {nome:'sezionePresenze',etichetta:'Sezione presenze',tipo:'select',vuoto:false,opzioni:[{v:'soci',t:'Soci'},{v:'dipendenti',t:'Dipendenti'}]},{nome:'soloTrasferte',tipo:'spunta',testo:'Solo riga trasferte (niente ore)'},

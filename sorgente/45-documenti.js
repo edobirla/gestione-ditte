@@ -12,12 +12,18 @@ VISTE.documenti=function(r){
 };
 document.addEventListener('click',e=>{const b=e.target.closest('[data-linguetta="documenti"]');if(b){e.stopImmediatePropagation();vai('documenti/'+(b.dataset.valore==='archivio'?'':b.dataset.valore))}},true);
 
-// Un documento è "archiviato" quando il suo soggetto non è più in uso: una persona cessata o un
-// cantiere chiuso. Non si cancella niente: si toglie di mezzo, e si rivede con un interruttore.
+// Un documento è "archiviato" quando il suo soggetto non è più in uso (persona cessata, cantiere
+// chiuso) oppure quando è stato rinnovato: esiste un altro documento dello stesso tipo, per lo
+// stesso soggetto, con data di emissione più recente. Non si cancella niente: si toglie di mezzo,
+// e si rivede con un interruttore (poi da Impostazioni → Peso archivio si può ricomprimere).
+function documentoSuperato(d){
+  if(!d.dataEmissione) return false;
+  return stato.documenti.some(x=>x!==d&&x.tipoId===d.tipoId&&x.soggettoTipo===d.soggettoTipo&&x.soggettoId===d.soggettoId&&x.dataEmissione&&x.dataEmissione>d.dataEmissione);
+}
 function documentoArchiviato(d){
-  if(d.soggettoTipo==='persona'){const p=persona(d.soggettoId);return !!(p&&!p.attivo)}
-  if(d.soggettoTipo==='cantiere'){const c=cantiere(d.soggettoId);return !!(c&&['chiuso','archiviato'].includes(c.stato))}
-  return false;
+  if(d.soggettoTipo==='persona'){const p=persona(d.soggettoId);if(p&&!p.attivo)return true}
+  if(d.soggettoTipo==='cantiere'){const c=cantiere(d.soggettoId);if(c&&['chiuso','archiviato'].includes(c.stato))return true}
+  return documentoSuperato(d);
 }
 function vistaArchivio(){
   const f=ui.filtri.archivio||{};
@@ -32,7 +38,7 @@ function vistaArchivio(){
   const soggetti=[{v:'azienda',t:stato.azienda.ragioneSociale},...stato.persone.map(p=>({v:'persona:'+p.id,t:nomePersona(p)})),...stato.cantieri.map(c=>({v:'cantiere:'+c.id,t:'Cantiere '+c.nome})),...stato.mezzi.map(m=>({v:'mezzo:'+m.id,t:'Mezzo '+nomeMezzo(m)}))];
   const anni=unici(stato.documenti.flatMap(d=>[(d.dataEmissione||'').slice(0,4),(d.dataScadenza||'').slice(0,4)]).filter(Boolean)).sort().reverse();
   const sel=(nome,opz,val,etic)=>html`<select data-cambio="filtro-archivio" data-campo="${nome}" aria-label="${etic}"><option value="">${etic}</option>${opz.map(o=>html`<option value="${o.v}" ${o.v===val?'selected':''}>${o.t}</option>`)}</select>`;
-  return html`<div class="strumenti-tabella"><input type="search" placeholder="Cerca nel nome, titolo, note" value="${f.cerca||''}" data-cambio="filtro-archivio" data-campo="cerca" aria-label="Cerca documenti">${sel('soggetto',soggetti,f.soggetto,'Tutti i soggetti')}${sel('tipo',stato.tipiDocumento.map(t=>({v:t.id,t:t.nome})),f.tipo,'Tutti i tipi')}${sel('anno',anni.map(a=>({v:a,t:a})),f.anno,'Anno')}${sel('stato',Object.entries(STATI_DOC).map(([v,x])=>({v,t:x.etichetta})),f.stato,'Validità')}${pulsanteCancellaFiltri(!!(f.cerca||f.soggetto||f.tipo||f.anno||f.stato),'filtro-archivio-reset')}${archiviati?html`<label class="spunta piccolo" title="Documenti di persone cessate e di cantieri chiusi"><input type="checkbox" data-cambio="filtro-archivio-archiviati" ${f.archiviati?'checked':''}> Mostra archiviati (${archiviati})</label>`:''}<span class="conteggio">${docs.length} documenti</span></div>
+  return html`<div class="strumenti-tabella"><input type="search" placeholder="Cerca nel nome, titolo, note" value="${f.cerca||''}" data-cambio="filtro-archivio" data-campo="cerca" aria-label="Cerca documenti">${sel('soggetto',soggetti,f.soggetto,'Tutti i soggetti')}${sel('tipo',stato.tipiDocumento.map(t=>({v:t.id,t:t.nome})),f.tipo,'Tutti i tipi')}${sel('anno',anni.map(a=>({v:a,t:a})),f.anno,'Anno')}${sel('stato',Object.entries(STATI_DOC).map(([v,x])=>({v,t:x.etichetta})),f.stato,'Validità')}${pulsanteCancellaFiltri(!!(f.cerca||f.soggetto||f.tipo||f.anno||f.stato),'filtro-archivio-reset')}${archiviati?html`<label class="spunta piccolo" title="Documenti di persone cessate, cantieri chiusi e documenti rinnovati (sostituiti da uno più recente dello stesso tipo)"><input type="checkbox" data-cambio="filtro-archivio-archiviati" ${f.archiviati?'checked':''}> Mostra archiviati (${archiviati})</label>`:''}<span class="conteggio">${docs.length} documenti</span></div>
   ${tabella({id:'archivio',righe:docs,chiaveOrd:'stato',onRiga:x=>apriDocumento(x.d.id),classeRiga:x=>'riga-'+x.info.stato,colonne:[
     {chiave:'sogg',titolo:'Soggetto',principale:true,valore:x=>nomeSoggettoDoc(x.d)},
     {chiave:'tipo',titolo:'Documento',valore:x=>x.tipo?x.tipo.nome:'',formatta:x=>html`<b>${x.tipo?x.tipo.nome:'[tipo?]'}</b>${x.d.titolo?html`<br><span class="piccolo secondario">${x.d.titolo}</span>`:''}`},
