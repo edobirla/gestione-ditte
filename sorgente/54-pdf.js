@@ -230,6 +230,21 @@ async function comprimiPdf(blob,opz){
   if(!sostituzioni.size) return null;
   return riscriviPdfConImmagini(pdf,sostituzioni);
 }
+// o.dict è catturato da analizzaPdf come "fino a 4000 caratteri dall'inizio dell'oggetto", per
+// motivi di prestazioni: per un'immagine con uno stream grande, questo include davvero anche i
+// primi migliaia di byte grezzi dello stream stesso (tutto quello che segue "stream\n" finché non
+// si arriva a 4000 caratteri). Per farci normali .test()/.exec() non è mai stato un problema: il
+// dizionario vero viene comunque per primo. Qui però il dizionario si RISCRIVE per intero, quindi
+// quella coda va tolta: altrimenti finisce incollata fra il nostro "stream\n" e i byte nuovi,
+// spostando tutto quello che segue e rovinando l'immagine (l'ha fatta uscire nera).
+function dizionarioVero(s){
+  let profondita=0;
+  for(let i=0;i<s.length-1;i++){
+    if(s[i]==='<'&&s[i+1]==='<'){profondita++;i++;continue}
+    if(s[i]==='>'&&s[i+1]==='>'){profondita--;i++;if(profondita===0)return s.slice(0,i+1)}
+  }
+  return s;
+}
 async function riscriviPdfConImmagini(pdf,sostituzioni){
   const testoOriginale=latin1(pdf.bytes,0,pdf.bytes.length);
   const pezzi=[];let lunghezza=0;
@@ -243,7 +258,7 @@ async function riscriviPdfConImmagini(pdf,sostituzioni){
     if(sostituzioni.has(n)){
       const c=sostituzioni.get(n);
       const nuovo=new Uint8Array(await c.blob.arrayBuffer());
-      let dict=o.dict;
+      let dict=dizionarioVero(o.dict);
       dict=dict.replace(/\/Filter\s*(?:\[[^\]]*\]|\/\w+)/,'/Filter/DCTDecode');
       dict=dict.replace(/\/DecodeParms\s*(?:\[[^\]]*\]|<<[\s\S]*?>>)/,'');
       // Un /Decode sull'originale va tolto solo se la fonte era già un JPEG: il decoder nativo del

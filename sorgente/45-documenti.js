@@ -17,6 +17,10 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-linguetta=
 // stesso soggetto, con data di emissione più recente. Non si cancella niente: si toglie di mezzo,
 // e si rivede con un interruttore (poi da Impostazioni → Peso archivio si può ricomprimere).
 function documentoSuperato(d){
+  // Segnale certo: è stato rinnovato dal pulsante apposito, che lo segna con l'id del successore.
+  if(d.sostituitoDa) return true;
+  // Ripiego per chi non è mai passato dal "Rinnovo" (es. un secondo documento caricato a mano):
+  // se ha una data di emissione e ne esiste un altro dello stesso tipo/soggetto più recente.
   if(!d.dataEmissione) return false;
   return stato.documenti.some(x=>x!==d&&x.tipoId===d.tipoId&&x.soggettoTipo===d.soggettoTipo&&x.soggettoId===d.soggettoId&&x.dataEmissione&&x.dataEmissione>d.dataEmissione);
 }
@@ -96,7 +100,7 @@ AZIONI['doc-aggiungi-file']=async d=>{const fs=await scegliFile({accetta:'.pdf,i
 AZIONI['documento-nuovo']=d=>dialogoDocumento({soggettoTipo:d.soggettoTipo||null,soggettoId:d.soggettoId||null});
 AZIONI['documento-modifica']=d=>dialogoDocumento(perId('documenti',d.id));
 AZIONI['documento-duplica']=d=>{const o=perId('documenti',d.id);dialogoDocumento({soggettoTipo:o.soggettoTipo,soggettoId:o.soggettoId,tipoId:o.tipoId,titolo:o.titolo,rinnovoDi:o.id})};
-AZIONI['documento-elimina']=async d=>{const doc=perId('documenti',d.id);const t=tipoDoc(doc.tipoId);if(!(await conferma(`Eliminare «${t?t.nome:'documento'}» di ${nomeSoggettoDoc(doc)}? I file allegati restano nel cestino 30 giorni.`,{pericolo:true,ok:'Elimina'})))return;chiudiPannello();esegui('Eliminato documento '+(t?t.nome:''),s=>{s.documenti=s.documenti.filter(x=>x.id!==d.id);cestinaFileOrfani(s)})};
+AZIONI['documento-elimina']=async d=>{const doc=perId('documenti',d.id);const t=tipoDoc(doc.tipoId);if(!(await conferma(`Eliminare «${t?t.nome:'documento'}» di ${nomeSoggettoDoc(doc)}? I file allegati restano nel cestino 30 giorni.`,{pericolo:true,ok:'Elimina'})))return;chiudiPannello();esegui('Eliminato documento '+(t?t.nome:''),s=>{s.documenti=s.documenti.filter(x=>x.id!==d.id);for(const x of s.documenti)if(x.sostituitoDa===d.id)delete x.sostituitoDa;cestinaFileOrfani(s)})};
 async function allegaFilesADocumento(docId,files){
   const esiti=await acquisisciConAnteprima(files); if(!esiti) return;
   esegui('Allegati '+esiti.length+' file',s=>{const doc=s.documenti.find(x=>x.id===docId);for(const e of esiti){if(!doc.file.includes(e.rec.id))doc.file.push(e.rec.id)}},{senzaRender:true});
@@ -223,7 +227,7 @@ async function dialogoDocumento(d,filesIniziali){
   const nuoviId=esiti.map(e=>e.rec.id);
   if(nuovo){
     const id=nuovoId('d');
-    esegui('Aggiunto documento '+(tipoDoc(ris.tipoId)||{}).nome,s=>{s.documenti.push(Object.assign({id,soggettoTipo:st,soggettoId:sid,file:nuoviId,creato:new Date().toISOString()},ris));if(d.rinnovoDi){const v=s.documenti.find(x=>x.id===d.rinnovoDi);if(v)v.note=(v.note?v.note+' ':'')+'Rinnovato: vedi documento successivo.'}});
+    esegui('Aggiunto documento '+(tipoDoc(ris.tipoId)||{}).nome,s=>{s.documenti.push(Object.assign({id,soggettoTipo:st,soggettoId:sid,file:nuoviId,creato:new Date().toISOString()},ris));if(d.rinnovoDi){const v=s.documenti.find(x=>x.id===d.rinnovoDi);if(v){v.note=(v.note?v.note+' ':'')+'Rinnovato: vedi documento successivo.';v.sostituitoDa=id}}});
     apriDocumento(id);
   } else {
     esegui('Modificato documento '+(tipoDoc(ris.tipoId)||{}).nome,s=>{const x=s.documenti.find(x=>x.id===d.id);Object.assign(x,ris,{soggettoTipo:st,soggettoId:sid});x.file=unici([...(x.file||[]),...nuoviId])});
