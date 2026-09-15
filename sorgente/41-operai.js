@@ -2,14 +2,23 @@
 // OPERAI: elenco, scheda persona, documenti, scadenzario complessivo.
 // Qui vivono anche gli aiuti condivisi sulle scadenze (usati da dashboard, cantieri, pacchetto).
 // ---------------------------------------------------------------------
-function infoDocumento(doc){return statoDocumento(doc,tipoDoc(doc.tipoId),oggi(),soglie())}
+// Un documento scaduto che in cantiere non viene chiesto (es. la tessera sanitaria) si può
+// "tacere": lo stato resta quello vero, ma non conta più fra le cose da sistemare e non
+// colora di rosso la scheda. È diverso da "senza scadenza": la data resta scritta e visibile.
+function infoDocumento(doc){
+  const info=statoDocumento(doc,tipoDoc(doc.tipoId),oggi(),soglie());
+  if(doc&&doc.avvisoTaciuto&&['scaduto','scadenza','pianificare'].includes(info.stato)) info.silenziato=true;
+  return info;
+}
+function documentoCritico(info){return !!info&&(info.stato==='scaduto'||info.stato==='scadenza')&&!info.silenziato}
 function documentiPersona(pid){return stato.documenti.filter(d=>d.soggettoTipo==='persona'&&d.soggettoId===pid)}
 function documentiAzienda(){return stato.documenti.filter(d=>d.soggettoTipo==='azienda')}
 function idoneita(p){
   const r=idoneitaPersona(p,documentiPersona(p.id),stato.tipiDocumento.filter(t=>t.ambito==='persona'&&t.bloccaIdoneita),oggi(),soglie());
   // documenti richiesti ma non bloccanti (checklist): mancanti/scaduti segnalati a parte
   const nonBloccanti=idoneitaPersona(p,documentiPersona(p.id),stato.tipiDocumento.filter(t=>t.ambito==='persona'&&!t.bloccaIdoneita&&t.obbligatorio!=='no'),oggi(),soglie());
-  r.avvisi=nonBloccanti.motivi;
+  // gli avvisi non bloccanti saltano i documenti che l'utente ha scelto di non farsi segnalare
+  r.avvisi=nonBloccanti.dettagli.filter(x=>x.stato==='mancante'||(x.stato==='scaduto'&&!(x.doc&&x.doc.avvisoTaciuto))).map(x=>x.stato==='mancante'?`${x.nome}: mancante`:`${x.tipo.nome} scaduto il ${fData(x.info.data)}`);
   r.dettagliTutti=[...r.dettagli,...nonBloccanti.dettagli];
   return r;
 }
@@ -41,7 +50,7 @@ function riepilogoScadenze(){
   const conData=righe.filter(r=>r.info.data);
   // Un documento facoltativo (es. tessera sanitaria) non deve creare allarmi: resta comunque
   // visibile con il suo stato reale accanto al documento, nella scheda del soggetto.
-  const richiesto=r=>!r.tipo||r.tipo.obbligatorio!=='no';
+  const richiesto=r=>(!r.tipo||r.tipo.obbligatorio!=='no')&&!r.info.silenziato;
   const s=soglie();
   return {
     righe,mancanti,
@@ -58,12 +67,13 @@ function documentoPiuCritico(p){
   const idn=idoneita(p);
   const manc=idn.dettagliTutti.find(x=>x.stato==='mancante');
   const ord=['scaduto','scadenza','pianificare','valido','riferimento'];
-  docs.sort((a,b)=>ord.indexOf(a.info.stato)-ord.indexOf(b.info.stato)||(a.info.giorni||0)-(b.info.giorni||0));
+  const rango=x=>x.info.silenziato?ord.indexOf('riferimento'):ord.indexOf(x.info.stato);
+  docs.sort((a,b)=>rango(a)-rango(b)||(a.info.giorni||0)-(b.info.giorni||0));
   const peggio=docs[0];
   if(manc&&manc.tipo.bloccaIdoneita&&(!peggio||peggio.info.stato!=='scaduto')) return {stato:'mancante',testo:manc.nome+': mancante'};
   if(!peggio) return manc?{stato:'mancante',testo:manc.nome+': mancante'}:{stato:'riferimento',testo:'Nessun documento'};
   const t=tipoDoc(peggio.d.tipoId);
-  return {stato:peggio.info.stato,testo:(t?t.nome:'')+(peggio.info.data?' · '+fData(peggio.info.data):''),info:peggio.info,doc:peggio.d};
+  return {stato:peggio.info.silenziato?'riferimento':peggio.info.stato,testo:(t?t.nome:'')+(peggio.info.data?' · '+fData(peggio.info.data):''),info:peggio.info,doc:peggio.d};
 }
 
 // ---- elenco ----
@@ -170,8 +180,26 @@ AZIONI['persona-da-documento']=async d=>{
   if(!conferma_) return;
   const base=esistente?Object.assign({},esistente):{attivo:true,inLibroPresenze:true,sezionePresenze:'dipendenti',inCantiere:true,qualifiche:[],retribuzione:{tipo:'oraria'},tipo:'dipendente'};
   for(const [k,v] of Object.entries(r.dati)) if(v) base[k]=v;
-  dialogoPersona(esistente?base:Object.assign(base,{id:undefined}));
+  const pid=await dialogoPersona(esistente?base:Object.assign(base,{id:undefined}));
+  if(!pid||!r.eUnilav) return;
+  // L'UNILAV appena letto è anche il documento che va in archivio: lo si salva subito fra i
+  // documenti della persona, così non va ricaricato una seconda volta a mano.
+  await salvaUnilavFraDocumenti(pid,f,r.dati.dataAssunzione||null);
 };
+async function salvaUnilavFraDocumenti(pid,file,dataAssunzione){
+  const esiti=await acquisisciConAnteprima([new File([file],nomeFileProposto('unilav',file.name)||file.name,{type:file.type})]);
+  if(!esiti||!esiti.length) return;
+  const fileId=esiti[0].rec.id;
+  // se lo stesso file è già allegato a un UNILAV di questa persona, non si duplica niente
+  const giaLi=stato.documenti.find(d=>d.soggettoTipo==='persona'&&d.soggettoId===pid&&d.tipoId==='unilav'&&(d.file||[]).includes(fileId));
+  if(giaLi){avviso('UNILAV già presente fra i documenti');return}
+  const id=nuovoId('d');
+  esegui('Salvato UNILAV fra i documenti',s=>{
+    // un UNILAV precedente ancora valido viene marcato come sostituito da questo
+    for(const v of s.documenti) if(v.soggettoTipo==='persona'&&v.soggettoId===pid&&v.tipoId==='unilav'&&!v.sostituitoDa) v.sostituitoDa=id;
+    s.documenti.push({id,soggettoTipo:'persona',soggettoId:pid,tipoId:'unilav',titolo:'',dataEmissione:dataAssunzione,dataScadenza:null,dataFine:null,anno:null,durata:'',senzaScadenza:true,verificato:false,note:'Caricato da: '+file.name,file:[fileId],creato:new Date().toISOString()});
+  });
+}
 AZIONI['persona-modifica']=d=>dialogoPersona(persona(d.id));
 // Quando qualcuno cessa serve la carta che lo dice (licenziamento o dimissioni): si carica qui e
 // finisce fra i suoi documenti. Da quel momento la sua documentazione non ingombra più l'archivio,
@@ -222,7 +250,7 @@ function vistaPersona(id,r){
   const idn=p.inCantiere!==false?idoneita(p):null;
   const ling=linguettaAttiva('persona:'+p.id,'documenti');
   const docs=documentiPersona(p.id);
-  const nDocCritici=docs.filter(d=>['scaduto','scadenza'].includes(infoDocumento(d).stato)).length+(idn?idn.dettagliTutti.filter(x=>x.stato==='mancante').length:0);
+  const nDocCritici=docs.filter(d=>documentoCritico(infoDocumento(d))).length+(idn?idn.dettagliTutti.filter(x=>x.stato==='mancante').length:0);
   return html`<div class="briciole"><a href="#/operai">Operai</a> › ${nomePersona(p)}</div>
   <div class="testata"><div class="riga stretta" style="gap:14px">
     <button class="foto-persona-bottone" data-azione="persona-foto-menu" data-id="${p.id}" aria-label="Foto di ${nomePersona(p)}" title="Cambia o ritaglia la foto">${p.fotoImg?html`<img src="${p.fotoImg}" alt="Foto di ${nomePersona(p)}" class="foto-persona">`:html`<span class="foto-persona placeholder">${iniziali(nomePersona(p))}</span>`}</button>
@@ -256,11 +284,11 @@ function schedaDocumentiPersona(p,idn){
   const gruppi=new Map();
   for(const r of docs){const c=(r.tipo&&r.tipo.categoria)||'amministrativo';if(!gruppi.has(c))gruppi.set(c,[]);gruppi.get(c).push(r)}
   const chiavi=Array.from(gruppi.keys()).sort((a,b)=>{const ia=ordineCat.indexOf(a),ib=ordineCat.indexOf(b);return (ia<0?99:ia)-(ib<0?99:ib)});
-  const problemi=(rr)=>rr.filter(r=>r.info.stato==='scaduto'||r.info.stato==='scadenza').length;
+  const problemi=(rr)=>rr.filter(r=>documentoCritico(r.info)).length;
   return html`
   ${mancanti.length?html`<div class="avviso-inline ${mancanti.some(m=>m.tipo.bloccaIdoneita)?'critico':'attenzione'}">${icona('attenzione')}<div class="corpo"><b>Documenti mancanti:</b> ${mancanti.map(m=>m.nome).join(' · ')}</div></div>`:''}
   <div class="strumenti-tabella"><input type="search" placeholder="Cerca fra i documenti di ${nomePersona(p)}" value="${ui.filtri.docPersona||''}" data-cambio="filtro-doc-persona" aria-label="Cerca documenti">${rinnovati?html`<label class="spunta piccolo" title="Documenti sostituiti da un rinnovo più recente dello stesso tipo"><input type="checkbox" data-cambio="filtro-doc-persona-archiviati" ${mostraRinnovati?'checked':''}> Mostra rinnovati (${rinnovati})</label>`:''}<span class="conteggio">${plurale(docs.length,'documento','documenti')}</span></div>
-  ${docs.length?chiavi.map(c=>{const rr=gruppi.get(c);const pb=problemi(rr);return html`<details class="ck-sezione" ${pb||q?'open':''}><summary><span class="freccia">${icona('destra','piccola')}</span><b class="spazio">${CATEGORIE_TIPO_DOC[c]||c}</b>${pb?html`<span class="pillola scaduto piccolo">${pb} da sistemare</span>`:html`<span class="pillola valido piccolo">${icona('ok','piccola')}a posto</span>`}<span class="conteggio">${rr.length}</span></summary><div class="ck-corpo">${tabella({id:'docp'+c,righe:rr,onRiga:r=>apriDocumento(r.d.id),classeRiga:r=>'riga-'+r.info.stato,colonne:COLONNE})}</div></details>`})
+  ${docs.length?chiavi.map(c=>{const rr=gruppi.get(c);const pb=problemi(rr);return html`<details class="ck-sezione" ${pb||q?'open':''}><summary><span class="freccia">${icona('destra','piccola')}</span><b class="spazio">${CATEGORIE_TIPO_DOC[c]||c}</b>${pb?html`<span class="pillola scaduto piccolo">${pb} da sistemare</span>`:html`<span class="pillola valido piccolo">${icona('ok','piccola')}a posto</span>`}<span class="conteggio">${rr.length}</span></summary><div class="ck-corpo">${tabella({id:'docp'+c,righe:rr,onRiga:r=>apriDocumento(r.d.id),classeRiga:r=>'riga-'+(r.info.silenziato?'riferimento':r.info.stato),colonne:COLONNE})}</div></details>`})
     :html`<div class="vuoto">${icona('documenti')}<h3>${q?'Nessun documento trovato':'Nessun documento'}</h3><p class="secondario">${q?'Prova con un altro termine di ricerca.':'Usa «Aggiungi documento» qui sopra, o trascina le scansioni sul pulsante.'}</p></div>`}`;
 }
 AZIONI['filtro-doc-persona']=(d,t)=>{ui.filtri.docPersona=t.value;render();setTimeout(()=>{const i=el('[data-cambio="filtro-doc-persona"]');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}},0)};
@@ -449,8 +477,9 @@ function dialogoPersona(p){
     // lo schema orario non si modifica più a mano: resta quello già salvato, se c'era
     delete v.schemaOrarioAttivo;delete v.schemaOrario;
     if(v.dataCessazione) v.attivo=false;
-    if(nuovo){const id=nuovoId('p');esegui('Aggiunta '+v.cognome+' '+v.nome,s=>{s.persone.push(Object.assign({id,fotoId:null,firmaId:null},v))});vai('operai/'+id)}
-    else esegui('Modificata '+nomePersona(p),s=>{const x=s.persone.find(x=>x.id===p.id);Object.assign(x,v)});
+    if(nuovo){const id=nuovoId('p');esegui('Aggiunta '+v.cognome+' '+v.nome,s=>{s.persone.push(Object.assign({id,fotoId:null,firmaId:null},v))});vai('operai/'+id);return id}
+    esegui('Modificata '+nomePersona(p),s=>{const x=s.persone.find(x=>x.id===p.id);Object.assign(x,v)});
+    return p.id;
   });
 }
 

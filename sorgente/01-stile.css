@@ -268,6 +268,12 @@ input[type=checkbox],input[type=radio]{width:18px;height:18px;accent-color:var(-
 #velo-pannello.aperto{display:block}
 @media (min-width:1280px){ #velo-pannello.aperto{display:none} body.con-pannello #contenuto{padding-right:calc(560px + var(--sp-5))} body.con-pannello.pannello-largo #contenuto{padding-right:calc(860px + var(--sp-5))} }
 .anteprima-doc{width:100%;height:100%;min-height:60vh;max-height:70vh;border:0;background:var(--superficie-2)}
+/* riquadro di anteprima fisso in fondo al pannello: il PDF scorre da sé, il corpo sopra scorre da sé */
+#pannello .corpo.con-anteprima{flex:0 1 auto;max-height:55%;min-height:120px}
+#pannello .anteprima-fissa{flex:1;min-height:200px;border-top:1px solid var(--bordo);background:var(--superficie-2);display:flex;flex-direction:column;overflow:auto;-webkit-overflow-scrolling:touch}
+#pannello .anteprima-fissa .anteprima-doc{flex:1;min-height:0;max-height:none;height:100%}
+#pannello .anteprima-fissa .anteprima-img{max-width:100%;max-height:100%;margin:auto;object-fit:contain;cursor:zoom-in}
+#pannello .anteprima-fissa .anteprima-nessuna{margin:auto;padding:var(--sp-4)}
 .anteprima-img{max-height:70vh;max-width:100%;margin:0 auto;display:block;object-fit:contain;cursor:zoom-in}
 .anteprima-nessuna{padding:var(--sp-6);text-align:center;color:var(--testo-2)}
 

@@ -85,6 +85,7 @@ function pillolaDocumento(info,opz){
   else if(info.stato==='scadenza'&&info.giorni!=null) testo=`Scade fra ${info.giorni} gg`;
   else if(info.stato==='pianificare'&&info.giorni!=null) testo=`Fra ${info.giorni} gg`;
   else if(info.stato==='valido'&&info.data&&!opz.breve) testo=`Valido al ${fData(info.data)}`;
+  if(info.silenziato) return html`<span class="pillola riferimento" title="Scadenza non segnalata: lo stato resta scritto ma non conta fra le cose da sistemare">${icona('silenzio')}${testo} · non segnalato</span>`;
   return pillola(info.stato,testo,{stimata:info.stimata,titolo:info.stimata?'Scadenza stimata dalla validità tipica: la data sul documento prevale':''});
 }
 function pillolaGenerica(testo,classe,iconaNome){return html`<span class="pillola ${classe||'neutro'}">${iconaNome?icona(iconaNome):''}${testo}</span>`}
@@ -184,7 +185,10 @@ function validatoreData(v){return dataValida(v)?null:'Data non valida'}
 function apriPannello(opz){
   const p=el('#pannello');
   ui.pannello=opz;
-  p.innerHTML=html`<div class="testa"><button class="pulsante discreto icona" data-chiudi-pannello aria-label="Chiudi pannello">${icona('chiudi')}</button><h2>${opz.titolo||''}</h2>${opz.azioni?grezzo(opz.azioni):''}</div><div class="corpo ${opz.pieno?'pieno':''}">${grezzo(opz.corpo||'')}</div>${opz.piede?html`<div class="piede">${grezzo(opz.piede)}</div>`:''}`;
+  // opz.anteprima: id di un riquadro fisso sotto il corpo, che prende tutta l'altezza rimasta.
+  // Serve per i PDF: dentro un corpo scorrevole la rotella finisce nel visore del PDF e il
+  // pannello non si muove più; con il riquadro fisso il PDF ha il suo spazio e il resto il suo.
+  p.innerHTML=html`<div class="testa"><button class="pulsante discreto icona" data-chiudi-pannello aria-label="Chiudi pannello">${icona('chiudi')}</button><h2>${opz.titolo||''}</h2>${opz.azioni?grezzo(opz.azioni):''}</div><div class="corpo ${opz.pieno?'pieno':''} ${opz.anteprima?'con-anteprima':''}">${grezzo(opz.corpo||'')}</div>${opz.anteprima?html`<div class="anteprima-fissa" id="${opz.anteprima}"><div class="anteprima-nessuna">Caricamento…</div></div>`:''}${opz.piede?html`<div class="piede">${grezzo(opz.piede)}</div>`:''}`;
   p.classList.add('aperto');p.classList.toggle('largo',!!opz.largo);p.setAttribute('aria-hidden','false');
   el('#velo-pannello').classList.add('aperto');
   document.body.classList.add('con-pannello');document.body.classList.toggle('pannello-largo',!!opz.largo);
