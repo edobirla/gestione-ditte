@@ -234,7 +234,10 @@ function vistaPersona(id,r){
 }
 function schedaDocumentiPersona(p,idn){
   const q=normalizzaTesto(ui.filtri.docPersona||'');
-  let docs=documentiPersona(p.id).map(d=>({d,info:infoDocumento(d),tipo:tipoDoc(d.tipoId)}));
+  const mostraRinnovati=!!ui.filtri.docPersonaArchiviati;
+  const tutti=documentiPersona(p.id);
+  const rinnovati=tutti.filter(d=>documentoSuperato(d)).length;
+  let docs=(mostraRinnovati?tutti:tutti.filter(d=>!documentoSuperato(d))).map(d=>({d,info:infoDocumento(d),tipo:tipoDoc(d.tipoId)}));
   if(q) docs=docs.filter(r=>normalizzaTesto([r.tipo&&r.tipo.nome,r.d.titolo,r.d.note,r.d.ente,r.d.anno,r.d.dataEmissione&&fData(r.d.dataEmissione),r.info.data&&fData(r.info.data)].filter(Boolean).join(' ')).includes(q));
   const mancanti=idn?idn.dettagliTutti.filter(x=>x.stato==='mancante'):[];
   const ord=['scaduto','scadenza','pianificare','valido','riferimento'];
@@ -249,18 +252,19 @@ function schedaDocumentiPersona(p,idn){
   ]
   // I documenti di una persona sono tanti e di natura diversa: raggrupparli per argomento e tenere
   // chiuso quello che è a posto è l'unico modo per trovare qualcosa senza scorrere tutto.
-  const ordineCat=['identita','contratto','sanitario','malattia','formazione','nomina','amministrativo','sicurezza','impresa','cantiere','mezzo'];
+  const ordineCat=ORDINE_CATEGORIE_DOC;
   const gruppi=new Map();
   for(const r of docs){const c=(r.tipo&&r.tipo.categoria)||'amministrativo';if(!gruppi.has(c))gruppi.set(c,[]);gruppi.get(c).push(r)}
   const chiavi=Array.from(gruppi.keys()).sort((a,b)=>{const ia=ordineCat.indexOf(a),ib=ordineCat.indexOf(b);return (ia<0?99:ia)-(ib<0?99:ib)});
   const problemi=(rr)=>rr.filter(r=>r.info.stato==='scaduto'||r.info.stato==='scadenza').length;
   return html`
   ${mancanti.length?html`<div class="avviso-inline ${mancanti.some(m=>m.tipo.bloccaIdoneita)?'critico':'attenzione'}">${icona('attenzione')}<div class="corpo"><b>Documenti mancanti:</b> ${mancanti.map(m=>m.nome).join(' · ')}</div></div>`:''}
-  <div class="strumenti-tabella"><input type="search" placeholder="Cerca fra i documenti di ${nomePersona(p)}" value="${ui.filtri.docPersona||''}" data-cambio="filtro-doc-persona" aria-label="Cerca documenti"><span class="conteggio">${plurale(docs.length,'documento','documenti')}</span></div>
+  <div class="strumenti-tabella"><input type="search" placeholder="Cerca fra i documenti di ${nomePersona(p)}" value="${ui.filtri.docPersona||''}" data-cambio="filtro-doc-persona" aria-label="Cerca documenti">${rinnovati?html`<label class="spunta piccolo" title="Documenti sostituiti da un rinnovo più recente dello stesso tipo"><input type="checkbox" data-cambio="filtro-doc-persona-archiviati" ${mostraRinnovati?'checked':''}> Mostra rinnovati (${rinnovati})</label>`:''}<span class="conteggio">${plurale(docs.length,'documento','documenti')}</span></div>
   ${docs.length?chiavi.map(c=>{const rr=gruppi.get(c);const pb=problemi(rr);return html`<details class="ck-sezione" ${pb||q?'open':''}><summary><span class="freccia">${icona('destra','piccola')}</span><b class="spazio">${CATEGORIE_TIPO_DOC[c]||c}</b>${pb?html`<span class="pillola scaduto piccolo">${pb} da sistemare</span>`:html`<span class="pillola valido piccolo">${icona('ok','piccola')}a posto</span>`}<span class="conteggio">${rr.length}</span></summary><div class="ck-corpo">${tabella({id:'docp'+c,righe:rr,onRiga:r=>apriDocumento(r.d.id),classeRiga:r=>'riga-'+r.info.stato,colonne:COLONNE})}</div></details>`})
     :html`<div class="vuoto">${icona('documenti')}<h3>${q?'Nessun documento trovato':'Nessun documento'}</h3><p class="secondario">${q?'Prova con un altro termine di ricerca.':'Usa «Aggiungi documento» qui sopra, o trascina le scansioni sul pulsante.'}</p></div>`}`;
 }
 AZIONI['filtro-doc-persona']=(d,t)=>{ui.filtri.docPersona=t.value;render();setTimeout(()=>{const i=el('[data-cambio="filtro-doc-persona"]');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}},0)};
+AZIONI['filtro-doc-persona-archiviati']=(d,t)=>{ui.filtri.docPersonaArchiviati=t.checked;render()};
 document.addEventListener('input',debounce(e=>{const t=e.target;if(t.matches&&t.matches('[data-cambio="filtro-doc-persona"]'))AZIONI['filtro-doc-persona']({},t)},250));
 
 function schedaAnagrafica(p){

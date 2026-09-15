@@ -65,6 +65,9 @@ const CATEGORIE_MOVIMENTO={materiali:'Materiali',subappalto:'Subappalto',traspor
 // Non si applica a tutto: molti documenti hanno la scadenza stampata sopra e lì si scrive a mano.
 const DURATE_DOCUMENTO=[{v:12,t:'1 anno'},{v:24,t:'2 anni'},{v:36,t:'3 anni'},{v:60,t:'5 anni'},{v:120,t:'10 anni'},{v:6,t:'6 mesi'}];
 const CATEGORIE_TIPO_DOC={identita:'Identità',malattia:'Malattia',contratto:'Contratto',sanitario:'Sanitario',formazione:'Formazione',nomina:'Nomina',impresa:'Impresa',sicurezza:'Sicurezza',amministrativo:'Amministrativo',cantiere:'Cantiere',mezzo:'Mezzo'};
+// Ordine di visualizzazione delle categorie: usato ovunque i documenti si raggruppano per
+// argomento (scheda persona, archivio generale), così le sezioni compaiono sempre nello stesso ordine.
+const ORDINE_CATEGORIE_DOC=['identita','contratto','sanitario','malattia','formazione','nomina','amministrativo','sicurezza','impresa','cantiere','mezzo'];
 
 // Catalogo tipi di documento. obbligatorio: vedi tipoApplicabile() nelle REGOLE.
 // bloccaIdoneita: se mancante/scaduto impedisce l'ingresso in cantiere; gli altri obbligatori entrano solo nella checklist.

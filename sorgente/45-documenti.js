@@ -42,14 +42,24 @@ function vistaArchivio(){
   const soggetti=[{v:'azienda',t:stato.azienda.ragioneSociale},...stato.persone.map(p=>({v:'persona:'+p.id,t:nomePersona(p)})),...stato.cantieri.map(c=>({v:'cantiere:'+c.id,t:'Cantiere '+c.nome})),...stato.mezzi.map(m=>({v:'mezzo:'+m.id,t:'Mezzo '+nomeMezzo(m)}))];
   const anni=unici(stato.documenti.flatMap(d=>[(d.dataEmissione||'').slice(0,4),(d.dataScadenza||'').slice(0,4)]).filter(Boolean)).sort().reverse();
   const sel=(nome,opz,val,etic)=>html`<select data-cambio="filtro-archivio" data-campo="${nome}" aria-label="${etic}"><option value="">${etic}</option>${opz.map(o=>html`<option value="${o.v}" ${o.v===val?'selected':''}>${o.t}</option>`)}</select>`;
-  return html`<div class="strumenti-tabella"><input type="search" placeholder="Cerca nel nome, titolo, note" value="${f.cerca||''}" data-cambio="filtro-archivio" data-campo="cerca" aria-label="Cerca documenti">${sel('soggetto',soggetti,f.soggetto,'Tutti i soggetti')}${sel('tipo',stato.tipiDocumento.map(t=>({v:t.id,t:t.nome})),f.tipo,'Tutti i tipi')}${sel('anno',anni.map(a=>({v:a,t:a})),f.anno,'Anno')}${sel('stato',Object.entries(STATI_DOC).map(([v,x])=>({v,t:x.etichetta})),f.stato,'Validità')}${pulsanteCancellaFiltri(!!(f.cerca||f.soggetto||f.tipo||f.anno||f.stato),'filtro-archivio-reset')}${archiviati?html`<label class="spunta piccolo" title="Documenti di persone cessate, cantieri chiusi e documenti rinnovati (sostituiti da uno più recente dello stesso tipo)"><input type="checkbox" data-cambio="filtro-archivio-archiviati" ${f.archiviati?'checked':''}> Mostra archiviati (${archiviati})</label>`:''}<span class="conteggio">${docs.length} documenti</span></div>
-  ${tabella({id:'archivio',righe:docs,chiaveOrd:'stato',onRiga:x=>apriDocumento(x.d.id),classeRiga:x=>'riga-'+x.info.stato,colonne:[
+  // Come nella scheda persona: raggruppati per argomento (categoria del tipo di documento) invece
+  // di un'unica lista lunga, con le sezioni a posto chiuse — vale per tutti i soggetti insieme
+  // (persone, cantieri, mezzi, azienda), non solo per una persona alla volta.
+  const filtroAttivo=!!(f.cerca||f.soggetto||f.tipo||f.anno||f.stato);
+  const gruppi=new Map();
+  for(const x of docs){const c=(x.tipo&&x.tipo.categoria)||'amministrativo';if(!gruppi.has(c))gruppi.set(c,[]);gruppi.get(c).push(x)}
+  const chiavi=Array.from(gruppi.keys()).sort((a,b)=>{const ia=ORDINE_CATEGORIE_DOC.indexOf(a),ib=ORDINE_CATEGORIE_DOC.indexOf(b);return (ia<0?99:ia)-(ib<0?99:ib)});
+  const problemi=rr=>rr.filter(x=>x.info.stato==='scaduto'||x.info.stato==='scadenza').length;
+  const COLONNE=[
     {chiave:'sogg',titolo:'Soggetto',principale:true,valore:x=>nomeSoggettoDoc(x.d)},
     {chiave:'tipo',titolo:'Documento',valore:x=>x.tipo?x.tipo.nome:'',formatta:x=>html`<b>${x.tipo?x.tipo.nome:'[tipo?]'}</b>${x.d.titolo?html`<br><span class="piccolo secondario">${x.d.titolo}</span>`:''}`},
     {chiave:'em',titolo:'Emissione',valore:x=>x.d.dataEmissione||'',formatta:x=>x.d.dataEmissione?fData(x.d.dataEmissione):''},
     {chiave:'scad',titolo:'Scadenza',valore:x=>x.info.data||'',formatta:x=>x.info.data?html`<span class="${x.info.stimata?'stimata':''}">${fData(x.info.data)}${x.info.stimata?' ~':''}</span>`:''},
     {chiave:'stato',titolo:'Stato',valore:x=>STATI_DOC[x.info.stato].ordine,formatta:x=>pillolaDocumento(x.info,{breve:true})},
-  ],vuoto:vuoto({icona:'documenti',titolo:'Nessun documento con questi filtri',testo:'Prova ad allargare i filtri o aggiungi un documento.'})})}`;
+  ];
+  return html`<div class="strumenti-tabella"><input type="search" placeholder="Cerca nel nome, titolo, note" value="${f.cerca||''}" data-cambio="filtro-archivio" data-campo="cerca" aria-label="Cerca documenti">${sel('soggetto',soggetti,f.soggetto,'Tutti i soggetti')}${sel('tipo',stato.tipiDocumento.map(t=>({v:t.id,t:t.nome})),f.tipo,'Tutti i tipi')}${sel('anno',anni.map(a=>({v:a,t:a})),f.anno,'Anno')}${sel('stato',Object.entries(STATI_DOC).map(([v,x])=>({v,t:x.etichetta})),f.stato,'Validità')}${pulsanteCancellaFiltri(filtroAttivo,'filtro-archivio-reset')}${archiviati?html`<label class="spunta piccolo" title="Documenti di persone cessate, cantieri chiusi e documenti rinnovati (sostituiti da uno più recente dello stesso tipo)"><input type="checkbox" data-cambio="filtro-archivio-archiviati" ${f.archiviati?'checked':''}> Mostra archiviati (${archiviati})</label>`:''}<span class="conteggio">${docs.length} documenti</span></div>
+  ${docs.length?chiavi.map(c=>{const rr=gruppi.get(c);const pb=problemi(rr);return html`<details class="ck-sezione" ${pb||filtroAttivo?'open':''}><summary><span class="freccia">${icona('destra','piccola')}</span><b class="spazio">${CATEGORIE_TIPO_DOC[c]||c}</b>${pb?html`<span class="pillola scaduto piccolo">${pb} da sistemare</span>`:html`<span class="pillola valido piccolo">${icona('ok','piccola')}a posto</span>`}<span class="conteggio">${rr.length}</span></summary><div class="ck-corpo">${tabella({id:'arch'+c,righe:rr,chiaveOrd:'stato',onRiga:x=>apriDocumento(x.d.id),classeRiga:x=>'riga-'+x.info.stato,colonne:COLONNE})}</div></details>`})
+    :vuoto({icona:'documenti',titolo:'Nessun documento con questi filtri',testo:'Prova ad allargare i filtri o aggiungi un documento.'})}`;
 }
 AZIONI['filtro-archivio']=(d,t)=>{ui.filtri.archivio=Object.assign({},ui.filtri.archivio,{[d.campo]:t.value});render();if(d.campo==='cerca')setTimeout(()=>{const i=el('[data-cambio="filtro-archivio"][data-campo="cerca"]');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}},0)};
 AZIONI['filtro-archivio-archiviati']=(d,t)=>{ui.filtri.archivio=Object.assign({},ui.filtri.archivio,{archiviati:t.checked});render()};
@@ -160,6 +170,7 @@ async function dialogoDocumento(d,filesIniziali){
   const filesNuovi=filesIniziali?Array.from(filesIniziali):[];
   // proposta di tipo dai nomi file
   if(!d.tipoId&&filesNuovi.length){const prop=classificaFile(filesNuovi[0].percorso||filesNuovi[0].name);if(prop.tipoId)d.tipoId=prop.tipoId;if(prop.data&&!d.dataEmissione)d.dataEmissione=prop.data;if(!d.soggettoId&&prop.personaId){d.soggettoTipo='persona';d.soggettoId=prop.personaId}if(!d.soggettoId&&prop.azienda){d.soggettoTipo='azienda';d.soggettoId='azienda'}}
+  for(const f of filesNuovi) f.nomeProposto=nomeFileProposto(d.tipoId,f.name);
   // proposta di date lette nel testo del documento (es. "scade il ..."): mai inventate, solo trovate scritte
   if(filesNuovi.length===1&&(!d.dataScadenza||!d.dataEmissione)){
     const proposte=await proponiDateDaFile(filesNuovi[0]);
@@ -179,7 +190,7 @@ async function dialogoDocumento(d,filesIniziali){
     {nome:'note',etichetta:'Note',tipo:'textarea',largo:true},
   ];
   const val=clona(d);val.soggetto=d.soggettoTipo&&d.soggettoId?d.soggettoTipo+':'+d.soggettoId:'';
-  const listaFile=()=>html`<div class="sezione-titolo">File</div><ul class="elenco-piatto" id="dlg-file-lista">${(d.file||[]).map(id=>{const m=fileMeta(id);return m?html`<li>${icona('allega','piccola')}<span class="spazio taglia">${m.nome}</span><span class="piccolo secondario">${fPeso(m.dimensione)}</span></li>`:''})}${filesNuovi.map((f,i)=>html`<li>${icona('carica','piccola')}<span class="spazio taglia">${f.name}</span><span class="piccolo secondario">${fPeso(f.size)} · nuovo</span><button class="pulsante piccolo icona" data-togli-nuovo="${i}" aria-label="Togli">${icona('chiudi','piccola')}</button></li>`)}</ul><div class="zona-drop" id="dlg-drop" data-drop-locale>${icona('carica')}Trascina qui o clicca per aggiungere file</div>`;
+  const listaFile=()=>html`<div class="sezione-titolo">File</div><ul class="elenco-piatto" id="dlg-file-lista">${(d.file||[]).map(id=>{const m=fileMeta(id);return m?html`<li>${icona('allega','piccola')}<span class="spazio taglia">${m.nome}</span><span class="piccolo secondario">${fPeso(m.dimensione)}</span></li>`:''})}${filesNuovi.map((f,i)=>html`<li>${icona('carica','piccola')}<input type="text" class="spazio" data-nome-file="${i}" value="${f.nomeProposto||f.name}" aria-label="Nome del file (era «${f.name}»)" title="Nome originale: ${f.name}"><span class="piccolo secondario">${fPeso(f.size)} · nuovo</span><button class="pulsante piccolo icona" data-togli-nuovo="${i}" aria-label="Togli">${icona('chiudi','piccola')}</button></li>`)}</ul><div class="zona-drop" id="dlg-drop" data-drop-locale>${icona('carica')}Trascina qui o clicca per aggiungere file</div>`;
   const ris=await dialogoModulo(nuovo?'Nuovo documento':'Modifica documento',campi,val,{coda:listaFile(),alMontaggio:v=>{
     const form=v.querySelector('form');
     const sel=form.querySelector('[name=soggetto]'),tipoSel=form.querySelector('[name=tipoId]'),em=form.querySelector('[name=dataEmissione]'),sc=form.querySelector('[name=dataScadenza]'),ss=form.querySelector('[name=senzaScadenza]');
@@ -196,6 +207,13 @@ async function dialogoDocumento(d,filesIniziali){
       const et=rigaDi(em)&&rigaDi(em).querySelector('.etichetta-campo,label');
       if(et) et.textContent=t.periodo?'Dal':t.annuale?'Data del documento':'Data di emissione';
       if(t.annuale&&annoI&&!annoI.value) annoI.value=new Date().getFullYear();
+      // Nome file proposto dal tipo: solo per i campi che l'utente non ha ancora toccato a mano.
+      tutti('[data-nome-file]',v).forEach(inp=>{
+        if(inp.dataset.manuale) return;
+        const f=filesNuovi[+inp.dataset.nomeFile]; if(!f) return;
+        f.nomeProposto=nomeFileProposto(tipoSel.value,f.name);
+        inp.value=f.nomeProposto;
+      });
     };
     const daDurata=()=>{const mesi=+dur.value;if(!mesi||!em.value)return;ss.checked=false;sc.disabled=false;sc.value=aggiungiMesi(em.value,mesi)};
     dur.addEventListener('change',daDurata);
@@ -206,11 +224,14 @@ async function dialogoDocumento(d,filesIniziali){
     tipoSel.addEventListener('change',()=>{sc.value='';stimaScadenza()});em.addEventListener('change',()=>{if(dur.value)daDurata();else stimaScadenza()});
     ss.addEventListener('change',()=>{sc.disabled=ss.checked});sc.disabled=ss.checked;
     const zona=v.querySelector('#dlg-drop');
-    const rinfresca=()=>{v.querySelector('#dlg-file-lista').outerHTML=listaFile().s.match(/<ul[\s\S]*<\/ul>/)[0];tutti('[data-togli-nuovo]',v).forEach(b=>b.onclick=()=>{filesNuovi.splice(+b.dataset.togliNuovo,1);rinfresca()})};
+    const wireNomiFile=()=>tutti('[data-nome-file]',v).forEach(inp=>inp.oninput=()=>{inp.dataset.manuale='1';const f=filesNuovi[+inp.dataset.nomeFile];if(f)f.nomeProposto=inp.value});
+    const rinfresca=()=>{v.querySelector('#dlg-file-lista').outerHTML=listaFile().s.match(/<ul[\s\S]*<\/ul>/)[0];tutti('[data-togli-nuovo]',v).forEach(b=>b.onclick=()=>{filesNuovi.splice(+b.dataset.togliNuovo,1);rinfresca()});wireNomiFile()};
     tutti('[data-togli-nuovo]',v).forEach(b=>b.onclick=()=>{filesNuovi.splice(+b.dataset.togliNuovo,1);rinfresca()});
-    zona.addEventListener('click',async()=>{const fs=await scegliFile({accetta:'.pdf,image/*'});filesNuovi.push(...fs);rinfresca()});
+    wireNomiFile();
+    const aggiungiFile=fs=>{for(const f of fs)f.nomeProposto=nomeFileProposto(tipoSel.value,f.name);filesNuovi.push(...fs);rinfresca()};
+    zona.addEventListener('click',async()=>{const fs=await scegliFile({accetta:'.pdf,image/*'});aggiungiFile(fs)});
     zona.addEventListener('dragover',e=>{e.preventDefault();zona.classList.add('sopra');if(e.dataTransfer)e.dataTransfer.dropEffect='copy'});zona.addEventListener('dragleave',()=>zona.classList.remove('sopra'));
-    zona.addEventListener('drop',async e=>{e.preventDefault();e.stopPropagation();zona.classList.remove('sopra');const fs=await fileDaDrop(e.dataTransfer);filesNuovi.push(...fs);rinfresca()});
+    zona.addEventListener('drop',async e=>{e.preventDefault();e.stopPropagation();zona.classList.remove('sopra');const fs=await fileDaDrop(e.dataTransfer);aggiungiFile(fs)});
   },validaTutto:v=>{if(v.dataEmissione&&v.dataScadenza&&v.dataScadenza<v.dataEmissione)return 'La scadenza precede l\'emissione';const t=tipoDoc(v.tipoId);if(t&&v.soggetto&&t.ambito!==ambitoDi(v.soggetto)&&!(ambitoDi(v.soggetto)==='cliente'))return 'Il tipo «'+t.nome+'» non è adatto a questo soggetto';return null}});
   if(!ris) return;
   const [st,sid]=ris.soggetto.split(':');delete ris.soggetto;
@@ -223,7 +244,10 @@ async function dialogoDocumento(d,filesIniziali){
     if(gemelli.length){const t=tipoDoc(ris.tipoId);if(!(await conferma(`Esiste gi\u00e0 ${gemelli.length>1?gemelli.length+' documenti':'un documento'} \u00ab${t?t.nome:'di questo tipo'}\u00bb per ${nomeSoggettoDoc({soggettoTipo:st,soggettoId:sid})} ancora in corso di validit\u00e0. Aggiungerne un altro?`,{ok:'Aggiungi lo stesso'})))return}
   }
   let esiti=[];
-  if(filesNuovi.length){esiti=await acquisisciConAnteprima(filesNuovi)||[]}
+  if(filesNuovi.length){
+    const filesRinominati=filesNuovi.map(f=>f.nomeProposto&&f.nomeProposto!==f.name?new File([f],f.nomeProposto,{type:f.type}):f);
+    esiti=await acquisisciConAnteprima(filesRinominati)||[];
+  }
   const nuoviId=esiti.map(e=>e.rec.id);
   if(nuovo){
     const id=nuovoId('d');
@@ -251,6 +275,13 @@ async function acquisizioneRapida(files){
 }
 
 // ---- classificatore per nome e percorso ----
+// Nome proposto per il file in archivio, dal tipo di documento scelto (non dal nome originale,
+// spesso illeggibile: "scan0042.pdf" diventa "DURC.pdf"). Resta sempre modificabile a mano.
+function nomeFileProposto(tipoId,nomeOriginale){
+  const t=tipoDoc(tipoId);
+  const ext=estensioneDi(nomeOriginale);
+  return t?t.nome+(ext?'.'+ext:''):nomeOriginale;
+}
 function classificaFile(percorso){
   const p=normalizzaTesto(percorso.replace(/\.[a-z0-9]+$/i,''));
   const segmenti=percorso.split('/');const nomeFile=segmenti[segmenti.length-1];
