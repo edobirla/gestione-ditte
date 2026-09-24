@@ -408,6 +408,7 @@ input[type=checkbox],input[type=radio]{width:18px;height:18px;accent-color:var(-
 .presenze-griglia td.cella.codice-FS{color:var(--testo-3);font-weight:600}
 .presenze-griglia td.cella.fs-pagata{color:var(--blu-testo)}
 .presenze-griglia td.cella.fs-esclusa{color:var(--rosso)}
+.presenze-griglia td.cella.fuori-elenco{font-style:italic;text-decoration:underline dotted var(--arancio)}
 .presenze-griglia td.cella.testo{font-size:10.5px;color:var(--testo-2);max-width:38px;overflow:hidden;text-overflow:ellipsis;padding:0 2px}
 .presenze-griglia td.cella input{width:100%;height:100%;border:0;background:var(--superficie);text-align:center;padding:0 2px;outline:2px solid var(--blu);outline-offset:-2px;font:inherit}
 .presenze-griglia tr.sezione td{background:var(--superficie-2);font-weight:650;text-align:left;padding:4px 8px;font-size:var(--t-xs);text-transform:uppercase;letter-spacing:.04em;color:var(--testo-2);position:sticky;left:0}
@@ -3737,12 +3738,12 @@ VISTE.presenze=function(r){
 };
 function righePersona(p,mp,giorni,k){
   const calc=calcolaMesePersona(mp,p);const n=giorni.length;
-  const cella=(d,riga)=>{const c=(mp.giorni||{})[String(d.g)]||{};const bloccata=d.we;let v='',cls='';
+  const cella=(d,riga)=>{const c=(mp.giorni||{})[String(d.g)]||{};const bloccata=d.we;let v='',cls='',titoloCella='';
     if(riga==='ore'){const val=valoreCella(c);if(typeof val==='number')v=fOre(val);else if(typeof val==='string'){v=val;cls='codice codice-'+val;if(val==='FS'&&p.festivitaPagate)cls+=(mp.festivitaEscluse||[]).includes(d.g)?' fs-esclusa':' fs-pagata'}}
     else if(riga==='trasferta'){v=c.trasferta||'';cls='testo'}
-    else {v=c[riga]||'';cls='testo'}
+    else {v=c[riga]||'';cls='testo';if(riga==='cantiere'&&v){const cc=cantiereDaCella(c,d.iso);if(!cc)cls+=' fuori-elenco';else if(cc.nome!==v)titoloCella=v+' → cantiere '+cc.nome}}
     const incerto=(mp.incerti||[]).includes(d.g);
-    return html`<td class="cella ${cls} ${bloccata?'bloccata':''} ${d.we?'fine-settimana':''} ${d.festivo?'festivo':''} ${incerto?'riga-scadenza':''}" data-pid="${p.id}" data-riga="${riga}" data-giorno="${d.g}" title="${bloccata?'Sabato e domenica non si compilano':(d.festivo?'Festività':'')+(incerto?' · letto con incertezza':'')}">${v}</td>`};
+    return html`<td class="cella ${cls} ${bloccata?'bloccata':''} ${d.we?'fine-settimana':''} ${d.festivo?'festivo':''} ${incerto?'riga-scadenza':''}" data-pid="${p.id}" data-riga="${riga}" data-giorno="${d.g}" title="${bloccata?'Sabato e domenica non si compilano':cls.includes('fuori-elenco')?v+' — non riconosco il cantiere (né dal nome né dalla località): queste ore non contano per nessun cantiere (rimanenze)':titoloCella?titoloCella:(d.festivo?'Festività':'')+(incerto?' · letto con incertezza':'')}">${v}</td>`};
   if(p.soloTrasferte){
     return html`<tr><td class="fisso"><a href="#/operai/${p.id}">${nomePersona(p)}</a></td><td class="fisso2">trasferte</td>${giorni.map(d=>cella(d,'trasferta'))}<td class="totale">—</td><td class="totale num" data-azione="presenze-persona" data-k="${k}" data-pid="${p.id}" style="cursor:pointer" title="Apri il riepilogo">${fEuro(calc.importo,0)}${mp.importoForzato?' ✎':''}</td></tr>`;
   }
@@ -3771,7 +3772,7 @@ function scriviCella(anno,mese,pid,giorno,riga,valore,opz){
   if(riga==='ore'){
     if(valore==='') nuovo={ore:null,codice:null};
     else { const cod=valore.toUpperCase(); if(CODICI_ASSENZA[cod]){ if(cod==='FS'&&!eFestivo(iso,stato.impostazioni.festivitaLocali)){avviso('FS si usa solo nei giorni di festività: il '+fData(iso)+' non lo è',{tipo:'attenzione',silenzioso:true});return false} nuovo={codice:cod,ore:null}; } else { const n=leggiNumero(valore); if(n===null||n<0||n>24){avviso('Valore non valido: ore (0–24) oppure codice M, I, PE, FS, FE, AS, CI',{tipo:'errore',silenzioso:true});return false} nuovo={ore:n,codice:null}; } }
-  } else nuovo={[riga]:valore||null};
+  } else nuovo={[riga]:(riga==='cantiere'?nomeCantiereCanonico(valore):valore)||null};
   const p=persona(pid);
   esegui(`Presenze ${fDataBreve(iso)} ${nomePersona(p).split(' ')[0]}`,s=>{
     const mp=assicuraMesePersona(s,anno,mese,pid);
@@ -3785,6 +3786,21 @@ function scriviCella(anno,mese,pid,giorno,riga,valore,opz){
   },{senzaRender:opz.senzaRender,silenzioso:true});
   return true;
 }
+// Il cantiere si scrive a mano (a volte è solo la località di trasferta), ma se corrisponde a un
+// cantiere dell'elenco si salva col suo nome esatto: così ore e costi si ritrovano sul cantiere.
+function nomeCantiereCanonico(v){if(!v)return v;const q=normalizzaTesto(v);const c=stato.cantieri.find(x=>normalizzaTesto(x.nome)===q);return c?c.nome:v}
+// Di che cantiere è una cella? Nella riga «cantiere» spesso c'è solo la località (es. «piancastagnaio»):
+// vale il nome esatto; altrimenti un cantiere il cui nome o comune contiene quella parola, aperto quel giorno
+// (date di inizio/fine, se ci sono) e, se c'è più di un candidato, dello stesso committente. Solo se è uno.
+function cantiereDaCella(cella,iso){
+  const q=normalizzaTesto(cella&&cella.cantiere);if(!q)return null;
+  const esatto=stato.cantieri.find(x=>normalizzaTesto(x.nome)===q);if(esatto)return esatto;
+  const parola=t=>(' '+normalizzaTesto(t)+' ').includes(' '+q+' ');
+  let cand=stato.cantieri.filter(c=>(parola(c.nome)||parola((c.indirizzo||{}).comune))&&(!iso||((!c.dataInizio||c.dataInizio<=iso)&&(!c.dataFine||c.dataFine>=iso))));
+  if(cand.length>1&&cella.committente){const cm=normalizzaTesto(cella.committente);const st=cand.filter(c=>[c.committenteId,c.affidatariaId].some(id=>id&&normalizzaTesto(nomeCliente(id))===cm));if(st.length)cand=st}
+  return cand.length===1?cand[0]:null;
+}
+function eCantiereInElenco(v){const q=normalizzaTesto(v);return stato.cantieri.some(x=>normalizzaTesto(x.nome)===q)}
 function committenteProposto(nomeCantiere_){
   const nq=normalizzaTesto(nomeCantiere_);
   const c=stato.cantieri.find(x=>normalizzaTesto(x.nome)===nq)||stato.cantieri.find(x=>normalizzaTesto(x.nome).includes(nq)||nq.includes(normalizzaTesto(x.indirizzo.comune||'zzz')));
@@ -3797,9 +3813,11 @@ function committenteProposto(nomeCantiere_){
 function valoriUsati(campo){
   const out=new Set();
   for(const k of Object.keys(stato.presenze))for(const pid of Object.keys(stato.presenze[k].persone)){const gg=stato.presenze[k].persone[pid].giorni||{};for(const g of Object.keys(gg))if(gg[g][campo])out.add(gg[g][campo])}
-  if(campo==='cantiere')for(const c of stato.cantieri)out.add(c.nome);
   if(campo==='committente')for(const c of stato.clienti)out.add(c.ragioneSociale);
-  return Array.from(out).sort(confrontaTesto);
+  const altri=Array.from(out).sort(confrontaTesto);
+  if(campo!=='cantiere')return altri;
+  const aperti=stato.cantieri.filter(c=>c.stato!=='chiuso').map(c=>c.nome).sort(confrontaTesto);const chiusi=stato.cantieri.filter(c=>c.stato==='chiuso').map(c=>c.nome).sort(confrontaTesto);
+  return unici([...aperti,...chiusi,...altri.filter(v=>!eCantiereInElenco(v))]);
 }
 // ---- griglia: navigazione e inserimento da tastiera ----
 function montaGriglia(){
@@ -3912,7 +3930,7 @@ function riempiMese(anno,mese,pids,opz){
       if(p.soloTrasferte){ const loc=localitaTrasferte(s); let prec='';let settimana=[]; for(let g=1;g<=n;g++){const iso=chiaveMese(anno,mese)+'-'+pad2(g);if(eFineSettimana(anno,mese,g)||fest.has(iso)){if(giornoSettimana(anno,mese,g)===1)settimana=[];continue}if(giornoSettimana(anno,mese,g)===1)settimana=[];const c=mp.giorni[String(g)]||{};if(c.trasferta&&!opz.sovrascrivi){prec=c.trasferta;settimana.push(c.trasferta);continue}let cand=loc.filter(l=>l!==prec&&!settimana.includes(l));if(!cand.length)cand=loc.filter(l=>l!==prec);if(!cand.length)cand=loc;const scelto=cand[(g*7+settimana.length*3)%cand.length];c.trasferta=scelto;mp.giorni[String(g)]=c;prec=scelto;settimana.push(scelto)} continue; }
       for(let g=1;g<=n;g++){ if(eFineSettimana(anno,mese,g)) continue; const iso=chiaveMese(anno,mese)+'-'+pad2(g); const c=mp.giorni[String(g)]||{};
         if(fest.has(iso)){ if(opz.sovrascrivi||(c.ore==null&&!c.codice)){delete c.ore;c.codice='FS'} }
-        else { const ore=oreStandardGiorno(p,iso); if(opz.sovrascrivi||(c.ore==null&&!c.codice)){ if(ore>0){c.ore=ore;delete c.codice} } if(ore>0){ if(opz.cantiere&&(opz.sovrascrivi||!c.cantiere))c.cantiere=opz.cantiere; if(opz.committente&&(opz.sovrascrivi||!c.committente))c.committente=opz.committente; else if(c.cantiere&&!c.committente){const pr=committenteProposto(c.cantiere);if(pr)c.committente=pr} } }
+        else { const ore=oreStandardGiorno(p,iso); if(opz.sovrascrivi||(c.ore==null&&!c.codice)){ if(ore>0){c.ore=ore;delete c.codice} } if(ore>0){ if(opz.cantiere&&(opz.sovrascrivi||!c.cantiere))c.cantiere=nomeCantiereCanonico(opz.cantiere); if(opz.committente&&(opz.sovrascrivi||!c.committente))c.committente=opz.committente; else if(c.cantiere&&!c.committente){const pr=committenteProposto(c.cantiere);if(pr)c.committente=pr} } }
         if(Object.keys(c).length) mp.giorni[String(g)]=c; }
     }
   });
@@ -3981,7 +3999,7 @@ async function apriTrascrizione(anno,mese,pid){
   esegui('Compilazione '+nomePersona(p)+' '+fMeseAnno(anno,mese),s=>{
     const x=assicuraMesePersona(s,anno,mese,pid);x.giorni={};x.incerti=[];
     for(const r of ris.righe){const c={};if(r.ore){const cod=r.ore.toUpperCase();if(CODICI_ASSENZA[cod]){if(cod==='FS'&&!fest.has(k+'-'+pad2(r.g))){errori.push('giorno '+r.g+': FS non ammesso (non è festività)');}else c.codice=cod}else{const nn=leggiNumero(r.ore);if(nn===null||nn<0||nn>24)errori.push('giorno '+r.g+': valore «'+r.ore+'» non valido');else c.ore=nn}}
-      if(r.cantiere)c.cantiere=r.cantiere;if(r.committente)c.committente=r.committente;else if(c.cantiere){const pr=committenteProposto(c.cantiere);if(pr)c.committente=pr}
+      if(r.cantiere)c.cantiere=nomeCantiereCanonico(r.cantiere);if(r.committente)c.committente=r.committente;else if(c.cantiere){const pr=committenteProposto(c.cantiere);if(pr)c.committente=pr}
       if(Object.keys(c).length)x.giorni[String(r.g)]=c;if(r.incerto)x.incerti.push(r.g)}
   });
   if(errori.length) informa('Alcuni valori non sono stati applicati',errori.join('\n'));
@@ -5026,17 +5044,74 @@ function estraiFatturaXml(testo){
     const numero=pick(datiGen,'Numero'),data=pick(datiGen,'Data'),tipoDocumento=pick(datiGen,'TipoDocumento');
     const riepiloghi=Array.from(body.querySelectorAll('*|DatiRiepilogo'));
     const imponibile=arrotonda2(somma(riepiloghi,r=>parseFloat(pick(r,'ImponibileImporto'))||0));
-    return {numero,data,tipoDocumento,imponibile:Math.abs(imponibile),pivaCedente,denomCedente,denomCessionario};
+    // testo libero della fattura (causali, righe, riferimenti a ordini/DDT): serve a riconoscere il cantiere
+    const testoLibero=Array.from(body.querySelectorAll('*|Causale,*|Descrizione,*|RiferimentoTesto,*|IdDocumento')).map(e=>e.textContent).join(' ');
+    return {numero,data,tipoDocumento,testoLibero,imponibile:Math.abs(imponibile),pivaCedente,denomCedente,denomCessionario};
   });
 }
+// Firma digitale (.p7m): è un contenitore PKCS#7 in DER (a volte in base64) con dentro l'XML.
+// Si legge la struttura ASN.1 e si prende l'OCTET STRING che contiene la fattura; il contenuto può essere
+// spezzato in più pezzi (OCTET STRING «costruito», anche a lunghezza indefinita) e va ricucito.
+function xmlDaP7m(u8){
+  const t0=new TextDecoder('latin1').decode(u8.subarray(0,4));
+  if(/^(MI|--)/.test(t0)){const b=atob(new TextDecoder().decode(u8).replace(/-----[^-]+-----|\s+/g,''));u8=Uint8Array.from(b,c=>c.charCodeAt(0))}
+  const leggi=(i)=>{ // → {tag,cost,inizio,fine,prossimo}
+    const tag=u8[i];let j=i+1;let len=u8[j++];let indef=false;
+    if(len===0x80){indef=true;len=0}else if(len&0x80){const n=len&0x7f;len=0;for(let k=0;k<n;k++)len=len*256+u8[j++]}
+    return {tag,cost:!!(tag&0x20),inizio:j,fine:indef?null:j+len,indef};
+  };
+  const figli=(n)=>{const out=[];let i=n.inizio;while(n.indef?!(u8[i]===0&&u8[i+1]===0):i<n.fine){const c=leggi(i);const fine=c.indef?chiudi(c):c.fine;out.push(Object.assign(c,{fine}));i=fine}if(n.indef)n.fine=i+2;return out};
+  const chiudi=(n)=>{figli(n);return n.fine};
+  const contenuto=(n)=>{if(!n.cost)return [u8.subarray(n.inizio,n.fine)];return figli(n).flatMap(contenuto)};
+  const cerca=(n)=>{
+    if((n.tag&0x1f)===4){const parti=contenuto(n);const tot=new Uint8Array(parti.reduce((a,p)=>a+p.length,0));let o=0;for(const p of parti){tot.set(p,o);o+=p.length}const txt=new TextDecoder().decode(tot);if(/FatturaElettronica/.test(txt))return txt}
+    if(n.cost){for(const c of figli(n)){const r=cerca(c);if(r)return r}}
+    return null;
+  };
+  const radice=leggi(0);if(radice.indef)chiudi(radice);
+  const xml=cerca(radice);if(!xml)throw new Error('nel file firmato non ho trovato la fattura');
+  return xml;
+}
+// File scelti → testi XML: .xml, .p7m e .zip (anche con dentro .xml/.p7m)
+async function testiFattureDaFile(fs){
+  const out=[];
+  const aggiungi=(nome,u8)=>{try{out.push({nome,testo:/\.p7m$/i.test(nome)?xmlDaP7m(u8):new TextDecoder().decode(u8)})}catch(e){out.push({nome,errore:e.message})}};
+  for(const f of fs){
+    if(/\.zip$/i.test(f.name)){const zip=await leggiZip(f);for(const v of zip.voci){if(/(^|\/)__MACOSX\//.test(v.nome)||!/\.(xml|p7m)$/i.test(v.nome))continue;aggiungi(v.nome.split('/').pop(),await zip.estrai(v))}}
+    else aggiungi(f.name,new Uint8Array(await leggiComeArrayBuffer(f)));
+  }
+  return out;
+}
+// Cantiere proposto per una fattura importata: il nome (o il comune e la via) del cantiere scritto nel
+// testo della fattura; altrimenti, per una fattura emessa, l'unico cantiere aperto di quel cliente.
+const PAROLE_GENERICHE=new Set(['cantiere','lavori','lavoro','posa','pavimenti','pavimento','massetti','massetto','rivestimenti','fornitura','intervento','edificio','nuovo','nuova','ristrutturazione','presso','strada','piazza','localita']);
+function cantierePerFattura(testo,clienteId){
+  const t=' '+normalizzaTesto(testo)+' ';
+  const punti=stato.cantieri.map(c=>{
+    let p=0;const nome=normalizzaTesto(c.nome);
+    if(nome&&t.includes(' '+nome+' '))p+=10;
+    for(const w of nome.split(' '))if(w.length>=4&&!PAROLE_GENERICHE.has(w)&&t.includes(' '+w+' '))p+=2;
+    const i=c.indirizzo||{};const via=normalizzaTesto(i.via).split(' ').filter(w=>w.length>=4&&!PAROLE_GENERICHE.has(w));
+    if(via.length&&via.every(w=>t.includes(' '+w+' ')))p+=4;
+    if(i.comune&&t.includes(' '+normalizzaTesto(i.comune)+' '))p+=1;
+    if(clienteId&&(c.committenteId===clienteId||c.affidatariaId===clienteId))p+=1;
+    return {c,p};
+  }).filter(x=>x.p>=2).sort((a,b)=>b.p-a.p);
+  if(punti.length&&(punti.length===1||punti[0].p>punti[1].p))return {cantiere:punti[0].c,motivo:'nome o indirizzo del cantiere nel testo della fattura'};
+  if(clienteId){const aperti=stato.cantieri.filter(c=>(c.committenteId===clienteId||c.affidatariaId===clienteId)&&c.stato!=='chiuso');if(aperti.length===1)return {cantiere:aperti[0],motivo:'unico cantiere aperto del cliente'}}
+  return null;
+}
 AZIONI['budget-importa-xml']=async()=>{
-  const fs=await scegliFile({accetta:'.xml'});
+  const fs=await scegliFile({accetta:'.xml,.p7m,.zip'});
   if(!fs.length) return;
+  let letti;try{letti=await testiFattureDaFile(fs)}catch(e){return segnalaErrore(e,'Non sono riuscito a leggere i file')}
   const nostraPiva=normalizzaTesto(stato.azienda.piva);
   const nuovi=[];let duplicate=0,errori=0;
-  for(const f of fs){
+  let proposti=0;
+  for(const f of letti){
+    if(f.errore){errori++;continue}
     try{
-      const fatture=estraiFatturaXml(await leggiComeTesto(f));
+      const fatture=estraiFatturaXml(f.testo);
       for(const ft of fatture){
         if(!ft.numero||!ft.data){errori++;continue}
         const xmlId=[ft.pivaCedente,ft.numero,ft.data].join('|');
@@ -5049,12 +5124,13 @@ AZIONI['budget-importa-xml']=async()=>{
         let fornitoreId=null,clienteId=null;
         if(!nostra&&controparte){const q=normalizzaTesto(controparte);const fo=stato.fornitori.find(x=>normalizzaTesto(x.ragioneSociale)===q);if(fo)fornitoreId=fo.id}
         if(nostra&&controparte){const q=normalizzaTesto(controparte);const cl=stato.clienti.find(x=>normalizzaTesto(x.ragioneSociale)===q);if(cl)clienteId=cl.id}
-        nuovi.push({id:nuovoId('m'),tipo,numero:ft.numero,data:ft.data,controparte,clienteId,fornitoreId,imponibile:ft.imponibile,categoria:nostra?null:'materiali',notaSu:nota?(nostra?'entrata':'uscita'):undefined,quote:[],daVerificare:true,fatturaXmlId:xmlId,note:'Importata da fattura XML: '+f.name});
+        const prop=cantierePerFattura(ft.testoLibero+' '+controparte,clienteId);if(prop)proposti++;
+        nuovi.push({id:nuovoId('m'),tipo,numero:ft.numero,data:ft.data,controparte,clienteId,fornitoreId,imponibile:ft.imponibile,categoria:nostra?null:'materiali',notaSu:nota?(nostra?'entrata':'uscita'):undefined,quote:prop?[{cantiereId:prop.cantiere.id,importo:ft.imponibile}]:[],daVerificare:true,fatturaXmlId:xmlId,note:'Importata da fattura XML: '+f.nome+(prop?' · cantiere proposto ('+prop.motivo+'): da confermare':'')});
       }
     }catch(e){errori++}
   }
   if(nuovi.length) esegui(`Importate ${nuovi.length} fatture da XML`,s=>{s.movimenti.push(...nuovi)});
-  avviso(`${nuovi.length} fatture importate${duplicate?', '+duplicate+' già presenti':''}${errori?', '+errori+' con errori':''}. Sono segnate «da verificare»: assegna categoria e cantiere.`,{tipo:!nuovi.length&&errori?'errore':undefined,durata:6000});
+  avviso(`${nuovi.length} fatture importate${duplicate?', '+duplicate+' già presenti':''}${errori?', '+errori+' con errori':''}. ${proposti?' Per '+proposti+' ho proposto il cantiere.':''} Sono segnate «da verificare»: controlla categoria e cantiere.`,{tipo:!nuovi.length&&errori?'errore':undefined,durata:6000});
 };
 AZIONI['budget-stampa']=d=>stampaBudget(d.anno);
 
@@ -7379,16 +7455,16 @@ function numTxt(v){if(v==null||v==='')return '';const x=+(+v).toFixed(4);return 
 // ---- dai dati: ore, costi, fatture per cantiere ----
 function fattureCantiere(cid){return stato.movimenti.filter(m=>m.tipo==='entrata'&&m.data&&quoteMovimentoPerCantiere(m).some(q=>q.cantiereId===cid)).sort((a,b)=>a.data<b.data?-1:1)}
 // Ore e costo della manodopera su un cantiere fra due date (dopo "dal", fino ad "al" compreso).
-// In presenze il cantiere è testo libero: si confronta col nome del cantiere.
+// In presenze il cantiere è testo libero (spesso la località): lo riconosce cantiereDaCella().
 function oreCantiere(c,dal,al){
-  const nome=normalizzaTesto(c.nome);let ore=0,costo=0,senzaTariffa=0;
+  let ore=0,costo=0,senzaTariffa=0;
   for(const k of Object.keys(stato.presenze||{})){
     if(k>al.slice(0,7)||(dal&&k<dal.slice(0,7)))continue;
     for(const [pid,mp] of Object.entries(stato.presenze[k].persone||{})){
       const p=persona(pid);const tariffa=+((p&&p.retribuzione)||{}).tariffaOraria||0;
       for(const [g,cella] of Object.entries(mp.giorni||{})){
         const iso=k+'-'+pad2(+g);if(iso>al||(dal&&iso<=dal))continue;
-        if(!cella.cantiere||normalizzaTesto(cella.cantiere)!==nome)continue;
+        if(cantiereDaCella(cella,iso)!==c)continue;
         const v=valoreCella(cella);if(typeof v!=='number'||!v)continue;
         ore+=v;costo+=v*tariffa;if(!tariffa)senzaTariffa+=v;
       }
@@ -7479,7 +7555,7 @@ AZIONI['rim-proponi']=d=>{
   // non si duplica ciò che c'è già (stesso cantiere nei lavori, stessa fattura fra le fatture)
   const lav=p.lavori.filter(x=>!R.lavori.some(y=>y.cantiereId===x.cantiereId)&&!R.fatture.some(y=>y.cantiereId===x.cantiereId));
   const ft=p.fatture.filter(x=>!R.fatture.some(y=>y.movimentoId===x.movimentoId)&&!R.lavori.some(y=>y.cantiereId===x.cantiereId));
-  if(!lav.length&&!ft.length)return informa('Niente da aggiungere',html`<p>Non ho trovato altri cantieri con ore lavorate in presenze dopo l'ultima fattura del ${d.anno}.</p><p class="piccolo secondario">Le ore contano se nella riga «cantiere» delle presenze c'è il nome del cantiere com'è scritto in Cantieri. Puoi sempre aggiungere un cantiere o una fattura a mano.</p>`);
+  if(!lav.length&&!ft.length)return informa('Niente da aggiungere',html`<p>Non ho trovato altri cantieri con ore lavorate in presenze dopo l'ultima fattura del ${d.anno}.</p><p class="piccolo secondario">Le ore contano se nella riga «cantiere» delle presenze c'è il nome del cantiere o la sua località (in Presenze le celle non riconosciute sono sottolineate in arancione). Puoi sempre aggiungere un cantiere o una fattura a mano.</p>`);
   esegui(`Proposte: ${plurale(lav.length,'lavoro in corso','lavori in corso')}, ${plurale(ft.length,'fattura da emettere','fatture da emettere')}`,s=>{const X=rimanenzeAnno(s,d.anno);X.lavori.push(...lav);X.fatture.push(...ft)});
 };
 AZIONI['rim-cantiere']=async d=>{
@@ -7937,6 +8013,9 @@ async function avvia(){
   render();
   // Chiede al browser di non svuotare l'archivio da solo. Non blocca: se rifiuta lo segnaliamo in Impostazioni.
   chiediPersistenza().then(ok=>{ui.persistenza=ok});
+  // Funzionamento senza rete: solo sull'app pubblicata (https), dove sw.js sta accanto a index.html.
+  // Da file:// o dal server locale di prova non si registra nulla.
+  if('serviceWorker' in navigator&&location.protocol==='https:') navigator.serviceWorker.register('./sw.js').catch(()=>{});
   // Cestino: i file orfani da più di 30 giorni si eliminano davvero
   svuotaCestinoScaduto(30).catch(()=>{});
   // Promemoria discreto se manca il backup da tempo

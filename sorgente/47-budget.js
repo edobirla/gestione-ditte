@@ -121,17 +121,74 @@ function estraiFatturaXml(testo){
     const numero=pick(datiGen,'Numero'),data=pick(datiGen,'Data'),tipoDocumento=pick(datiGen,'TipoDocumento');
     const riepiloghi=Array.from(body.querySelectorAll('*|DatiRiepilogo'));
     const imponibile=arrotonda2(somma(riepiloghi,r=>parseFloat(pick(r,'ImponibileImporto'))||0));
-    return {numero,data,tipoDocumento,imponibile:Math.abs(imponibile),pivaCedente,denomCedente,denomCessionario};
+    // testo libero della fattura (causali, righe, riferimenti a ordini/DDT): serve a riconoscere il cantiere
+    const testoLibero=Array.from(body.querySelectorAll('*|Causale,*|Descrizione,*|RiferimentoTesto,*|IdDocumento')).map(e=>e.textContent).join(' ');
+    return {numero,data,tipoDocumento,testoLibero,imponibile:Math.abs(imponibile),pivaCedente,denomCedente,denomCessionario};
   });
 }
+// Firma digitale (.p7m): è un contenitore PKCS#7 in DER (a volte in base64) con dentro l'XML.
+// Si legge la struttura ASN.1 e si prende l'OCTET STRING che contiene la fattura; il contenuto può essere
+// spezzato in più pezzi (OCTET STRING «costruito», anche a lunghezza indefinita) e va ricucito.
+function xmlDaP7m(u8){
+  const t0=new TextDecoder('latin1').decode(u8.subarray(0,4));
+  if(/^(MI|--)/.test(t0)){const b=atob(new TextDecoder().decode(u8).replace(/-----[^-]+-----|\s+/g,''));u8=Uint8Array.from(b,c=>c.charCodeAt(0))}
+  const leggi=(i)=>{ // → {tag,cost,inizio,fine,prossimo}
+    const tag=u8[i];let j=i+1;let len=u8[j++];let indef=false;
+    if(len===0x80){indef=true;len=0}else if(len&0x80){const n=len&0x7f;len=0;for(let k=0;k<n;k++)len=len*256+u8[j++]}
+    return {tag,cost:!!(tag&0x20),inizio:j,fine:indef?null:j+len,indef};
+  };
+  const figli=(n)=>{const out=[];let i=n.inizio;while(n.indef?!(u8[i]===0&&u8[i+1]===0):i<n.fine){const c=leggi(i);const fine=c.indef?chiudi(c):c.fine;out.push(Object.assign(c,{fine}));i=fine}if(n.indef)n.fine=i+2;return out};
+  const chiudi=(n)=>{figli(n);return n.fine};
+  const contenuto=(n)=>{if(!n.cost)return [u8.subarray(n.inizio,n.fine)];return figli(n).flatMap(contenuto)};
+  const cerca=(n)=>{
+    if((n.tag&0x1f)===4){const parti=contenuto(n);const tot=new Uint8Array(parti.reduce((a,p)=>a+p.length,0));let o=0;for(const p of parti){tot.set(p,o);o+=p.length}const txt=new TextDecoder().decode(tot);if(/FatturaElettronica/.test(txt))return txt}
+    if(n.cost){for(const c of figli(n)){const r=cerca(c);if(r)return r}}
+    return null;
+  };
+  const radice=leggi(0);if(radice.indef)chiudi(radice);
+  const xml=cerca(radice);if(!xml)throw new Error('nel file firmato non ho trovato la fattura');
+  return xml;
+}
+// File scelti → testi XML: .xml, .p7m e .zip (anche con dentro .xml/.p7m)
+async function testiFattureDaFile(fs){
+  const out=[];
+  const aggiungi=(nome,u8)=>{try{out.push({nome,testo:/\.p7m$/i.test(nome)?xmlDaP7m(u8):new TextDecoder().decode(u8)})}catch(e){out.push({nome,errore:e.message})}};
+  for(const f of fs){
+    if(/\.zip$/i.test(f.name)){const zip=await leggiZip(f);for(const v of zip.voci){if(/(^|\/)__MACOSX\//.test(v.nome)||!/\.(xml|p7m)$/i.test(v.nome))continue;aggiungi(v.nome.split('/').pop(),await zip.estrai(v))}}
+    else aggiungi(f.name,new Uint8Array(await leggiComeArrayBuffer(f)));
+  }
+  return out;
+}
+// Cantiere proposto per una fattura importata: il nome (o il comune e la via) del cantiere scritto nel
+// testo della fattura; altrimenti, per una fattura emessa, l'unico cantiere aperto di quel cliente.
+const PAROLE_GENERICHE=new Set(['cantiere','lavori','lavoro','posa','pavimenti','pavimento','massetti','massetto','rivestimenti','fornitura','intervento','edificio','nuovo','nuova','ristrutturazione','presso','strada','piazza','localita']);
+function cantierePerFattura(testo,clienteId){
+  const t=' '+normalizzaTesto(testo)+' ';
+  const punti=stato.cantieri.map(c=>{
+    let p=0;const nome=normalizzaTesto(c.nome);
+    if(nome&&t.includes(' '+nome+' '))p+=10;
+    for(const w of nome.split(' '))if(w.length>=4&&!PAROLE_GENERICHE.has(w)&&t.includes(' '+w+' '))p+=2;
+    const i=c.indirizzo||{};const via=normalizzaTesto(i.via).split(' ').filter(w=>w.length>=4&&!PAROLE_GENERICHE.has(w));
+    if(via.length&&via.every(w=>t.includes(' '+w+' ')))p+=4;
+    if(i.comune&&t.includes(' '+normalizzaTesto(i.comune)+' '))p+=1;
+    if(clienteId&&(c.committenteId===clienteId||c.affidatariaId===clienteId))p+=1;
+    return {c,p};
+  }).filter(x=>x.p>=2).sort((a,b)=>b.p-a.p);
+  if(punti.length&&(punti.length===1||punti[0].p>punti[1].p))return {cantiere:punti[0].c,motivo:'nome o indirizzo del cantiere nel testo della fattura'};
+  if(clienteId){const aperti=stato.cantieri.filter(c=>(c.committenteId===clienteId||c.affidatariaId===clienteId)&&c.stato!=='chiuso');if(aperti.length===1)return {cantiere:aperti[0],motivo:'unico cantiere aperto del cliente'}}
+  return null;
+}
 AZIONI['budget-importa-xml']=async()=>{
-  const fs=await scegliFile({accetta:'.xml'});
+  const fs=await scegliFile({accetta:'.xml,.p7m,.zip'});
   if(!fs.length) return;
+  let letti;try{letti=await testiFattureDaFile(fs)}catch(e){return segnalaErrore(e,'Non sono riuscito a leggere i file')}
   const nostraPiva=normalizzaTesto(stato.azienda.piva);
   const nuovi=[];let duplicate=0,errori=0;
-  for(const f of fs){
+  let proposti=0;
+  for(const f of letti){
+    if(f.errore){errori++;continue}
     try{
-      const fatture=estraiFatturaXml(await leggiComeTesto(f));
+      const fatture=estraiFatturaXml(f.testo);
       for(const ft of fatture){
         if(!ft.numero||!ft.data){errori++;continue}
         const xmlId=[ft.pivaCedente,ft.numero,ft.data].join('|');
@@ -144,11 +201,12 @@ AZIONI['budget-importa-xml']=async()=>{
         let fornitoreId=null,clienteId=null;
         if(!nostra&&controparte){const q=normalizzaTesto(controparte);const fo=stato.fornitori.find(x=>normalizzaTesto(x.ragioneSociale)===q);if(fo)fornitoreId=fo.id}
         if(nostra&&controparte){const q=normalizzaTesto(controparte);const cl=stato.clienti.find(x=>normalizzaTesto(x.ragioneSociale)===q);if(cl)clienteId=cl.id}
-        nuovi.push({id:nuovoId('m'),tipo,numero:ft.numero,data:ft.data,controparte,clienteId,fornitoreId,imponibile:ft.imponibile,categoria:nostra?null:'materiali',notaSu:nota?(nostra?'entrata':'uscita'):undefined,quote:[],daVerificare:true,fatturaXmlId:xmlId,note:'Importata da fattura XML: '+f.name});
+        const prop=cantierePerFattura(ft.testoLibero+' '+controparte,clienteId);if(prop)proposti++;
+        nuovi.push({id:nuovoId('m'),tipo,numero:ft.numero,data:ft.data,controparte,clienteId,fornitoreId,imponibile:ft.imponibile,categoria:nostra?null:'materiali',notaSu:nota?(nostra?'entrata':'uscita'):undefined,quote:prop?[{cantiereId:prop.cantiere.id,importo:ft.imponibile}]:[],daVerificare:true,fatturaXmlId:xmlId,note:'Importata da fattura XML: '+f.nome+(prop?' · cantiere proposto ('+prop.motivo+'): da confermare':'')});
       }
     }catch(e){errori++}
   }
   if(nuovi.length) esegui(`Importate ${nuovi.length} fatture da XML`,s=>{s.movimenti.push(...nuovi)});
-  avviso(`${nuovi.length} fatture importate${duplicate?', '+duplicate+' già presenti':''}${errori?', '+errori+' con errori':''}. Sono segnate «da verificare»: assegna categoria e cantiere.`,{tipo:!nuovi.length&&errori?'errore':undefined,durata:6000});
+  avviso(`${nuovi.length} fatture importate${duplicate?', '+duplicate+' già presenti':''}${errori?', '+errori+' con errori':''}. ${proposti?' Per '+proposti+' ho proposto il cantiere.':''} Sono segnate «da verificare»: controlla categoria e cantiere.`,{tipo:!nuovi.length&&errori?'errore':undefined,durata:6000});
 };
 AZIONI['budget-stampa']=d=>stampaBudget(d.anno);

@@ -24,6 +24,9 @@ async function avvia(){
   render();
   // Chiede al browser di non svuotare l'archivio da solo. Non blocca: se rifiuta lo segnaliamo in Impostazioni.
   chiediPersistenza().then(ok=>{ui.persistenza=ok});
+  // Funzionamento senza rete: solo sull'app pubblicata (https), dove sw.js sta accanto a index.html.
+  // Da file:// o dal server locale di prova non si registra nulla.
+  if('serviceWorker' in navigator&&location.protocol==='https:') navigator.serviceWorker.register('./sw.js').catch(()=>{});
   // Cestino: i file orfani da più di 30 giorni si eliminano davvero
   svuotaCestinoScaduto(30).catch(()=>{});
   // Promemoria discreto se manca il backup da tempo

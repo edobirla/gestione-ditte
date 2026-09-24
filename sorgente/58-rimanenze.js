@@ -16,16 +16,16 @@ function numTxt(v){if(v==null||v==='')return '';const x=+(+v).toFixed(4);return 
 // ---- dai dati: ore, costi, fatture per cantiere ----
 function fattureCantiere(cid){return stato.movimenti.filter(m=>m.tipo==='entrata'&&m.data&&quoteMovimentoPerCantiere(m).some(q=>q.cantiereId===cid)).sort((a,b)=>a.data<b.data?-1:1)}
 // Ore e costo della manodopera su un cantiere fra due date (dopo "dal", fino ad "al" compreso).
-// In presenze il cantiere è testo libero: si confronta col nome del cantiere.
+// In presenze il cantiere è testo libero (spesso la località): lo riconosce cantiereDaCella().
 function oreCantiere(c,dal,al){
-  const nome=normalizzaTesto(c.nome);let ore=0,costo=0,senzaTariffa=0;
+  let ore=0,costo=0,senzaTariffa=0;
   for(const k of Object.keys(stato.presenze||{})){
     if(k>al.slice(0,7)||(dal&&k<dal.slice(0,7)))continue;
     for(const [pid,mp] of Object.entries(stato.presenze[k].persone||{})){
       const p=persona(pid);const tariffa=+((p&&p.retribuzione)||{}).tariffaOraria||0;
       for(const [g,cella] of Object.entries(mp.giorni||{})){
         const iso=k+'-'+pad2(+g);if(iso>al||(dal&&iso<=dal))continue;
-        if(!cella.cantiere||normalizzaTesto(cella.cantiere)!==nome)continue;
+        if(cantiereDaCella(cella,iso)!==c)continue;
         const v=valoreCella(cella);if(typeof v!=='number'||!v)continue;
         ore+=v;costo+=v*tariffa;if(!tariffa)senzaTariffa+=v;
       }
@@ -116,7 +116,7 @@ AZIONI['rim-proponi']=d=>{
   // non si duplica ciò che c'è già (stesso cantiere nei lavori, stessa fattura fra le fatture)
   const lav=p.lavori.filter(x=>!R.lavori.some(y=>y.cantiereId===x.cantiereId)&&!R.fatture.some(y=>y.cantiereId===x.cantiereId));
   const ft=p.fatture.filter(x=>!R.fatture.some(y=>y.movimentoId===x.movimentoId)&&!R.lavori.some(y=>y.cantiereId===x.cantiereId));
-  if(!lav.length&&!ft.length)return informa('Niente da aggiungere',html`<p>Non ho trovato altri cantieri con ore lavorate in presenze dopo l'ultima fattura del ${d.anno}.</p><p class="piccolo secondario">Le ore contano se nella riga «cantiere» delle presenze c'è il nome del cantiere com'è scritto in Cantieri. Puoi sempre aggiungere un cantiere o una fattura a mano.</p>`);
+  if(!lav.length&&!ft.length)return informa('Niente da aggiungere',html`<p>Non ho trovato altri cantieri con ore lavorate in presenze dopo l'ultima fattura del ${d.anno}.</p><p class="piccolo secondario">Le ore contano se nella riga «cantiere» delle presenze c'è il nome del cantiere o la sua località (in Presenze le celle non riconosciute sono sottolineate in arancione). Puoi sempre aggiungere un cantiere o una fattura a mano.</p>`);
   esegui(`Proposte: ${plurale(lav.length,'lavoro in corso','lavori in corso')}, ${plurale(ft.length,'fattura da emettere','fatture da emettere')}`,s=>{const X=rimanenzeAnno(s,d.anno);X.lavori.push(...lav);X.fatture.push(...ft)});
 };
 AZIONI['rim-cantiere']=async d=>{

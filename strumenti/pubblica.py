@@ -47,9 +47,11 @@ try:
     if r.returncode:
         sys.exit('non riesco ad aprire il ramo main: ' + r.stderr.strip())
     shutil.copyfile(sorgente_html, os.path.join(tmp, 'index.html'))
-    git('add', 'index.html', cwd=tmp)
+    # service worker: permette all'app installata di aprirsi anche senza internet
+    shutil.copyfile(os.path.join(base, 'strumenti', 'sw.js'), os.path.join(tmp, 'sw.js'))
+    git('add', 'index.html', 'sw.js', cwd=tmp)
     if not git('diff', '--cached', '--quiet', cwd=tmp).returncode:
-        print('index.html non è cambiato: niente da pubblicare')
+        print('index.html e sw.js non sono cambiati: niente da pubblicare')
     else:
         git('commit', '--quiet', '-m', 'Aggiornata l\'applicazione pubblicata', cwd=tmp)
         r = git('push', 'origin', 'main', cwd=tmp)

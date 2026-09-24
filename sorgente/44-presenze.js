@@ -51,12 +51,12 @@ VISTE.presenze=function(r){
 };
 function righePersona(p,mp,giorni,k){
   const calc=calcolaMesePersona(mp,p);const n=giorni.length;
-  const cella=(d,riga)=>{const c=(mp.giorni||{})[String(d.g)]||{};const bloccata=d.we;let v='',cls='';
+  const cella=(d,riga)=>{const c=(mp.giorni||{})[String(d.g)]||{};const bloccata=d.we;let v='',cls='',titoloCella='';
     if(riga==='ore'){const val=valoreCella(c);if(typeof val==='number')v=fOre(val);else if(typeof val==='string'){v=val;cls='codice codice-'+val;if(val==='FS'&&p.festivitaPagate)cls+=(mp.festivitaEscluse||[]).includes(d.g)?' fs-esclusa':' fs-pagata'}}
     else if(riga==='trasferta'){v=c.trasferta||'';cls='testo'}
-    else {v=c[riga]||'';cls='testo'}
+    else {v=c[riga]||'';cls='testo';if(riga==='cantiere'&&v){const cc=cantiereDaCella(c,d.iso);if(!cc)cls+=' fuori-elenco';else if(cc.nome!==v)titoloCella=v+' → cantiere '+cc.nome}}
     const incerto=(mp.incerti||[]).includes(d.g);
-    return html`<td class="cella ${cls} ${bloccata?'bloccata':''} ${d.we?'fine-settimana':''} ${d.festivo?'festivo':''} ${incerto?'riga-scadenza':''}" data-pid="${p.id}" data-riga="${riga}" data-giorno="${d.g}" title="${bloccata?'Sabato e domenica non si compilano':(d.festivo?'Festività':'')+(incerto?' · letto con incertezza':'')}">${v}</td>`};
+    return html`<td class="cella ${cls} ${bloccata?'bloccata':''} ${d.we?'fine-settimana':''} ${d.festivo?'festivo':''} ${incerto?'riga-scadenza':''}" data-pid="${p.id}" data-riga="${riga}" data-giorno="${d.g}" title="${bloccata?'Sabato e domenica non si compilano':cls.includes('fuori-elenco')?v+' — non riconosco il cantiere (né dal nome né dalla località): queste ore non contano per nessun cantiere (rimanenze)':titoloCella?titoloCella:(d.festivo?'Festività':'')+(incerto?' · letto con incertezza':'')}">${v}</td>`};
   if(p.soloTrasferte){
     return html`<tr><td class="fisso"><a href="#/operai/${p.id}">${nomePersona(p)}</a></td><td class="fisso2">trasferte</td>${giorni.map(d=>cella(d,'trasferta'))}<td class="totale">—</td><td class="totale num" data-azione="presenze-persona" data-k="${k}" data-pid="${p.id}" style="cursor:pointer" title="Apri il riepilogo">${fEuro(calc.importo,0)}${mp.importoForzato?' ✎':''}</td></tr>`;
   }
@@ -85,7 +85,7 @@ function scriviCella(anno,mese,pid,giorno,riga,valore,opz){
   if(riga==='ore'){
     if(valore==='') nuovo={ore:null,codice:null};
     else { const cod=valore.toUpperCase(); if(CODICI_ASSENZA[cod]){ if(cod==='FS'&&!eFestivo(iso,stato.impostazioni.festivitaLocali)){avviso('FS si usa solo nei giorni di festività: il '+fData(iso)+' non lo è',{tipo:'attenzione',silenzioso:true});return false} nuovo={codice:cod,ore:null}; } else { const n=leggiNumero(valore); if(n===null||n<0||n>24){avviso('Valore non valido: ore (0–24) oppure codice M, I, PE, FS, FE, AS, CI',{tipo:'errore',silenzioso:true});return false} nuovo={ore:n,codice:null}; } }
-  } else nuovo={[riga]:valore||null};
+  } else nuovo={[riga]:(riga==='cantiere'?nomeCantiereCanonico(valore):valore)||null};
   const p=persona(pid);
   esegui(`Presenze ${fDataBreve(iso)} ${nomePersona(p).split(' ')[0]}`,s=>{
     const mp=assicuraMesePersona(s,anno,mese,pid);
@@ -99,6 +99,21 @@ function scriviCella(anno,mese,pid,giorno,riga,valore,opz){
   },{senzaRender:opz.senzaRender,silenzioso:true});
   return true;
 }
+// Il cantiere si scrive a mano (a volte è solo la località di trasferta), ma se corrisponde a un
+// cantiere dell'elenco si salva col suo nome esatto: così ore e costi si ritrovano sul cantiere.
+function nomeCantiereCanonico(v){if(!v)return v;const q=normalizzaTesto(v);const c=stato.cantieri.find(x=>normalizzaTesto(x.nome)===q);return c?c.nome:v}
+// Di che cantiere è una cella? Nella riga «cantiere» spesso c'è solo la località (es. «piancastagnaio»):
+// vale il nome esatto; altrimenti un cantiere il cui nome o comune contiene quella parola, aperto quel giorno
+// (date di inizio/fine, se ci sono) e, se c'è più di un candidato, dello stesso committente. Solo se è uno.
+function cantiereDaCella(cella,iso){
+  const q=normalizzaTesto(cella&&cella.cantiere);if(!q)return null;
+  const esatto=stato.cantieri.find(x=>normalizzaTesto(x.nome)===q);if(esatto)return esatto;
+  const parola=t=>(' '+normalizzaTesto(t)+' ').includes(' '+q+' ');
+  let cand=stato.cantieri.filter(c=>(parola(c.nome)||parola((c.indirizzo||{}).comune))&&(!iso||((!c.dataInizio||c.dataInizio<=iso)&&(!c.dataFine||c.dataFine>=iso))));
+  if(cand.length>1&&cella.committente){const cm=normalizzaTesto(cella.committente);const st=cand.filter(c=>[c.committenteId,c.affidatariaId].some(id=>id&&normalizzaTesto(nomeCliente(id))===cm));if(st.length)cand=st}
+  return cand.length===1?cand[0]:null;
+}
+function eCantiereInElenco(v){const q=normalizzaTesto(v);return stato.cantieri.some(x=>normalizzaTesto(x.nome)===q)}
 function committenteProposto(nomeCantiere_){
   const nq=normalizzaTesto(nomeCantiere_);
   const c=stato.cantieri.find(x=>normalizzaTesto(x.nome)===nq)||stato.cantieri.find(x=>normalizzaTesto(x.nome).includes(nq)||nq.includes(normalizzaTesto(x.indirizzo.comune||'zzz')));
@@ -111,9 +126,11 @@ function committenteProposto(nomeCantiere_){
 function valoriUsati(campo){
   const out=new Set();
   for(const k of Object.keys(stato.presenze))for(const pid of Object.keys(stato.presenze[k].persone)){const gg=stato.presenze[k].persone[pid].giorni||{};for(const g of Object.keys(gg))if(gg[g][campo])out.add(gg[g][campo])}
-  if(campo==='cantiere')for(const c of stato.cantieri)out.add(c.nome);
   if(campo==='committente')for(const c of stato.clienti)out.add(c.ragioneSociale);
-  return Array.from(out).sort(confrontaTesto);
+  const altri=Array.from(out).sort(confrontaTesto);
+  if(campo!=='cantiere')return altri;
+  const aperti=stato.cantieri.filter(c=>c.stato!=='chiuso').map(c=>c.nome).sort(confrontaTesto);const chiusi=stato.cantieri.filter(c=>c.stato==='chiuso').map(c=>c.nome).sort(confrontaTesto);
+  return unici([...aperti,...chiusi,...altri.filter(v=>!eCantiereInElenco(v))]);
 }
 // ---- griglia: navigazione e inserimento da tastiera ----
 function montaGriglia(){
@@ -226,7 +243,7 @@ function riempiMese(anno,mese,pids,opz){
       if(p.soloTrasferte){ const loc=localitaTrasferte(s); let prec='';let settimana=[]; for(let g=1;g<=n;g++){const iso=chiaveMese(anno,mese)+'-'+pad2(g);if(eFineSettimana(anno,mese,g)||fest.has(iso)){if(giornoSettimana(anno,mese,g)===1)settimana=[];continue}if(giornoSettimana(anno,mese,g)===1)settimana=[];const c=mp.giorni[String(g)]||{};if(c.trasferta&&!opz.sovrascrivi){prec=c.trasferta;settimana.push(c.trasferta);continue}let cand=loc.filter(l=>l!==prec&&!settimana.includes(l));if(!cand.length)cand=loc.filter(l=>l!==prec);if(!cand.length)cand=loc;const scelto=cand[(g*7+settimana.length*3)%cand.length];c.trasferta=scelto;mp.giorni[String(g)]=c;prec=scelto;settimana.push(scelto)} continue; }
       for(let g=1;g<=n;g++){ if(eFineSettimana(anno,mese,g)) continue; const iso=chiaveMese(anno,mese)+'-'+pad2(g); const c=mp.giorni[String(g)]||{};
         if(fest.has(iso)){ if(opz.sovrascrivi||(c.ore==null&&!c.codice)){delete c.ore;c.codice='FS'} }
-        else { const ore=oreStandardGiorno(p,iso); if(opz.sovrascrivi||(c.ore==null&&!c.codice)){ if(ore>0){c.ore=ore;delete c.codice} } if(ore>0){ if(opz.cantiere&&(opz.sovrascrivi||!c.cantiere))c.cantiere=opz.cantiere; if(opz.committente&&(opz.sovrascrivi||!c.committente))c.committente=opz.committente; else if(c.cantiere&&!c.committente){const pr=committenteProposto(c.cantiere);if(pr)c.committente=pr} } }
+        else { const ore=oreStandardGiorno(p,iso); if(opz.sovrascrivi||(c.ore==null&&!c.codice)){ if(ore>0){c.ore=ore;delete c.codice} } if(ore>0){ if(opz.cantiere&&(opz.sovrascrivi||!c.cantiere))c.cantiere=nomeCantiereCanonico(opz.cantiere); if(opz.committente&&(opz.sovrascrivi||!c.committente))c.committente=opz.committente; else if(c.cantiere&&!c.committente){const pr=committenteProposto(c.cantiere);if(pr)c.committente=pr} } }
         if(Object.keys(c).length) mp.giorni[String(g)]=c; }
     }
   });
@@ -295,7 +312,7 @@ async function apriTrascrizione(anno,mese,pid){
   esegui('Compilazione '+nomePersona(p)+' '+fMeseAnno(anno,mese),s=>{
     const x=assicuraMesePersona(s,anno,mese,pid);x.giorni={};x.incerti=[];
     for(const r of ris.righe){const c={};if(r.ore){const cod=r.ore.toUpperCase();if(CODICI_ASSENZA[cod]){if(cod==='FS'&&!fest.has(k+'-'+pad2(r.g))){errori.push('giorno '+r.g+': FS non ammesso (non è festività)');}else c.codice=cod}else{const nn=leggiNumero(r.ore);if(nn===null||nn<0||nn>24)errori.push('giorno '+r.g+': valore «'+r.ore+'» non valido');else c.ore=nn}}
-      if(r.cantiere)c.cantiere=r.cantiere;if(r.committente)c.committente=r.committente;else if(c.cantiere){const pr=committenteProposto(c.cantiere);if(pr)c.committente=pr}
+      if(r.cantiere)c.cantiere=nomeCantiereCanonico(r.cantiere);if(r.committente)c.committente=r.committente;else if(c.cantiere){const pr=committenteProposto(c.cantiere);if(pr)c.committente=pr}
       if(Object.keys(c).length)x.giorni[String(r.g)]=c;if(r.incerto)x.incerti.push(r.g)}
   });
   if(errori.length) informa('Alcuni valori non sono stati applicati',errori.join('\n'));
