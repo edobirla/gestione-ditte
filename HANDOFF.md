@@ -1,28 +1,37 @@
 # Handoff — Gestionale (Pavimass)
 
-> Generated on 2026-09-15 — resume in a new Claude Code session.
+> Generated on 2026-09-24 — resume in a new Claude Code session.
 
 ---
 
 ## 🎯 Goal
 
-Gestionale Pavimass is a single-file HTML app (built from `sorgente/*.js` + `01-stile.css` + `02-guscio.html` into `index.html`) for a small flooring/construction company: workers (operai), worksites (cantieri), documents and expiries, attendance (presenze), quotes, budget, vehicles, suppliers. No external libraries — PDF parsing/decryption/compression, image handling, everything is hand-written vanilla JS on purpose. Built and iterated live with the owner, who tests on the **published** app (GitHub Pages) and reports bugs conversationally in Italian.
+Gestionale Pavimass is a single-file HTML app (built from `sorgente/*.js` + `01-stile.css` + `02-guscio.html` into `index.html`) for a small flooring/construction company: workers, worksites (cantieri), documents/expiries, attendance (presenze), quotes, budget/invoices, vehicles, suppliers, and now year-end inventory ("rimanenze") for the accountant. No external libraries — everything hand-written vanilla JS on purpose. The owner tests on the **published** app (GitHub Pages) and reports in Italian.
 
 ---
 
 ## 📍 Current State
 
-Everything is **committed on `sorgenti` and published on `main`** (commit `2a343fb`, `pubblica.py` pushed `main` → `8a029fd`). Working tree clean.
+Everything is **committed on `sorgenti` (b1c1fe3), pushed to `origin/sorgenti`, and published on `main` (14c3c3a: `index.html` + `sw.js` + `.gitignore`)**. Working tree clean except this HANDOFF.
 
-**Done this session (2026-09-15, verified in the Browser pane with a synthetic 4-page PDF):**
-- **Silenceable expiries.** New per-document flag `avvisoTaciuto`. In the document panel (`apriDocumento`, `sorgente/45-documenti.js`) a scaduto/in-scadenza/pianificare document whose type is *not* `bloccaIdoneita` shows an inline notice with a **«Non segnalare più»** / **«Segnala di nuovo»** button (`AZIONI['documento-taci']`). Effects: `infoDocumento()` (`41-operai.js`) adds `info.silenziato=true`; new helper `documentoCritico(info)` is now the single test used by the Documenti tab counter (`nDocCritici`), the per-category "N da sistemare" pill (both person page and Documenti → Archivio), `riepilogoScadenze()` (`richiesto()` also requires `!silenziato` → dashboard + scadenzario), `idoneita().avvisi` (rebuilt from `dettagli`, skipping silenced docs), `documentoPiuCritico()` (silenced ranks as `riferimento`), row class (`riga-riferimento` instead of red). `pillolaDocumento()` (`30-ui.js`) renders a grey pill "Scaduto il … · non segnalato" with new icon `#i-silenzio` (`02-guscio.html`). Blocking types (UNILAV, visita medica…) deliberately can't be silenced. **No schema migration needed** (new optional field, absent = old behaviour).
-- **UNILAV auto-saved as a document.** `dialogoPersona()` now *returns the person id* (new or existing). `AZIONI['persona-da-documento']` awaits it and, if the PDF was recognised as UNILAV (`r.eUnilav`), calls new `salvaUnilavFraDocumenti(pid,file,dataAssunzione)` (`41-operai.js`): archives the file (renamed via `nomeFileProposto('unilav',…)`), skips if the same file id is already on an UNILAV doc of that person, marks any previous UNILAV of the person `sostituitoDa`, pushes a `tipoId:'unilav'`, `senzaScadenza:true` document with `dataEmissione = dataAssunzione` read from the PDF.
-- **"PDF doesn't scroll in the right panel" — root cause found and fixed.** It was not specific to new workers: inside the scrollable `#pannello .corpo`, the PDF `<iframe>` swallows wheel events, so once the PDF filled the visible panel the panel itself could never be scrolled. Fix: `apriPannello()` (`30-ui.js`) accepts `opz.anteprima` (an element id) and renders a **fixed preview box** `.anteprima-fissa` *below* the body, taking all remaining height; the body becomes `flex:0 1 auto; max-height:55%`. `apriDocumento` passes `anteprima:'anteprima-doc'` and no longer embeds `<div id="anteprima-doc">` in the meta HTML; `doc-anteprima-file` no longer `scrollIntoView`s. Added an **«Apri a tutto schermo»** button (reuses `AZIONI['file-apri']`). CSS in `01-stile.css` right after `.anteprima-doc`.
+**Done this session (all verified in the Browser pane, most with the owner's real data via `Gestionale Pavimass.html`):**
+- **Rimanenze section** (`sorgente/58-rimanenze.js`, menu item after Budget). `stato.rimanenze["AAAA"]={magazzino,lavori,fatture}` (new top-level key `rimanenze:{}` in `60-dati.js`, no migration needed). Three tabs:
+  - Magazzino: inline-editable rows (qta×costo), import from the owner's inventory xlsx (`magazzinoDaGriglia` + existing `grigliaDaXlsx`; real file `~/Lavoro/pavimass/rimanenze/2025/rimanenze 2025.xlsx` → 50 rows, total 28.615,60 € = his PDF), copy from previous year.
+  - Lavori in corso: `proposteRimanenze(anno)` — per cantiere, hours in presenze after its last `entrata` dated ≤31/12 (`oreCantiere` × `tariffaOraria`) + non-manodopera `uscite` in the same window. If a following invoice exists in year+1 → goes to Fatture da emettere instead. Importo presunto is typed by the user.
+  - Fatture da emettere: from `entrate` of year+1; manual "Da una fattura emessa" picker.
+  - Export: one PDF (`docRimanenze(anno)`, one section per page, custom header like the libro presenze) or one section; empty sections print "Al 31/12/AAAA non risultano …". Print rows compact (`table.rimanenze` CSS) so 50 items fit one A4.
+  - Inline edits use `esegui(...,{senzaRender:true})` and patch totals in the DOM so Tab keeps focus.
+- **Dialogs with inputs no longer close on backdrop click** (`dialogo()` in `30-ui.js`) — the owner lost UNILAV worker data that way. X / Annulla / Esc still close.
+- **Menu**: Fornitori moved under Clienti. **Clients deletable** (`eliminaCliente` in `43-clienti.js`: confirm lists linked cantieri/preventivi/fatture, nulls those references; undoable).
+- **Code review fixes** (3 Sonnet reviewers + own verification): FatturaPA TD04 → `nota_credito` with `notaSu`; in-batch XML dedupe; Budget quick filters keep the year; `tabella()` auto-assigns an id to clickable tables (Scadenzario opened the wrong document); `leggiNumero('0.004')` no longer = 4 (thousands regex now requires a non-zero leading group); `salvaFile` un-trash goes through `esegui`; cantieri search by committente/affidataria; list pagination budget in `impagina`; "commitente" typo in presenze Excel; null guard in Esportazioni; negative quantities in preventivi.
+- **Invoice import** (`47-budget.js`): accepts `.xml`, `.p7m` (`xmlDaP7m`: minimal ASN.1 walker, handles DER, BER indefinite length, chunked OCTET STRING, base64/PEM — tested with 4 openssl-signed variants) and `.zip` containing them (`testiFattureDaFile`). **Cantiere proposed** by `cantierePerFattura(testo, clienteId)` (name/address words in Causale/Descrizione/references, or the only open cantiere of that client); stays `daVerificare`, note says "cantiere proposto … da confermare".
+- **Presenze cantiere recognition**: owner writes mostly the *località* in the "cantiere" row (e.g. "piancastagnaio", "firenze"). New `cantiereDaCella(cella, iso)` in `44-presenze.js`: exact name → else cantiere whose name/comune contains the word, active that day (dataInizio/dataFine), disambiguated by committente; only if unique. Used by the grid (unrecognised cells dotted-orange underline with tooltip; recognised ones show "→ cantiere X") and by Rimanenze `oreCantiere`. With real data this took attributable hours from ~0 to hundreds per cantiere. Exact names are saved canonically (`nomeCantiereCanonico`), suggestions list open cantieri first.
+- **Offline**: `strumenti/sw.js` (network-first, cache fallback, cache name `gestionale`), registered in `99-avvio.js` only when `location.protocol==='https:'`. `pubblica.py` copies it to `main` and adds `!sw.js` to main's `.gitignore`. Verified locally by registering a temp copy, stopping the server and reloading (page loaded from cache); temp SW unregistered afterwards.
 
-**Also landed between the 09-14 handoff and this session (other sessions, see `git log a2f2b04..HEAD`):** the black-PDF compression bug (real cause: `analizzaPdf` dictionary capture included stream bytes → `dizionarioVero()` in `54-pdf.js`), phantom scrollbars (CSS `overflow-y` rule), buste paga per mese view, festività pagate flag + per-holiday exclusion, presenze notes always discoverable, Soci/Dipendenti grouping in the presenze fill/copy pickers, "Uscite"→"Esporta" rename, renewed documents hidden behind "Mostra rinnovati", archive grouped by category, proposed file names from document type.
-
-**Not verified / possibly still open:**
-- Attendance **printing** (`stampaLibroPresenze()` in `50-stampa.js`): the 09-14 handoff said it "doesn't work anymore"; no commit since claims to have fixed it. Ask the owner whether it still fails before assuming either way.
+**Not verified / open:**
+- Service worker on the real GitHub Pages site / installed iPhone app (only simulated locally).
+- `cantiereDaCella` heuristics on ambiguous comuni: e.g. "Arezzo" outside Lidl/Guidelli date ranges resolves to "Olmo" (the only Arezzo cantiere without dates). Values in Rimanenze are editable, but warn the owner if numbers look off.
+- Libro presenze printing: owner said on 09-14 it "doesn't work"; this session it renders 7 pages for July 2026 and a reviewer found no defect. Ask for exact repro if he still sees it.
 
 ---
 
@@ -30,81 +39,81 @@ Everything is **committed on `sorgenti` and published on `main`** (commit `2a343
 
 | File | Role / Status |
 |------|--------------|
-| `sorgente/41-operai.js` | `infoDocumento()` (+`silenziato`), `documentoCritico()`, `idoneita()`, `riepilogoScadenze()`, `documentoPiuCritico()`, person page (`vistaPersona`/`schedaDocumentiPersona`), UNILAV import (`anagraficaDaTesto`, `persona-da-documento`, new `salvaUnilavFraDocumenti`), `dialogoPersona` (now returns id). |
-| `sorgente/45-documenti.js` | Document panel `apriDocumento` (silencing notice, fixed preview, «Apri a tutto schermo»), `AZIONI['documento-taci']`, archive view, `dialogoDocumento`, `acquisisciConAnteprima` (shows a modal on duplicates/compression — remember it awaits a click). |
-| `sorgente/30-ui.js` | `apriPannello({anteprima})`, `pillolaDocumento` (silenced pill), dialogs. |
-| `sorgente/01-stile.css` | `#pannello`, `.anteprima-fissa`, `.corpo.con-anteprima`. |
-| `sorgente/02-guscio.html` | SVG icon sprite (`#i-silenzio` added). |
-| `sorgente/11-regole.js` | Pure domain rules (`statoDocumento`, `idoneitaPersona`, …) — untouched this session; keep it pure (no `stato`, no DOM). |
-| `sorgente/60-dati.js` / `20-stato.js` | Document type catalog / `VERSIONE_SCHEMA` (7) + migrations. Any change to an *existing* catalog entry needs a migration. |
-| `strumenti/costruisci.py` / `pubblica.py` / `controlla_funzioni.py` | Build (`--vuoto`), publish `sorgenti`→`main`, function-name regression check. |
+| `sorgente/58-rimanenze.js` | NEW — whole Rimanenze section, proposals, xlsx import, print doc. |
+| `sorgente/47-budget.js` | XML import: `estraiFatturaXml` (+TipoDocumento, testoLibero), `xmlDaP7m`, `testiFattureDaFile`, `cantierePerFattura`, `budget-importa-xml`. |
+| `sorgente/44-presenze.js` | `cantiereDaCella`, `nomeCantiereCanonico`, `eCantiereInElenco`, `valoriUsati` ordering, cell marking. |
+| `sorgente/30-ui.js` | `dialogo()` backdrop rule; `tabella()` auto id. |
+| `sorgente/43-clienti.js` | `eliminaCliente`, Elimina button in `dialogoCliente`. |
+| `sorgente/31-navigazione.js` | `MENU` order (Rimanenze added, Fornitori under Clienti). |
+| `sorgente/10-utilita.js` | `leggiNumero` thousands fix. |
+| `sorgente/99-avvio.js` | SW registration (https only). |
+| `strumenti/sw.js` | NEW — service worker (NOT in `sorgente/`, or costruisci.py would inline it). |
+| `strumenti/pubblica.py` | Publishes `index.html` + `sw.js`, patches main's `.gitignore`. |
 
 ---
 
-## ❌ Failed Attempts / Wrong Assumptions
+## ❌ Failed Attempts
 
-### Assuming the scroll bug was about new workers
-- **What:** the report said it happened "when I open a new worker and add their first documents".
-- **Reality:** reproduced with any person/any document — the iframe wheel-capture is universal; with a first document there was simply nothing else on the page that made the trapped panel scroll obvious. Lesson: reproduce before believing the reported precondition.
+### Matching presenze hours by exact cantiere name
+- **What:** first version of `oreCantiere` compared `normalizzaTesto(cella.cantiere)===normalizzaTesto(c.nome)`.
+- **Why it failed:** real presenze contain locations ("piancastagnaio"), not cantiere names; ~90% of cells never matched → Rimanenze would have proposed almost nothing. Replaced by `cantiereDaCella`. Lesson (again): test against the real data file, not synthetic data.
 
-### Testing `salvaUnilavFraDocumenti` from the console with an already-archived file
-- **What:** called it with the same PDF bytes already stored as `tessera.pdf`.
-- **Effect:** `acquisisciConAnteprima` opened its "file già nell'archivio" modal and the console script timed out waiting; after clicking Ok it worked, but the stored file kept the *old* name (dedupe by hash keeps the first name). Not a bug — in real use the UNILAV is a distinct file — but don't be surprised by it in tests.
+### Parsing xlsx numbers with `leggiNumero`
+- **What:** xlsx raw value "0.004" went through the Italian parser → 4.
+- **Fix:** raw xlsx numbers parsed with a dot-decimal regex first (`num` in `magazzinoDaGriglia`); `leggiNumero` itself also fixed for leading "0.".
+
+### Reviewer-suggested pagination fix `disp-y`
+- **What:** a reviewer proposed replacing `disp-y*0` with `disp-y` in `impagina`'s list branch.
+- **Why wrong:** `disp` already subtracts `y` → double subtraction. Used `H-y-TOL` instead. Also: a `//` comment inserted mid-line in these one-line functions commented out the rest of the line (SyntaxError) — use `/* */`.
+
+### sw.js not published
+- **What:** `pubblica.py` added `sw.js` but main's `.gitignore` is `*` + whitelist → silently ignored. Fixed by appending `!sw.js`.
 
 ---
 
 ## ✅ Working Solutions
 
-- **Silence ≠ no expiry.** `avvisoTaciuto` leaves `dataScadenza` and the real `stato` untouched; only the *alerting* layer changes, through one helper (`documentoCritico`). Keep routing every "is this a problem?" test through it rather than re-checking `stato==='scaduto'` in new places (`42-cantieri.js` checklists intentionally still look at the raw state: worksite requirements must not be silenceable).
-- **Fixed preview box under a scrollable body** is the right shape for any panel that embeds an iframe/PDF. Reuse `apriPannello({anteprima:id})` if another panel ever needs an embedded viewer.
-- **Verify against real files** (from earlier sessions, still true): the black-PDF, visura and encrypted-PDF fixes all came from the owner's actual files.
+- **Verify with real data in memory**: open `http://localhost:8765/Gestionale%20Pavimass.html` (build with `python3 strumenti/costruisci.py`), then in console `window.salvaStato=()=>{}; stato=normalizzaStato(datiIniziali()); render();` — exercises every view with the company data without persisting. Then loop routes and check `#contenuto` for "ha avuto un errore".
+- **Real reference files** for Rimanenze: `~/Lavoro/pavimass/rimanenze/2025/` (xlsx + two PDFs of what the accountant receives). The server only serves the project folder: copy a file in temporarily (and delete it) to fetch it from the page.
+- **Test p7m**: `openssl cms -sign -binary -nodetach [-stream] -in f.xml -signer c.pem -inkey k.pem -outform DER|PEM`.
 
 ---
 
 ## 🔧 Dependencies & Setup
 
 ```bash
-# Rebuild the installable app (no company data) after any sorgente/ change:
-python3 strumenti/costruisci.py --vuoto      # → index.html
-
-# Sanity checks before committing:
+python3 strumenti/costruisci.py --vuoto      # → index.html (published, no company data)
+python3 strumenti/costruisci.py              # → Gestionale Pavimass.html (with data, gitignored)
 cat sorgente/[0-9]*.js > /tmp/all.js && node --check /tmp/all.js
 python3 strumenti/controlla_funzioni.py HEAD
-
-# Local preview (the Browser pane blocks scripts on file://):
-python3 -m http.server 8765 --bind 127.0.0.1   # then open http://127.0.0.1:8765/index.html
-
-# Publish sorgenti → main (GitHub Pages):
-python3 strumenti/pubblica.py
+python3 strumenti/pubblica.py                # publish index.html + sw.js to main
+git push origin sorgenti                     # pubblica.py does NOT push sorgenti
 ```
-
-No package manager, no test framework. Verification = open the built `index.html` in the Browser pane and exercise the feature; for automated checks drive the app from the console (`esegui(...)`, `apriDocumento(id)`, `stato`, `AZIONI`).
+Preview: `.claude/launch.json` config "gestionale" (python http.server 8765).
 
 ---
 
 ## ➡️ Next Steps
 
-1. **Ask the owner whether attendance printing (`stampaLibroPresenze`) still fails.** Last known report 09-14; nothing since. If yes: reproduce in the Browser pane with a filled month, check `anteprimaStampa`/`docLibroPresenze` in `50-stampa.js`.
-2. **Confirm the three fixes on the owner's real devices** (Mac + iPhone): silence button visible on his expired tessera sanitaria; UNILAV appears under the person's documents after "Da UNILAV"; PDF panel now scrolls. On iPhone the fixed preview box shows only page 1 (known WebKit limit, unchanged) — «Apri a tutto schermo» is the escape hatch.
-3. Optional polish if requested: show a small "N non segnalati" hint in the person's Documenti header, so silenced-but-expired documents aren't forgotten forever.
-4. Anything new the owner reports — his lists arrive verbatim and imprecise; ask one clarifying question rather than guessing (see 09-14 handoff items 3/6/7 for examples).
+1. Ask the owner to try on the published app: Rimanenze 2025 (import his xlsx, "Compila dai dati", Esporta), XML/ZIP/p7m import from his invoicing software, and offline opening of the installed app on iPhone.
+2. If Rimanenze lavori/fatture numbers look wrong, inspect `cantiereDaCella` on his real presenze (ambiguous comuni like Arezzo) and consider letting him pin a località→cantiere mapping.
+3. Owner's open question answered: keep his external invoicing software (SdI sending, legal storage) and import XML here — do not turn this app into an e-invoicing tool.
+4. Still-standing items from earlier handoffs: libro presenze print repro if he reports it again; optional "N non segnalati" hint for silenced documents.
 
 ---
 
 ## ⚠️ Gotchas / Traps
 
-- **Never `git switch main`** in this working directory — `main` only contains `index.html`; checking it out empties the folder. Publish with `strumenti/pubblica.py` (temp worktree).
-- **Always rebuild + republish** after a `sorgente/` change; the owner tests the published app. Commit `index.html` together with the source (project memory rule).
-- **Every edit to an existing `60-dati.js` catalog entry needs a migration** in `20-stato.js`; `normalizzaStato()` only adds missing entries by id.
-- **`acquisisciConAnteprima` can open a modal** (duplicates, compression summary, heavy file). Any code that awaits it must expect a user click — including console-driven tests.
-- **Run `controlla_funzioni.py HEAD`** before committing (past silent-regression incident).
-- `pubblica.py` refuses to publish if it finds a real codice fiscale/IBAN in the built file.
-- The Browser pane serves `file://` pages with `script-src 'none'` — always use the local http server.
+- **Never `git switch main`** in the working folder (empties it). Publish only via `strumenti/pubblica.py`.
+- Rebuild `index.html` and commit it with every `sorgente/` change (memory rule), then publish and push `sorgenti`.
+- Source lines are extremely long one-liners: edit with exact-string Python replacements; never `//` comments mid-line.
+- Every edit to an existing `60-dati.js` catalog entry needs a migration in `20-stato.js`; new top-level keys just go in `datiIniziali` (normalizzaStato fills them).
+- The SW caches the app on the published site: if the owner ever sees an old version, it is network-first so a reload online fixes it; cache name is `gestionale`.
+- Local Browser pane: never leave a service worker registered on localhost (it would serve stale builds in later tests).
 
 ---
 
 ## 💬 Notes
 
-- The owner writes in Italian; commit messages and code comments are in Italian, this handoff in English by convention.
-- This session's last three requests were made from the wrong chat (the gym-app session); they were handled here anyway. The other project in this workspace (`programma palestra/`, "Atlas" PWA) is unrelated and has its own README.
-- Project memory files: `gestionale-pavimass-stato-consegna.md`, `gestionale-pavimass-ricostruire-index.md` (Claude Code memory dir for this project). Verify file/line specifics against current code.
+- The owner writes in Italian; commit messages/comments Italian, this file English.
+- The owner explicitly allowed using Sonnet sub-agents when useful; 3 parallel read-only reviewers worked well for the whole-code review (verify every finding — one suggested fix was wrong).
