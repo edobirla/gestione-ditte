@@ -49,7 +49,12 @@ try:
     shutil.copyfile(sorgente_html, os.path.join(tmp, 'index.html'))
     # service worker: permette all'app installata di aprirsi anche senza internet
     shutil.copyfile(os.path.join(base, 'strumenti', 'sw.js'), os.path.join(tmp, 'sw.js'))
-    git('add', 'index.html', 'sw.js', cwd=tmp)
+    # il .gitignore di main lascia passare solo i file elencati: sw.js va ammesso
+    gi = os.path.join(tmp, '.gitignore')
+    testo_gi = open(gi, encoding='utf8').read()
+    if '!sw.js' not in testo_gi:
+        open(gi, 'w', encoding='utf8').write(testo_gi.rstrip('\n') + '\n!sw.js\n')
+    git('add', 'index.html', 'sw.js', '.gitignore', cwd=tmp)
     if not git('diff', '--cached', '--quiet', cwd=tmp).returncode:
         print('index.html e sw.js non sono cambiati: niente da pubblicare')
     else:
