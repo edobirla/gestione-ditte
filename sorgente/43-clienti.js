@@ -105,7 +105,21 @@ function schedaClientePreventivi(c,st){
 function dialogoCliente(c){
   const nuovo=!c; c=c||{ruoli:[],stato:'attivo',indirizzo:{},referenti:[],interazioni:[]};
   const campi=[{nome:'ragioneSociale',etichetta:'Ragione sociale',obbligatorio:true,largo:true},{nome:'ruoli',etichetta:'Ruoli',tipo:'chip',largo:true,opzioni:Object.entries(RUOLI_CLIENTE).map(([v,t])=>({v,t}))},{nome:'piva',etichetta:'Partita IVA',valida:validatorePIVA},{nome:'cf',etichetta:'Codice fiscale',maiuscolo:true},{nome:'indirizzo.via',etichetta:'Indirizzo',largo:true},{nome:'indirizzo.cap',etichetta:'CAP'},{nome:'indirizzo.comune',etichetta:'Comune'},{nome:'indirizzo.provincia',etichetta:'Provincia',maiuscolo:true},{nome:'telefono',etichetta:'Telefono',tipo:'tel'},{nome:'email',etichetta:'Email',tipo:'email',valida:validatoreEmail},{nome:'pec',etichetta:'PEC',tipo:'email',valida:validatoreEmail},{nome:'sito',etichetta:'Sito web'},{nome:'condizioniPagamento',etichetta:'Condizioni di pagamento',segnaposto:'es. 60 gg d.f.f.m.'},{nome:'valutazione',etichetta:'Valutazione (1–5)',tipo:'select',opzioni:[1,2,3,4,5].map(v=>({v,t:'★'.repeat(v)}))},{nome:'stato',etichetta:'Stato',tipo:'select',vuoto:false,opzioni:Object.entries(STATI_CLIENTE).map(([v,t])=>({v,t}))},{nome:'note',etichetta:'Note',tipo:'textarea',largo:true}];
-  return dialogoModulo(nuovo?'Nuovo cliente':'Modifica '+c.ragioneSociale,campi,c).then(v=>{if(!v)return;if(v.valutazione)v.valutazione=+v.valutazione;if(nuovo){const id=nuovoId('cl');esegui('Nuovo cliente '+v.ragioneSociale,s=>{s.clienti.push(Object.assign({id,referenti:[],interazioni:[],documenti:[]},v))});vai('clienti/'+id)}else esegui('Modificato cliente '+v.ragioneSociale,s=>{Object.assign(s.clienti.find(x=>x.id===c.id),v)})});
+  return dialogoModulo(nuovo?'Nuovo cliente':'Modifica '+c.ragioneSociale,campi,c,{pulsantiExtra:nuovo?[]:[{testo:'Elimina',classe:'pericolo',sinistra:true,fn:async()=>{if(await eliminaCliente(c)){vai('clienti');return null}return false}}]}).then(v=>{if(!v)return;if(v.valutazione)v.valutazione=+v.valutazione;if(nuovo){const id=nuovoId('cl');esegui('Nuovo cliente '+v.ragioneSociale,s=>{s.clienti.push(Object.assign({id,referenti:[],interazioni:[],documenti:[]},v))});vai('clienti/'+id)}else esegui('Modificato cliente '+v.ragioneSociale,s=>{Object.assign(s.clienti.find(x=>x.id===c.id),v)})});
+}
+// Eliminare un cliente: cantieri, preventivi e fatture che lo nominano restano, ma senza quel cliente
+// (tornano «da compilare»), così niente punta a un cliente che non esiste più. Si può annullare.
+async function eliminaCliente(c){
+  const usi=[[stato.cantieri.filter(x=>x.committenteId===c.id||x.affidatariaId===c.id).length,'cantiere','cantieri'],[stato.preventivi.filter(x=>x.clienteId===c.id).length,'preventivo','preventivi'],[stato.movimenti.filter(x=>x.clienteId===c.id||x.controparteId===c.id).length,'fattura','fatture']].filter(u=>u[0]);
+  const testo='Eliminare il cliente '+c.ragioneSociale+'?'+(usi.length?' È collegato a '+usi.map(u=>plurale(u[0],u[1],u[2])).join(', ')+': resteranno, ma senza cliente.':'');
+  if(!await conferma(testo,{pericolo:true}))return false;
+  esegui('Eliminato cliente '+c.ragioneSociale,s=>{
+    s.clienti=s.clienti.filter(x=>x.id!==c.id);
+    for(const x of s.cantieri){if(x.committenteId===c.id)x.committenteId=null;if(x.affidatariaId===c.id)x.affidatariaId=null}
+    for(const x of s.preventivi)if(x.clienteId===c.id)x.clienteId=null;
+    for(const x of s.movimenti){if(x.clienteId===c.id)x.clienteId=null;if(x.controparteId===c.id){x.controparte=x.controparte||c.ragioneSociale;x.controparteId=null}}
+  });
+  return true;
 }
 const CAMPI_REFERENTE=[{nome:'nome',etichetta:'Nome',obbligatorio:true},{nome:'ruolo',etichetta:'Ruolo'},{nome:'telefono',etichetta:'Telefono',tipo:'tel'},{nome:'email',etichetta:'Email',tipo:'email',valida:validatoreEmail},{nome:'note',etichetta:'Note',tipo:'textarea',largo:true}];
 AZIONI['referente-nuovo']=async d=>{const v=await dialogoModulo('Nuovo referente',CAMPI_REFERENTE,{});if(!v)return;esegui('Aggiunto referente '+v.nome,s=>{s.clienti.find(x=>x.id===d.id).referenti.push(v)})};

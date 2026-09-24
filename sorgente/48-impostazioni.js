@@ -249,7 +249,7 @@ function impEsporta(){
 }
 AZIONI['esporta-cantiere-md-sel']=()=>AZIONI['esporta-cantiere-md']({id:el('#esp-cantiere').value});
 AZIONI['esporta-presenze-md-sel']=()=>{const {anno,mese}=daChiaveMese(el('#esp-mese').value)||{};if(!anno)return;mostraTestoEsportato('Riepilogo presenze',riepilogoPresenzeMarkdown(anno,mese),nomeFileData('Riepilogo presenze '+capitalizza(nomeMese(mese))+' '+anno,'md'))};
-AZIONI['esporta-checklist-sel']=()=>{const c=cantiere(el('#esp-cantiere-ck').value);mostraTestoEsportato('Checklist '+c.nome,checklistTesto(c),nomeFileData('Checklist '+pulisciNomeFile(c.nome),'txt'))};
+AZIONI['esporta-checklist-sel']=()=>{const c=cantiere(el('#esp-cantiere-ck').value);if(!c)return avviso('Nessun cantiere da esportare',{tipo:'errore'});mostraTestoEsportato('Checklist '+c.nome,checklistTesto(c),nomeFileData('Checklist '+pulisciNomeFile(c.nome),'txt'))};
 AZIONI['esporta-presenze-xlsx-sel']=()=>esportaPresenzeXlsx(+el('#esp-anno').value);
 function impSistema(){
   dopoRender(async()=>{const q=await stimaQuota();const e=el('#sys-quota');if(e)e.textContent=q?`Spazio usato dal browser: ${fPeso(q.usato)} su circa ${fPeso(q.quota)}.`:'Stima dello spazio non disponibile su questo browser.';const v=await verificaArchivio();const e2=el('#sys-verifica');if(e2)e2.innerHTML=v.senzaBlob.length||v.orfani.length?html`<span class="pillola scadenza">${icona('attenzione')}${v.senzaBlob.length} documenti senza contenuto, ${v.orfani.length} contenuti orfani</span> ${v.orfani.length?html`<button class="pulsante piccolo" data-azione="sys-pulisci-orfani">Elimina orfani</button>`:''}`:html`<span class="pillola valido">${icona('ok')}Archivio coerente</span>`});

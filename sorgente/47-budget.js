@@ -19,8 +19,8 @@ AZIONI['movimento-nuovo']=d=>dialogoMovimento(null,d.cantiere);
 function budgetMovimenti(anno,r){
   const f=Object.assign({filtro:r.query.filtro||''},ui.filtri.budget||{});
   let mov=stato.movimenti.filter(m=>(m.data||'').startsWith(anno));
-  if(f.filtro==='nonassegnate') mov=stato.movimenti.filter(m=>m.categoria!=='spese_generali'&&!quoteMovimentoPerCantiere(m).length);
-  if(f.filtro==='daverificare') mov=stato.movimenti.filter(m=>m.daVerificare);
+  if(f.filtro==='nonassegnate') mov=mov.filter(m=>m.categoria!=='spese_generali'&&!quoteMovimentoPerCantiere(m).length);
+  if(f.filtro==='daverificare') mov=mov.filter(m=>m.daVerificare);
   if(f.tipo) mov=mov.filter(m=>m.tipo===f.tipo);
   if(f.categoria) mov=mov.filter(m=>m.categoria===f.categoria);
   if(f.cerca){const q=normalizzaTesto(f.cerca);mov=mov.filter(m=>normalizzaTesto([m.numero,m.controparte,m.note,nomeCliente(m.clienteId)].join(' ')).includes(q))}
@@ -118,10 +118,10 @@ function estraiFatturaXml(testo){
   if(!bodies.length) throw new Error('Nessun corpo fattura (FatturaElettronicaBody) trovato');
   return bodies.map(body=>{
     const datiGen=body.querySelector('*|DatiGeneraliDocumento');
-    const numero=pick(datiGen,'Numero'),data=pick(datiGen,'Data');
+    const numero=pick(datiGen,'Numero'),data=pick(datiGen,'Data'),tipoDocumento=pick(datiGen,'TipoDocumento');
     const riepiloghi=Array.from(body.querySelectorAll('*|DatiRiepilogo'));
     const imponibile=arrotonda2(somma(riepiloghi,r=>parseFloat(pick(r,'ImponibileImporto'))||0));
-    return {numero,data,imponibile,pivaCedente,denomCedente,denomCessionario};
+    return {numero,data,tipoDocumento,imponibile:Math.abs(imponibile),pivaCedente,denomCedente,denomCessionario};
   });
 }
 AZIONI['budget-importa-xml']=async()=>{
@@ -135,14 +135,16 @@ AZIONI['budget-importa-xml']=async()=>{
       for(const ft of fatture){
         if(!ft.numero||!ft.data){errori++;continue}
         const xmlId=[ft.pivaCedente,ft.numero,ft.data].join('|');
-        if(stato.movimenti.some(m=>m.fatturaXmlId===xmlId)){duplicate++;continue}
+        if(stato.movimenti.some(m=>m.fatturaXmlId===xmlId)||nuovi.some(m=>m.fatturaXmlId===xmlId)){duplicate++;continue}
         const nostra=!!ft.pivaCedente&&normalizzaTesto(ft.pivaCedente)===nostraPiva;
-        const tipo=nostra?'entrata':'uscita';
+        // TD04 = nota di credito: riduce le entrate (se emessa da noi) o le uscite (se ricevuta)
+        const nota=ft.tipoDocumento==='TD04';
+        const tipo=nota?'nota_credito':nostra?'entrata':'uscita';
         const controparte=nostra?ft.denomCessionario:ft.denomCedente;
         let fornitoreId=null,clienteId=null;
         if(!nostra&&controparte){const q=normalizzaTesto(controparte);const fo=stato.fornitori.find(x=>normalizzaTesto(x.ragioneSociale)===q);if(fo)fornitoreId=fo.id}
         if(nostra&&controparte){const q=normalizzaTesto(controparte);const cl=stato.clienti.find(x=>normalizzaTesto(x.ragioneSociale)===q);if(cl)clienteId=cl.id}
-        nuovi.push({id:nuovoId('m'),tipo,numero:ft.numero,data:ft.data,controparte,clienteId,fornitoreId,imponibile:ft.imponibile,categoria:'materiali',quote:[],daVerificare:true,fatturaXmlId:xmlId,note:'Importata da fattura XML: '+f.name});
+        nuovi.push({id:nuovoId('m'),tipo,numero:ft.numero,data:ft.data,controparte,clienteId,fornitoreId,imponibile:ft.imponibile,categoria:nostra?null:'materiali',notaSu:nota?(nostra?'entrata':'uscita'):undefined,quote:[],daVerificare:true,fatturaXmlId:xmlId,note:'Importata da fattura XML: '+f.name});
       }
     }catch(e){errori++}
   }

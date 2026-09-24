@@ -116,7 +116,7 @@ function leggiNumero(s){
   s=String(s).trim().replace(/[€\s]/g,'');
   if(!s) return null;
   if(/,\d{1,2}$/.test(s)) s=s.replace(/\./g,'').replace(',','.');
-  else if(/^\d{1,3}(\.\d{3})+$/.test(s)) s=s.replace(/\./g,'');
+  else if(/^[1-9]\d{0,2}(\.\d{3})+$/.test(s)) s=s.replace(/\./g,''); // «0.004» è un decimale, non 4
   else s=s.replace(',','.');
   const n=parseFloat(s); return isNaN(n)?null:n;
 }

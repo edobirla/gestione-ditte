@@ -958,7 +958,7 @@ function leggiNumero(s){
   s=String(s).trim().replace(/[€\s]/g,'');
   if(!s) return null;
   if(/,\d{1,2}$/.test(s)) s=s.replace(/\./g,'').replace(',','.');
-  else if(/^\d{1,3}(\.\d{3})+$/.test(s)) s=s.replace(/\./g,'');
+  else if(/^[1-9]\d{0,2}(\.\d{3})+$/.test(s)) s=s.replace(/\./g,''); // «0.004» è un decimale, non 4
   else s=s.replace(',','.');
   const n=parseFloat(s); return isNaN(n)?null:n;
 }
@@ -1576,7 +1576,7 @@ async function salvaFile(blob,meta,opz){
     try{ await idbPut('file',hash,blob); }
     catch(e){ if(e&&(e.name==='QuotaExceededError'||/quota/i.test(String(e)))) throw new Error('Spazio esaurito nel browser: non posso salvare il file. Libera spazio (Documenti → Peso) o fai un backup e alleggerisci l\'archivio.'); throw e; }
   }
-  if(rec){ rec.cestinato=null; return {rec,duplicato:true}; }
+  if(rec){ if(rec.cestinato){ if(opz.dentroEsegui) rec.cestinato=null; else esegui('Ripristinato dal cestino '+rec.nome,s=>{s.file.find(f=>f.id===rec.id).cestinato=null},{senzaRender:true,silenzioso:true}); } return {rec:stato.file.find(f=>f.id===rec.id)||rec,duplicato:true}; }
   rec={id:nuovoId('f'),hash,nome:meta.nome||blob.name||'documento',mime:blob.type||meta.mime||mimeDaNome(meta.nome||''),dimensione:blob.size,dimensioneOriginale:meta.dimensioneOriginale||blob.size,compresso:!!meta.compresso,larghezza:meta.larghezza||null,altezza:meta.altezza||null,creato:new Date().toISOString(),cestinato:null};
   if(opz.dentroEsegui){ stato.file.push(rec); }
   else esegui('Archiviato '+rec.nome,s=>{s.file.push(rec)},{senzaRender:true,silenzioso:true});
@@ -2149,6 +2149,8 @@ function pillolaGenerica(testo,classe,iconaNome){return html`<span class="pillol
 // Chip "× Cancella filtri": da mettere in fondo a una .strumenti-tabella, visibile solo se qualcosa è filtrato
 function pulsanteCancellaFiltri(attivo,azione){return attivo?html`<button class="pulsante piccolo discreto" data-azione="${azione}" title="Cancella tutti i filtri">${icona('chiudi','piccola')}Filtri</button>`:''}
 function tabella(opz){
+  // una tabella cliccabile senza id riceverebbe i clic dell'ultima tabella disegnata: se ne dà uno
+  if(opz.onRiga&&!opz.id) opz.id='cliccabile-'+tabelleCliccabili.length;
   const righe=opz.righe||[];
   if(!righe.length&&opz.vuoto) return typeof opz.vuoto==='string'?html`<div class="vuoto">${opz.vuoto}</div>`:opz.vuoto;
   const stOrd=opz.id?(ui.filtri['ord:'+opz.id]||{}):{};
@@ -2361,13 +2363,13 @@ const MENU=[
   {id:'operai',testo:'Operai',icona:'operai'},
   {id:'cantieri',testo:'Cantieri',icona:'cantieri'},
   {id:'clienti',testo:'Clienti',icona:'clienti'},
+  {id:'fornitori',testo:'Fornitori',icona:'fornitori',soloDesktop:true},
   {id:'presenze',testo:'Presenze',icona:'presenze'},
   {id:'documenti',testo:'Documenti',icona:'documenti',soloDesktop:true},
   {id:'preventivi',testo:'Preventivi',icona:'preventivi',soloDesktop:true},
   {id:'budget',testo:'Budget',icona:'budget',soloDesktop:true},
   {id:'rimanenze',testo:'Rimanenze',icona:'pacchetto',soloDesktop:true},
   {id:'mezzi',testo:'Mezzi',icona:'mezzo',soloDesktop:true},
-  {id:'fornitori',testo:'Fornitori',icona:'fornitori',soloDesktop:true},
   {id:'bonifici',testo:'Bonifici',icona:'bonifici',soloDesktop:true},
   {id:'impostazioni',testo:'Impostazioni',icona:'impostazioni',soloDesktop:true},
 ];
@@ -3322,7 +3324,7 @@ VISTE.cantieri=function(r){
   if(f.stato==='chiusi') cantieriF=cantieriF.filter(c=>CHIUSI.includes(c.stato));
   if(f.anno) cantieriF=cantieriF.filter(c=>String(c.anno)===f.anno);
   if(f.comune) cantieriF=cantieriF.filter(c=>(c.indirizzo&&c.indirizzo.comune||'')===f.comune);
-  if(f.cerca){const q=normalizzaTesto(f.cerca);cantieriF=cantieriF.filter(c=>normalizzaTesto([c.nome,c.indirizzo&&c.indirizzo.comune,c.indirizzo&&c.indirizzo.via,nomeCliente(c.clienteId),c.commessa].filter(Boolean).join(' ')).includes(q))}
+  if(f.cerca){const q=normalizzaTesto(f.cerca);cantieriF=cantieriF.filter(c=>normalizzaTesto([c.nome,c.indirizzo&&c.indirizzo.comune,c.indirizzo&&c.indirizzo.via,nomeCliente(c.committenteId)+' '+nomeCliente(c.affidatariaId),c.commessa].filter(Boolean).join(' ')).includes(q))}
   const anni=[...new Set(stato.cantieri.map(c=>c.anno).filter(Boolean))].sort((a,b)=>b-a);
   const comuni=[...new Set(stato.cantieri.map(c=>c.indirizzo&&c.indirizzo.comune).filter(Boolean))].sort();
   const barra=html`<div class="strumenti-tabella"><input type="search" placeholder="Cerca per nome, località o cliente" value="${f.cerca}" data-cambio="filtro-cantieri" data-campo="cerca" aria-label="Cerca cantieri"><div class="gruppo-pulsanti">${[['attivi','In corso'],['chiusi','Chiusi'],['tutti','Tutti']].map(([v,t])=>html`<button class="pulsante piccolo ${f.stato===v?'attivo':''}" data-azione="filtro-cantieri-stato" data-valore="${v}">${t}</button>`)}</div><select data-cambio="filtro-cantieri" data-campo="anno" aria-label="Anno"><option value="">Tutti gli anni</option>${anni.map(a=>html`<option value="${a}" ${String(a)===f.anno?'selected':''}>${a}</option>`)}</select><select data-cambio="filtro-cantieri" data-campo="comune" aria-label="Località"><option value="">Tutte le località</option>${comuni.map(cm=>html`<option value="${cm}" ${cm===f.comune?'selected':''}>${cm}</option>`)}</select>${pulsanteCancellaFiltri(f.stato!=='attivi'||!!f.anno||!!f.comune||!!f.cerca,'filtro-cantieri-reset')}<span class="conteggio">${cantieriF.length} cantieri</span></div>`;
@@ -3636,7 +3638,21 @@ function schedaClientePreventivi(c,st){
 function dialogoCliente(c){
   const nuovo=!c; c=c||{ruoli:[],stato:'attivo',indirizzo:{},referenti:[],interazioni:[]};
   const campi=[{nome:'ragioneSociale',etichetta:'Ragione sociale',obbligatorio:true,largo:true},{nome:'ruoli',etichetta:'Ruoli',tipo:'chip',largo:true,opzioni:Object.entries(RUOLI_CLIENTE).map(([v,t])=>({v,t}))},{nome:'piva',etichetta:'Partita IVA',valida:validatorePIVA},{nome:'cf',etichetta:'Codice fiscale',maiuscolo:true},{nome:'indirizzo.via',etichetta:'Indirizzo',largo:true},{nome:'indirizzo.cap',etichetta:'CAP'},{nome:'indirizzo.comune',etichetta:'Comune'},{nome:'indirizzo.provincia',etichetta:'Provincia',maiuscolo:true},{nome:'telefono',etichetta:'Telefono',tipo:'tel'},{nome:'email',etichetta:'Email',tipo:'email',valida:validatoreEmail},{nome:'pec',etichetta:'PEC',tipo:'email',valida:validatoreEmail},{nome:'sito',etichetta:'Sito web'},{nome:'condizioniPagamento',etichetta:'Condizioni di pagamento',segnaposto:'es. 60 gg d.f.f.m.'},{nome:'valutazione',etichetta:'Valutazione (1–5)',tipo:'select',opzioni:[1,2,3,4,5].map(v=>({v,t:'★'.repeat(v)}))},{nome:'stato',etichetta:'Stato',tipo:'select',vuoto:false,opzioni:Object.entries(STATI_CLIENTE).map(([v,t])=>({v,t}))},{nome:'note',etichetta:'Note',tipo:'textarea',largo:true}];
-  return dialogoModulo(nuovo?'Nuovo cliente':'Modifica '+c.ragioneSociale,campi,c).then(v=>{if(!v)return;if(v.valutazione)v.valutazione=+v.valutazione;if(nuovo){const id=nuovoId('cl');esegui('Nuovo cliente '+v.ragioneSociale,s=>{s.clienti.push(Object.assign({id,referenti:[],interazioni:[],documenti:[]},v))});vai('clienti/'+id)}else esegui('Modificato cliente '+v.ragioneSociale,s=>{Object.assign(s.clienti.find(x=>x.id===c.id),v)})});
+  return dialogoModulo(nuovo?'Nuovo cliente':'Modifica '+c.ragioneSociale,campi,c,{pulsantiExtra:nuovo?[]:[{testo:'Elimina',classe:'pericolo',sinistra:true,fn:async()=>{if(await eliminaCliente(c)){vai('clienti');return null}return false}}]}).then(v=>{if(!v)return;if(v.valutazione)v.valutazione=+v.valutazione;if(nuovo){const id=nuovoId('cl');esegui('Nuovo cliente '+v.ragioneSociale,s=>{s.clienti.push(Object.assign({id,referenti:[],interazioni:[],documenti:[]},v))});vai('clienti/'+id)}else esegui('Modificato cliente '+v.ragioneSociale,s=>{Object.assign(s.clienti.find(x=>x.id===c.id),v)})});
+}
+// Eliminare un cliente: cantieri, preventivi e fatture che lo nominano restano, ma senza quel cliente
+// (tornano «da compilare»), così niente punta a un cliente che non esiste più. Si può annullare.
+async function eliminaCliente(c){
+  const usi=[[stato.cantieri.filter(x=>x.committenteId===c.id||x.affidatariaId===c.id).length,'cantiere','cantieri'],[stato.preventivi.filter(x=>x.clienteId===c.id).length,'preventivo','preventivi'],[stato.movimenti.filter(x=>x.clienteId===c.id||x.controparteId===c.id).length,'fattura','fatture']].filter(u=>u[0]);
+  const testo='Eliminare il cliente '+c.ragioneSociale+'?'+(usi.length?' È collegato a '+usi.map(u=>plurale(u[0],u[1],u[2])).join(', ')+': resteranno, ma senza cliente.':'');
+  if(!await conferma(testo,{pericolo:true}))return false;
+  esegui('Eliminato cliente '+c.ragioneSociale,s=>{
+    s.clienti=s.clienti.filter(x=>x.id!==c.id);
+    for(const x of s.cantieri){if(x.committenteId===c.id)x.committenteId=null;if(x.affidatariaId===c.id)x.affidatariaId=null}
+    for(const x of s.preventivi)if(x.clienteId===c.id)x.clienteId=null;
+    for(const x of s.movimenti){if(x.clienteId===c.id)x.clienteId=null;if(x.controparteId===c.id){x.controparte=x.controparte||c.ragioneSociale;x.controparteId=null}}
+  });
+  return true;
 }
 const CAMPI_REFERENTE=[{nome:'nome',etichetta:'Nome',obbligatorio:true},{nome:'ruolo',etichetta:'Ruolo'},{nome:'telefono',etichetta:'Telefono',tipo:'tel'},{nome:'email',etichetta:'Email',tipo:'email',valida:validatoreEmail},{nome:'note',etichetta:'Note',tipo:'textarea',largo:true}];
 AZIONI['referente-nuovo']=async d=>{const v=await dialogoModulo('Nuovo referente',CAMPI_REFERENTE,{});if(!v)return;esegui('Aggiunto referente '+v.nome,s=>{s.clienti.find(x=>x.id===d.id).referenti.push(v)})};
@@ -4756,7 +4772,7 @@ function vistaPreventivo(id){
   <p class="piccolo secondario mt-s">Le righe si modificano direttamente; l'importo si ricalcola subito. Una riga senza prezzo resta «da quotare».</p></div>
   <div class="griglia due"><div class="scheda"><h3>Condizioni</h3><textarea data-cambio="preventivo-campo" data-id="${p.id}" data-campo="condizioni" rows="5">${p.condizioni||''}</textarea></div><div class="scheda"><h3>Note interne</h3><textarea data-cambio="preventivo-campo" data-id="${p.id}" data-campo="note" rows="5">${p.note||''}</textarea></div></div>`;
 }
-document.addEventListener('change',e=>{const t=e.target;if(!t.dataset||t.dataset.riga===undefined||!t.dataset.rigaCampo)return;const pid=leggiRotta().id;const p=perId('preventivi',pid);if(!p)return;const i=+t.dataset.riga,campo=t.dataset.rigaCampo;let v=t.type==='checkbox'?t.checked:t.value;if(campo==='quantita'||campo==='prezzo'){v=v.trim()===''?null:leggiNumero(v);if(campo==='prezzo'&&v!==null&&v<0){avviso('Il prezzo non può essere negativo',{tipo:'errore'});return}}
+document.addEventListener('change',e=>{const t=e.target;if(!t.dataset||t.dataset.riga===undefined||!t.dataset.rigaCampo)return;const pid=leggiRotta().id;const p=perId('preventivi',pid);if(!p)return;const i=+t.dataset.riga,campo=t.dataset.rigaCampo;let v=t.type==='checkbox'?t.checked:t.value;if(campo==='quantita'||campo==='prezzo'){v=v.trim()===''?null:leggiNumero(v);if(v!==null&&v<0){avviso(campo==='prezzo'?'Il prezzo non può essere negativo':'La quantità non può essere negativa',{tipo:'errore'});return}}
   esegui('Modificata riga preventivo',s=>{const r=s.preventivi.find(x=>x.id===pid).righe[i];r[campo]=v},{silenzioso:true});});
 AZIONI['preventivo-sconto']=(d,t)=>{const v=leggiNumero(t.value)||0;esegui('Sconto preventivo',s=>{s.preventivi.find(x=>x.id===d.id).scontoPct=v},{silenzioso:true})};
 AZIONI['preventivo-campo']=(d,t)=>{esegui('Modificato preventivo',s=>{s.preventivi.find(x=>x.id===d.id)[d.campo]=t.value},{silenzioso:true,senzaRender:true})};
@@ -4908,8 +4924,8 @@ AZIONI['movimento-nuovo']=d=>dialogoMovimento(null,d.cantiere);
 function budgetMovimenti(anno,r){
   const f=Object.assign({filtro:r.query.filtro||''},ui.filtri.budget||{});
   let mov=stato.movimenti.filter(m=>(m.data||'').startsWith(anno));
-  if(f.filtro==='nonassegnate') mov=stato.movimenti.filter(m=>m.categoria!=='spese_generali'&&!quoteMovimentoPerCantiere(m).length);
-  if(f.filtro==='daverificare') mov=stato.movimenti.filter(m=>m.daVerificare);
+  if(f.filtro==='nonassegnate') mov=mov.filter(m=>m.categoria!=='spese_generali'&&!quoteMovimentoPerCantiere(m).length);
+  if(f.filtro==='daverificare') mov=mov.filter(m=>m.daVerificare);
   if(f.tipo) mov=mov.filter(m=>m.tipo===f.tipo);
   if(f.categoria) mov=mov.filter(m=>m.categoria===f.categoria);
   if(f.cerca){const q=normalizzaTesto(f.cerca);mov=mov.filter(m=>normalizzaTesto([m.numero,m.controparte,m.note,nomeCliente(m.clienteId)].join(' ')).includes(q))}
@@ -5007,10 +5023,10 @@ function estraiFatturaXml(testo){
   if(!bodies.length) throw new Error('Nessun corpo fattura (FatturaElettronicaBody) trovato');
   return bodies.map(body=>{
     const datiGen=body.querySelector('*|DatiGeneraliDocumento');
-    const numero=pick(datiGen,'Numero'),data=pick(datiGen,'Data');
+    const numero=pick(datiGen,'Numero'),data=pick(datiGen,'Data'),tipoDocumento=pick(datiGen,'TipoDocumento');
     const riepiloghi=Array.from(body.querySelectorAll('*|DatiRiepilogo'));
     const imponibile=arrotonda2(somma(riepiloghi,r=>parseFloat(pick(r,'ImponibileImporto'))||0));
-    return {numero,data,imponibile,pivaCedente,denomCedente,denomCessionario};
+    return {numero,data,tipoDocumento,imponibile:Math.abs(imponibile),pivaCedente,denomCedente,denomCessionario};
   });
 }
 AZIONI['budget-importa-xml']=async()=>{
@@ -5024,14 +5040,16 @@ AZIONI['budget-importa-xml']=async()=>{
       for(const ft of fatture){
         if(!ft.numero||!ft.data){errori++;continue}
         const xmlId=[ft.pivaCedente,ft.numero,ft.data].join('|');
-        if(stato.movimenti.some(m=>m.fatturaXmlId===xmlId)){duplicate++;continue}
+        if(stato.movimenti.some(m=>m.fatturaXmlId===xmlId)||nuovi.some(m=>m.fatturaXmlId===xmlId)){duplicate++;continue}
         const nostra=!!ft.pivaCedente&&normalizzaTesto(ft.pivaCedente)===nostraPiva;
-        const tipo=nostra?'entrata':'uscita';
+        // TD04 = nota di credito: riduce le entrate (se emessa da noi) o le uscite (se ricevuta)
+        const nota=ft.tipoDocumento==='TD04';
+        const tipo=nota?'nota_credito':nostra?'entrata':'uscita';
         const controparte=nostra?ft.denomCessionario:ft.denomCedente;
         let fornitoreId=null,clienteId=null;
         if(!nostra&&controparte){const q=normalizzaTesto(controparte);const fo=stato.fornitori.find(x=>normalizzaTesto(x.ragioneSociale)===q);if(fo)fornitoreId=fo.id}
         if(nostra&&controparte){const q=normalizzaTesto(controparte);const cl=stato.clienti.find(x=>normalizzaTesto(x.ragioneSociale)===q);if(cl)clienteId=cl.id}
-        nuovi.push({id:nuovoId('m'),tipo,numero:ft.numero,data:ft.data,controparte,clienteId,fornitoreId,imponibile:ft.imponibile,categoria:'materiali',quote:[],daVerificare:true,fatturaXmlId:xmlId,note:'Importata da fattura XML: '+f.name});
+        nuovi.push({id:nuovoId('m'),tipo,numero:ft.numero,data:ft.data,controparte,clienteId,fornitoreId,imponibile:ft.imponibile,categoria:nostra?null:'materiali',notaSu:nota?(nostra?'entrata':'uscita'):undefined,quote:[],daVerificare:true,fatturaXmlId:xmlId,note:'Importata da fattura XML: '+f.name});
       }
     }catch(e){errori++}
   }
@@ -5295,7 +5313,7 @@ function impEsporta(){
 }
 AZIONI['esporta-cantiere-md-sel']=()=>AZIONI['esporta-cantiere-md']({id:el('#esp-cantiere').value});
 AZIONI['esporta-presenze-md-sel']=()=>{const {anno,mese}=daChiaveMese(el('#esp-mese').value)||{};if(!anno)return;mostraTestoEsportato('Riepilogo presenze',riepilogoPresenzeMarkdown(anno,mese),nomeFileData('Riepilogo presenze '+capitalizza(nomeMese(mese))+' '+anno,'md'))};
-AZIONI['esporta-checklist-sel']=()=>{const c=cantiere(el('#esp-cantiere-ck').value);mostraTestoEsportato('Checklist '+c.nome,checklistTesto(c),nomeFileData('Checklist '+pulisciNomeFile(c.nome),'txt'))};
+AZIONI['esporta-checklist-sel']=()=>{const c=cantiere(el('#esp-cantiere-ck').value);if(!c)return avviso('Nessun cantiere da esportare',{tipo:'errore'});mostraTestoEsportato('Checklist '+c.nome,checklistTesto(c),nomeFileData('Checklist '+pulisciNomeFile(c.nome),'txt'))};
 AZIONI['esporta-presenze-xlsx-sel']=()=>esportaPresenzeXlsx(+el('#esp-anno').value);
 function impSistema(){
   dopoRender(async()=>{const q=await stimaQuota();const e=el('#sys-quota');if(e)e.textContent=q?`Spazio usato dal browser: ${fPeso(q.usato)} su circa ${fPeso(q.quota)}.`:'Stima dello spazio non disponibile su questo browser.';const v=await verificaArchivio();const e2=el('#sys-verifica');if(e2)e2.innerHTML=v.senzaBlob.length||v.orfani.length?html`<span class="pillola scadenza">${icona('attenzione')}${v.senzaBlob.length} documenti senza contenuto, ${v.orfani.length} contenuti orfani</span> ${v.orfani.length?html`<button class="pulsante piccolo" data-azione="sys-pulisci-orfani">Elimina orfani</button>`:''}`:html`<span class="pillola valido">${icona('ok')}Archivio coerente</span>`});
@@ -5476,7 +5494,7 @@ function impagina(doc){
         if(y>H-40)corpoP=apri();
         const l=m.lista.cloneNode(false);let hh=0;const disp=H-y-TOL;
         if(prima){Array.from(n.childNodes).filter(x=>x!==m.lista&&x.compareDocumentPosition(m.lista)&Node.DOCUMENT_POSITION_FOLLOWING).forEach(x=>{corpoP.appendChild(x);y+=x.getBoundingClientRect?x.getBoundingClientRect().height:0})}
-        while(voci.length&&hh+voci[0].h<=disp-y*0){const v=voci.shift();l.appendChild(v.el);hh+=v.h;if(y+hh>H-TOL)break}
+        while(voci.length&&hh+voci[0].h<=H-y-TOL){/* y conta anche il testo prima dell'elenco */const v=voci.shift();l.appendChild(v.el);hh+=v.h;if(y+hh>H-TOL)break}
         if(!l.children.length){if(y===0){const v=voci.shift();l.appendChild(v.el);hh+=v.h}else{corpoP=apri();continue}}
         if(m.lista.tagName==='OL'&&!prima)l.setAttribute('start',String(m.voci.length-voci.length-l.children.length+1));
         const wrap=document.createElement('div');wrap.className='blk';wrap.appendChild(l);metti(wrap,hh+6);prima=false;
@@ -5852,7 +5870,7 @@ async function esportaPresenzeXlsx(anno){
       else{righe.push(rigaVal(p,mp,'ore','ore',[{f:`SUM(D${r0}:AH${r0})`,s:XS.normale},{v:calc.importo||0,s:XS.euro}]));righe.push(rigaVal(p,mp,'cantiere','cantiere'));righe.push(rigaVal(p,mp,'committente','committente'));}
       unioni.push(`A${r0}:A${r0+2}`);}
     righe.push([{v:'Dipendenti',s:XS.grassetto}]);righe[righe.length-1].push(...testaGiorni(['ore','importo']).slice(1));
-    for(const p of dip){const mp=m.persone[p.id]||{giorni:{}};const calc=calcolaMesePersona(mp,p);const r0=righe.length+1;righe.push(rigaVal(p,mp,'ore','ore',[{f:`SUM(D${r0}:AH${r0})`,s:XS.normale},{v:calc.importo||0,s:XS.euro}]));righe.push(rigaVal(p,mp,'cantiere','cantiere'));righe.push(rigaVal(p,mp,'committente','commitente'));unioni.push(`A${r0}:A${r0+2}`)}
+    for(const p of dip){const mp=m.persone[p.id]||{giorni:{}};const calc=calcolaMesePersona(mp,p);const r0=righe.length+1;righe.push(rigaVal(p,mp,'ore','ore',[{f:`SUM(D${r0}:AH${r0})`,s:XS.normale},{v:calc.importo||0,s:XS.euro}]));righe.push(rigaVal(p,mp,'cantiere','cantiere'));righe.push(rigaVal(p,mp,'committente','committente'));unioni.push(`A${r0}:A${r0+2}`)}
     fogli.push({nome:nomeMese(mese),righe,unioni,larghezze:{A:24,B:12,C:3},orizzontale:true});
   }
   const cod=[[{v:'Codici da utilizzare nel libro delle presenze',s:XS.grassetto}],[]];for(const [c,x] of Object.entries(CODICI_ASSENZA))cod.push([{v:x.nome.toUpperCase()+(x.massimaleOreAnno?` (${x.massimaleOreAnno} ORE ALL'ANNO)`:x.massimaleGiorniAnno?` (${x.massimaleGiorniAnno} GG ALL'ANNO)`:''),s:XS.normale},'','','',{v:c,s:XS.grassetto}]);

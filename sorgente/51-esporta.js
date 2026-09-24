@@ -66,7 +66,7 @@ async function esportaPresenzeXlsx(anno){
       else{righe.push(rigaVal(p,mp,'ore','ore',[{f:`SUM(D${r0}:AH${r0})`,s:XS.normale},{v:calc.importo||0,s:XS.euro}]));righe.push(rigaVal(p,mp,'cantiere','cantiere'));righe.push(rigaVal(p,mp,'committente','committente'));}
       unioni.push(`A${r0}:A${r0+2}`);}
     righe.push([{v:'Dipendenti',s:XS.grassetto}]);righe[righe.length-1].push(...testaGiorni(['ore','importo']).slice(1));
-    for(const p of dip){const mp=m.persone[p.id]||{giorni:{}};const calc=calcolaMesePersona(mp,p);const r0=righe.length+1;righe.push(rigaVal(p,mp,'ore','ore',[{f:`SUM(D${r0}:AH${r0})`,s:XS.normale},{v:calc.importo||0,s:XS.euro}]));righe.push(rigaVal(p,mp,'cantiere','cantiere'));righe.push(rigaVal(p,mp,'committente','commitente'));unioni.push(`A${r0}:A${r0+2}`)}
+    for(const p of dip){const mp=m.persone[p.id]||{giorni:{}};const calc=calcolaMesePersona(mp,p);const r0=righe.length+1;righe.push(rigaVal(p,mp,'ore','ore',[{f:`SUM(D${r0}:AH${r0})`,s:XS.normale},{v:calc.importo||0,s:XS.euro}]));righe.push(rigaVal(p,mp,'cantiere','cantiere'));righe.push(rigaVal(p,mp,'committente','committente'));unioni.push(`A${r0}:A${r0+2}`)}
     fogli.push({nome:nomeMese(mese),righe,unioni,larghezze:{A:24,B:12,C:3},orizzontale:true});
   }
   const cod=[[{v:'Codici da utilizzare nel libro delle presenze',s:XS.grassetto}],[]];for(const [c,x] of Object.entries(CODICI_ASSENZA))cod.push([{v:x.nome.toUpperCase()+(x.massimaleOreAnno?` (${x.massimaleOreAnno} ORE ALL'ANNO)`:x.massimaleGiorniAnno?` (${x.massimaleGiorniAnno} GG ALL'ANNO)`:''),s:XS.normale},'','','',{v:c,s:XS.grassetto}]);

@@ -38,7 +38,7 @@ async function salvaFile(blob,meta,opz){
     try{ await idbPut('file',hash,blob); }
     catch(e){ if(e&&(e.name==='QuotaExceededError'||/quota/i.test(String(e)))) throw new Error('Spazio esaurito nel browser: non posso salvare il file. Libera spazio (Documenti → Peso) o fai un backup e alleggerisci l\'archivio.'); throw e; }
   }
-  if(rec){ rec.cestinato=null; return {rec,duplicato:true}; }
+  if(rec){ if(rec.cestinato){ if(opz.dentroEsegui) rec.cestinato=null; else esegui('Ripristinato dal cestino '+rec.nome,s=>{s.file.find(f=>f.id===rec.id).cestinato=null},{senzaRender:true,silenzioso:true}); } return {rec:stato.file.find(f=>f.id===rec.id)||rec,duplicato:true}; }
   rec={id:nuovoId('f'),hash,nome:meta.nome||blob.name||'documento',mime:blob.type||meta.mime||mimeDaNome(meta.nome||''),dimensione:blob.size,dimensioneOriginale:meta.dimensioneOriginale||blob.size,compresso:!!meta.compresso,larghezza:meta.larghezza||null,altezza:meta.altezza||null,creato:new Date().toISOString(),cestinato:null};
   if(opz.dentroEsegui){ stato.file.push(rec); }
   else esegui('Archiviato '+rec.nome,s=>{s.file.push(rec)},{senzaRender:true,silenzioso:true});

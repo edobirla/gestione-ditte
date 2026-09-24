@@ -81,7 +81,7 @@ function impagina(doc){
         if(y>H-40)corpoP=apri();
         const l=m.lista.cloneNode(false);let hh=0;const disp=H-y-TOL;
         if(prima){Array.from(n.childNodes).filter(x=>x!==m.lista&&x.compareDocumentPosition(m.lista)&Node.DOCUMENT_POSITION_FOLLOWING).forEach(x=>{corpoP.appendChild(x);y+=x.getBoundingClientRect?x.getBoundingClientRect().height:0})}
-        while(voci.length&&hh+voci[0].h<=disp-y*0){const v=voci.shift();l.appendChild(v.el);hh+=v.h;if(y+hh>H-TOL)break}
+        while(voci.length&&hh+voci[0].h<=H-y-TOL){/* y conta anche il testo prima dell'elenco */const v=voci.shift();l.appendChild(v.el);hh+=v.h;if(y+hh>H-TOL)break}
         if(!l.children.length){if(y===0){const v=voci.shift();l.appendChild(v.el);hh+=v.h}else{corpoP=apri();continue}}
         if(m.lista.tagName==='OL'&&!prima)l.setAttribute('start',String(m.voci.length-voci.length-l.children.length+1));
         const wrap=document.createElement('div');wrap.className='blk';wrap.appendChild(l);metti(wrap,hh+6);prima=false;
