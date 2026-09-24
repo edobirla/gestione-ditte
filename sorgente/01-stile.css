@@ -557,6 +557,8 @@ input[type=checkbox],input[type=radio]{width:18px;height:18px;accent-color:var(-
 .doc .riq.note{flex:2} .doc .riq.note .vl{font-weight:400;font-size:8.5pt;min-height:9mm}
 .doc .riq.importo{flex:1;text-align:right}
 .doc .riq .mini{font-size:7.5pt;font-weight:400;color:#555}
+.doc table.rimanenze{font-size:8pt;line-height:1.2}
+.doc table.rimanenze th,.doc table.rimanenze td{padding:.35mm 1.5mm}
 .doc table.ore-mensili{font-size:8.5pt;margin:0}
 .doc table.ore-mensili th{background:#111;color:#fff;border-color:#111;font-size:8pt;padding:1.2mm 2mm}
 .doc table.ore-mensili th.num,.doc table.ore-mensili td.num{text-align:right}

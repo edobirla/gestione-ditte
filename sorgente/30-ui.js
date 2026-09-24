@@ -31,7 +31,9 @@ function dialogo(opz){
     const chiudi=(v)=>{velo.remove();document.removeEventListener('keydown',tasti);risolvi(v)};
     const tasti=(e)=>{ if(e.key==='Escape'&&!opz.senzaChiudi){e.preventDefault();chiudi(opz.valoreEscape===undefined?null:opz.valoreEscape)} if(e.key==='Enter'&&(e.metaKey||e.ctrlKey)){const p=velo.querySelector('[data-primario]');if(p)p.click()} };
     velo.addEventListener('click',e=>{
-      if(e.target===velo&&!opz.senzaChiudi) return chiudi(opz.valoreEscape===undefined?null:opz.valoreEscape);
+      // un dialogo con campi da compilare non si chiude cliccando fuori (né finendo fuori una selezione
+      // di testo iniziata in un campo): si perderebbe tutto quello che è stato scritto. Resta X / Annulla / Esc.
+      if(e.target===velo&&!opz.senzaChiudi&&!velo.querySelector('input,select,textarea')) return chiudi(opz.valoreEscape===undefined?null:opz.valoreEscape);
       const b=e.target.closest('[data-chiudi]'); if(b) return chiudi(opz.valoreEscape===undefined?null:opz.valoreEscape);
       const p=e.target.closest('[data-pulsante]');
       if(p){ const def=pulsanti[+p.dataset.pulsante]; if(def.fn){ const r=def.fn(velo); if(r===false) return; if(r&&r.then){ p.disabled=true; r.then(v=>{ if(v===false){p.disabled=false;return} chiudi(v===undefined?def.valore:v) }).catch(err=>{p.disabled=false;segnalaErrore(err)}); return; } chiudi(r===undefined?def.valore:r); return; } chiudi(def.valore); }

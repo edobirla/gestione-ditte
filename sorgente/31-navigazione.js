@@ -10,6 +10,7 @@ const MENU=[
   {id:'documenti',testo:'Documenti',icona:'documenti',soloDesktop:true},
   {id:'preventivi',testo:'Preventivi',icona:'preventivi',soloDesktop:true},
   {id:'budget',testo:'Budget',icona:'budget',soloDesktop:true},
+  {id:'rimanenze',testo:'Rimanenze',icona:'pacchetto',soloDesktop:true},
   {id:'mezzi',testo:'Mezzi',icona:'mezzo',soloDesktop:true},
   {id:'fornitori',testo:'Fornitori',icona:'fornitori',soloDesktop:true},
   {id:'bonifici',testo:'Bonifici',icona:'bonifici',soloDesktop:true},
