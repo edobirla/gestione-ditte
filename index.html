@@ -399,7 +399,9 @@ input[type=checkbox],input[type=radio]{width:18px;height:18px;accent-color:var(-
 .presenze-griglia th.fisso2,.presenze-griglia td.fisso2{position:sticky;left:150px;background:var(--superficie);z-index:2;text-align:left;padding:0 6px;min-width:84px;font-size:var(--t-xs);color:var(--testo-3);border-right:2px solid var(--bordo-forte)}
 .presenze-griglia thead th.fisso,.presenze-griglia thead th.fisso2{z-index:4;background:var(--superficie-2)}
 .presenze-griglia td.fine-settimana,.presenze-griglia th.fine-settimana{background:var(--superficie-3);color:var(--testo-3)}
-.presenze-griglia td.festivo,.presenze-griglia th.festivo{background:var(--giallo-chiaro)}
+.presenze-griglia td.festivo,.presenze-griglia th.festivo{background:repeating-linear-gradient(45deg,#fff,#fff 4px,#F7DCDC 4px,#F7DCDC 8px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .presenze-griglia td.festivo,:root:not([data-theme="light"]) .presenze-griglia th.festivo{background:repeating-linear-gradient(45deg,#2a1a1a,#2a1a1a 4px,#4a2626 4px,#4a2626 8px)}}
+:root[data-theme="dark"] .presenze-griglia td.festivo,:root[data-theme="dark"] .presenze-griglia th.festivo{background:repeating-linear-gradient(45deg,#2a1a1a,#2a1a1a 4px,#4a2626 4px,#4a2626 8px)}
 .presenze-griglia td.cella{cursor:cell}
 .presenze-griglia td.cella.bloccata{cursor:not-allowed;background:repeating-linear-gradient(45deg,var(--superficie-3),var(--superficie-3) 4px,var(--superficie-2) 4px,var(--superficie-2) 8px)}
 .presenze-griglia td.cella.attiva{outline:2px solid var(--blu);outline-offset:-2px;background:var(--blu-tenue)}
@@ -638,7 +640,7 @@ input[type=checkbox],input[type=radio]{width:18px;height:18px;accent-color:var(-
 .doc table.ore-mensili tr.g-we td{background:repeating-linear-gradient(45deg,#fff,#fff 1.2mm,#EFEFEF 1.2mm,#EFEFEF 2.4mm);color:#888}
 /* ferie, festività, malattia: riga piena, si devono vedere a colpo d'occhio */
 .doc table.ore-mensili tr.g-ferie td{background:#E9E7FD}
-.doc table.ore-mensili tr.g-festivo td{background:#FBF2CF}
+.doc table.ore-mensili tr.g-festivo td{background:repeating-linear-gradient(45deg,#fff,#fff 1.2mm,#F7DCDC 1.2mm,#F7DCDC 2.4mm);color:#B33A3A}
 .doc table.ore-mensili tr.g-malattia td{background:#FBE4E4}
 .doc table.ore-mensili tr.g-assenza td{background:#ECECEC}
 body.trascinamento iframe,body.trascinamento embed,body.trascinamento object{pointer-events:none}
@@ -3715,6 +3717,13 @@ function riepilogoMese(anno,mese){
   }
   return {oreTotali,importoTotale,giorniDaCompilare,perPersona};
 }
+// Le festività che cadono in un giorno feriale si segnano da sole con FS (per chi ha già qualcosa in quel mese)
+function completaFestivita(anno,mese){
+  const m=meseP(anno,mese);if(!m)return;const k=chiaveMese(anno,mese);const fest=festivitaAnno(anno,stato.impostazioni.festivitaLocali);
+  const da=[];for(const p of personePresenze(anno,mese)){if(p.soloTrasferte||!p.attivo||!p.inLibroPresenze)continue;const mp=m.persone[p.id];if(!mp||!Object.keys(mp.giorni||{}).length)continue;
+    for(let g=1;g<=giorniNelMese(anno,mese);g++){const iso=k+'-'+pad2(g);if(!fest.has(iso)||eFineSettimana(anno,mese,g))continue;const c=mp.giorni[String(g)];if(!c||(c.ore==null&&!c.codice))da.push([p.id,g])}}
+  if(da.length)esegui('FS nelle festività '+fMeseAnno(anno,mese),s=>{for(const [pid,g] of da){const mp=assicuraMesePersona(s,anno,mese,pid);const c=mp.giorni[String(g)]||{};delete c.ore;c.codice='FS';mp.giorni[String(g)]=c}},{senzaRender:true,silenzioso:true});
+}
 VISTE.presenze=function(r){
   let {anno,mese}=daChiaveMese(r.id)||{anno:new Date().getFullYear(),mese:new Date().getMonth()+1};
   const k=chiaveMese(anno,mese);const m=meseP(anno,mese)||{persone:{}};
@@ -3728,6 +3737,7 @@ VISTE.presenze=function(r){
   const avvisi=[];
   for(const p of persone){const mesiAnno=Object.keys(stato.presenze).filter(x=>x.startsWith(anno+'-')).map(x=>stato.presenze[x].persone[p.id]).filter(Boolean);const mx=controllaMassimali(mesiAnno);for(const a of mx.avvisi)avvisi.push(nomePersona(p)+': '+a);const mp=m.persone[p.id];if(mp){if(mp.incerti&&mp.incerti.length)avvisi.push(`${nomePersona(p)}: ${mp.incerti.length} giorni letti con incertezza da confermare (${mp.incerti.join(', ')})`)}}
   const sezioni=[['soci','Soci'],['dipendenti','Dipendenti']];
+  completaFestivita(anno,mese);
   dopoRender(montaGriglia);
   return html`<div class="testata"><div class="riga stretta"><a class="pulsante icona" href="#/presenze/${chiaveMese(prev.anno,prev.mese)}" aria-label="Mese precedente">${icona('sinistra')}</a><h1 style="min-width:220px;text-align:center">${fMeseAnno(anno,mese)}</h1><a class="pulsante icona" href="#/presenze/${chiaveMese(succ.anno,succ.mese)}" aria-label="Mese successivo">${icona('destra')}</a><a class="pulsante piccolo discreto" href="#/presenze">Oggi</a></div>
     <div class="azioni"><button class="pulsante" data-azione="presenze-strumenti" data-k="${k}">${icona('magia')}Strumenti</button><button class="pulsante" data-azione="presenze-trascrizione" data-k="${k}">${icona('tastiera')}Compila un operaio</button><button class="pulsante" data-azione="presenze-uscite" data-k="${k}">${icona('scarica')}Esporta</button><button class="pulsante icona" data-azione="presenze-aiuto" title="Tasti e regole">${icona('info')}</button></div></div>
@@ -5857,9 +5867,9 @@ function docLibroPresenze(anno,mese){
       const righe=[];
       for(let g=1;g<=n;g++){
         const we=eFineSettimana(anno,mese,g);const c=mp.giorni[String(g)]||{};const iso=k+'-'+pad2(g);const festivo=fest.has(iso);
-        const v=valoreCella(c);
+        let v=valoreCella(c);if(v==null&&festivo&&!we&&!p.soloTrasferte)v='FS';
         const cls=classeGiornoOre(v,we,festivo);
-        const ore=v==null?'—':typeof v==='number'?fOre(v):((CODICI_ASSENZA[v]||{}).nome||v);
+        const ore=v==='FS'?'FS':v==null?'—':typeof v==='number'?fOre(v):((CODICI_ASSENZA[v]||{}).nome||v);
         const trasferta=c.trasferta||c.cantiere||'';
         righe.push(`<tr${cls?` class="${cls}"`:''}><td class="giorno">${g}<span class="gs"> ${h(NOMI_GIORNI_BREVI[giornoSettimana(anno,mese,g)])}</span></td><td>${h(c.committente||'')||'—'}</td><td>${h(trasferta)||'—'}</td><td class="num">${h(ore)}</td></tr>`);
       }
