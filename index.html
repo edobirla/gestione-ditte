@@ -624,14 +624,14 @@ input[type=checkbox],input[type=radio]{width:18px;height:18px;accent-color:var(-
 .doc .riq .mini{font-size:7.5pt;font-weight:400;color:#555}
 .doc table.rimanenze{font-size:8pt;line-height:1.2}
 .doc table.rimanenze th,.doc table.rimanenze td{padding:.35mm 1.5mm}
-.doc table.ore-mensili{font-size:10.5pt;margin:0;line-height:1.15}
+.doc table.ore-mensili{font-size:10.5pt;margin:0;line-height:1.1}
+.doc table.ore-mensili.stretta{font-size:9pt;line-height:1.05}.doc table.ore-mensili.stretta td{padding:0 2mm}.doc table.ore-mensili.stretta td.num{font-size:10.5pt}
 .doc table.ore-mensili th{background:#111;color:#fff;border-color:#111;font-size:9pt;padding:1.2mm 2mm}
 .doc table.ore-mensili th.num,.doc table.ore-mensili td.num{text-align:right}
 .doc table.ore-mensili th.giorno,.doc table.ore-mensili td.giorno{width:16mm;text-align:center}
 .doc table.ore-mensili th.trasf{width:38mm} .doc table.ore-mensili th.ore{width:26mm}
-.doc table.ore-mensili td{border-color:#CFCBC2;padding:.25mm 2mm}
+.doc table.ore-mensili td{border-color:#CFCBC2;padding:.15mm 2mm}
 .doc table.ore-mensili td.num{font-size:12pt;font-weight:700}
-.doc table.ore-mensili tr.lavorato td{background:#F1F4FF}
 .doc table.ore-mensili td.giorno .gs{font-size:7.5pt;color:#777}
 .doc table.ore-mensili tfoot tr.totale td{background:#EDEBE6;border-color:#CFCBC2;font-weight:700;font-size:14pt}
 /* fine settimana: filigrana a righe, come le celle non compilabili della griglia a schermo */
@@ -5844,7 +5844,6 @@ function classeGiornoOre(v,we,festivo){
   if(v==='M'||v==='I') return 'g-malattia';
   if(typeof v==='string') return 'g-assenza';
   if(we) return 'g-we';
-  if(typeof v==='number'&&v>0) return 'lavorato';
   return '';
 }
 function docLibroPresenze(anno,mese){
@@ -5866,7 +5865,8 @@ function docLibroPresenze(anno,mese){
       }
       const totale=p.soloTrasferte?'—':fOre(calc.oreGriglia);
       blocchi.push({nuovaPagina:!primo,html:`<div class="ore-anagrafica"><div class="riq"><span class="et">Nome e cognome</span><div class="vl">${h(nomePersona(p))}</div></div><div class="riq"><span class="et">Qualifica / Ruolo</span><div class="vl">${h(p.mansione||(sz==='soci'?'Socio':'Operaio'))}</div></div></div>`});
-      blocchi.push(`<table class="ore-mensili"><thead><tr><th class="giorno">Giorno</th><th>Committente</th><th class="trasf">Località Trasferta</th><th class="num ore">Ore Ordinarie</th></tr></thead><tbody>${righe.join('')}</tbody><tfoot><tr class="totale"><td colspan="3" class="num">Totale mese</td><td class="num">${h(totale)}</td></tr></tfoot></table>`);
+      const righeNote=Math.ceil(String(mp.note||'').length/60)+String(mp.note||'').split('\n').length-1+(Object.keys(calc.perCodice).length?1:0)+(calc.oreFestivitaPagate?1:0);
+      blocchi.push(`<table class="ore-mensili${righeNote>3?' stretta':''}"><thead><tr><th class="giorno">Giorno</th><th>Committente</th><th class="trasf">Località Trasferta</th><th class="num ore">Ore Ordinarie</th></tr></thead><tbody>${righe.join('')}</tbody><tfoot><tr class="totale"><td colspan="3" class="num">Totale mese</td><td class="num">${h(totale)}</td></tr></tfoot></table>`);
       const assenze=Object.entries(calc.perCodice).map(([cc,nn])=>((CODICI_ASSENZA[cc]||{}).nome||cc)+' '+nn).join(' · ');
       blocchi.push(`<div class="ore-piede"><div class="riq note"><span class="et">Note</span><div class="vl">${h(mp.note||'')}${assenze?`<div class="mini">${h(assenze)}</div>`:''}${calc.oreFestivitaPagate?`<div class="mini">${calc.giorniFestivitaPagati.length} festività pagate incluse nel totale (+${h(fEuro(calc.tariffa*calc.oreFestivitaPagate,0))})</div>`:''}</div></div><div class="riq importo"><span class="et">Importo totale</span><div class="vl">${h(calc.importo!=null?fEuro(calc.importo,0):'—')}</div></div></div>`);
       primo=false;
