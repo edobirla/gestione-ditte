@@ -421,7 +421,7 @@ function schedaOrePersona(p){
     {chiave:'mese',titolo:'Mese',principale:true,formatta:r=>html`<a href="#/presenze/${r.anno}-${pad2(r.mese)}">${fMeseAnno(r.anno,r.mese)}</a>`},
     {chiave:'ore',titolo:'Ore',num:true,formatta:r=>r.calc?fOre(r.calc.oreGriglia):html`<span class="silenzioso">—</span>`},
     {chiave:'assenze',titolo:'Assenze',formatta:r=>r.calc?Object.entries(r.calc.perCodice).map(([c,n])=>html`<span class="etichetta-tag" title="${CODICI_ASSENZA[c]?CODICI_ASSENZA[c].nome:c}">${c} ${n}</span> `):''},
-    {chiave:'importo',titolo:'Importo',num:true,formatta:r=>r.calc?html`${fEuro(r.calc.importo,0)}${r.mp.importoForzato?html` <span class="piccolo secondario" title="Importo forzato a mano">✎</span>`:''}`:html`<span class="silenzioso">—</span>`},
+    {chiave:'importo',titolo:'Importo',num:true,formatta:r=>r.calc?html`${fEuro(r.calc.importo,0)}`:html`<span class="silenzioso">—</span>`},
     {chiave:'foglio',titolo:'Foglio ore',formatta:r=>r.mp&&r.mp.foglioOreId?html`<button class="pulsante piccolo" data-azione="file-apri" data-id="${r.mp.foglioOreId}">${icona('immagine','piccola')}Vedi</button>`:html`<span class="silenzioso">—</span>`},
   ]})}</div>`;
 }
