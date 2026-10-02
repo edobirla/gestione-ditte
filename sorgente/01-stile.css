@@ -568,7 +568,8 @@ input[type=checkbox],input[type=radio]{width:18px;height:18px;accent-color:var(-
 .doc table.ore-mensili th{background:#111;color:#fff;border-color:#111;font-size:9pt;padding:1.2mm 2mm}
 .doc table.ore-mensili th.num,.doc table.ore-mensili td.num{text-align:right}
 .doc table.ore-mensili th.giorno,.doc table.ore-mensili td.giorno{width:16mm;text-align:center}
-.doc table.ore-mensili th.trasf{width:38mm} .doc table.ore-mensili th.ore{width:26mm}
+.doc table.ore-mensili{table-layout:fixed}.doc table.ore-mensili td{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.doc table.ore-mensili th.trasf{width:55mm} .doc table.ore-mensili th.ore{width:26mm}
 .doc table.ore-mensili td{border-color:#CFCBC2;padding:.15mm 2mm}
 .doc table.ore-mensili td.num{font-size:12pt;font-weight:700}
 .doc table.ore-mensili td.giorno .gs{font-size:7.5pt;color:#777}
