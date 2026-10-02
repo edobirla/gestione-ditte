@@ -561,14 +561,14 @@ input[type=checkbox],input[type=radio]{width:18px;height:18px;accent-color:var(-
 .doc .riq .mini{font-size:7.5pt;font-weight:400;color:#555}
 .doc table.rimanenze{font-size:8pt;line-height:1.2}
 .doc table.rimanenze th,.doc table.rimanenze td{padding:.35mm 1.5mm}
-.doc table.ore-mensili{font-size:10.5pt;margin:0;line-height:1.15}
+.doc table.ore-mensili{font-size:10.5pt;margin:0;line-height:1.1}
+.doc table.ore-mensili.stretta{font-size:9pt;line-height:1.05}.doc table.ore-mensili.stretta td{padding:0 2mm}.doc table.ore-mensili.stretta td.num{font-size:10.5pt}
 .doc table.ore-mensili th{background:#111;color:#fff;border-color:#111;font-size:9pt;padding:1.2mm 2mm}
 .doc table.ore-mensili th.num,.doc table.ore-mensili td.num{text-align:right}
 .doc table.ore-mensili th.giorno,.doc table.ore-mensili td.giorno{width:16mm;text-align:center}
 .doc table.ore-mensili th.trasf{width:38mm} .doc table.ore-mensili th.ore{width:26mm}
-.doc table.ore-mensili td{border-color:#CFCBC2;padding:.25mm 2mm}
+.doc table.ore-mensili td{border-color:#CFCBC2;padding:.15mm 2mm}
 .doc table.ore-mensili td.num{font-size:12pt;font-weight:700}
-.doc table.ore-mensili tr.lavorato td{background:#F1F4FF}
 .doc table.ore-mensili td.giorno .gs{font-size:7.5pt;color:#777}
 .doc table.ore-mensili tfoot tr.totale td{background:#EDEBE6;border-color:#CFCBC2;font-weight:700;font-size:14pt}
 /* fine settimana: filigrana a righe, come le celle non compilabili della griglia a schermo */
