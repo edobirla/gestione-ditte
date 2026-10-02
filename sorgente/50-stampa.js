@@ -347,9 +347,9 @@ function docLibroPresenze(anno,mese){
       const righe=[];
       for(let g=1;g<=n;g++){
         const we=eFineSettimana(anno,mese,g);const c=mp.giorni[String(g)]||{};const iso=k+'-'+pad2(g);const festivo=fest.has(iso);
-        const v=valoreCella(c);
+        let v=valoreCella(c);if(v==null&&festivo&&!we&&!p.soloTrasferte)v='FS';
         const cls=classeGiornoOre(v,we,festivo);
-        const ore=v==null?'—':typeof v==='number'?fOre(v):((CODICI_ASSENZA[v]||{}).nome||v);
+        const ore=v==='FS'?'FS':v==null?'—':typeof v==='number'?fOre(v):((CODICI_ASSENZA[v]||{}).nome||v);
         const trasferta=c.trasferta||c.cantiere||'';
         righe.push(`<tr${cls?` class="${cls}"`:''}><td class="giorno">${g}<span class="gs"> ${h(NOMI_GIORNI_BREVI[giornoSettimana(anno,mese,g)])}</span></td><td>${h(c.committente||'')||'—'}</td><td>${h(trasferta)||'—'}</td><td class="num">${h(ore)}</td></tr>`);
       }

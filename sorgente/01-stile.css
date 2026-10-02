@@ -336,7 +336,9 @@ input[type=checkbox],input[type=radio]{width:18px;height:18px;accent-color:var(-
 .presenze-griglia th.fisso2,.presenze-griglia td.fisso2{position:sticky;left:150px;background:var(--superficie);z-index:2;text-align:left;padding:0 6px;min-width:84px;font-size:var(--t-xs);color:var(--testo-3);border-right:2px solid var(--bordo-forte)}
 .presenze-griglia thead th.fisso,.presenze-griglia thead th.fisso2{z-index:4;background:var(--superficie-2)}
 .presenze-griglia td.fine-settimana,.presenze-griglia th.fine-settimana{background:var(--superficie-3);color:var(--testo-3)}
-.presenze-griglia td.festivo,.presenze-griglia th.festivo{background:var(--giallo-chiaro)}
+.presenze-griglia td.festivo,.presenze-griglia th.festivo{background:repeating-linear-gradient(45deg,#fff,#fff 4px,#F7DCDC 4px,#F7DCDC 8px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .presenze-griglia td.festivo,:root:not([data-theme="light"]) .presenze-griglia th.festivo{background:repeating-linear-gradient(45deg,#2a1a1a,#2a1a1a 4px,#4a2626 4px,#4a2626 8px)}}
+:root[data-theme="dark"] .presenze-griglia td.festivo,:root[data-theme="dark"] .presenze-griglia th.festivo{background:repeating-linear-gradient(45deg,#2a1a1a,#2a1a1a 4px,#4a2626 4px,#4a2626 8px)}
 .presenze-griglia td.cella{cursor:cell}
 .presenze-griglia td.cella.bloccata{cursor:not-allowed;background:repeating-linear-gradient(45deg,var(--superficie-3),var(--superficie-3) 4px,var(--superficie-2) 4px,var(--superficie-2) 8px)}
 .presenze-griglia td.cella.attiva{outline:2px solid var(--blu);outline-offset:-2px;background:var(--blu-tenue)}
@@ -575,7 +577,7 @@ input[type=checkbox],input[type=radio]{width:18px;height:18px;accent-color:var(-
 .doc table.ore-mensili tr.g-we td{background:repeating-linear-gradient(45deg,#fff,#fff 1.2mm,#EFEFEF 1.2mm,#EFEFEF 2.4mm);color:#888}
 /* ferie, festività, malattia: riga piena, si devono vedere a colpo d'occhio */
 .doc table.ore-mensili tr.g-ferie td{background:#E9E7FD}
-.doc table.ore-mensili tr.g-festivo td{background:#FBF2CF}
+.doc table.ore-mensili tr.g-festivo td{background:repeating-linear-gradient(45deg,#fff,#fff 1.2mm,#F7DCDC 1.2mm,#F7DCDC 2.4mm);color:#B33A3A}
 .doc table.ore-mensili tr.g-malattia td{background:#FBE4E4}
 .doc table.ore-mensili tr.g-assenza td{background:#ECECEC}
 body.trascinamento iframe,body.trascinamento embed,body.trascinamento object{pointer-events:none}

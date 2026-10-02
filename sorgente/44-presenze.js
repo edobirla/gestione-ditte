@@ -25,6 +25,13 @@ function riepilogoMese(anno,mese){
   }
   return {oreTotali,importoTotale,giorniDaCompilare,perPersona};
 }
+// Le festività che cadono in un giorno feriale si segnano da sole con FS (per chi ha già qualcosa in quel mese)
+function completaFestivita(anno,mese){
+  const m=meseP(anno,mese);if(!m)return;const k=chiaveMese(anno,mese);const fest=festivitaAnno(anno,stato.impostazioni.festivitaLocali);
+  const da=[];for(const p of personePresenze(anno,mese)){if(p.soloTrasferte||!p.attivo||!p.inLibroPresenze)continue;const mp=m.persone[p.id];if(!mp||!Object.keys(mp.giorni||{}).length)continue;
+    for(let g=1;g<=giorniNelMese(anno,mese);g++){const iso=k+'-'+pad2(g);if(!fest.has(iso)||eFineSettimana(anno,mese,g))continue;const c=mp.giorni[String(g)];if(!c||(c.ore==null&&!c.codice))da.push([p.id,g])}}
+  if(da.length)esegui('FS nelle festività '+fMeseAnno(anno,mese),s=>{for(const [pid,g] of da){const mp=assicuraMesePersona(s,anno,mese,pid);const c=mp.giorni[String(g)]||{};delete c.ore;c.codice='FS';mp.giorni[String(g)]=c}},{senzaRender:true,silenzioso:true});
+}
 VISTE.presenze=function(r){
   let {anno,mese}=daChiaveMese(r.id)||{anno:new Date().getFullYear(),mese:new Date().getMonth()+1};
   const k=chiaveMese(anno,mese);const m=meseP(anno,mese)||{persone:{}};
@@ -38,6 +45,7 @@ VISTE.presenze=function(r){
   const avvisi=[];
   for(const p of persone){const mesiAnno=Object.keys(stato.presenze).filter(x=>x.startsWith(anno+'-')).map(x=>stato.presenze[x].persone[p.id]).filter(Boolean);const mx=controllaMassimali(mesiAnno);for(const a of mx.avvisi)avvisi.push(nomePersona(p)+': '+a);const mp=m.persone[p.id];if(mp){if(mp.incerti&&mp.incerti.length)avvisi.push(`${nomePersona(p)}: ${mp.incerti.length} giorni letti con incertezza da confermare (${mp.incerti.join(', ')})`)}}
   const sezioni=[['soci','Soci'],['dipendenti','Dipendenti']];
+  completaFestivita(anno,mese);
   dopoRender(montaGriglia);
   return html`<div class="testata"><div class="riga stretta"><a class="pulsante icona" href="#/presenze/${chiaveMese(prev.anno,prev.mese)}" aria-label="Mese precedente">${icona('sinistra')}</a><h1 style="min-width:220px;text-align:center">${fMeseAnno(anno,mese)}</h1><a class="pulsante icona" href="#/presenze/${chiaveMese(succ.anno,succ.mese)}" aria-label="Mese successivo">${icona('destra')}</a><a class="pulsante piccolo discreto" href="#/presenze">Oggi</a></div>
     <div class="azioni"><button class="pulsante" data-azione="presenze-strumenti" data-k="${k}">${icona('magia')}Strumenti</button><button class="pulsante" data-azione="presenze-trascrizione" data-k="${k}">${icona('tastiera')}Compila un operaio</button><button class="pulsante" data-azione="presenze-uscite" data-k="${k}">${icona('scarica')}Esporta</button><button class="pulsante icona" data-azione="presenze-aiuto" title="Tasti e regole">${icona('info')}</button></div></div>
