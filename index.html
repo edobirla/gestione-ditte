@@ -3705,7 +3705,7 @@ function nomeTasto(e){return e.key||({13:'Enter',9:'Tab',27:'Escape',37:'ArrowLe
 function personePresenze(anno,mese){
   const k=chiaveMese(anno,mese);const m=stato.presenze[k];
   const conDati=m?Object.keys(m.persone):[];
-  return stato.persone.filter(p=>(p.inLibroPresenze&&p.attivo)||conDati.includes(p.id)).filter(p=>{ if(p.dataCessazione&&p.dataCessazione<k+'-01'&&!conDati.includes(p.id)) return false; return true; });
+  return stato.persone.filter(p=>(p.inLibroPresenze&&p.attivo)||conDati.includes(p.id)).filter(p=>{ if(p.dataCessazione&&p.dataCessazione<k+'-01'&&!conDati.includes(p.id)) return false; return true; }).sort((a,b)=>((a.sezionePresenze==='soci')?0:1)-((b.sezionePresenze==='soci')?0:1)||confrontaTesto(nomePersona(a),nomePersona(b)));
 }
 function riepilogoMese(anno,mese){
   const m=meseP(anno,mese);const persone=personePresenze(anno,mese);
