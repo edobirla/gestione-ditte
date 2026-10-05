@@ -1,37 +1,35 @@
 # Handoff — Gestionale (Pavimass)
 
-> Generated on 2026-09-24 — resume in a new Claude Code session.
+> Generated on 2026-10-05 — resume in a new Claude Code session.
 
 ---
 
 ## 🎯 Goal
 
-Gestionale Pavimass is a single-file HTML app (built from `sorgente/*.js` + `01-stile.css` + `02-guscio.html` into `index.html`) for a small flooring/construction company: workers, worksites (cantieri), documents/expiries, attendance (presenze), quotes, budget/invoices, vehicles, suppliers, and now year-end inventory ("rimanenze") for the accountant. No external libraries — everything hand-written vanilla JS on purpose. The owner tests on the **published** app (GitHub Pages) and reports in Italian.
+Gestionale Pavimass is a single-file HTML app (built from `sorgente/*.js` + `01-stile.css` + `02-guscio.html` into `index.html`) for a small flooring/construction company: workers, worksites, documents/expiries, attendance (presenze), quotes, budget/invoices, vehicles, suppliers, year-end inventory (rimanenze). Vanilla JS, no external libs on purpose. The owner tests on the **published** app (GitHub Pages) and reports in Italian. The printed monthly "Scheda ore" (one A4 page per worker) goes to the accountant, so its readability and "exactly one page per worker" are hard requirements.
 
 ---
 
 ## 📍 Current State
 
-Everything is **committed on `sorgenti` (b1c1fe3), pushed to `origin/sorgenti`, and published on `main` (14c3c3a: `index.html` + `sw.js` + `.gitignore`)**. Working tree clean except this HANDOFF.
+Everything is **committed on `sorgenti` (e0e0ba1), pushed, and published on `main` (15ba380)**. Working tree clean except this HANDOFF.
 
-**Done this session (all verified in the Browser pane, most with the owner's real data via `Gestionale Pavimass.html`):**
-- **Rimanenze section** (`sorgente/58-rimanenze.js`, menu item after Budget). `stato.rimanenze["AAAA"]={magazzino,lavori,fatture}` (new top-level key `rimanenze:{}` in `60-dati.js`, no migration needed). Three tabs:
-  - Magazzino: inline-editable rows (qta×costo), import from the owner's inventory xlsx (`magazzinoDaGriglia` + existing `grigliaDaXlsx`; real file `~/Lavoro/pavimass/rimanenze/2025/rimanenze 2025.xlsx` → 50 rows, total 28.615,60 € = his PDF), copy from previous year.
-  - Lavori in corso: `proposteRimanenze(anno)` — per cantiere, hours in presenze after its last `entrata` dated ≤31/12 (`oreCantiere` × `tariffaOraria`) + non-manodopera `uscite` in the same window. If a following invoice exists in year+1 → goes to Fatture da emettere instead. Importo presunto is typed by the user.
-  - Fatture da emettere: from `entrate` of year+1; manual "Da una fattura emessa" picker.
-  - Export: one PDF (`docRimanenze(anno)`, one section per page, custom header like the libro presenze) or one section; empty sections print "Al 31/12/AAAA non risultano …". Print rows compact (`table.rimanenze` CSS) so 50 items fit one A4.
-  - Inline edits use `esegui(...,{senzaRender:true})` and patch totals in the DOM so Tab keeps focus.
-- **Dialogs with inputs no longer close on backdrop click** (`dialogo()` in `30-ui.js`) — the owner lost UNILAV worker data that way. X / Annulla / Esc still close.
-- **Menu**: Fornitori moved under Clienti. **Clients deletable** (`eliminaCliente` in `43-clienti.js`: confirm lists linked cantieri/preventivi/fatture, nulls those references; undoable).
-- **Code review fixes** (3 Sonnet reviewers + own verification): FatturaPA TD04 → `nota_credito` with `notaSu`; in-batch XML dedupe; Budget quick filters keep the year; `tabella()` auto-assigns an id to clickable tables (Scadenzario opened the wrong document); `leggiNumero('0.004')` no longer = 4 (thousands regex now requires a non-zero leading group); `salvaFile` un-trash goes through `esegui`; cantieri search by committente/affidataria; list pagination budget in `impagina`; "commitente" typo in presenze Excel; null guard in Esportazioni; negative quantities in preventivi.
-- **Invoice import** (`47-budget.js`): accepts `.xml`, `.p7m` (`xmlDaP7m`: minimal ASN.1 walker, handles DER, BER indefinite length, chunked OCTET STRING, base64/PEM — tested with 4 openssl-signed variants) and `.zip` containing them (`testiFattureDaFile`). **Cantiere proposed** by `cantierePerFattura(testo, clienteId)` (name/address words in Causale/Descrizione/references, or the only open cantiere of that client); stays `daVerificare`, note says "cantiere proposto … da confermare".
-- **Presenze cantiere recognition**: owner writes mostly the *località* in the "cantiere" row (e.g. "piancastagnaio", "firenze"). New `cantiereDaCella(cella, iso)` in `44-presenze.js`: exact name → else cantiere whose name/comune contains the word, active that day (dataInizio/dataFine), disambiguated by committente; only if unique. Used by the grid (unrecognised cells dotted-orange underline with tooltip; recognised ones show "→ cantiere X") and by Rimanenze `oreCantiere`. With real data this took attributable hours from ~0 to hundreds per cantiere. Exact names are saved canonically (`nomeCantiereCanonico`), suggestions list open cantieri first.
-- **Offline**: `strumenti/sw.js` (network-first, cache fallback, cache name `gestionale`), registered in `99-avvio.js` only when `location.protocol==='https:'`. `pubblica.py` copies it to `main` and adds `!sw.js` to main's `.gitignore`. Verified locally by registering a temp copy, stopping the server and reloading (page loaded from cache); temp SW unregistered afterwards.
+**Done this session (presenze round, all verified in the Browser pane with the owner's real data via `Gestionale Pavimass.html`):**
+- Click a worker's **name** in the Presenze grid → opens his compilation sheet (`apriTrascrizione`, `AZIONI['presenze-compila']` in `44-presenze.js`). Works also for `soloTrasferte` people (single "Località trasferta" column); the "Compila un operaio" picker no longer filters them out. The name no longer links to the worker page from the grid.
+- **Cantieri in corso suggested** while typing in cantiere/committente (grid editor and compilation sheet): `suggerimentiCantieri(campo)` → "cantiere · committente · comune", searches all three, open cantieri first, then history.
+- **"Ripeti la riga N fino al giorno [__] · Compila uguale"** bar in the compilation sheet: copies the focused row to following workdays up to the day typed (skips weekends, writes FS on holidays).
+- **Note field** in the compilation sheet (`[data-nota]`, saved to `mp.note`).
+- **Importo**: single field "Importo del mese", prefilled with the automatic value; if the owner changes it, it is stored (`importoManuale`+`importoForzato=true` internally) and stays; clearing it returns to automatic. No "forzato"/✎ shown anywhere (grid, operai page, print).
+- **Grid** table is `width:100%` (no white space on the right).
+- **Holidays**: `completaFestivita(anno,mese)` (called from `VISTE.presenze`) writes FS on weekday holidays for active libro-presenze people who already have data in that month; print also shows FS for empty holiday rows. Holiday rows/cells use a soft red diagonal hatch (like weekends but red) in grid (light + dark theme) and print.
+- **Printed scheda ore** (`docLibroPresenze` in `50-stampa.js`, CSS `table.ore-mensili`/`.ore-*` in `01-stile.css`): bigger fonts (rows 10.5pt, hours 12pt bold, total 22pt, "Totale mese" 14pt), **name in the box 18pt**, box "Qualifica" = **Socio / Dipendente** (no more mansione), table `table-layout:fixed` with single-line ellipsis cells (long committente/località used to wrap and push the sheet onto a 2nd page), località column 55mm, `.stretta` compact class when notes/extra lines are long, note box turns **red** (border, bg, bold red 12pt text; 9pt if >320 chars) when a note exists; auto lines (assenze, festività pagate) stay small black. No tint on worked rows (owner explicitly did not want it).
+- **Order**: `personePresenze` sorts soci first, then dipendenti, each alphabetically by "cognome nome" (affects grid, print, keyboard navigation, exports).
 
 **Not verified / open:**
-- Service worker on the real GitHub Pages site / installed iPhone app (only simulated locally).
-- `cantiereDaCella` heuristics on ambiguous comuni: e.g. "Arezzo" outside Lidl/Guidelli date ranges resolves to "Olmo" (the only Arezzo cantiere without dates). Values in Rimanenze are editable, but warn the owner if numbers look off.
-- Libro presenze printing: owner said on 09-14 it "doesn't work"; this session it renders 7 pages for July 2026 and a reviewer found no defect. Ask for exact repro if he still sees it.
+- Mobile (phone) Presenze view has no button to open the compilation sheet (only the old per-person card).
+- Holiday red hatch was checked in computed CSS, not by eye (Browser pane was not compositing); owner should confirm tone.
+- A single note of ~1500+ characters would still push the footer to a 2nd page (not realistic).
+- Earlier open items: service worker on real GitHub Pages/iPhone; `cantiereDaCella` ambiguity (e.g. "Arezzo"); libro presenze printing repro if the owner reports again.
 
 ---
 
@@ -39,43 +37,34 @@ Everything is **committed on `sorgenti` (b1c1fe3), pushed to `origin/sorgenti`, 
 
 | File | Role / Status |
 |------|--------------|
-| `sorgente/58-rimanenze.js` | NEW — whole Rimanenze section, proposals, xlsx import, print doc. |
-| `sorgente/47-budget.js` | XML import: `estraiFatturaXml` (+TipoDocumento, testoLibero), `xmlDaP7m`, `testiFattureDaFile`, `cantierePerFattura`, `budget-importa-xml`. |
-| `sorgente/44-presenze.js` | `cantiereDaCella`, `nomeCantiereCanonico`, `eCantiereInElenco`, `valoriUsati` ordering, cell marking. |
-| `sorgente/30-ui.js` | `dialogo()` backdrop rule; `tabella()` auto id. |
-| `sorgente/43-clienti.js` | `eliminaCliente`, Elimina button in `dialogoCliente`. |
-| `sorgente/31-navigazione.js` | `MENU` order (Rimanenze added, Fornitori under Clienti). |
-| `sorgente/10-utilita.js` | `leggiNumero` thousands fix. |
-| `sorgente/99-avvio.js` | SW registration (https only). |
-| `strumenti/sw.js` | NEW — service worker (NOT in `sorgente/`, or costruisci.py would inline it). |
-| `strumenti/pubblica.py` | Publishes `index.html` + `sw.js`, patches main's `.gitignore`. |
+| `sorgente/44-presenze.js` | `personePresenze` (sorting), `completaFestivita`, `suggerimentiCantieri`, `apriTrascrizione` (repeat bar, note, soloTrasferte), importo dialog in `presenze-persona`. |
+| `sorgente/50-stampa.js` | `docLibroPresenze`: Socio/Dipendente, FS fallback, note box classes, `stretta` heuristic (`righeNote`, chars/48). |
+| `sorgente/01-stile.css` | `.presenze-griglia` (width, festivo hatch, `.nome-compila`), `.doc table.ore-mensili…`, `.doc .riq…` print styles. |
+| `sorgente/41-operai.js` | ✎ forzato indicator removed from hours table. |
+| `strumenti/costruisci.py`, `pubblica.py`, `controlla_funzioni.py` | Build / publish / safety check (see Setup). |
 
 ---
 
 ## ❌ Failed Attempts
 
-### Matching presenze hours by exact cantiere name
-- **What:** first version of `oreCantiere` compared `normalizzaTesto(cella.cantiere)===normalizzaTesto(c.nome)`.
-- **Why it failed:** real presenze contain locations ("piancastagnaio"), not cantiere names; ~90% of cells never matched → Rimanenze would have proposed almost nothing. Replaced by `cantiereDaCella`. Lesson (again): test against the real data file, not synthetic data.
+### Light-blue tint on worked rows in the printed sheet
+- **What:** added `tr.lavorato` background to make hours stand out.
+- **Why it failed:** owner did not want coloured rows. Removed. Hours stand out via bold 12pt only.
 
-### Parsing xlsx numbers with `leggiNumero`
-- **What:** xlsx raw value "0.004" went through the Italian parser → 4.
-- **Fix:** raw xlsx numbers parsed with a dot-decimal regex first (`num` in `magazzinoDaGriglia`); `leggiNumero` itself also fixed for leading "0.".
+### Bigger print fonts without row control
+- **What:** first bump to 10pt rows / .5mm padding made every sheet 2 pages (14 pages for 7 workers).
+- **Fix:** tighter padding + 10.5pt text/12pt hours; then owner still saw 2 pages on real data → cause was long committente/località wrapping. Fixed with `table-layout:fixed` + nowrap/ellipsis. Always stress-test with very long strings and long notes (impaginazione splits tables by rows → silent extra pages).
 
-### Reviewer-suggested pagination fix `disp-y`
-- **What:** a reviewer proposed replacing `disp-y*0` with `disp-y` in `impagina`'s list branch.
-- **Why wrong:** `disp` already subtracts `y` → double subtraction. Used `H-y-TOL` instead. Also: a `//` comment inserted mid-line in these one-line functions commented out the rest of the line (SyntaxError) — use `/* */`.
-
-### sw.js not published
-- **What:** `pubblica.py` added `sw.js` but main's `.gitignore` is `*` + whitelist → silently ignored. Fixed by appending `!sw.js`.
+### Testing print in the Browser pane
+- `.anteprima-stampa` overlays stay in the DOM: `.remove()` it between runs or `querySelector` returns the old one (gave a false "7/9 pages"). Page count check: `.anteprima-stampa .pagina` length must equal `personePresenze(a,m).length`.
 
 ---
 
 ## ✅ Working Solutions
 
-- **Verify with real data in memory**: open `http://localhost:8765/Gestionale%20Pavimass.html` (build with `python3 strumenti/costruisci.py`), then in console `window.salvaStato=()=>{}; stato=normalizzaStato(datiIniziali()); render();` — exercises every view with the company data without persisting. Then loop routes and check `#contenuto` for "ha avuto un errore".
-- **Real reference files** for Rimanenze: `~/Lavoro/pavimass/rimanenze/2025/` (xlsx + two PDFs of what the accountant receives). The server only serves the project folder: copy a file in temporarily (and delete it) to fetch it from the page.
-- **Test p7m**: `openssl cms -sign -binary -nodetach [-stream] -in f.xml -signer c.pem -inkey k.pem -outform DER|PEM`.
+- **Verify with real data in memory**: `python3 strumenti/costruisci.py` → open `http://localhost:8765/Gestionale%20Pavimass.html`, console: `window.salvaStato=()=>{}; stato=normalizzaStato(datiIniziali()); render();`. Stress prints with `stampaLibroPresenze(2026,7)` over several months/notes.
+- Programmatic `.focus()` does not fire `focusin` in the pane: dispatch `new FocusEvent('focusin',{bubbles:true})` in tests.
+- Importo override rule: save only if the typed value differs from the value shown at open (`calc.importo`), so editing aggiustamenti alone doesn't freeze the amount.
 
 ---
 
@@ -89,31 +78,31 @@ python3 strumenti/controlla_funzioni.py HEAD
 python3 strumenti/pubblica.py                # publish index.html + sw.js to main
 git push origin sorgenti                     # pubblica.py does NOT push sorgenti
 ```
-Preview: `.claude/launch.json` config "gestionale" (python http.server 8765).
+Preview: `.claude/launch.json` config "gestionale" (python http.server 8765); restart with `preview_start` if navigation is denied.
 
 ---
 
 ## ➡️ Next Steps
 
-1. Ask the owner to try on the published app: Rimanenze 2025 (import his xlsx, "Compila dai dati", Esporta), XML/ZIP/p7m import from his invoicing software, and offline opening of the installed app on iPhone.
-2. If Rimanenze lavori/fatture numbers look wrong, inspect `cantiereDaCella` on his real presenze (ambiguous comuni like Arezzo) and consider letting him pin a località→cantiere mapping.
-3. Owner's open question answered: keep his external invoicing software (SdI sending, legal storage) and import XML here — do not turn this app into an e-invoicing tool.
-4. Still-standing items from earlier handoffs: libro presenze print repro if he reports it again; optional "N non segnalati" hint for silenced documents.
+1. Ask the owner to print July on the published app and confirm: red holiday hatch tone, one page per worker, red note box, Socio/Dipendente, name size, alphabetical order.
+2. If any worker still goes to 2 pages: get worker + month (or screenshot of the preview), inspect with his real data.
+3. Optional: add a "Compila il mese" button in the phone view (`vistaPresenzeMobile`).
+4. Earlier backlog: Rimanenze 2025 trial by the owner, XML/ZIP/p7m import, offline on iPhone, possible località→cantiere pinning.
 
 ---
 
 ## ⚠️ Gotchas / Traps
 
 - **Never `git switch main`** in the working folder (empties it). Publish only via `strumenti/pubblica.py`.
-- Rebuild `index.html` and commit it with every `sorgente/` change (memory rule), then publish and push `sorgenti`.
-- Source lines are extremely long one-liners: edit with exact-string Python replacements; never `//` comments mid-line.
-- Every edit to an existing `60-dati.js` catalog entry needs a migration in `20-stato.js`; new top-level keys just go in `datiIniziali` (normalizzaStato fills them).
-- The SW caches the app on the published site: if the owner ever sees an old version, it is network-first so a reload online fixes it; cache name is `gestionale`.
-- Local Browser pane: never leave a service worker registered on localhost (it would serve stale builds in later tests).
+- Rebuild `index.html` (and commit) with every `sorgente/` change, then publish and push `sorgenti`.
+- Source lines are very long one-liners: edit with exact-string Python replacements (assert count==1); never `//` comments mid-line.
+- `.presenze-griglia` print/preview pages are fixed 297mm with `overflow:hidden`; body height ≈ 888px; a 31-day sheet had ~100px slack after the fixes — keep it that way when touching print CSS.
+- New top-level state keys go in `datiIniziali`; catalog edits in `60-dati.js` need a migration in `20-stato.js`.
+- Never leave a service worker registered on localhost.
 
 ---
 
 ## 💬 Notes
 
-- The owner writes in Italian; commit messages/comments Italian, this file English.
-- The owner explicitly allowed using Sonnet sub-agents when useful; 3 parallel read-only reviewers worked well for the whole-code review (verify every finding — one suggested fix was wrong).
+- The owner writes in Italian; commit messages/comments Italian, this file English. Commits end with the Co-Authored-By line given by the harness.
+- Owner preferences voiced this session: accountant must not be confused (hours must be obvious even for people with no committente/località; notes must not be overlooked); one page per worker is non-negotiable; no forced-amount wording anywhere.
