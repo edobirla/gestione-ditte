@@ -354,7 +354,7 @@ function docLibroPresenze(anno,mese){
         righe.push(`<tr${cls?` class="${cls}"`:''}><td class="giorno">${g}<span class="gs"> ${h(NOMI_GIORNI_BREVI[giornoSettimana(anno,mese,g)])}</span></td><td>${h(c.committente||'')||'—'}</td><td>${h(trasferta)||'—'}</td><td class="num">${h(ore)}</td></tr>`);
       }
       const totale=p.soloTrasferte?'—':fOre(calc.oreGriglia);
-      blocchi.push({nuovaPagina:!primo,html:`<div class="ore-anagrafica"><div class="riq"><span class="et">Nome e cognome</span><div class="vl">${h(nomePersona(p))}</div></div><div class="riq"><span class="et">Qualifica / Ruolo</span><div class="vl">${h(p.mansione||(sz==='soci'?'Socio':'Operaio'))}</div></div></div>`});
+      blocchi.push({nuovaPagina:!primo,html:`<div class="ore-anagrafica"><div class="riq"><span class="et">Nome e cognome</span><div class="vl">${h(nomePersona(p))}</div></div><div class="riq"><span class="et">Qualifica</span><div class="vl">${sz==='soci'?'Socio':'Dipendente'}</div></div></div>`});
       const righeNote=Math.ceil(String(mp.note||'').length/60)+String(mp.note||'').split('\n').length-1+(Object.keys(calc.perCodice).length?1:0)+(calc.oreFestivitaPagate?1:0);
       blocchi.push(`<table class="ore-mensili${righeNote>3?' stretta':''}"><thead><tr><th class="giorno">Giorno</th><th>Committente</th><th class="trasf">Località Trasferta</th><th class="num ore">Ore Ordinarie</th></tr></thead><tbody>${righe.join('')}</tbody><tfoot><tr class="totale"><td colspan="3" class="num">Totale mese</td><td class="num">${h(totale)}</td></tr></tfoot></table>`);
       const assenze=Object.entries(calc.perCodice).map(([cc,nn])=>((CODICI_ASSENZA[cc]||{}).nome||cc)+' '+nn).join(' · ');
