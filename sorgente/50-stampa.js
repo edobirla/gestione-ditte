@@ -355,10 +355,10 @@ function docLibroPresenze(anno,mese){
       }
       const totale=p.soloTrasferte?'—':fOre(calc.oreGriglia);
       blocchi.push({nuovaPagina:!primo,html:`<div class="ore-anagrafica"><div class="riq"><span class="et">Nome e cognome</span><div class="vl">${h(nomePersona(p))}</div></div><div class="riq"><span class="et">Qualifica</span><div class="vl">${sz==='soci'?'Socio':'Dipendente'}</div></div></div>`});
-      const righeNote=Math.ceil(String(mp.note||'').length/60)+String(mp.note||'').split('\n').length-1+(Object.keys(calc.perCodice).length?1:0)+(calc.oreFestivitaPagate?1:0);
+      const righeNote=Math.ceil(String(mp.note||'').length/48)+String(mp.note||'').split('\n').length-1+(Object.keys(calc.perCodice).length?1:0)+(calc.oreFestivitaPagate?1:0);
       blocchi.push(`<table class="ore-mensili${righeNote>3?' stretta':''}"><thead><tr><th class="giorno">Giorno</th><th>Committente</th><th class="trasf">Località Trasferta</th><th class="num ore">Ore Ordinarie</th></tr></thead><tbody>${righe.join('')}</tbody><tfoot><tr class="totale"><td colspan="3" class="num">Totale mese</td><td class="num">${h(totale)}</td></tr></tfoot></table>`);
       const assenze=Object.entries(calc.perCodice).map(([cc,nn])=>((CODICI_ASSENZA[cc]||{}).nome||cc)+' '+nn).join(' · ');
-      blocchi.push(`<div class="ore-piede"><div class="riq note"><span class="et">Note</span><div class="vl">${h(mp.note||'')}${assenze?`<div class="mini">${h(assenze)}</div>`:''}${calc.oreFestivitaPagate?`<div class="mini">${calc.giorniFestivitaPagati.length} festività pagate incluse nel totale (+${h(fEuro(calc.tariffa*calc.oreFestivitaPagate,0))})</div>`:''}</div></div><div class="riq importo"><span class="et">Importo totale</span><div class="vl">${h(calc.importo!=null?fEuro(calc.importo,0):'—')}</div></div></div>`);
+      blocchi.push(`<div class="ore-piede"><div class="riq note${mp.note?' con-nota':''}${(mp.note||'').length>320?' lunga':''}"><span class="et">Note</span><div class="vl">${mp.note?`<div class="testo-nota">${h(mp.note).replace(/\n/g,'<br>')}</div>`:''}${assenze?`<div class="mini">${h(assenze)}</div>`:''}${calc.oreFestivitaPagate?`<div class="mini">${calc.giorniFestivitaPagati.length} festività pagate incluse nel totale (+${h(fEuro(calc.tariffa*calc.oreFestivitaPagate,0))})</div>`:''}</div></div><div class="riq importo"><span class="et">Importo totale</span><div class="vl">${h(calc.importo!=null?fEuro(calc.importo,0):'—')}</div></div></div>`);
       primo=false;
     }
   }
