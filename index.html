@@ -4572,10 +4572,14 @@ async function smistaBustaPdf(file){
     });
   };
   const vuota=t=>t.replace(/\s/g,'').length<40;
+  // Il commercialista stampa tutte le buste due volte di fila (la seconda metà del PDF è identica alla prima,
+  // ora di stampa compresa): la seconda copia si salta, sennò ogni operaio si ritrova la busta doppia.
+  const viste=new Set();
   const perPersona=new Map();const orfane=[];
   let ultimo=null;
   pagine.forEach((t,i)=>{
     if(vuota(t)) return;
+    const firma=t.replace(/\s/g,''); if(viste.has(firma)) return; viste.add(firma);
     const p=trovaPersona(t);
     if(p){ if(!perPersona.has(p.id))perPersona.set(p.id,[]); perPersona.get(p.id).push(i+1); ultimo=p.id; }
     else if(ultimo&&perPersona.has(ultimo)){ perPersona.get(ultimo).push(i+1); } // foglio di seguito senza nome leggibile
@@ -4597,28 +4601,30 @@ async function smistaBustaPdf(file){
   const pagTot=voci.reduce((a,v)=>a+(v.pagine?v.pagine.length:1),0);
   avviso(`${pagTot} pagine di busta raggruppate su ${voci.filter(v=>v.personaId).length} persone${voci.some(v=>!v.personaId)?', più le pagine senza nome riconosciuto da assegnare a mano':''}`);
 }
-// Netto, lordo e ore lavorate della busta. Il netto non è quasi mai scritto in modo leggibile (il
-// riquadro lo spezza), ma è per definizione competenze meno trattenute, e quelle due sono la coppia
-// che precede l'IRPEF lorda ripetuta due volte in fondo al cedolino: si ricava, non si indovina.
+// Netto, lordo e ore lavorate. Ogni pagina è un cedolino a sé: chi ha più pagine nello stesso mese
+// ha un «Aggiuntivo» oltre al principale (le ore dei due fanno il mese pieno), quindi si somma tutto.
+// Il netto TeamSystem è stampato subito dopo il codice di «REPARTO» (testo spezzato dopo la prima
+// cifra: «1 23,45» = 123,45); il lordo è il totale competenze, la coppia competenze/trattenute la cui
+// differenza è proprio quel netto. Netto zero (es. solo ferie pagate dalla Cassa Edile) non viene
+// stampato: resta vuoto, da scrivere a mano. Verificato su gennaio, aprile, luglio, settembre 2026.
+// ponytail: reparto a una sola cifra; con reparti «10», «11»… andrebbe letto per posizione.
 function leggiTotaliBusta(testiPagina){
   const num=x=>{const v=parseFloat(String(x).replace(/\./g,'').replace(',','.'));return isNaN(v)?null:v};
-  const normalizza=t=>t.replace(/(\d)\s+([.,])/g,'$1$2').replace(/([.,])\s+(\d)/g,'$1$2').replace(/\s+/g,' ');
+  const normalizza=t=>t.replace(/(\d)\s+([.,])/g,'$1$2').replace(/([.,])\s+(\d)/g,'$1$2').replace(/\s+/g,' ')
+    .replace(/(^|[^\d.,])(\d) (?=\d{1,2},\d{2}(?!\d))/g,'$1$2'); // «1 23,45» → 123,45 (succede solo sotto i 1000)
+  const somma=(a,b)=>b==null?a:+((a||0)+b).toFixed(2);
   let out={lordo:null,netto:null,ore:null};
   for(const t of testiPagina){
     if(!t) continue;
     const testo=normalizza(t);
-    if(out.netto==null){
-      const v=[...testo.matchAll(/-?\d{1,3}(?:\.\d{3})*,\d{2}/g)].map(m=>num(m[0]));
-      for(let i=5;i<v.length;i++){
-        if(v[i]!==v[i-1]||!(v[i]>0)) continue;
-        const lordo=v[i-5],tratt=v[i-4];
-        if(lordo>tratt&&tratt>0&&lordo>50){out.lordo=lordo;out.netto=+(lordo-tratt).toFixed(2);break}
-      }
+    const m=/EPARTO\s+\S+\s+(\d[\d.]*,\d{2})(?!\d)/.exec(testo);
+    if(m){
+      const netto=num(m[1]);out.netto=somma(out.netto,netto);
+      const v=[...testo.matchAll(/-?\d{1,3}(?:\.\d{3})*,\d{2}(?!\d)/g)].map(x=>num(x[0])); // trattenute negative se c'è un rimborso IRPEF
+      for(let i=1;i<v.length;i++) if(v[i-1]>0&&Math.abs(v[i-1]-v[i]-netto)<0.005){out.lordo=somma(out.lordo,v[i-1]);break}
     }
-    if(out.ore==null){
-      const m=/LAVORO\s+ORDINARIO[^\d]{0,40}(\d{1,3}(?:\.\d{3})*,\d{2})/i.exec(testo);
-      if(m) out.ore=num(m[1]);
-    }
+    const o=/LAVORO\s+ORDINARIO[^\d]{0,40}(\d{1,3}(?:\.\d{3})*,\d{2})/i.exec(testo);
+    if(o) out.ore=somma(out.ore,num(o[1]));
   }
   return out;
 }
