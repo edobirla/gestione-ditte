@@ -4520,6 +4520,28 @@ function vistaBustePagaMese(){
     ${anni.map(anno=>html`<div class="sezione-titolo">${anno}</div><div class="griglia-mesi">${Array.from({length:12},(_,i)=>i+1).map(mm=>{const ids=Array.from(mesi.get(anno+'-'+mm)||[]);return html`<div class="mese-cella ${ids.length?'presente':''}" style="${ids.length?'':'cursor:default'}">${NOMI_MESI_BREVI[mm-1]}${ids.length?html`<br>${ids.map(id=>html` <button class="pulsante piccolo icona" data-azione="file-apri" data-id="${id}" title="Apri il PDF intero">${icona('pdf','piccola')}</button>`)}`:''}</div>`})}</div>`)}
   </div>`;
 }
+// Tutte le buste di un mese contro le presenze, per accettare o segnare gli scostamenti in un colpo.
+function vistaControlloBuste(){
+  const mesi=unici(stato.bustePaga.filter(b=>b.anno&&b.mese&&b.personaId).map(b=>b.anno*100+b.mese)).sort((a,b)=>b-a);
+  if(!mesi.length) return '';
+  const sel=mesi.includes(+ui.filtri.busteControllo)?+ui.filtri.busteControllo:mesi[0];
+  const buste=stato.bustePaga.filter(b=>b.anno*100+b.mese===sel&&b.personaId).sort((a,b)=>nomePersona(persona(a.personaId)).localeCompare(nomePersona(persona(b.personaId))));
+  const cella=v=>v==null?html`<span class="silenzioso">—</span>`:v;
+  return html`<div class="scheda mb"><div class="riga"><h3>${icona('busta-paga')}Buste contro presenze</h3><span class="spazio"></span>
+    <select data-cambio="buste-controllo-mese">${mesi.map(k=>html`<option value="${k}" ${k===sel?'selected':''}>${fMeseAnno(Math.floor(k/100),k%100)}</option>`)}</select></div>
+    <table class="tabella densa"><thead><tr><th>Operaio</th><th class="num">Netto busta</th><th class="num">Tuo importo</th><th class="num">Differenza</th><th class="num">Ore busta / tue</th><th>Stato</th></tr></thead><tbody>
+    ${buste.map(b=>{const c=confrontoBusta(b);const v=b.verifica;return html`<tr class="cliccabile ${c&&c.scarto&&!v?'riga-scadenza':''}" data-azione="busta-apri" data-id="${b.id}">
+      <td>${nomePersona(persona(b.personaId))}</td>
+      <td class="num">${cella(b.netto!=null?fEuro(b.netto):null)}</td><td class="num">${cella(c?fEuro(c.importoGriglia):null)}</td>
+      <td class="num"><b>${cella(c&&c.diffEuro!=null?piuMeno(c.diffEuro,fEuro):null)}</b></td>
+      <td class="num">${cella(c&&c.diff!=null?fOre(c.oreBusta)+' / '+fOre(c.oreGriglia):null)}</td>
+      <td>${!c?html`<span class="piccolo secondario">${b.netto==null&&b.oreRetribuite==null?'netto da scrivere':'presenze mancanti'}</span>`
+        :v?html`${icona(v.stato==='revisione'?'attenzione':'ok','piccola')} ${v.stato==='revisione'?'Da rivedere':'Accettata'} <button class="pulsante piccolo" data-azione="busta-verifica-annulla" data-tabella="1" data-id="${b.id}">Cambia</button>`
+        :!c.scarto?html`${icona('ok','piccola')} Torna`
+        :html`<button class="pulsante piccolo" data-azione="busta-verifica" data-tabella="1" data-id="${b.id}" data-valore="accettata">${icona('ok','piccola')}Va bene così</button> <button class="pulsante piccolo pericolo" data-azione="busta-verifica" data-tabella="1" data-id="${b.id}" data-valore="revisione">${icona('attenzione','piccola')}Da rivedere</button>`}</td></tr>`})}
+    </tbody></table></div>`;
+}
+AZIONI['buste-controllo-mese']=(d,t)=>{ui.filtri.busteControllo=t.value;render()};
 function vistaBustePaga(r){
   const pid=r.query.persona||ui.filtri.bustePersona||null;
   const coda=ui.busteCoda||[];
@@ -4529,7 +4551,7 @@ function vistaBustePaga(r){
   const buste=p?stato.bustePaga.filter(b=>b.personaId===p.id):[];
   const anni=unici([...buste.map(b=>b.anno),new Date().getFullYear()]).sort((a,b)=>b-a);
   const oggiD=new Date();
-  return html`${vistaBustePagaMese()}<div class="griglia due">
+  return html`${vistaControlloBuste()}${vistaBustePagaMese()}<div class="griglia due">
     <div class="scheda"><h3>${icona('busta-paga')}Smistamento buste paga</h3><p class="secondario">Trascina qui tutti i PDF del mese: per ciascuno propongo operaio, anno e mese dal nome del file. Le tue correzioni insegnano all'applicazione come leggere i nomi la volta dopo.</p>
       <div class="zona-drop" data-azione="buste-scegli" data-drop-buste>${icona('carica')}Trascina i PDF delle buste paga o clicca per sceglierli</div>
       <button class="pulsante piccolo mt-s" data-azione="buste-smistamento-scegli">${icona('magia','piccola')}Oppure carica un unico PDF con tutte le buste del mese (separate da pagine bianche): le smisto da solo</button>
@@ -4539,7 +4561,7 @@ function vistaBustePaga(r){
     </div>
     <div class="scheda"><h3>Consultazione per operaio</h3>
       <div class="chip-lista mb">${persone.map(pp=>html`<a class="chip ${pid===pp.id?'attiva':''}" href="#/documenti/buste?persona=${pp.id}">${nomePersona(pp)} <span class="piccolo secondario">${stato.bustePaga.filter(b=>b.personaId===pp.id).length}</span></a>`)}</div>
-      ${p?anni.map(anno=>html`<div class="sezione-titolo">${anno}</div><div class="griglia-mesi">${Array.from({length:12},(_,i)=>i+1).map(mm=>{const b=buste.find(x=>x.anno===anno&&x.mese===mm);const futuro=anno>oggiD.getFullYear()||(anno===oggiD.getFullYear()&&mm>oggiD.getMonth());const lavorato=!!(meseP(anno,mm)&&meseP(anno,mm).persone[p.id]);return html`<div class="mese-cella ${b?'presente':futuro?'futuro':lavorato?'mancante':''}" ${b?html`data-azione="busta-apri" data-id="${b.id}"`:''} title="${b?'Busta presente':lavorato&&!futuro?'Mese lavorato senza busta':''}">${NOMI_MESI_BREVI[mm-1]}${b?html`<br>${(()=>{const c=confrontoBusta(b);const scarto=c&&Math.abs(c.diff)>0.5&&!b.verifica;return html`${icona(scarto?'attenzione':'ok','piccola')}${b.fileId?html`<button class="pulsante piccolo icona" data-azione="file-condividi" data-id="${b.fileId}" title="Condividi la busta">${icona('condividi','piccola')}</button>`:''}`})()}`:lavorato&&!futuro?html`<br>${icona('attenzione','piccola')}`:''}</div>`})}</div>`):html`<p class="secondario">Scegli una persona per vedere le buste per anno e mese, con i mesi mancanti evidenziati.</p>`}
+      ${p?anni.map(anno=>html`<div class="sezione-titolo">${anno}</div><div class="griglia-mesi">${Array.from({length:12},(_,i)=>i+1).map(mm=>{const b=buste.find(x=>x.anno===anno&&x.mese===mm);const futuro=anno>oggiD.getFullYear()||(anno===oggiD.getFullYear()&&mm>oggiD.getMonth());const lavorato=!!(meseP(anno,mm)&&meseP(anno,mm).persone[p.id]);return html`<div class="mese-cella ${b?'presente':futuro?'futuro':lavorato?'mancante':''}" ${b?html`data-azione="busta-apri" data-id="${b.id}"`:''} title="${b?'Busta presente':lavorato&&!futuro?'Mese lavorato senza busta':''}">${NOMI_MESI_BREVI[mm-1]}${b?html`<br>${(()=>{const c=confrontoBusta(b);const scarto=c&&c.scarto&&(!b.verifica||b.verifica.stato==='revisione');return html`${icona(scarto?'attenzione':'ok','piccola')}${b.fileId?html`<button class="pulsante piccolo icona" data-azione="file-condividi" data-id="${b.fileId}" title="Condividi la busta">${icona('condividi','piccola')}</button>`:''}`})()}`:lavorato&&!futuro?html`<br>${icona('attenzione','piccola')}`:''}</div>`})}</div>`):html`<p class="secondario">Scegli una persona per vedere le buste per anno e mese, con i mesi mancanti evidenziati.</p>`}
     </div></div>`;
 }
 document.addEventListener('change',e=>{const t=e.target;if(!t.dataset||!t.dataset.busta||!ui.busteCoda)return;const c=ui.busteCoda[+t.dataset.i];if(!c)return;const k=t.dataset.busta;const v=t.value;if(k==='personaId'){c.personaId=v||null;c.corretto=true}else if(k==='anno')c.anno=v?+v:null;else if(k==='mese')c.mese=v?+v:null});
@@ -4659,29 +4681,35 @@ AZIONI['buste-applica']=async()=>{
 // Confronto fra le ore che scrive Edoardo in presenze e quelle che il commercialista mette in busta:
 // se non tornano è una cosa da guardare, non un errore dell'app. Si accetta la differenza o si
 // segna la busta da rivedere, e resta scritto.
+// Anche il netto: il commercialista spesso non arriva preciso all'importo calcolato in presenze.
 function confrontoBusta(b){
-  if(!b.personaId||!b.anno||!b.mese||b.oreRetribuite==null) return null;
+  if(!b.personaId||!b.anno||!b.mese||(b.oreRetribuite==null&&b.netto==null)) return null;
   const mp=(meseP(b.anno,b.mese)||{persone:{}}).persone[b.personaId];
   if(!mp) return null;
   const calc=calcolaMesePersona(mp,persona(b.personaId));
-  const diff=+(b.oreRetribuite-calc.oreGriglia).toFixed(2);
-  return {oreBusta:b.oreRetribuite,oreGriglia:calc.oreGriglia,diff,importoGriglia:calc.importo};
+  const diff=b.oreRetribuite!=null?+(b.oreRetribuite-calc.oreGriglia).toFixed(2):null;
+  const diffEuro=b.netto!=null?+(b.netto-calc.importo).toFixed(2):null;
+  const scarto=(diff!=null&&Math.abs(diff)>0.5)||(diffEuro!=null&&Math.abs(diffEuro)>=1);
+  return {oreBusta:b.oreRetribuite,oreGriglia:calc.oreGriglia,diff,nettoBusta:b.netto,importoGriglia:calc.importo,diffEuro,scarto};
 }
+const piuMeno=(v,f)=>v==null?'':(v>0?'+':v<0?'−':'')+f(Math.abs(v));
 AZIONI['busta-verifica']=d=>{
   const b=perId('bustePaga',d.id);const c=confrontoBusta(b);
   esegui(d.valore==='accettata'?'Differenza accettata':'Busta segnata da rivedere',s=>{
-    s.bustePaga.find(x=>x.id===d.id).verifica={stato:d.valore,quando:oggi(),oreBusta:c?c.oreBusta:null,oreGriglia:c?c.oreGriglia:null};
+    s.bustePaga.find(x=>x.id===d.id).verifica={stato:d.valore,quando:oggi(),oreBusta:c?c.oreBusta:null,oreGriglia:c?c.oreGriglia:null,nettoBusta:c?c.nettoBusta:null,importoGriglia:c?c.importoGriglia:null};
   },{senzaRender:true});
-  AZIONI['busta-apri']({id:d.id});render();
+  if(!d.tabella) AZIONI['busta-apri']({id:d.id});render();
 };
-AZIONI['busta-verifica-annulla']=d=>{esegui('Verifica da rifare',s=>{s.bustePaga.find(x=>x.id===d.id).verifica=null},{senzaRender:true});AZIONI['busta-apri']({id:d.id});render()};
+AZIONI['busta-verifica-annulla']=d=>{esegui('Verifica da rifare',s=>{s.bustePaga.find(x=>x.id===d.id).verifica=null},{senzaRender:true});if(!d.tabella)AZIONI['busta-apri']({id:d.id});render()};
 function bloccoConfrontoBusta(b){
   const c=confrontoBusta(b);
-  if(!c) return b.oreRetribuite==null?html`<p class="piccolo secondario mt-s">Ore non lette dalla busta: scrivile con «Modifica» per poterle confrontare con le presenze.</p>`:'';
-  const scarto=Math.abs(c.diff)>0.5;
-  if(b.verifica) return html`<div class="avviso-inline ${b.verifica.stato==='revisione'?'attenzione':''} mt-s">${icona(b.verifica.stato==='revisione'?'attenzione':'ok')}<div class="corpo">${b.verifica.stato==='revisione'?'Segnata da rivedere':'Differenza accettata'} il ${fData(b.verifica.quando)} · busta ${fOre(c.oreBusta)} h, presenze ${fOre(c.oreGriglia)} h.<div class="mt-s"><button class="pulsante piccolo" data-azione="busta-verifica-annulla" data-id="${b.id}">Rivedi la verifica</button></div></div></div>`;
-  if(!scarto) return html`<div class="avviso-inline mt-s">${icona('ok')}<div class="corpo">Ore uguali alle presenze: ${fOre(c.oreGriglia)} h.</div></div>`;
-  return html`<div class="avviso-inline attenzione mt-s">${icona('attenzione')}<div class="corpo"><b>Le ore non tornano.</b> In busta ${fOre(c.oreBusta)} h, nelle tue presenze ${fOre(c.oreGriglia)} h: ${c.diff>0?'in busta ce ne sono '+fOre(c.diff)+' in più':'in busta ce ne sono '+fOre(-c.diff)+' in meno'}.
+  if(!c) return b.oreRetribuite==null&&b.netto==null?html`<p class="piccolo secondario mt-s">Netto e ore non letti dalla busta: scrivili con «Modifica» per poterli confrontare con le presenze.</p>`:'';
+  const righe=html`<table class="tabella densa mt-s"><thead><tr><th></th><th class="num">Busta</th><th class="num">Presenze</th><th class="num">Differenza</th></tr></thead><tbody>
+    ${c.diffEuro!=null?html`<tr><td>Netto</td><td class="num">${fEuro(c.nettoBusta)}</td><td class="num">${fEuro(c.importoGriglia)}</td><td class="num"><b>${piuMeno(c.diffEuro,fEuro)}</b></td></tr>`:''}
+    ${c.diff!=null?html`<tr><td>Ore</td><td class="num">${fOre(c.oreBusta)}</td><td class="num">${fOre(c.oreGriglia)}</td><td class="num"><b>${piuMeno(c.diff,fOre)}</b></td></tr>`:''}</tbody></table>`;
+  if(b.verifica) return html`<div class="avviso-inline ${b.verifica.stato==='revisione'?'attenzione':''} mt-s">${icona(b.verifica.stato==='revisione'?'attenzione':'ok')}<div class="corpo">${b.verifica.stato==='revisione'?'Segnata da rivedere':'Differenza accettata'} il ${fData(b.verifica.quando)}.${righe}<div class="mt-s"><button class="pulsante piccolo" data-azione="busta-verifica-annulla" data-id="${b.id}">Rivedi la verifica</button></div></div></div>`;
+  if(!c.scarto) return html`<div class="avviso-inline mt-s">${icona('ok')}<div class="corpo">La busta torna con le presenze.${righe}</div></div>`;
+  return html`<div class="avviso-inline attenzione mt-s">${icona('attenzione')}<div class="corpo"><b>La busta non torna con le presenze.</b>${righe}
     <div class="mt-s"><button class="pulsante piccolo" data-azione="busta-verifica" data-id="${b.id}" data-valore="accettata">${icona('ok','piccola')}Va bene così</button> <button class="pulsante piccolo pericolo" data-azione="busta-verifica" data-id="${b.id}" data-valore="revisione">${icona('attenzione','piccola')}Da rivedere</button></div></div></div>`;
 }
 AZIONI['busta-apri']=async d=>{
