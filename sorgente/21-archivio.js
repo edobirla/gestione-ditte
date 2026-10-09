@@ -65,6 +65,7 @@ function riferimentiFile(fileId){
   for(const m of stato.movimenti) if(m.fileId===fileId) out.push({tipo:'movimento',id:m.id});
   for(const b of stato.bonifici) if(b.fileId===fileId) out.push({tipo:'bonifico',id:b.id});
   for(const v of stato.versamenti||[]) if(v.fileId===fileId) out.push({tipo:'versamento',id:v.id});
+  for(const [a,v] of Object.entries(stato.isa||{})) if(v&&v.fileId===fileId) out.push({tipo:'isa',id:a});
   for(const c of stato.cantieri){ if(c.psc&&c.psc.fileId===fileId) out.push({tipo:'cantiere',id:c.id}); if(c.fotoId===fileId) out.push({tipo:'cantiere',id:c.id}); for(const dp of c.documentiProdotti||[]) if(dp.fileId===fileId) out.push({tipo:'cantiere',id:c.id}); }
   for(const k of Object.keys(stato.presenze||{})) for(const pid of Object.keys(stato.presenze[k].persone||{})) if(stato.presenze[k].persone[pid].foglioOreId===fileId) out.push({tipo:'presenze',id:k});
   for(const p of stato.persone){ if(p.fotoId===fileId||p.firmaId===fileId) out.push({tipo:'persona',id:p.id}); }
@@ -211,6 +212,7 @@ function pesoArchivio(){
       else if(r.tipo==='movimento'){sogg='Budget';tipo='Fattura'}
       else if(r.tipo==='bonifico'){sogg='Bonifici';tipo='Conferma bonifico'}
       else if(r.tipo==='versamento'){sogg='Versamenti';tipo='F24 e Cassa Edile'}
+      else if(r.tipo==='isa'){sogg='Azienda';tipo='Dichiarazione ISA'}
       else if(r.tipo==='cantiere'){sogg='Cantiere '+nomeCantiere(r.id);tipo='Documento di cantiere'}
       else if(r.tipo==='presenze'){sogg='Presenze';tipo='Foglio ore'}
       else if(r.tipo==='persona'){sogg=nomePersona(persona(r.id));tipo='Foto/firma'}

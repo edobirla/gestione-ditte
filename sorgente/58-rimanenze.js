@@ -60,16 +60,16 @@ function proposteRimanenze(anno){
 }
 
 // ---- vista ----
-VISTE.rimanenze=function(r){
+VISTE.rimanenze=r=>VISTE.fineanno(Object.assign({},r,{id:'rimanenze'}));
+function contenutoRimanenze(r){
   const oggiD=new Date();const predef=String(oggiD.getMonth()<6?oggiD.getFullYear()-1:oggiD.getFullYear());
   const anni=unici(Object.keys(stato.rimanenze||{}).concat([String(oggiD.getFullYear()-1),String(oggiD.getFullYear())])).sort().reverse();
   const anno=ui.filtri.rimanenzeAnno||predef;
   const R=(stato.rimanenze||{})[anno]||{magazzino:[],lavori:[],fatture:[]};
   const sez=linguettaAttiva('rimanenze','magazzino');
-  const testa=html`<div class="testata"><div><h1>Rimanenze al 31/12/${anno}</h1><div class="sotto">Da consegnare al commercialista · magazzino ${fEuro(totaleRimanenze('magazzino',R.magazzino))} · lavori in corso ${fEuro(totaleRimanenze('lavori',R.lavori))} · fatture da emettere ${fEuro(totaleRimanenze('fatture',R.fatture))}</div></div>
-    <div class="azioni"><select data-cambio="rim-anno" aria-label="Anno" style="width:auto">${anni.map(a=>html`<option value="${a}" ${a===anno?'selected':''}>${a}</option>`)}</select><button class="pulsante primario" data-azione="rim-stampa" data-anno="${anno}" title="Un unico PDF con magazzino, lavori in corso e fatture da emettere">${icona('stampa')}Esporta rimanenze</button></div></div>
+  const testa=html`<div class="strumenti-tabella"><select data-cambio="rim-anno" aria-label="Anno">${anni.map(a=>html`<option value="${a}" ${a===anno?'selected':''}>Al 31/12/${a}</option>`)}</select><span class="piccolo secondario">magazzino <b>${fEuro(totaleRimanenze('magazzino',R.magazzino))}</b> · lavori in corso <b>${fEuro(totaleRimanenze('lavori',R.lavori))}</b> · fatture da emettere <b>${fEuro(totaleRimanenze('fatture',R.fatture))}</b></span><span class="spazio"></span><button class="pulsante primario" data-azione="rim-stampa" data-anno="${anno}" title="Un unico PDF con magazzino, lavori in corso e fatture da emettere">${icona('stampa','piccola')}PDF per il commercialista</button></div>
   ${linguette('rimanenze',Object.entries(SEZIONI_RIMANENZE).map(([id,testo])=>({id,testo:testo.replace('Rimanenze di magazzino','Magazzino'),contatore:(R[id]||[]).length})),sez)}`;
-  return testa+(sez==='lavori'?rimLavori(anno,R.lavori):sez==='fatture'?rimFatture(anno,R.fatture):rimMagazzino(anno,R.magazzino));
+  return grezzo(testa+(sez==='lavori'?rimLavori(anno,R.lavori):sez==='fatture'?rimFatture(anno,R.fatture):rimMagazzino(anno,R.magazzino)));
 };
 AZIONI['rim-anno']=(d,t)=>{ui.filtri.rimanenzeAnno=t.value;render()};
 const inRim=(sez,i,campo,v,opz)=>html`<input type="text" ${opz&&opz.num?grezzo('inputmode="decimal" class="num-input"'):''} value="${opz&&opz.num?numTxt(v):(v||'')}" data-cambio="rim-campo" data-sez="${sez}" data-i="${i}" data-campo="${campo}" style="${(opz&&opz.stile)||''}">`;

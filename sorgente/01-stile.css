@@ -553,6 +553,19 @@ input[type=checkbox],input[type=radio]{width:17px;height:17px;accent-color:var(-
 #velo-menu{position:fixed;inset:0;z-index:125;background:rgba(14,14,18,.3);display:none}
 
 /* ═══════════ componenti del nuovo disegno ═══════════ */
+/* ---- ISA ---- */
+.riga-isa{display:grid;grid-template-columns:minmax(150px,240px) 1fr 52px;gap:14px;align-items:center;padding:8px 0;font-size:13px}
+.riga-isa+.riga-isa{border-top:1px solid var(--line)}
+.riga-isa.n{grid-template-columns:1fr auto}
+.riga-isa .b{height:10px;border-radius:99px;background:var(--sunk);overflow:hidden}
+.riga-isa .b i{display:block;height:100%;border-radius:99px;background:var(--accent)}
+.riga-isa b{font-weight:600;text-align:right;font-variant-numeric:tabular-nums;font-size:15px}
+.punteggi{display:flex;align-items:flex-end;gap:10px;height:120px}
+.punteggi>div{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end}
+.punteggi i{width:100%;max-width:38px;border-radius:8px 8px 3px 3px;background:var(--sunk-3)} .punteggi i.bene{background:var(--ok)}
+.punteggi b{font-size:13px;font-weight:600} .punteggi small{font-size:11px;color:var(--ink-3)}
+@media (max-width:760px){.riga-isa{grid-template-columns:1fr 52px}.riga-isa .b{display:none}}
+
 /* ---- versamenti: calendario mese per mese ---- */
 .griglia-versamenti{display:grid;grid-template-columns:110px repeat(4,minmax(0,1fr));gap:6px;font-size:12.5px;align-items:stretch}
 .griglia-versamenti .tv{font-size:11.5px;color:var(--ink-3);padding:0 6px 4px}

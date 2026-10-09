@@ -13,7 +13,7 @@ const MENU=[
   {id:'budget',testo:'Budget',icona:'budget',gruppo:'Amministrazione'},
   {id:'versamenti',testo:'Versamenti',icona:'bonifici',gruppo:'Amministrazione',alias:['bonifici']},
   {id:'fornitori',testo:'Fornitori',icona:'fornitori',gruppo:'Amministrazione'},
-  {id:'rimanenze',testo:'Rimanenze',icona:'pacchetto',gruppo:'Amministrazione'},
+  {id:'fineanno',testo:'Fine anno',icona:'anno',gruppo:'Amministrazione',alias:['rimanenze']},
   {id:'impostazioni',testo:'Impostazioni',icona:'impostazioni',gruppo:'Sistema'},
 ];
 function leggiRotta(){
