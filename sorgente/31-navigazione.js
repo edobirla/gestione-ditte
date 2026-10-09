@@ -38,7 +38,7 @@ function sezioneMenu(sezione){const m=MENU.find(x=>x.id===sezione||(x.alias||[])
 function disegnaBriciole(r){
   const b=el('#briciole-barra');if(!b)return;
   const m=MENU.find(x=>x.id===sezioneMenu(r.sezione));if(!m){b.innerHTML='';return}
-  const t=el('#contenuto h1');const pagina=r.id&&t?t.textContent.trim():'';
+  const t=el('#contenuto h1');const pagina=r.id&&t&&t.textContent.trim()!==m.testo?t.textContent.trim():'';
   const freccia=icona('destra','piccola');
   b.innerHTML=html`${m.gruppo&&m.gruppo!=='Sistema'?html`<a>${m.gruppo}</a>${freccia}`:''}${pagina?html`<a href="#/${m.id}">${m.testo}</a>${freccia}<b>${pagina}</b>`:html`<b>${m.testo}</b>`}`;
 }
