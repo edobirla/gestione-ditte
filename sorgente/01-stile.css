@@ -555,6 +555,17 @@ input[type=checkbox],input[type=radio]{width:17px;height:17px;accent-color:var(-
 #velo-menu{position:fixed;inset:0;z-index:125;background:rgba(14,14,18,.3);display:none}
 
 /* ═══════════ componenti del nuovo disegno ═══════════ */
+.figure{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}
+.figura{padding:12px 14px;border-radius:14px;background:var(--sunk);min-width:0}
+.figura small{display:block;font-size:11.5px;color:var(--ink-3)}
+.figura b{display:block;font-weight:520;margin-top:2px} .figura span{display:block;font-size:11.5px;color:var(--ink-3)}
+
+.riga-ck{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:14px;align-items:center;padding:11px 0;color:var(--ink);text-decoration:none!important}
+.riga-ck+.riga-ck{border-top:1px solid var(--line)}
+.riga-ck b{display:block;font-weight:520} .riga-ck span{font-size:12.5px;color:var(--ink-3)} .riga-ck span.bad-t{color:var(--bad)} .riga-ck span.warn-t{color:var(--warn)}
+.pips{display:flex;gap:3px;flex-wrap:wrap;max-width:120px;justify-content:flex-end}
+.pips i{width:14px;height:6px;border-radius:2px;background:var(--ok)} .pips i.w{background:var(--warn)} .pips i.b{background:var(--bad)}
+
 /* ---- cantieri: diagramma ---- */
 .diagramma{position:relative;--dg-n:200px}
 .dg-mesi{display:grid;grid-template-columns:var(--dg-n) 1fr;padding-bottom:8px;border-bottom:1px solid var(--line)}

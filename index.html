@@ -620,6 +620,17 @@ input[type=checkbox],input[type=radio]{width:17px;height:17px;accent-color:var(-
 #velo-menu{position:fixed;inset:0;z-index:125;background:rgba(14,14,18,.3);display:none}
 
 /* ═══════════ componenti del nuovo disegno ═══════════ */
+.figure{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}
+.figura{padding:12px 14px;border-radius:14px;background:var(--sunk);min-width:0}
+.figura small{display:block;font-size:11.5px;color:var(--ink-3)}
+.figura b{display:block;font-weight:520;margin-top:2px} .figura span{display:block;font-size:11.5px;color:var(--ink-3)}
+
+.riga-ck{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:14px;align-items:center;padding:11px 0;color:var(--ink);text-decoration:none!important}
+.riga-ck+.riga-ck{border-top:1px solid var(--line)}
+.riga-ck b{display:block;font-weight:520} .riga-ck span{font-size:12.5px;color:var(--ink-3)} .riga-ck span.bad-t{color:var(--bad)} .riga-ck span.warn-t{color:var(--warn)}
+.pips{display:flex;gap:3px;flex-wrap:wrap;max-width:120px;justify-content:flex-end}
+.pips i{width:14px;height:6px;border-radius:2px;background:var(--ok)} .pips i.w{background:var(--warn)} .pips i.b{background:var(--bad)}
+
 /* ---- cantieri: diagramma ---- */
 .diagramma{position:relative;--dg-n:200px}
 .dg-mesi{display:grid;grid-template-columns:var(--dg-n) 1fr;padding-bottom:8px;border-bottom:1px solid var(--line)}
@@ -3948,7 +3959,7 @@ document.addEventListener('change',e=>{const t=e.target;if(t.dataset&&t.dataset.
 
 function vistaCantiere(id,r){
   const c=cantiere(id); if(!c) return html`<div class="vuoto">${icona('attenzione')}<h3>Cantiere non trovato</h3><a class="pulsante" href="#/cantieri">Elenco</a></div>`;
-  const ling=linguettaAttiva('cantiere:'+c.id,'scheda');
+  const ling=linguettaAttiva('cantiere:'+c.id,'panoramica');
   const ck=checklistCantiere(c,{tutto:ui.filtri.checklistTutto});
   const av=avanzamentoCantiere(c);const cliente_=nomeCliente(c.committenteId);const aff=nomeCliente(c.affidatariaId);
   if(c.fotoId) dopoRender(async()=>{const u=await urlFile(c.fotoId);const t=el('.testata-cantiere');if(u&&t)t.style.setProperty('--foto',`url("${u}")`)});
@@ -3961,21 +3972,42 @@ function vistaCantiere(id,r){
       <span class="spazio"></span><a class="pulsante piccolo" href="#/cantieri/${c.id}/pos">${icona('scudo','piccola')}Genera POS</a><a class="pulsante piccolo" href="#/cantieri/${c.id}/pacchetto">${icona('pacchetto','piccola')}Pacchetto committenza</a><button class="pulsante piccolo" data-azione="cantiere-modifica" data-id="${c.id}">${icona('modifica','piccola')}Modifica</button></div>
   </div>
   ${ck.urgenti.length?html`<div class="avviso-inline critico">${icona('errore')}<div class="corpo"><b>Prima dell'ingresso in cantiere:</b> ${ck.urgenti.map(v=>html`${v.soggetto}: ${v.nome}${v.motivo?' ('+v.motivo+')':''}`).reduce((a,b)=>html`${a} · ${b}`)}</div></div>`:''}
-  ${linguette('cantiere:'+c.id,[{id:'scheda',testo:'Scheda',icona:'cantieri'},{id:'squadra',testo:'Squadra e lavorazioni',icona:'operai'},{id:'documenti',testo:'Documenti',icona:'documenti'},{id:'checklist',testo:'Checklist committenza',icona:'spunta',contatore:ck.totale-ck.pronti||null,critico:ck.urgenti.length>0},{id:'pagamenti',testo:'Pagamenti del mese',icona:'bonifici'},{id:'economia',testo:'Economia',icona:'euro'},{id:'diario',testo:'Diario e invii',icona:'orologio'}],ling)}
-  ${ling==='scheda'?schedaCantiereAnagrafica(c):ling==='squadra'?schedaCantiereSquadra(c):ling==='documenti'?schedaCantiereDocumenti(c):ling==='checklist'?schedaCantiereChecklist(c,ck):ling==='pagamenti'?schedaCantierePagamenti(c):ling==='economia'?schedaCantiereEconomia(c):schedaCantiereDiario(c)}`;
+  ${linguette('cantiere:'+c.id,[{id:'panoramica',testo:'Panoramica'},{id:'checklist',testo:'Documenti per la committenza',contatore:ck.pronti+'/'+ck.totale,critico:ck.urgenti.length>0},{id:'pagamenti',testo:'Pagamenti del mese'},{id:'squadra',testo:'Squadra',contatore:(c.operai||[]).length||null},{id:'scheda',testo:'Dati e figure'},{id:'documenti',testo:'Sicurezza e documenti'},{id:'economia',testo:'Economia'},{id:'diario',testo:'Diario e invii'}],ling)}
+  ${ling==='panoramica'?schedaCantierePanoramica(c,ck):ling==='scheda'?schedaCantiereAnagrafica(c):ling==='squadra'?schedaCantiereSquadra(c):ling==='documenti'?schedaCantiereDocumenti(c):ling==='checklist'?schedaCantiereChecklist(c,ck):ling==='pagamenti'?schedaCantierePagamenti(c):ling==='economia'?schedaCantiereEconomia(c):schedaCantiereDiario(c)}`;
 }
+function schedaCantierePanoramica(c,ck){
+  // documenti pronti persona per persona (dalla checklist), più l'impresa
+  const perPersona=new Map();for(const v of ck.voci.filter(v=>v.persona&&v.stato!=='na')){if(!perPersona.has(v.persona.id))perPersona.set(v.persona.id,{p:v.persona,voci:[]});perPersona.get(v.persona.id).voci.push(v)}
+  const impresa=ck.voci.filter(v=>v.gruppo==='Impresa'&&v.stato!=='na');
+  const eco=economiaCantiere(c.id,stato.movimenti);
+  // ore sul cantiere negli ultimi sei mesi (anche dalla località scritta in presenze)
+  const d=new Date();const mesi=[];for(let i=5;i>=0;i--){const x=new Date(d.getFullYear(),d.getMonth()-i,1);const anno=x.getFullYear(),mese=x.getMonth()+1;const k=chiaveMese(anno,mese);const mm=meseP(anno,mese);let ore=0;if(mm)for(const pid of Object.keys(mm.persone))for(const [g,cella] of Object.entries(mm.persone[pid].giorni||{})){const v=valoreCella(cella);if(typeof v!=='number'||!v)continue;const cc=cantiereDaCella(cella,k+'-'+pad2(+g));if(cc&&cc.id===c.id)ore+=v}mesi.push({anno,mese,ore})}
+  const mx=Math.max(...mesi.map(m=>m.ore),1);
+  const pips=voci=>html`<span class="pips">${voci.map(v=>html`<i class="${v.stato==='ok'?'':v.stato==='scaduto'||v.stato==='richiedere'?'b':'w'}" title="${v.nome}: ${STATI_CHECKLIST[v.stato].t}"></i>`)}</span>`;
+  return html`<div class="bento">
+    <div class="guscio c-7"><div class="scheda"><div class="intesta"><h2>Documenti pronti per persona</h2><a class="vai" data-azione="linguetta-cantiere" data-id="${c.id}" data-valore="checklist">Checklist ${icona('destra','piccola')}</a></div>
+      ${impresa.length?html`<div class="riga-ck"><span class="icona-tipo">${icona('azienda','piccola')}</span><div><b>${nomeImpresa(true)||'Impresa'}</b><span class="${impresa.some(v=>v.stato!=='ok')?'warn-t':''}">${impresa.filter(v=>v.stato!=='ok').map(v=>v.nome).join(', ')||'tutto pronto'}</span></div>${pips(impresa)}</div>`:''}
+      ${Array.from(perPersona.values()).map(({p,voci})=>{const male=voci.filter(v=>v.stato!=='ok');return html`<a class="riga-ck" href="#/operai/${p.id}">${avatar(p,'medio')}<div><b>${nomePersona(p)}</b><span class="${male.some(v=>v.stato==='scaduto'||v.bloccante)?'bad-t':male.length?'warn-t':''}">${male.length?'Manca: '+male.map(v=>v.nome+(v.motivo?' ('+v.motivo+')':'')).join(', '):'Tutto pronto'}</span></div>${pips(voci)}</a>`})}
+      ${perPersona.size?'':html`<p class="secondario piccolo">Nessun operaio assegnato: aggiungilo nella linguetta Squadra.</p>`}
+      <div class="riga mt"><a class="pulsante" href="#/cantieri/${c.id}/pacchetto">${icona('pacchetto','piccola')}Pacchetto per entrare in cantiere</a><button class="pulsante discreto" data-azione="linguetta-cantiere" data-id="${c.id}" data-valore="pagamenti">Pagamenti del mese</button></div></div></div>
+    <div class="guscio c-5"><div class="scheda"><div class="intesta"><h2>Economia</h2><span class="piccolo silenzioso">imponibile</span><a class="vai" data-azione="linguetta-cantiere" data-id="${c.id}" data-valore="economia">Movimenti ${icona('destra','piccola')}</a></div>
+      ${eco.entrate||eco.uscite?html`<div class="grande-numero ${eco.margine<0?'bad-t':''}">${eco.margine>=0?'+':''}${fEuro(eco.margine,0).replace(' €','')}<small>€ margine</small></div><div class="coppia"><div><div class="k">Fatturato</div><div class="v">${fEuro(eco.entrate,0)}</div></div><div><div class="k">Costi</div><div class="v">${fEuro(eco.uscite,0)}</div></div></div>`:html`<p class="secondario piccolo">Ancora nessun movimento collegato. Le fatture e le spese assegnate a questo cantiere in Budget compaiono qui.</p><button class="pulsante piccolo" data-azione="movimento-nuovo" data-cantiere="${c.id}">${icona('piu','piccola')}Nuovo movimento</button>`}</div></div>
+    <div class="guscio c-12"><div class="scheda"><div class="intesta"><h2>Ore su questo cantiere</h2><span class="piccolo silenzioso">dalle presenze, anche quando c'è scritta solo la località</span></div>
+      <div class="sei-mesi">${mesi.map(m=>html`<a class="mese-col" href="#/presenze/${chiaveMese(m.anno,m.mese)}"><span class="colonna-ore"><i style="height:${m.ore?Math.max(6,m.ore/mx*100):3}%"></i></span><span class="riga stretta" style="justify-content:space-between"><b>${NOMI_MESI_BREVI[m.mese-1]}</b><span class="silenzioso">${fOre(m.ore)||0} h</span></span></a>`)}</div></div></div>
+  </div>`;
+}
+AZIONI['linguetta-cantiere']=d=>{ui.filtri['ling:cantiere:'+d.id]=d.valore;render()};
 function schedaCantiereAnagrafica(c){
-  const campo=(et,v,fmt)=>html`<div class="campo"><span class="etichetta-campo">${et}</span><div>${valoreODaCompilare(v,fmt)}</div></div>`;
-  return html`<div class="griglia due"><div class="scheda"><h3>Dati del cantiere</h3><div class="campi">
-    ${campo('Descrizione dell\'opera',c.descrizione)}${campo('Indirizzo',c.indirizzo.via)}${campo('Comune',c.indirizzo.comune)}${campo('Provincia',c.indirizzo.provincia)}${campo('CAP',c.indirizzo.cap)}
-    ${campo('Inizio lavori',c.dataInizio,fData)}${campo('Fine lavori',c.dataFine,fData)}${c.periodoTesto?campo('Periodo (testo)',c.periodoTesto):''}
-    ${campo('Importo di contratto',c.importoContratto,fEuro)}${campo('Orari di lavoro',c.orari)}${campo('Entità presunta uomini/giorno',c.uominiGiorno)}
-    </div>
-    <div class="sezione-titolo">PSC</div><div class="campi">${campo('Data PSC',c.psc.data||c.psc.periodoTesto,v=>dataValida(v)?fData(v):v)}${campo('Redattore',c.psc.redattore)}<div class="campo largo"><span class="etichetta-campo">Prescrizioni</span><div>${c.psc.prescrizioni||html`<span class="silenzioso">—</span>`}</div></div><div class="campo"><span class="etichetta-campo">File</span><div>${c.psc.fileId?html`<button class="pulsante piccolo" data-azione="file-apri" data-id="${c.psc.fileId}">${icona('pdf','piccola')}Apri PSC</button>`:html`<button class="pulsante piccolo" data-azione="cantiere-psc-carica" data-id="${c.id}">${icona('carica','piccola')}Carica PSC</button>`}</div></div></div>
-    <div class="sezione-titolo">Denuncia di apertura cantiere</div><div class="campi">${campo('Data',c.denuncia.data,fData)}${campo('Periodo',c.denuncia.dal?fData(c.denuncia.dal)+' → '+fData(c.denuncia.al):null)}${campo('Importo complessivo lavori',c.denuncia.importoComplessivo,fEuro)}${campo('Importo dell\u2019impresa',c.denuncia.importoPavimass,fEuro)}</div>
-    ${c.note?html`<div class="sezione-titolo">Note</div><p>${c.note}</p>`:''}</div>
-  <div class="scheda"><h3>Le sei figure <span class="azioni"><button class="pulsante piccolo" data-azione="cantiere-modifica" data-id="${c.id}">${icona('modifica','piccola')}Modifica</button></span></h3><p class="piccolo secondario">Progettista e direttore dei lavori non sono mai facoltativi.</p>
-    ${FIGURE_CANTIERE.map(f=>{const t=testoFigura(c,f);return html`<div class="figura-riga"><span class="ruolo">${f.ruolo}</span><span>${t?html`<b>${t.href?html`<a href="${t.href}">${t.nome}</a>`:t.nome}</b>${t.righe.map(x=>html`<br><span class="piccolo secondario">${x}</span>`)}`:daCompilare()}</span><span></span></div>`})}</div></div>`;
+  const v=(x,fmt)=>valoreODaCompilare(x,fmt);
+  return html`<div class="bento">
+  <div class="guscio c-7"><div class="scheda"><div class="intesta"><h2>Dati del cantiere</h2><a class="vai" data-azione="cantiere-modifica" data-id="${c.id}">Modifica</a></div>
+    <dl class="dati-doc"><dt>Descrizione</dt><dd>${v(c.descrizione)}</dd><dt>Indirizzo</dt><dd>${v(c.indirizzo.via)}</dd><dt>Comune</dt><dd>${v(c.indirizzo.comune)}${c.indirizzo.provincia?' ('+c.indirizzo.provincia+')':''}${c.indirizzo.cap?' · '+c.indirizzo.cap:''}</dd><dt>Inizio lavori</dt><dd>${v(c.dataInizio,fData)}</dd><dt>Fine lavori</dt><dd>${v(c.dataFine,fData)}</dd>${c.periodoTesto?html`<dt>Periodo</dt><dd>${c.periodoTesto}</dd>`:''}<dt>Importo contratto</dt><dd>${v(c.importoContratto,fEuro)}</dd><dt>Orari</dt><dd>${v(c.orari)}</dd><dt>Uomini/giorno</dt><dd>${v(c.uominiGiorno)}</dd></dl>
+    <div class="sezione-titolo">PSC</div><dl class="dati-doc"><dt>Data</dt><dd>${v(c.psc.data||c.psc.periodoTesto,x=>dataValida(x)?fData(x):x)}</dd><dt>Redattore</dt><dd>${v(c.psc.redattore)}</dd>${c.psc.prescrizioni?html`<dt>Prescrizioni</dt><dd>${c.psc.prescrizioni}</dd>`:''}<dt>File</dt><dd>${c.psc.fileId?html`<button class="pulsante piccolo" data-azione="file-apri" data-id="${c.psc.fileId}">${icona('pdf','piccola')}Apri PSC</button>`:html`<button class="pulsante piccolo" data-azione="cantiere-psc-carica" data-id="${c.id}">${icona('carica','piccola')}Carica PSC</button>`}</dd></dl>
+    <div class="sezione-titolo">Denuncia di apertura cantiere</div><dl class="dati-doc"><dt>Data</dt><dd>${v(c.denuncia.data,fData)}</dd><dt>Periodo</dt><dd>${c.denuncia.dal?fData(c.denuncia.dal)+' → '+fData(c.denuncia.al):daCompilare()}</dd><dt>Importo lavori</dt><dd>${v(c.denuncia.importoComplessivo,fEuro)}</dd><dt>Importo impresa</dt><dd>${v(c.denuncia.importoPavimass,fEuro)}</dd></dl>
+    ${c.note?html`<div class="sezione-titolo">Note</div><p>${c.note}</p>`:''}</div></div>
+  <div class="guscio c-5"><div class="scheda"><div class="intesta"><h2>Le sei figure</h2><a class="vai" data-azione="cantiere-modifica" data-id="${c.id}">Modifica</a></div><p class="piccolo silenzioso">Progettista e direttore dei lavori non sono mai facoltativi.</p>
+    <div class="figure">${FIGURE_CANTIERE.map(f=>{const t=testoFigura(c,f);return html`<div class="figura"><small>${f.ruolo}</small>${t?html`<b>${t.href?html`<a href="${t.href}">${t.nome}</a>`:t.nome}</b>${t.righe.map(x=>html`<span>${x}</span>`)}`:html`<b>${daCompilare()}</b>`}</div>`})}</div></div></div>
+  </div>`;
 }
 function schedaCantiereSquadra(c){
   const operai=(c.operai||[]).map(id=>persona(id)).filter(Boolean);
