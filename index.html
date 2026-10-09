@@ -516,10 +516,14 @@ input[type=checkbox],input[type=radio]{width:17px;height:17px;accent-color:var(-
 .presenze-griglia td.cella.testo{font-size:10px;font-weight:500;color:var(--ink-3);max-width:38px;overflow:hidden;text-overflow:ellipsis;padding:0 2px}
 .presenze-griglia td.cella input{width:100%;height:100%;border:0;background:var(--card);text-align:center;padding:0 2px;outline:0;box-shadow:inset 0 0 0 2px var(--accent);border-radius:8px;font:inherit;min-height:0}
 .presenze-griglia tr.sezione td{background:var(--sunk);font-weight:560;text-align:left;padding:0 16px;font-size:12px;color:var(--ink-2);position:sticky;left:0;height:30px;border-top:1px solid var(--line-2)}
-.presenze-griglia td.totale{font-weight:600;min-width:70px;padding:0 12px;text-align:right;position:sticky;right:0;background:var(--card);z-index:1;box-shadow:inset 1px 0 0 var(--line-2)}
-.presenze-griglia td.totale+td.totale{right:0}
+.presenze-griglia td.totale{font-weight:600;min-width:70px;padding:0 12px;text-align:right;background:var(--card);white-space:nowrap}
+.presenze-griglia td.totale:last-child{position:sticky;right:0;z-index:1;min-width:104px}
+.presenze-griglia tr.persona-prima td.totale:nth-last-child(2){position:sticky;right:104px;z-index:1;min-width:64px;box-shadow:inset 1px 0 0 var(--line-2)}
+.presenze-griglia tr.riga-secondaria td.totale{box-shadow:inset 1px 0 0 var(--line-2);font-weight:400;text-align:right}
 .presenze-griglia tr.blocco-pari td.totale{background-color:color-mix(in srgb,var(--sunk) 60%,var(--card))}
-.presenze-griglia th.totale{position:sticky;right:0;z-index:4;padding:0 12px;text-align:right;font-size:12px;color:var(--ink-3);font-weight:450}
+.presenze-griglia th.totale{padding:0 12px;text-align:right;font-size:12px;color:var(--ink-3);font-weight:450}
+.presenze-griglia th.totale:last-child{position:sticky;right:0;z-index:4;min-width:104px}
+.presenze-griglia th.totale:nth-last-child(2){position:sticky;right:104px;z-index:4;min-width:64px;box-shadow:inset 1px 0 0 var(--line-2)}
 .presenze-griglia tr.riga-secondaria td{height:24px;color:var(--ink-3)}
 .presenze-griglia tr.riga-secondaria.ultima td{height:28px;padding-bottom:4px}
 .presenze-griglia tr.riga-secondaria td.fisso{font-weight:400;color:var(--ink-3)}
@@ -4004,27 +4008,50 @@ VISTE.presenze=function(r){
     <div class="azioni"><button class="pulsante" data-azione="presenze-strumenti" data-k="${k}">${icona('magia')}Strumenti</button><button class="pulsante" data-azione="presenze-trascrizione" data-k="${k}">${icona('tastiera')}Compila un operaio</button><button class="pulsante" data-azione="presenze-uscite" data-k="${k}">${icona('scarica')}Esporta</button><button class="pulsante icona" data-azione="presenze-aiuto" title="Tasti e regole">${icona('info')}</button></div></div>
   <div class="griglia quattro mb"><div class="indicatore" style="cursor:default"><span class="etichetta">Ore in griglia</span><span class="valore md">${fOre(rie.oreTotali)}</span></div><div class="indicatore" style="cursor:default"><span class="etichetta">Importo del mese</span><span class="valore md">${fEuro(rie.importoTotale,0)}</span></div><div class="indicatore ${rie.giorniDaCompilare?'attenzione':''}" style="cursor:default"><span class="etichetta">Giorni-persona da compilare</span><span class="valore md">${rie.giorniDaCompilare}</span></div><div class="indicatore" style="cursor:default"><span class="etichetta">Giorni lavorativi</span><span class="valore md">${giorniLavorativiMese(anno,mese,stato.impostazioni.festivitaLocali).length}</span><span class="nota">${giorni.filter(x=>x.festivo&&!x.we).map(x=>'FS '+x.g).join(', ')||'nessuna festività feriale'}</span></div></div>
   ${avvisi.length?html`<div class="avviso-inline attenzione">${icona('attenzione')}<div class="corpo">${avvisi.map(a=>html`${a}<br>`)}</div></div>`:''}
-  <div class="strumenti-tabella"><label class="spunta piccolo"><input type="checkbox" data-cambio="presenze-compatta" ${compatta?'checked':''}> Nascondi righe cantiere e committente</label><span class="conteggio">Frecce per muoversi · digita per inserire · ⇧+frecce seleziona · Canc svuota</span></div>
+  <div class="strumenti-tabella"><div class="gruppo-pulsanti"><button class="pulsante ${compatta?'':'attivo'}" data-azione="presenze-vista" data-valore="tutto">Ore, cantiere e committente</button><button class="pulsante ${compatta?'attivo':''}" data-azione="presenze-vista" data-valore="ore">Solo ore</button></div><span class="spazio"></span>${legendaCantieriMese(anno,mese,m)}</div>
+  <div class="pie-griglia piccolo silenzioso mb-s">Frecce per muoversi · digita per scrivere · ⇧ + frecce per più giorni · Canc svuota · clic sul nome per compilarlo da solo</div>
   <div class="presenze-griglia desktop ${compatta?'compatta':''}" id="presenze-griglia" tabindex="0" data-k="${k}"><table>
-    <thead><tr><th class="fisso">Persona</th><th class="fisso2"></th>${giorni.map(d=>html`<th class="${d.we?'fine-settimana':''} ${d.festivo?'festivo':''}" title="${fData(d.iso)}${d.festivo?' · festività':''}" ${d.oggi?'style="outline:2px solid var(--blu);outline-offset:-2px"':''}><span class="gs">${NOMI_GIORNI_BREVI[d.gs]}</span>${d.g}</th>`)}<th>Ore</th><th>Importo</th></tr></thead>
-    <tbody>${sezioni.map(([sz,tit])=>{const pp=persone.filter(p=>(p.sezionePresenze||'dipendenti')===sz);if(!pp.length)return '';return html`<tr class="sezione"><td colspan="${n+4}">${tit}</td></tr>${pp.map(p=>righePersona(p,m.persone[p.id]||{giorni:{}},giorni,k))}`})}</tbody></table></div>
+    <thead><tr><th class="fisso">Persona</th><th class="fisso2"></th>${giorni.map(d=>html`<th class="${d.we?'fine-settimana':''} ${d.festivo?'festivo':''} ${d.gs===1?'lun':''} ${d.oggi?'oggi-col':''}" title="${fData(d.iso)}${d.festivo?' · festività':''}"><span class="gs">${NOMI_GIORNI_BREVI[d.gs]}</span>${d.g}</th>`)}<th class="totale">Ore</th><th class="totale">Importo</th></tr></thead>
+    <tbody>${(()=>{let i=0;return sezioni.map(([sz,tit])=>{const pp=persone.filter(p=>(p.sezionePresenze||'dipendenti')===sz);if(!pp.length)return '';return html`<tr class="sezione"><td colspan="${n+4}">${tit}</td></tr>${pp.map(p=>righePersona(p,m.persone[p.id]||{giorni:{}},giorni,k,i++%2===1))}`})})()}</tbody></table></div>
   <div class="presenze-mobile">${vistaPresenzeMobile(persone,m,giorni,k)}</div>`;
 };
-function righePersona(p,mp,giorni,k){
-  const calc=calcolaMesePersona(mp,p);const n=giorni.length;
-  const cella=(d,riga)=>{const c=(mp.giorni||{})[String(d.g)]||{};const bloccata=d.we;let v='',cls='',titoloCella='';
-    if(riga==='ore'){const val=valoreCella(c);if(typeof val==='number')v=fOre(val);else if(typeof val==='string'){v=val;cls='codice codice-'+val;if(val==='FS'&&p.festivitaPagate)cls+=(mp.festivitaEscluse||[]).includes(d.g)?' fs-esclusa':' fs-pagata'}}
-    else if(riga==='trasferta'){v=c.trasferta||'';cls='testo'}
-    else {v=c[riga]||'';cls='testo';if(riga==='cantiere'&&v){const cc=cantiereDaCella(c,d.iso);if(!cc)cls+=' fuori-elenco';else if(cc.nome!==v)titoloCella=v+' → cantiere '+cc.nome}}
+function righePersona(p,mp,giorni,k,pari){
+  const calc=calcolaMesePersona(mp,p);const n=giorni.length;const gg=mp.giorni||{};
+  const blocco=pari?'blocco-pari':'';
+  const cella=(d,riga)=>{const c=gg[String(d.g)]||{};const bloccata=d.we;let v='',cls='',titoloCella='',dentro='',grezzoV='';
+    if(riga==='ore'){const val=valoreCella(c);if(typeof val==='number'){v=fOre(val);grezzoV=v;dentro=v;cls=val>8?'oltre':val<8?'meno':''}else if(typeof val==='string'){v=val;grezzoV=val;cls='codice codice-'+val;if(val==='FS'&&p.festivitaPagate)cls+=(mp.festivitaEscluse||[]).includes(d.g)?' fs-esclusa':' fs-pagata';dentro=html`<span>${val}</span>`}}
+    else if(riga==='trasferta'){v=c.trasferta||'';grezzoV=v;dentro=v;cls='testo'}
+    else{const t=tratto(d,riga);grezzoV=c[riga]||'';cls=t.cls;titoloCella=t.titolo;dentro=t.html}
     const incerto=(mp.incerti||[]).includes(d.g);
-    return html`<td class="cella ${cls} ${bloccata?'bloccata':''} ${d.we?'fine-settimana':''} ${d.festivo?'festivo':''} ${incerto?'riga-scadenza':''}" data-pid="${p.id}" data-riga="${riga}" data-giorno="${d.g}" title="${bloccata?'Sabato e domenica non si compilano':cls.includes('fuori-elenco')?v+' — non riconosco il cantiere (né dal nome né dalla località): queste ore non contano per nessun cantiere (rimanenze)':titoloCella?titoloCella:(d.festivo?'Festività':'')+(incerto?' · letto con incertezza':'')}">${v}</td>`};
+    return html`<td class="cella ${cls} ${bloccata?'bloccata':''} ${d.we?'fine-settimana':''} ${d.festivo?'festivo':''} ${d.gs===1?'lun':''} ${incerto?'riga-scadenza':''}" data-pid="${p.id}" data-riga="${riga}" data-giorno="${d.g}" data-v="${grezzoV}" title="${bloccata?'Sabato e domenica non si compilano':titoloCella||((d.festivo?'Festività':'')+(incerto?' · letto con incertezza':''))}">${dentro}</td>`};
+  // cantiere e committente: i giorni consecutivi (nella settimana) con lo stesso valore diventano un tratto colorato
+  const valore=(g,riga)=>{const c=gg[String(g)];return c&&c[riga]?normalizzaTesto(c[riga]):''};
+  const tratto=(d,riga)=>{
+    const c=gg[String(d.g)]||{};const v=c[riga];if(!v||d.we)return {cls:'testo',html:'',titolo:''};
+    const iso=k+'-'+pad2(d.g);const cc=cantiereDaCella(c,iso);const q=normalizzaTesto(v);
+    const lavorativo=x=>x&&!x.we;const prima=giorni[d.g-2],dopo=giorni[d.g];
+    const inizio=!(lavorativo(prima)&&valore(prima.g,riga)===q),fine=!(lavorativo(dopo)&&valore(dopo.g,riga)===q);
+    let lung=1;if(inizio){let j=d.g;while(j<n&&lavorativo(giorni[j])&&valore(giorni[j].g,riga)===q){lung++;j++}}
+    const fuori=riga==='cantiere'&&!cc;
+    const titolo=riga==='cantiere'?(fuori?v+' — non riconosco il cantiere (né dal nome né dalla località): queste ore non contano per nessun cantiere':cc.nome!==v?v+' → cantiere '+cc.nome:v):v;
+    return {cls:`tratto ${riga==='committente'?'committente':''} ${inizio?'inizio':''} ${fine?'fine':''} ${fuori?'fuori-elenco':''} ${cc?coloreCantiere(cc):''}`,titolo,
+      html:inizio?html`<span class="etichetta-tratto" style="width:${lung*38-14}px">${riga==='cantiere'&&cc?cc.nome:v}</span>`:''};
+  };
+  const nome=html`<td class="fisso"><span class="nome-compila" data-azione="presenze-compila" data-k="${k}" data-pid="${p.id}" title="Compila tutto il mese di ${nomePersona(p)}">${nomePersona(p)}</span></td>`;
   if(p.soloTrasferte){
-    return html`<tr><td class="fisso"><span class="nome-compila" data-azione="presenze-compila" data-k="${k}" data-pid="${p.id}" title="Apri la scheda di compilazione">${nomePersona(p)}</span></td><td class="fisso2">trasferte</td>${giorni.map(d=>cella(d,'trasferta'))}<td class="totale">—</td><td class="totale num" data-azione="presenze-persona" data-k="${k}" data-pid="${p.id}" style="cursor:pointer" title="Apri il riepilogo">${fEuro(calc.importo,0)}</td></tr>`;
+    return html`<tr class="persona-prima ${blocco}">${nome}<td class="fisso2">trasferte</td>${giorni.map(d=>cella(d,'trasferta'))}<td class="totale">—</td><td class="totale num" data-azione="presenze-persona" data-k="${k}" data-pid="${p.id}" style="cursor:pointer" title="Apri il riepilogo">${fEuro(calc.importo,0)}</td></tr>`;
   }
-  return html`<tr><td class="fisso"><span class="nome-compila" data-azione="presenze-compila" data-k="${k}" data-pid="${p.id}" title="Apri la scheda di compilazione">${nomePersona(p)}</span></td><td class="fisso2">ore</td>${giorni.map(d=>cella(d,'ore'))}<td class="totale num">${fOre(calc.oreGriglia)}</td><td class="totale num" data-azione="presenze-persona" data-k="${k}" data-pid="${p.id}" style="cursor:pointer" title="Apri il riepilogo della persona (anche per scrivere una nota)">${calc.importo!=null?fEuro(calc.importo,0):'—'} ${icona('info','piccola'+(mp.note?'':' silenzioso'))}</td></tr>
-  <tr class="riga-secondaria"><td class="fisso"></td><td class="fisso2">cantiere</td>${giorni.map(d=>cella(d,'cantiere'))}<td class="totale" colspan="2">${Object.entries(calc.perCodice).map(([c,nn])=>html`<span class="etichetta-tag" title="${(CODICI_ASSENZA[c]||{}).nome||c}">${c} ${nn}</span> `)}</td></tr>
-  <tr class="riga-secondaria"><td class="fisso"></td><td class="fisso2">committente</td>${giorni.map(d=>cella(d,'committente'))}<td class="totale" colspan="2">${(mp.aggiustamenti||[]).length?html`<span class="piccolo secondario">${mp.aggiustamenti.map(a=>a.sigla+' '+fEuro(a.importo,0)).join(', ')}</span>`:''}</td></tr>`;
+  return html`<tr class="persona-prima ${blocco}">${nome}<td class="fisso2">ore</td>${giorni.map(d=>cella(d,'ore'))}<td class="totale num">${fOre(calc.oreGriglia)}</td><td class="totale num" data-azione="presenze-persona" data-k="${k}" data-pid="${p.id}" style="cursor:pointer" title="Apri il riepilogo della persona (anche per scrivere una nota)">${calc.importo!=null?fEuro(calc.importo,0):'—'} ${icona('modifica','piccola'+(mp.note?'':' silenzioso'))}</td></tr>
+  <tr class="riga-secondaria ${blocco}"><td class="fisso"></td><td class="fisso2">cantiere</td>${giorni.map(d=>cella(d,'cantiere'))}<td class="totale" colspan="2">${Object.entries(calc.perCodice).map(([c,nn])=>html`<span class="etichetta-tag" title="${(CODICI_ASSENZA[c]||{}).nome||c}">${c} ${nn}</span> `)}</td></tr>
+  <tr class="riga-secondaria ultima ${blocco}"><td class="fisso"></td><td class="fisso2">committente</td>${giorni.map(d=>cella(d,'committente'))}<td class="totale" colspan="2">${(mp.aggiustamenti||[]).length?html`<span class="piccolo secondario">${mp.aggiustamenti.map(a=>a.sigla+' '+fEuro(a.importo,0)).join(', ')}</span>`:''}</td></tr>`;
 }
+// i cantieri che compaiono nel mese, con il loro colore: è la legenda della griglia
+function legendaCantieriMese(anno,mese,m){
+  const visti=new Map();const k=chiaveMese(anno,mese);
+  for(const pid of Object.keys(m.persone||{}))for(const [g,c] of Object.entries(m.persone[pid].giorni||{})){if(!c.cantiere)continue;const cc=cantiereDaCella(c,k+'-'+pad2(+g));if(cc)visti.set(cc.id,cc)}
+  return html`<div class="legenda-cantieri">${Array.from(visti.values()).map(c=>html`<a class="cantiere-tag ${coloreCantiere(c)}" href="#/cantieri/${c.id}">${c.nome}</a>`)}</div>`;
+}
+AZIONI['presenze-vista']=d=>{ui.filtri.presenzeCompatta=d.valore==='ore';render()};
 AZIONI['presenze-compatta']=(d,t)=>{ui.filtri.presenzeCompatta=t.checked;render()};
 // ---- vista telefono: una persona alla volta ----
 function vistaPresenzeMobile(persone,m,giorni,k){
@@ -4111,7 +4138,7 @@ function montaGriglia(){
   let editor=null;
   const inizioEdit=(td,iniziale)=>{
     if(editor||td.classList.contains('bloccata')) return;
-    const riga=td.dataset.riga;const val=iniziale!==undefined?iniziale:td.textContent;
+    const riga=td.dataset.riga;const val=iniziale!==undefined?iniziale:(td.dataset.v!=null?td.dataset.v:td.textContent);
     const inp=document.createElement('input');inp.type='text';inp.value=val;inp.setAttribute('aria-label','Valore');
     td.textContent='';td.appendChild(inp);editor={td,inp,riga};
     if(riga==='cantiere'||riga==='committente'||riga==='trasferta') attivaSuggerimenti(inp,()=>riga==='trasferta'?valoriUsati('trasferta'):suggerimentiCantieri(riga));
