@@ -620,6 +620,16 @@ input[type=checkbox],input[type=radio]{width:17px;height:17px;accent-color:var(-
 #velo-menu{position:fixed;inset:0;z-index:125;background:rgba(14,14,18,.3);display:none}
 
 /* ═══════════ componenti del nuovo disegno ═══════════ */
+/* ---- clienti ---- */
+.griglia-clienti{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.carta-cliente{display:flex;flex-direction:column;padding:18px;border-radius:var(--r-xl);background:var(--card);box-shadow:var(--ombra-m),0 0 0 1px var(--line);color:var(--ink);text-decoration:none!important;transition:transform .35s var(--molla),box-shadow .25s}
+.carta-cliente:hover{transform:translateY(-2px);box-shadow:var(--ombra-pop)}
+.carta-cliente b{display:block;font-weight:540;letter-spacing:-.01em}
+.carta-cliente .sotto-cliente{display:block;font-size:12.5px;color:var(--ink-3)}
+.carta-cliente .sigla{width:38px;height:38px;border-radius:12px;background:var(--ks);color:var(--kc);display:grid;place-items:center;font-weight:600;font-size:13px;flex:none}
+.carta-cliente .coppia{display:grid}
+.carta-cliente .k{display:block} .carta-cliente .v{display:block} .carta-cliente .piccolo-v{font-size:15px}
+
 .figure{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}
 .figura{padding:12px 14px;border-radius:14px;background:var(--sunk);min-width:0}
 .figura small{display:block;font-size:11.5px;color:var(--ink-3)}
@@ -4199,7 +4209,9 @@ VISTE.clienti=function(r){
   if(r.query.nuovo){setTimeout(()=>dialogoCliente(null),0);history.replaceState(null,'','#/clienti')}
   if(r.id) return vistaCliente(r.id);
   const vista=r.query.vista||ui.filtri.clientiVista||'elenco';
-  const testa=html`<div class="testata"><div><h1>Clienti</h1><div class="sotto">${stato.clienti.length} soggetti · committenti, imprese affidatarie, fornitori</div></div><div class="azioni"><div class="gruppo-pulsanti"><button class="pulsante ${vista==='elenco'?'attivo':''}" data-azione="clienti-vista" data-valore="elenco">${icona('elenco')}Elenco</button><button class="pulsante ${vista==='confronto'?'attivo':''}" data-azione="clienti-vista" data-valore="confronto">${icona('bilancia')}Confronto</button><button class="pulsante ${vista==='professionisti'?'attivo':''}" data-azione="clienti-vista" data-valore="professionisti">${icona('persona')}Professionisti</button></div><button class="pulsante primario" data-azione="cliente-nuovo">${icona('piu')}Nuovo cliente</button></div></div>`;
+  const anno=new Date().getFullYear();const fattAnno=somma(fatturatoPerCliente(anno),x=>x.fatturato);
+  const fermi=stato.clienti.filter(c=>{const u=ultimoLavoroCliente(c.id);return c.stato!=='chiuso'&&(!u||giorniTra(u,oggi())>180)});
+  const testa=html`<div class="testata"><div><div class="occhiello">Lavori</div><h1>Clienti</h1><p class="sotto">Fatturato ${anno}: <b>${fEuro(fattAnno,0)}</b> · ${plurale(stato.clienti.length,'soggetto','soggetti')}${fermi.length?' · '+plurale(fermi.length,'fermo da più di sei mesi','fermi da più di sei mesi'):''}</p></div><div class="azioni"><div class="gruppo-pulsanti"><button class="pulsante ${vista==='elenco'?'attivo':''}" data-azione="clienti-vista" data-valore="elenco">Elenco</button><button class="pulsante ${vista==='confronto'?'attivo':''}" data-azione="clienti-vista" data-valore="confronto">Confronto</button><button class="pulsante ${vista==='professionisti'?'attivo':''}" data-azione="clienti-vista" data-valore="professionisti">Professionisti</button></div><button class="pulsante primario" data-azione="cliente-nuovo">Nuovo cliente<span class="manopola">${icona('piu','piccola')}</span></button></div></div>`;
   if(vista==='professionisti') return html`${testa}${vistaProfessionisti()}`;
   const righe=stato.clienti.map(c=>({c,st:statisticheCliente(c.id)}));
   if(vista==='confronto'){
@@ -4208,15 +4220,13 @@ VISTE.clienti=function(r){
     ${conDati.length?html`<div class="griglia due">${graficoBarreOrizzontali(conDati.slice().sort((a,b)=>b.st.fatturato-a.st.fatturato).map(x=>({etichetta:x.c.ragioneSociale,valore:Math.round(x.st.fatturato),href:'#/clienti/'+x.c.id})),{formatta:v=>fEuro(v,0),titolo:'Fatturato'})}${graficoBarreOrizzontali(conDati.filter(x=>x.st.margineMedioPct!=null).sort((a,b)=>b.st.margineMedioPct-a.st.margineMedioPct).map(x=>({etichetta:x.c.ragioneSociale,valore:Math.round(x.st.margineMedioPct),href:'#/clienti/'+x.c.id})),{formatta:v=>fPct(v,0),titolo:'Margine medio'})}</div>`:''}
     ${tabella({id:'confronto',righe,chiaveOrd:'fatt',dir:'desc',href:x=>'#/clienti/'+x.c.id,colonne:[{chiave:'nome',titolo:'Cliente',principale:true,valore:x=>x.c.ragioneSociale},{chiave:'fatt',titolo:'Fatturato',num:true,valore:x=>x.st.fatturato,formatta:x=>fEuro(x.st.fatturato,0)},{chiave:'marg',titolo:'Margine medio',num:true,valore:x=>x.st.margineMedioPct==null?-9999:x.st.margineMedioPct,formatta:x=>x.st.margineMedioPct==null?html`<span class="silenzioso">—</span>`:html`<span class="${x.st.margineMedioPct<0?'da-compilare':''}">${fPct(x.st.margineMedioPct,0)}</span>`},{chiave:'n',titolo:'Cantieri',num:true,valore:x=>x.st.cantieri.length},{chiave:'pag',titolo:'Giorni di pagamento',num:true,valore:x=>x.st.giorniPagamento==null?9999:x.st.giorniPagamento,formatta:x=>x.st.giorniPagamento==null?html`<span class="silenzioso" title="Nessuna data di incasso registrata">dato non registrato</span>`:fNum(x.st.giorniPagamento,0)},{chiave:'ult',titolo:'Ultimo lavoro',valore:x=>x.st.ultimoLavoro||'',formatta:x=>x.st.ultimoLavoro?fData(x.st.ultimoLavoro):html`<span class="silenzioso">—</span>`}]})}</div>`;
   }
-  return html`${testa}${tabella({id:'clienti',righe,chiaveOrd:'nome',href:x=>'#/clienti/'+x.c.id,colonne:[
-    {chiave:'nome',titolo:'Ragione sociale',principale:true,valore:x=>x.c.ragioneSociale,formatta:x=>html`<b>${x.c.ragioneSociale}</b><br><span class="piccolo secondario">${[x.c.indirizzo.comune,x.c.indirizzo.provincia?'('+x.c.indirizzo.provincia+')':''].filter(Boolean).join(' ')}</span>`},
-    {chiave:'ruoli',titolo:'Ruoli',formatta:x=>(x.c.ruoli||[]).map(r=>html`<span class="etichetta-tag">${RUOLI_CLIENTE[r]||r}</span> `)},
-    {chiave:'n',titolo:'Cantieri',num:true,valore:x=>x.st.cantieri.length},
-    {chiave:'fatt',titolo:'Fatturato',num:true,valore:x=>x.st.fatturato,formatta:x=>x.st.fatturato?fEuro(x.st.fatturato,0):html`<span class="silenzioso">—</span>`},
-    {chiave:'marg',titolo:'Margine medio',num:true,valore:x=>x.st.margineMedioPct||0,formatta:x=>x.st.margineMedioPct==null?html`<span class="silenzioso">—</span>`:html`<span class="${x.st.margineMedioPct<0?'da-compilare':''}">${fPct(x.st.margineMedioPct,0)}</span>`},
-    {chiave:'ult',titolo:'Ultimo lavoro',valore:x=>x.st.ultimoLavoro||'',formatta:x=>x.st.ultimoLavoro?fData(x.st.ultimoLavoro):html`<span class="silenzioso">—</span>`},
-    {chiave:'stato',titolo:'Stato',formatta:x=>pillolaGenerica(STATI_CLIENTE[x.c.stato]||x.c.stato,x.c.stato==='attivo'?'valido':'neutro')},
-  ],vuoto:vuoto({icona:'clienti',titolo:'Nessun cliente',azione:{testo:'Nuovo cliente',azione:'cliente-nuovo'}})})}`;
+  if(!righe.length) return html`${testa}${vuoto({icona:'clienti',titolo:'Nessun cliente',testo:'Committenti, imprese affidatarie e privati: da qui partono cantieri e preventivi.',azione:{testo:'Nuovo cliente',azione:'cliente-nuovo'}})}`;
+  const ord=righe.slice().sort((a,b)=>(b.st.fatturato||0)-(a.st.fatturato||0)||a.c.ragioneSociale.localeCompare(b.c.ragioneSociale));
+  return html`${testa}<div class="griglia-clienti">${ord.map(x=>{const c=x.c;const u=x.st.ultimoLavoro;const fermo=c.stato!=='chiuso'&&(!u||giorniTra(u,oggi())>180);const ref=(c.referenti||[])[0];return html`<a class="carta-cliente" href="#/clienti/${c.id}">
+    <span class="riga stretta" style="align-items:flex-start"><span class="sigla ${coloreDa(c.id)}">${iniziali(c.ragioneSociale)}</span><span style="min-width:0;flex:1"><b>${c.ragioneSociale}</b><span class="sotto-cliente">${[(c.ruoli||[]).map(r=>RUOLI_CLIENTE[r]||r).join(', '),c.indirizzo.comune].filter(Boolean).join(' · ')}</span></span>${c.stato==='chiuso'?html`<span class="pillola">chiuso</span>`:fermo?html`<span class="pillola scadenza">fermo</span>`:''}</span>
+    <span class="coppia"><span><span class="k">Fatturato</span><span class="v">${x.st.fatturato?fEuro(x.st.fatturato,0):'—'}</span></span><span><span class="k">Ultimo lavoro</span><span class="v piccolo-v">${u?fData(u):'—'}</span></span></span>
+    <span class="riga mt-s">${x.st.cantieri.length?x.st.cantieri.slice(0,4).map(y=>html`<span class="cantiere-tag ${coloreCantiere(y.c)}">${y.c.nome}</span>`):html`<span class="piccolo silenzioso">Nessun cantiere</span>`}${x.st.cantieri.length>4?html`<span class="piccolo silenzioso">+${x.st.cantieri.length-4}</span>`:''}</span>
+    ${ref?html`<span class="piccolo silenzioso mt-s riga stretta">${icona('persona','piccola')}${ref.nome||''}${ref.ruolo?' · '+ref.ruolo:''}</span>`:''}</a>`})}</div>`;
 };
 AZIONI['clienti-vista']=d=>{ui.filtri.clientiVista=d.valore;render()};
 AZIONI['cliente-nuovo']=()=>dialogoCliente(null);
