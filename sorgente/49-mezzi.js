@@ -16,15 +16,13 @@ VISTE.mezzi=function(r){
   if(r.query.nuovo){setTimeout(()=>dialogoMezzo(null),0);history.replaceState(null,'','#/mezzi')}
   if(r.id) return vistaMezzo(r.id);
   const righe=stato.mezzi.map(m=>({m,crit:documentoPiuCriticoMezzo(m)}));
-  return html`<div class="testata"><div><h1>Mezzi</h1><div class="sotto">${plurale(stato.mezzi.length,'mezzo','mezzi')} · ${righe.filter(r=>r.crit.stato==='scaduto').length} con documenti scaduti</div></div>
-    <div class="azioni"><button class="pulsante primario" data-azione="mezzo-nuovo">${icona('piu')}Nuovo mezzo</button></div></div>
-  ${tabella({id:'mezzi',righe,chiaveOrd:'targa',href:r=>'#/mezzi/'+r.m.id,classeRiga:r=>'riga-'+r.crit.stato,colonne:[
-    {chiave:'targa',titolo:'Targa',principale:true,formatta:r=>html`<b>${r.m.targa||daCompilare()}</b>`},
-    {chiave:'tipo',titolo:'Tipo',valore:r=>r.m.tipo||''},
-    {chiave:'modello',titolo:'Marca e modello',valore:r=>[r.m.marca,r.m.modello].filter(Boolean).join(' ')},
-    {chiave:'assegnato',titolo:'Assegnato a',formatta:r=>r.m.assegnatoA?nomePersona(persona(r.m.assegnatoA)):html`<span class="silenzioso">—</span>`},
-    {chiave:'critico',titolo:'Documento più critico',valore:r=>STATI_DOC[r.crit.stato]?STATI_DOC[r.crit.stato].ordine:9,formatta:r=>html`${pillola(r.crit.stato,undefined,{stimata:r.crit.info&&r.crit.info.stimata})}<br><span class="piccolo secondario">${r.crit.testo}</span>`},
-  ],vuoto:vuoto({icona:'mezzo',titolo:'Nessun mezzo',testo:'Aggiungi i mezzi aziendali per seguire assicurazione, revisione e bollo.',azione:{testo:'Nuovo mezzo',azione:'mezzo-nuovo'}})})}`;
+  const scaduti=righe.filter(r=>r.crit.stato==='scaduto').length;
+  return html`<div class="testata"><div><div class="occhiello">Squadra</div><h1>Mezzi</h1><p class="sotto">${plurale(stato.mezzi.length,'mezzo','mezzi')}${scaduti?html` · <b>${scaduti} con documenti scaduti</b>`:''} · le scadenze dei mezzi finiscono da sole nello Scadenzario.</p></div>
+    <div class="azioni"><button class="pulsante primario" data-azione="mezzo-nuovo">Nuovo mezzo<span class="manopola">${icona('piu','piccola')}</span></button></div></div>
+  ${righe.length?html`<div class="griglia-clienti">${righe.map(({m})=>{const docs=stato.documenti.filter(d=>d.soggettoTipo==='mezzo'&&d.soggettoId===m.id&&!documentoSuperato(d)).map(d=>({d,info:infoDocumento(d),t:tipoDoc(d.tipoId)}));return html`<a class="carta-cliente" href="#/mezzi/${m.id}">
+    <span class="riga stretta"><span class="sigla" style="background:var(--sunk-2);color:var(--ink-2)">${icona('mezzo','piccola')}</span><span style="flex:1;min-width:0"><b>${[m.marca,m.modello].filter(Boolean).join(' ')||m.tipo||'Mezzo'}</b><span class="sotto-cliente">${[m.tipo,m.assegnatoA?nomePersona(persona(m.assegnatoA)):''].filter(Boolean).join(' · ')}</span></span><span class="targa">${m.targa||'—'}</span></span>
+    <span class="colonna mt" style="gap:0">${docs.length?docs.map(x=>html`<span class="riga-mezzo"><span>${x.t?x.t.nome:'Documento'}</span><span class="spazio"></span><span class="silenzioso">${x.info.data?fData(x.info.data):''}</span>${pillolaDocumento(x.info,{breve:true})}</span>`):html`<span class="piccolo silenzioso">Nessun documento: aggiungi assicurazione, revisione e bollo.</span>`}</span></a>`})}</div>`
+  :vuoto({icona:'mezzo',titolo:'Nessun mezzo',testo:'Aggiungi i mezzi aziendali per seguire assicurazione, revisione e bollo.',azione:{testo:'Nuovo mezzo',azione:'mezzo-nuovo'}})}`;
 };
 AZIONI['mezzo-nuovo']=()=>dialogoMezzo(null);
 AZIONI['mezzo-modifica']=d=>dialogoMezzo(perId('mezzi',d.id));

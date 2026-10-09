@@ -620,6 +620,20 @@ input[type=checkbox],input[type=radio]{width:17px;height:17px;accent-color:var(-
 #velo-menu{position:fixed;inset:0;z-index:125;background:rgba(14,14,18,.3);display:none}
 
 /* ═══════════ componenti del nuovo disegno ═══════════ */
+.targa{font-family:var(--mono);font-size:12px;font-weight:600;padding:3px 8px;border-radius:6px;box-shadow:0 0 0 1.5px var(--line-3) inset;white-space:nowrap}
+.riga-mezzo{display:flex;align-items:center;gap:8px;font-size:12.5px;padding:7px 0;border-top:1px solid var(--line)}
+.sigla-piccola{width:30px;height:30px;border-radius:9px;background:var(--ks);color:var(--kc);display:grid;place-items:center;font-weight:600;font-size:11px;flex:none}
+
+/* ---- budget ---- */
+.mesi-budget{display:flex;align-items:flex-end;gap:10px;height:180px;padding-top:10px}
+.mesi-budget>div{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end}
+.coppia-barre{display:flex;gap:3px;align-items:flex-end;height:100%;width:100%;justify-content:center}
+.coppia-barre i{width:38%;max-width:16px;border-radius:5px 5px 2px 2px;background:var(--ink);min-height:2px}
+.coppia-barre i.u{background:var(--sunk-3)}
+[data-tema="scuro"] .coppia-barre i{background:var(--accent)} [data-tema="scuro"] .coppia-barre i.u{background:var(--sunk-3)}
+.mesi-budget small{font-size:11px;color:var(--ink-3)}
+.legenda i{background:var(--ink)}
+
 /* ---- clienti ---- */
 .griglia-clienti{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
 .carta-cliente{display:flex;flex-direction:column;padding:18px;border-radius:var(--r-xl);background:var(--card);box-shadow:var(--ombra-m),0 0 0 1px var(--line);color:var(--ink);text-decoration:none!important;transition:transform .35s var(--molla),box-shadow .25s}
@@ -5736,13 +5750,28 @@ VISTE.budget=function(r){
   const vista=r.id||'movimenti';
   const anni=unici(stato.movimenti.map(m=>(m.data||'').slice(0,4)).filter(Boolean).concat([String(new Date().getFullYear())])).sort().reverse();
   const anno=ui.filtri.budgetAnno||anni[0];
-  const testa=html`<div class="testata"><div><h1>Budget</h1><div class="sotto">${stato.movimenti.length} movimenti · si lavora sempre sull'<b>imponibile</b>, mai sul totale documento</div></div><div class="azioni"><select data-cambio="budget-anno" aria-label="Anno" style="width:auto">${anni.map(a=>html`<option value="${a}" ${a===anno?'selected':''}>${a}</option>`)}</select><button class="pulsante" data-azione="budget-importa-xml" title="Importa fatture elettroniche in formato XML (FatturaPA)">${icona('carica')}Importa XML</button><button class="pulsante" data-azione="budget-stampa" data-anno="${anno}">${icona('stampa')}Stampa</button><button class="pulsante" data-azione="budget-csv" data-anno="${anno}">${icona('scarica')}CSV</button><button class="pulsante primario" data-azione="movimento-nuovo">${icona('piu')}Nuovo movimento</button></div></div>
-  ${linguette('budget',[{id:'movimenti',testo:'Movimenti',icona:'elenco'},{id:'cantieri',testo:'Per cantiere',icona:'cantieri'},{id:'clienti',testo:'Per cliente',icona:'clienti'},{id:'annuale',testo:'Riepilogo annuale',icona:'budget'}],vista)}`;
+  const testa=html`<div class="testata"><div><div class="occhiello">Amministrazione</div><h1>Budget <span class="silenzioso">${anno}</span></h1><p class="sotto">Entrate, uscite e margine, per cantiere e per cliente. Sempre sull'<b>imponibile</b>, mai sul totale documento.</p></div><div class="azioni"><select data-cambio="budget-anno" aria-label="Anno">${anni.map(a=>html`<option value="${a}" ${a===anno?'selected':''}>${a}</option>`)}</select><button class="pulsante" data-azione="budget-importa-xml" title="Importa fatture elettroniche in formato XML (FatturaPA)">${icona('carica','piccola')}Importa fatture XML</button><button class="pulsante discreto" data-azione="budget-stampa" data-anno="${anno}">${icona('stampa','piccola')}Stampa</button><button class="pulsante discreto" data-azione="budget-csv" data-anno="${anno}">CSV</button><button class="pulsante primario" data-azione="movimento-nuovo">Nuovo movimento<span class="manopola">${icona('piu','piccola')}</span></button></div></div>
+  ${linguette('budget',[{id:'movimenti',testo:'Movimenti'},{id:'cantieri',testo:'Per cantiere'},{id:'clienti',testo:'Per cliente'},{id:'annuale',testo:'Riepilogo annuale'}],vista)}`;
   return html`${testa}${vista==='cantieri'?budgetPerCantiere(anno):vista==='clienti'?budgetPerCliente(anno):vista==='annuale'?budgetAnnuale(anno):budgetMovimenti(anno,r)}`;
 };
 document.addEventListener('click',e=>{const b=e.target.closest('[data-linguetta="budget"]');if(b){e.stopImmediatePropagation();vai('budget/'+(b.dataset.valore==='movimenti'?'':b.dataset.valore))}},true);
 AZIONI['budget-anno']=(d,t)=>{ui.filtri.budgetAnno=t.value;render()};
 AZIONI['movimento-nuovo']=d=>dialogoMovimento(null,d.cantiere);
+function riepilogoBudget(anno){
+  const mm=stato.movimenti.filter(m=>(m.data||'').startsWith(anno));
+  const E=somma(mm.filter(m=>m.tipo==='entrata'),m=>+m.imponibile||0)-somma(mm.filter(m=>m.tipo==='nota_credito'),m=>+m.imponibile||0),U=somma(mm.filter(m=>m.tipo==='uscita'),m=>+m.imponibile||0),M=E-U;
+  const prec=stato.movimenti.filter(m=>(m.data||'').startsWith(String(+anno-1))&&(m.data||'').slice(5)<=oggi().slice(5));const Ep=somma(prec.filter(m=>m.tipo==='entrata'),m=>+m.imponibile||0);
+  const mesi=Array.from({length:12},(_,i)=>{const k=anno+'-'+pad2(i+1);const x=mm.filter(m=>(m.data||'').startsWith(k));return {e:somma(x.filter(m=>m.tipo==='entrata'),m=>+m.imponibile||0),u:somma(x.filter(m=>m.tipo==='uscita'),m=>+m.imponibile||0)}});
+  const mx=Math.max(...mesi.flatMap(x=>[x.e,x.u]),1);
+  const cat=Object.entries(CATEGORIE_MOVIMENTO).map(([k,t])=>({t,v:somma(mm.filter(m=>m.tipo==='uscita'&&m.categoria===k),m=>+m.imponibile||0)})).filter(x=>x.v).sort((a,b)=>b.v-a.v).slice(0,3);
+  return html`<div class="bento mb">
+    <div class="guscio c-4"><div class="scheda"><div class="intesta"><h2>Fatturato</h2></div><div class="grande-numero">${fEuro(E,0).replace(' €','')}<small>€</small></div>${Ep?html`<div class="piccolo mt-s ${E>=Ep?'ok-t':'bad-t'}">${E>=Ep?'+':''}${fNum((E-Ep)/Ep*100,0)}% sul ${+anno-1} a questa data</div>`:''}</div></div>
+    <div class="guscio c-4"><div class="scheda"><div class="intesta"><h2>Costi</h2></div><div class="grande-numero">${fEuro(U,0).replace(' €','')}<small>€</small></div>${cat.length&&U?html`<div class="piccolo silenzioso mt-s">${cat.map(x=>x.t.toLowerCase()+' '+fNum(x.v/U*100,0)+'%').join(' · ')}</div>`:''}</div></div>
+    <div class="guscio c-4"><div class="scheda"><div class="intesta"><h2>Margine</h2></div><div class="grande-numero ${M<0?'bad-t':'ok-t'}">${M>=0?'+':''}${fEuro(M,0).replace(' €','')}<small>€</small></div>${E?html`<div class="piccolo silenzioso mt-s">${fNum(M/E*100,1)}% del fatturato</div>`:''}</div></div>
+    <div class="guscio c-12"><div class="scheda"><div class="intesta"><h2>Mese per mese</h2><span class="legenda"><span><i></i>entrate</span><span><i class="s4" style="background:var(--sunk-3)"></i>uscite</span></span></div>
+      <div class="mesi-budget">${mesi.map((x,i)=>html`<div><span class="coppia-barre"><i style="height:${x.e/mx*100}%" title="Entrate ${fEuro(x.e,0)}"></i><i class="u" style="height:${x.u/mx*100}%" title="Uscite ${fEuro(x.u,0)}"></i></span><small>${NOMI_MESI_BREVI[i]}</small></div>`)}</div></div></div>
+  </div>`;
+}
 function budgetMovimenti(anno,r){
   const f=Object.assign({filtro:r.query.filtro||''},ui.filtri.budget||{});
   let mov=stato.movimenti.filter(m=>(m.data||'').startsWith(anno));
@@ -5752,7 +5781,7 @@ function budgetMovimenti(anno,r){
   if(f.categoria) mov=mov.filter(m=>m.categoria===f.categoria);
   if(f.cerca){const q=normalizzaTesto(f.cerca);mov=mov.filter(m=>normalizzaTesto([m.numero,m.controparte,m.note,nomeCliente(m.clienteId)].join(' ')).includes(q))}
   const tot={entrate:somma(mov.filter(m=>m.tipo==='entrata'),m=>+m.imponibile||0),uscite:somma(mov.filter(m=>m.tipo==='uscita'),m=>+m.imponibile||0),note:somma(mov.filter(m=>m.tipo==='nota_credito'),m=>+m.imponibile||0)};
-  return html`<div class="strumenti-tabella"><input type="search" placeholder="Cerca numero, controparte, note" value="${f.cerca||''}" data-cambio="budget-filtro" data-campo="cerca"><select data-cambio="budget-filtro" data-campo="tipo"><option value="">Tutti i tipi</option>${Object.entries(TIPI_MOVIMENTO).map(([v,t])=>html`<option value="${v}" ${f.tipo===v?'selected':''}>${t}</option>`)}</select><select data-cambio="budget-filtro" data-campo="categoria"><option value="">Tutte le categorie</option>${Object.entries(CATEGORIE_MOVIMENTO).map(([v,t])=>html`<option value="${v}" ${f.categoria===v?'selected':''}>${t}</option>`)}</select><div class="gruppo-pulsanti"><button class="pulsante piccolo ${!f.filtro?'attivo':''}" data-azione="budget-filtro-rapido" data-valore="">Anno ${anno}</button><button class="pulsante piccolo ${f.filtro==='nonassegnate'?'attivo':''}" data-azione="budget-filtro-rapido" data-valore="nonassegnate">Non assegnate</button><button class="pulsante piccolo ${f.filtro==='daverificare'?'attivo':''}" data-azione="budget-filtro-rapido" data-valore="daverificare">Da verificare</button></div>${pulsanteCancellaFiltri(!!(f.cerca||f.tipo||f.categoria),'budget-filtro-reset')}<span class="conteggio">${mov.length} movimenti · entrate ${fEuro(tot.entrate,0)} · uscite ${fEuro(tot.uscite,0)}${tot.note?' · note di credito '+fEuro(tot.note,0):''}</span></div>
+  return html`${riepilogoBudget(anno)}<div class="strumenti-tabella"><input type="search" placeholder="Cerca numero, controparte, note" value="${f.cerca||''}" data-cambio="budget-filtro" data-campo="cerca"><select data-cambio="budget-filtro" data-campo="tipo"><option value="">Tutti i tipi</option>${Object.entries(TIPI_MOVIMENTO).map(([v,t])=>html`<option value="${v}" ${f.tipo===v?'selected':''}>${t}</option>`)}</select><select data-cambio="budget-filtro" data-campo="categoria"><option value="">Tutte le categorie</option>${Object.entries(CATEGORIE_MOVIMENTO).map(([v,t])=>html`<option value="${v}" ${f.categoria===v?'selected':''}>${t}</option>`)}</select><div class="gruppo-pulsanti"><button class="pulsante piccolo ${!f.filtro?'attivo':''}" data-azione="budget-filtro-rapido" data-valore="">Anno ${anno}</button><button class="pulsante piccolo ${f.filtro==='nonassegnate'?'attivo':''}" data-azione="budget-filtro-rapido" data-valore="nonassegnate">Non assegnate</button><button class="pulsante piccolo ${f.filtro==='daverificare'?'attivo':''}" data-azione="budget-filtro-rapido" data-valore="daverificare">Da verificare</button></div>${pulsanteCancellaFiltri(!!(f.cerca||f.tipo||f.categoria),'budget-filtro-reset')}<span class="conteggio">${mov.length} movimenti · entrate ${fEuro(tot.entrate,0)} · uscite ${fEuro(tot.uscite,0)}${tot.note?' · note di credito '+fEuro(tot.note,0):''}</span></div>
   ${tabella({id:'movimenti',righe:mov,chiaveOrd:'data',dir:'desc',onRiga:m=>dialogoMovimento(m),classeRiga:m=>m.daVerificare?'riga-scadenza':m.tipo==='nota_credito'?'riga-pianificare':'',colonne:[
     {chiave:'data',titolo:'Data',principale:true,formatta:m=>html`<b>${fData(m.data)}</b>${m.daVerificare?html` <span class="pillola scadenza">${icona('attenzione','piccola')}da verificare</span>`:''}`},
     {chiave:'tipo',titolo:'Tipo',formatta:m=>m.tipo==='nota_credito'?html`<span class="pillola pianificare">${icona('meno','piccola')}Nota di credito</span>`:TIPI_MOVIMENTO[m.tipo]},
@@ -6233,15 +6262,13 @@ VISTE.mezzi=function(r){
   if(r.query.nuovo){setTimeout(()=>dialogoMezzo(null),0);history.replaceState(null,'','#/mezzi')}
   if(r.id) return vistaMezzo(r.id);
   const righe=stato.mezzi.map(m=>({m,crit:documentoPiuCriticoMezzo(m)}));
-  return html`<div class="testata"><div><h1>Mezzi</h1><div class="sotto">${plurale(stato.mezzi.length,'mezzo','mezzi')} · ${righe.filter(r=>r.crit.stato==='scaduto').length} con documenti scaduti</div></div>
-    <div class="azioni"><button class="pulsante primario" data-azione="mezzo-nuovo">${icona('piu')}Nuovo mezzo</button></div></div>
-  ${tabella({id:'mezzi',righe,chiaveOrd:'targa',href:r=>'#/mezzi/'+r.m.id,classeRiga:r=>'riga-'+r.crit.stato,colonne:[
-    {chiave:'targa',titolo:'Targa',principale:true,formatta:r=>html`<b>${r.m.targa||daCompilare()}</b>`},
-    {chiave:'tipo',titolo:'Tipo',valore:r=>r.m.tipo||''},
-    {chiave:'modello',titolo:'Marca e modello',valore:r=>[r.m.marca,r.m.modello].filter(Boolean).join(' ')},
-    {chiave:'assegnato',titolo:'Assegnato a',formatta:r=>r.m.assegnatoA?nomePersona(persona(r.m.assegnatoA)):html`<span class="silenzioso">—</span>`},
-    {chiave:'critico',titolo:'Documento più critico',valore:r=>STATI_DOC[r.crit.stato]?STATI_DOC[r.crit.stato].ordine:9,formatta:r=>html`${pillola(r.crit.stato,undefined,{stimata:r.crit.info&&r.crit.info.stimata})}<br><span class="piccolo secondario">${r.crit.testo}</span>`},
-  ],vuoto:vuoto({icona:'mezzo',titolo:'Nessun mezzo',testo:'Aggiungi i mezzi aziendali per seguire assicurazione, revisione e bollo.',azione:{testo:'Nuovo mezzo',azione:'mezzo-nuovo'}})})}`;
+  const scaduti=righe.filter(r=>r.crit.stato==='scaduto').length;
+  return html`<div class="testata"><div><div class="occhiello">Squadra</div><h1>Mezzi</h1><p class="sotto">${plurale(stato.mezzi.length,'mezzo','mezzi')}${scaduti?html` · <b>${scaduti} con documenti scaduti</b>`:''} · le scadenze dei mezzi finiscono da sole nello Scadenzario.</p></div>
+    <div class="azioni"><button class="pulsante primario" data-azione="mezzo-nuovo">Nuovo mezzo<span class="manopola">${icona('piu','piccola')}</span></button></div></div>
+  ${righe.length?html`<div class="griglia-clienti">${righe.map(({m})=>{const docs=stato.documenti.filter(d=>d.soggettoTipo==='mezzo'&&d.soggettoId===m.id&&!documentoSuperato(d)).map(d=>({d,info:infoDocumento(d),t:tipoDoc(d.tipoId)}));return html`<a class="carta-cliente" href="#/mezzi/${m.id}">
+    <span class="riga stretta"><span class="sigla" style="background:var(--sunk-2);color:var(--ink-2)">${icona('mezzo','piccola')}</span><span style="flex:1;min-width:0"><b>${[m.marca,m.modello].filter(Boolean).join(' ')||m.tipo||'Mezzo'}</b><span class="sotto-cliente">${[m.tipo,m.assegnatoA?nomePersona(persona(m.assegnatoA)):''].filter(Boolean).join(' · ')}</span></span><span class="targa">${m.targa||'—'}</span></span>
+    <span class="colonna mt" style="gap:0">${docs.length?docs.map(x=>html`<span class="riga-mezzo"><span>${x.t?x.t.nome:'Documento'}</span><span class="spazio"></span><span class="silenzioso">${x.info.data?fData(x.info.data):''}</span>${pillolaDocumento(x.info,{breve:true})}</span>`):html`<span class="piccolo silenzioso">Nessun documento: aggiungi assicurazione, revisione e bollo.</span>`}</span></a>`})}</div>`
+  :vuoto({icona:'mezzo',titolo:'Nessun mezzo',testo:'Aggiungi i mezzi aziendali per seguire assicurazione, revisione e bollo.',azione:{testo:'Nuovo mezzo',azione:'mezzo-nuovo'}})}`;
 };
 AZIONI['mezzo-nuovo']=()=>dialogoMezzo(null);
 AZIONI['mezzo-modifica']=d=>dialogoMezzo(perId('mezzi',d.id));
@@ -7140,16 +7167,13 @@ VISTE.fornitori=function(r){
   if(r.query.nuovo){setTimeout(()=>dialogoFornitore(null),0);history.replaceState(null,'','#/fornitori')}
   if(r.id) return vistaFornitore(r.id);
   const righe=stato.fornitori.map(f=>{const mov=movimentiFornitore(f);return {f,mov,speso:somma(mov,m=>+m.imponibile||0)}});
-  return html`<div class="testata"><div><h1>Fornitori</h1><div class="sotto">${plurale(stato.fornitori.length,'fornitore','fornitori')} · esclusi gli operai</div></div>
-    <div class="azioni"><button class="pulsante primario" data-azione="fornitore-nuovo">${icona('piu')}Nuovo fornitore</button></div></div>
-  ${tabella({id:'fornitori',righe,chiaveOrd:'nome',href:r=>'#/fornitori/'+r.f.id,colonne:[
-    {chiave:'nome',titolo:'Ragione sociale',principale:true,valore:r=>r.f.ragioneSociale},
-    {chiave:'cosa',titolo:'Cosa fornisce',valore:r=>r.f.cosaFornisce||''},
-    {chiave:'con',titolo:'Contatti',formatta:r=>html`${r.f.telefono?contattoCliccabile('tel',r.f.telefono):''} ${r.f.email?contattoCliccabile('mail',r.f.email):''}`},
-    {chiave:'fatture',titolo:'Fatture',num:true,valore:r=>r.mov.length},
-    {chiave:'speso',titolo:'Speso',num:true,valore:r=>r.speso,formatta:r=>fEuro(r.speso,0)},
-  ],vuoto:vuoto({icona:'fornitori',titolo:'Nessun fornitore',testo:'Aggiungi i fornitori dell\'azienda per vedere la spesa collegata dal budget.',azione:{testo:'Nuovo fornitore',azione:'fornitore-nuovo'}})})}`;
+  const mx=Math.max(...righe.map(r=>r.speso),1);
+  return html`<div class="testata"><div><div class="occhiello">Amministrazione</div><h1>Fornitori</h1><p class="sotto">La spesa viene dai movimenti del Budget, manodopera esclusa.</p></div>
+    <div class="azioni"><button class="pulsante primario" data-azione="fornitore-nuovo">Nuovo fornitore<span class="manopola">${icona('piu','piccola')}</span></button></div></div>
+  ${righe.length?html`<div class="guscio"><div class="scheda scheda-tabella"><table class="tabella"><thead><tr><th>Fornitore</th><th class="nascondi-telefono">Cosa fornisce</th><th class="nascondi-telefono">Contatti</th><th class="num">Fatture</th><th class="num">Speso</th><th class="nascondi-telefono" style="width:24%"></th></tr></thead><tbody>${righe.sort((a,b)=>b.speso-a.speso||a.f.ragioneSociale.localeCompare(b.f.ragioneSociale)).map(r=>html`<tr class="cliccabile" data-azione="vai" data-href="fornitori/${r.f.id}"><td><span class="chi"><span class="sigla-piccola ${coloreDa(r.f.id)}">${iniziali(r.f.ragioneSociale)}</span><b>${r.f.ragioneSociale}</b></span></td><td class="nascondi-telefono silenzioso">${r.f.cosaFornisce||''}</td><td class="nascondi-telefono">${r.f.telefono?contattoCliccabile('tel',r.f.telefono):''}</td><td class="num">${r.mov.length||html`<span class="silenzioso">—</span>`}</td><td class="num"><b>${r.speso?fEuro(r.speso,0):'—'}</b></td><td class="nascondi-telefono"><div class="traccia"><i style="width:${r.speso/mx*100}%;background:var(--accent)"></i></div></td></tr>`)}</tbody></table></div></div>`
+  :vuoto({icona:'fornitori',titolo:'Nessun fornitore',testo:'Aggiungi i fornitori dell\'azienda per vedere la spesa collegata dal budget.',azione:{testo:'Nuovo fornitore',azione:'fornitore-nuovo'}})}`;
 };
+
 AZIONI['fornitore-nuovo']=()=>dialogoFornitore(null);
 AZIONI['fornitore-modifica']=d=>dialogoFornitore(perId('fornitori',d.id));
 function vistaFornitore(id){

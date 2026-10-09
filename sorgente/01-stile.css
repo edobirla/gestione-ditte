@@ -555,6 +555,20 @@ input[type=checkbox],input[type=radio]{width:17px;height:17px;accent-color:var(-
 #velo-menu{position:fixed;inset:0;z-index:125;background:rgba(14,14,18,.3);display:none}
 
 /* ═══════════ componenti del nuovo disegno ═══════════ */
+.targa{font-family:var(--mono);font-size:12px;font-weight:600;padding:3px 8px;border-radius:6px;box-shadow:0 0 0 1.5px var(--line-3) inset;white-space:nowrap}
+.riga-mezzo{display:flex;align-items:center;gap:8px;font-size:12.5px;padding:7px 0;border-top:1px solid var(--line)}
+.sigla-piccola{width:30px;height:30px;border-radius:9px;background:var(--ks);color:var(--kc);display:grid;place-items:center;font-weight:600;font-size:11px;flex:none}
+
+/* ---- budget ---- */
+.mesi-budget{display:flex;align-items:flex-end;gap:10px;height:180px;padding-top:10px}
+.mesi-budget>div{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end}
+.coppia-barre{display:flex;gap:3px;align-items:flex-end;height:100%;width:100%;justify-content:center}
+.coppia-barre i{width:38%;max-width:16px;border-radius:5px 5px 2px 2px;background:var(--ink);min-height:2px}
+.coppia-barre i.u{background:var(--sunk-3)}
+[data-tema="scuro"] .coppia-barre i{background:var(--accent)} [data-tema="scuro"] .coppia-barre i.u{background:var(--sunk-3)}
+.mesi-budget small{font-size:11px;color:var(--ink-3)}
+.legenda i{background:var(--ink)}
+
 /* ---- clienti ---- */
 .griglia-clienti{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
 .carta-cliente{display:flex;flex-direction:column;padding:18px;border-radius:var(--r-xl);background:var(--card);box-shadow:var(--ombra-m),0 0 0 1px var(--line);color:var(--ink);text-decoration:none!important;transition:transform .35s var(--molla),box-shadow .25s}

@@ -10,16 +10,13 @@ VISTE.fornitori=function(r){
   if(r.query.nuovo){setTimeout(()=>dialogoFornitore(null),0);history.replaceState(null,'','#/fornitori')}
   if(r.id) return vistaFornitore(r.id);
   const righe=stato.fornitori.map(f=>{const mov=movimentiFornitore(f);return {f,mov,speso:somma(mov,m=>+m.imponibile||0)}});
-  return html`<div class="testata"><div><h1>Fornitori</h1><div class="sotto">${plurale(stato.fornitori.length,'fornitore','fornitori')} · esclusi gli operai</div></div>
-    <div class="azioni"><button class="pulsante primario" data-azione="fornitore-nuovo">${icona('piu')}Nuovo fornitore</button></div></div>
-  ${tabella({id:'fornitori',righe,chiaveOrd:'nome',href:r=>'#/fornitori/'+r.f.id,colonne:[
-    {chiave:'nome',titolo:'Ragione sociale',principale:true,valore:r=>r.f.ragioneSociale},
-    {chiave:'cosa',titolo:'Cosa fornisce',valore:r=>r.f.cosaFornisce||''},
-    {chiave:'con',titolo:'Contatti',formatta:r=>html`${r.f.telefono?contattoCliccabile('tel',r.f.telefono):''} ${r.f.email?contattoCliccabile('mail',r.f.email):''}`},
-    {chiave:'fatture',titolo:'Fatture',num:true,valore:r=>r.mov.length},
-    {chiave:'speso',titolo:'Speso',num:true,valore:r=>r.speso,formatta:r=>fEuro(r.speso,0)},
-  ],vuoto:vuoto({icona:'fornitori',titolo:'Nessun fornitore',testo:'Aggiungi i fornitori dell\'azienda per vedere la spesa collegata dal budget.',azione:{testo:'Nuovo fornitore',azione:'fornitore-nuovo'}})})}`;
+  const mx=Math.max(...righe.map(r=>r.speso),1);
+  return html`<div class="testata"><div><div class="occhiello">Amministrazione</div><h1>Fornitori</h1><p class="sotto">La spesa viene dai movimenti del Budget, manodopera esclusa.</p></div>
+    <div class="azioni"><button class="pulsante primario" data-azione="fornitore-nuovo">Nuovo fornitore<span class="manopola">${icona('piu','piccola')}</span></button></div></div>
+  ${righe.length?html`<div class="guscio"><div class="scheda scheda-tabella"><table class="tabella"><thead><tr><th>Fornitore</th><th class="nascondi-telefono">Cosa fornisce</th><th class="nascondi-telefono">Contatti</th><th class="num">Fatture</th><th class="num">Speso</th><th class="nascondi-telefono" style="width:24%"></th></tr></thead><tbody>${righe.sort((a,b)=>b.speso-a.speso||a.f.ragioneSociale.localeCompare(b.f.ragioneSociale)).map(r=>html`<tr class="cliccabile" data-azione="vai" data-href="fornitori/${r.f.id}"><td><span class="chi"><span class="sigla-piccola ${coloreDa(r.f.id)}">${iniziali(r.f.ragioneSociale)}</span><b>${r.f.ragioneSociale}</b></span></td><td class="nascondi-telefono silenzioso">${r.f.cosaFornisce||''}</td><td class="nascondi-telefono">${r.f.telefono?contattoCliccabile('tel',r.f.telefono):''}</td><td class="num">${r.mov.length||html`<span class="silenzioso">—</span>`}</td><td class="num"><b>${r.speso?fEuro(r.speso,0):'—'}</b></td><td class="nascondi-telefono"><div class="traccia"><i style="width:${r.speso/mx*100}%;background:var(--accent)"></i></div></td></tr>`)}</tbody></table></div></div>`
+  :vuoto({icona:'fornitori',titolo:'Nessun fornitore',testo:'Aggiungi i fornitori dell\'azienda per vedere la spesa collegata dal budget.',azione:{testo:'Nuovo fornitore',azione:'fornitore-nuovo'}})}`;
 };
+
 AZIONI['fornitore-nuovo']=()=>dialogoFornitore(null);
 AZIONI['fornitore-modifica']=d=>dialogoFornitore(perId('fornitori',d.id));
 function vistaFornitore(id){
