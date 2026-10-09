@@ -172,6 +172,7 @@ document.addEventListener('change',e=>{
 });
 AZIONI['dettaglio-errore']=d=>dialogoErrore(d.dettaglio);
 AZIONI['tema']=()=>cicloTema();
+AZIONI['tema-imposta']=d=>{applicaTema(d.valore);stato.impostazioni.tema=ui.tema;salvaStato();render()};
 AZIONI['apri-ricerca']=()=>apriRicerca();
 AZIONI['tendina']=(d,t)=>{const box=t.closest('.tendina-box');const aperta=box.classList.contains('aperta');tutti('.tendina-box.aperta').forEach(x=>x.classList.remove('aperta'));if(!aperta)box.classList.add('aperta')};
 AZIONI['apri-menu']=()=>document.body.classList.add('menu-aperto');

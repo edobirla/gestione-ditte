@@ -555,6 +555,9 @@ input[type=checkbox],input[type=radio]{width:17px;height:17px;accent-color:var(-
 #velo-menu{position:fixed;inset:0;z-index:125;background:rgba(14,14,18,.3);display:none}
 
 /* ═══════════ componenti del nuovo disegno ═══════════ */
+.intesta>.pulsante:last-child{margin-left:auto}
+.campo>.gruppo-pulsanti{width:max-content}
+
 .targa{font-family:var(--mono);font-size:12px;font-weight:600;padding:3px 8px;border-radius:6px;box-shadow:0 0 0 1.5px var(--line-3) inset;white-space:nowrap}
 .riga-mezzo{display:flex;align-items:center;gap:8px;font-size:12.5px;padding:7px 0;border-top:1px solid var(--line)}
 .sigla-piccola{width:30px;height:30px;border-radius:9px;background:var(--ks);color:var(--kc);display:grid;place-items:center;font-weight:600;font-size:11px;flex:none}
