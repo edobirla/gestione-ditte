@@ -156,6 +156,7 @@ svg.ic.piccola{width:15px;height:15px} svg.ic.grande{width:24px;height:24px}
 .grassetto{font-weight:600} .taglia{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .destra{text-align:right} .centro{text-align:center}
 .nascosto{display:none!important}
+[hidden]{display:none!important} /* i campi nascosti dai moduli restano nascosti anche se la loro classe dice flex */
 .riga{display:flex;align-items:center;gap:var(--sp-2);flex-wrap:wrap} .riga.stretta{flex-wrap:nowrap}
 .colonna{display:flex;flex-direction:column;gap:var(--sp-2)}
 .spazio{flex:1 1 auto}
@@ -410,7 +411,8 @@ input[type=checkbox],input[type=radio]{width:17px;height:17px;accent-color:var(-
 #pannello .piede{border-top:1px solid var(--line);padding:12px 16px;display:flex;gap:var(--sp-2);flex-wrap:wrap;flex:none;background:var(--card);padding-bottom:calc(12px + env(safe-area-inset-bottom))}
 #velo-pannello{position:fixed;inset:0;background:rgba(14,14,18,.24);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);z-index:44;display:none;animation:apparire .3s var(--ease)}
 #velo-pannello.aperto{display:block}
-@media (min-width:1280px){ #velo-pannello.aperto{display:none} body.con-pannello #contenuto{padding-right:calc(560px + 24px)} body.con-pannello.pannello-largo #contenuto{padding-right:calc(900px + 24px)} }
+/* il pannello stretto si affianca al contenuto; quello largo (documenti con anteprima) gli va sopra */
+@media (min-width:1280px){ body.con-pannello:not(.pannello-largo) #velo-pannello.aperto{display:none} body.con-pannello:not(.pannello-largo) #contenuto{padding-right:calc(560px + 24px)} }
 .anteprima-doc{width:100%;height:100%;min-height:60vh;max-height:70vh;border:0;background:var(--sunk)}
 #pannello .corpo.con-anteprima{flex:0 1 auto;max-height:55%;min-height:120px}
 #pannello .anteprima-fissa{flex:1;min-height:200px;border-top:1px solid var(--line);background:var(--sunk);display:flex;flex-direction:column;overflow:auto;-webkit-overflow-scrolling:touch}
@@ -614,6 +616,29 @@ input[type=checkbox],input[type=radio]{width:17px;height:17px;accent-color:var(-
 #velo-menu{position:fixed;inset:0;z-index:125;background:rgba(14,14,18,.3);display:none}
 
 /* ═══════════ componenti del nuovo disegno ═══════════ */
+/* ---- pannello documento: anteprima a sinistra, dati a destra ---- */
+@media (min-width:1000px){
+  #pannello.affiancato{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(330px,1fr);grid-template-rows:auto minmax(0,1fr) auto}
+  #pannello.affiancato .testa,#pannello.affiancato .piede{grid-column:1/-1}
+  #pannello.affiancato .anteprima-fissa{grid-row:2;grid-column:1;border-top:0;border-right:1px solid var(--line)}
+  #pannello.affiancato .corpo.con-anteprima{grid-row:2;grid-column:2;max-height:none;min-height:0}
+}
+#pannello .testa .pillola{flex:none}
+.dati-doc{display:grid;grid-template-columns:110px 1fr;gap:12px 16px;font-size:13.5px;margin:4px 0 0}
+.dati-doc dt{color:var(--ink-3)} .dati-doc dd{margin:0;min-width:0}
+.file-doc{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.file-doc li{display:flex;align-items:center;gap:8px;padding:6px 6px 6px 12px;border-radius:12px;background:var(--sunk);font-size:13px}
+.file-doc .nome-file{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border:0;background:none;text-align:left;cursor:pointer;padding:0;color:var(--ink)}
+.file-doc .nome-file:hover{color:var(--accent)}
+.storico-doc{list-style:none;margin:0;padding:0;position:relative}
+.storico-doc::before{content:"";position:absolute;left:7px;top:12px;bottom:12px;width:1.5px;background:var(--line-2)}
+.storico-doc li{display:grid;grid-template-columns:16px 1fr auto;gap:12px;align-items:center;padding:7px 0;position:relative;font-size:13px}
+.storico-doc li i{width:16px;height:16px;border-radius:50%;background:var(--card);box-shadow:0 0 0 1.5px var(--line-3) inset}
+.storico-doc li.attuale i{background:var(--ok);box-shadow:0 0 0 4px var(--ok-soft)}
+.storico-doc li b{font-weight:520;display:block} .storico-doc li span{color:var(--ink-3);font-size:12px}
+input.proposto,select.proposto{box-shadow:0 0 0 1.5px var(--accent) inset;background-color:var(--accent-soft)}
+.aiuto.proposta{color:var(--accent-ink)!important}
+
 /* ---- testata del cantiere: fascia scura, o la foto del cantiere con una sfumatura che tiene leggibili le scritte ---- */
 .testata-cantiere{position:relative;border-radius:var(--r-xl);overflow:hidden;padding:26px 28px 22px;margin-bottom:22px;background:#141418;color:#F4F3EF;min-height:230px;display:flex;flex-direction:column;justify-content:flex-end;isolation:isolate}
 .testata-cantiere::before{content:"";position:absolute;inset:0;z-index:-1;background:radial-gradient(600px 300px at 85% -10%,rgba(246,215,116,.4),transparent 62%),radial-gradient(520px 320px at 8% 125%,rgba(58,52,210,.85),transparent 65%)}
@@ -2500,7 +2525,7 @@ function apriPannello(opz){
   // Serve per i PDF: dentro un corpo scorrevole la rotella finisce nel visore del PDF e il
   // pannello non si muove più; con il riquadro fisso il PDF ha il suo spazio e il resto il suo.
   p.innerHTML=html`<div class="testa"><button class="pulsante discreto icona" data-chiudi-pannello aria-label="Chiudi pannello">${icona('chiudi')}</button><h2>${opz.titolo||''}</h2>${opz.azioni?grezzo(opz.azioni):''}</div><div class="corpo ${opz.pieno?'pieno':''} ${opz.anteprima?'con-anteprima':''}">${grezzo(opz.corpo||'')}</div>${opz.anteprima?html`<div class="anteprima-fissa" id="${opz.anteprima}"><div class="anteprima-nessuna">Caricamento…</div></div>`:''}${opz.piede?html`<div class="piede">${grezzo(opz.piede)}</div>`:''}`;
-  p.classList.add('aperto');p.classList.toggle('largo',!!opz.largo);p.setAttribute('aria-hidden','false');
+  p.classList.add('aperto');p.classList.toggle('largo',!!opz.largo);p.classList.toggle('affiancato',!!opz.affiancato);p.setAttribute('aria-hidden','false');
   el('#velo-pannello').classList.add('aperto');
   document.body.classList.add('con-pannello');document.body.classList.toggle('pannello-largo',!!opz.largo);
   if(opz.alMontaggio) opz.alMontaggio(p);
@@ -4485,22 +4510,39 @@ async function apriDocumento(docId){
   const files=(d.file||[]).map(id=>fileMeta(id)).filter(Boolean);
   // si può tacere solo un documento che non blocca l'idoneità: quelli bloccanti vanno rinnovati
   const tacibile=(['scaduto','scadenza','pianificare'].includes(info.stato)||d.avvisoTaciuto)&&!(t&&t.bloccaIdoneita);
-  const meta=html`<div class="campi" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr))">
-    <div class="campo"><span class="etichetta-campo">Soggetto</span><div><a href="${hrefSoggettoDoc(d)}">${nomeSoggettoDoc(d)}</a></div></div>
-    <div class="campo"><span class="etichetta-campo">Tipo</span><div>${t?t.nome:daCompilare('tipo')}</div></div>
-    <div class="campo"><span class="etichetta-campo">Emissione</span><div>${d.dataEmissione?fData(d.dataEmissione):daCompilare()}</div></div>
-    <div class="campo"><span class="etichetta-campo">Scadenza</span><div>${info.data?html`<span class="${info.stimata?'stimata':''}">${fData(info.data)}${info.stimata?' (stimata)':''}</span>`:d.senzaScadenza?'nessuna':daCompilare()}</div></div>
-    <div class="campo"><span class="etichetta-campo">Stato</span><div>${pillolaDocumento(info)}</div></div>
-    ${d.titolo?html`<div class="campo largo"><span class="etichetta-campo">Titolo</span><div>${d.titolo}</div></div>`:''}
-    ${tacibile?html`<div class="campo largo"><div class="avviso-inline ${d.avvisoTaciuto?'':'attenzione'}">${icona(d.avvisoTaciuto?'silenzio':'attenzione')}<div class="corpo">${d.avvisoTaciuto?html`Questa scadenza <b>non viene segnalata</b>: non conta fra le cose da sistemare e non colora la scheda. La data resta scritta.`:html`Documento ${info.stato==='scaduto'?'scaduto':'in scadenza'}. Se in cantiere non lo chiedono e non vuoi vederlo fra le cose da sistemare, puoi smettere di farlo segnalare senza toglierne la data.`} <button class="pulsante piccolo" style="margin-left:6px" data-azione="documento-taci" data-id="${d.id}">${d.avvisoTaciuto?'Segnala di nuovo':'Non segnalare più'}</button></div></div></div>`:''}
-    ${d.note?html`<div class="campo largo"><span class="etichetta-campo">Note</span><div>${d.note}</div></div>`:''}
-  </div>
-  <div class="sezione-titolo">File allegati (${files.length})</div>
-  ${files.length?html`<ul class="elenco-piatto">${files.map(m=>html`<li>${icona(ePdf(m.mime,m.nome)?'pdf':eImmagine(m.mime,m.nome)?'immagine':'file')}<span class="spazio taglia" title="${m.nome}">${m.nome}</span><span class="piccolo secondario">${fPeso(m.dimensione)}</span><button class="pulsante piccolo" data-azione="doc-anteprima-file" data-id="${m.id}">${icona('occhio','piccola')}</button><button class="pulsante piccolo" data-azione="file-scarica" data-id="${m.id}">${icona('scarica','piccola')}</button><button class="pulsante piccolo" data-azione="file-condividi" data-id="${m.id}">${icona('condividi','piccola')}</button><button class="pulsante piccolo pericolo" data-azione="doc-rimuovi-file" data-doc="${d.id}" data-id="${m.id}" title="Togli il file dal documento">${icona('chiudi','piccola')}</button></li>`)}</ul>`:html`<div class="avviso-inline attenzione">${icona('attenzione')}<div class="corpo">Nessun file allegato: il documento esiste come scadenza ma la scansione non è ancora nell'archivio.</div></div>`}
-  ${files.length?html`<div class="riga stretta mt" style="gap:8px;flex-wrap:wrap"><button class="pulsante piccolo" data-azione="doc-aggiungi-file" data-doc="${d.id}">${icona('carica','piccola')}Allega un altro file</button><button class="pulsante piccolo" data-azione="file-apri" data-id="${files[0].id}" title="Apre il file da solo, a tutta altezza">${icona('occhio','piccola')}Apri a tutto schermo</button></div>`:html`<div class="zona-drop mt" data-azione="doc-aggiungi-file" data-doc="${d.id}" data-drop-doc="${d.id}">${icona('carica')}Trascina qui la scansione o clicca per allegare un file</div>`}`;
-  apriPannello({titolo:(t?t.nome:'Documento')+' · '+nomeSoggettoDoc(d),largo:!!files.length,corpo:meta,anteprima:files.length?'anteprima-doc':null,piede:html`<button class="pulsante primario" data-azione="documento-modifica" data-id="${d.id}">${icona('modifica')}Modifica</button><button class="pulsante" data-azione="documento-duplica" data-id="${d.id}" title="Crea il rinnovo: stesso tipo e soggetto, date nuove">${icona('aggiorna')}Rinnovo</button><span class="spazio"></span><button class="pulsante pericolo" data-azione="documento-elimina" data-id="${d.id}">${icona('elimina')}Elimina</button>`});
+  // quanto manca: la barra va dall'emissione alla scadenza
+  let fr=null;if(info.data&&d.dataEmissione){const tot=giorniTra(d.dataEmissione,info.data),rim=giorniTra(oggi(),info.data);if(tot>0)fr=Math.max(0,Math.min(1,rim/tot))}
+  const quando=info.data?(info.giorni<0?'scaduto da '+plurale(-info.giorni,'giorno','giorni'):info.giorni===0?'scade oggi':'tra '+(info.giorni>90?Math.round(info.giorni/30.4)+' mesi':plurale(info.giorni,'giorno','giorni'))):'';
+  // versioni precedenti: i documenti che questo ha sostituito, a catena
+  const precedenti=[];let cur=d;for(let i=0;i<20;i++){const v=stato.documenti.find(x=>x.sostituitoDa===cur.id);if(!v)break;precedenti.push(v);cur=v}
+  const successivo=d.sostituitoDa?perId('documenti',d.sostituitoDa):null;
+  const meta=html`
+    ${successivo?html`<div class="avviso-inline info">${icona('info')}<div class="corpo">Questo documento è stato <b>sostituito</b> da quello del ${fData(successivo.dataEmissione)||'—'}: resta nello storico ma non conta per le scadenze. <a href="#" data-azione="doc-apri" data-id="${successivo.id}">Apri il nuovo</a></div></div>`:''}
+    ${tacibile?html`<div class="avviso-inline ${d.avvisoTaciuto?'':'attenzione'}">${icona(d.avvisoTaciuto?'silenzio':'attenzione')}<div class="corpo">${d.avvisoTaciuto?html`Questa scadenza <b>non viene segnalata</b>: non conta fra le cose da sistemare e non colora la scheda. La data resta scritta.`:html`Documento ${info.stato==='scaduto'?'scaduto':'in scadenza'}. Se in cantiere non lo chiedono puoi smettere di farlo segnalare, senza toglierne la data.`} <button class="pulsante piccolo" style="margin-left:6px" data-azione="documento-taci" data-id="${d.id}">${d.avvisoTaciuto?'Segnala di nuovo':'Non segnalare più'}</button></div></div>`:''}
+    ${t&&t.bloccaIdoneita&&['scaduto','mancante'].includes(info.stato)&&d.soggettoTipo==='persona'?html`<div class="avviso-inline critico">${icona('blocco')}<div class="corpo"><b>Blocca l'ingresso in cantiere.</b> Rinnovalo caricando il documento nuovo: il blocco sparisce da solo.</div></div>`:''}
+    ${files.length?'':html`<div class="zona-drop mb" data-azione="doc-aggiungi-file" data-doc="${d.id}" data-drop-doc="${d.id}">${icona('carica')}<b>Trascina qui la scansione</b><br>o clicca per scegliere un PDF o una foto</div>`}
+    <dl class="dati-doc">
+      <dt>Di chi</dt><dd><a href="${hrefSoggettoDoc(d)}">${nomeSoggettoDoc(d)}</a></dd>
+      <dt>Tipo</dt><dd>${t?t.nome:daCompilare('tipo')}</dd>
+      ${d.titolo?html`<dt>Titolo</dt><dd>${d.titolo}</dd>`:''}
+      ${d.ente?html`<dt>Ente</dt><dd>${d.ente}</dd>`:''}
+      <dt>${t&&t.periodo?'Dal':'Emesso il'}</dt><dd class="num-l">${d.dataEmissione?fData(d.dataEmissione):daCompilare()}</dd>
+      ${t&&t.periodo?html`<dt>Al</dt><dd>${d.dataFine?fData(d.dataFine):daCompilare()}</dd>`:''}
+      ${d.anno?html`<dt>Anno</dt><dd>${d.anno}</dd>`:''}
+      ${t&&(t.periodo||t.annuale)?'':html`<dt>Scadenza</dt><dd>${info.data?html`<span class="${info.stimata?'stimata':''}">${fData(info.data)}${info.stimata?' (stimata)':''}</span> <span class="piccolo silenzioso">· ${quando}</span>${fr!=null?html`<div class="traccia mt-s"><i class="${info.stato==='scaduto'?'tardi':info.stato==='scadenza'?'presto':'bene'}" style="width:${Math.max(3,fr*100)}%"></i></div>`:''}`:d.senzaScadenza?'non scade':daCompilare()}</dd>`}
+      ${d.note?html`<dt>Note</dt><dd>${d.note}</dd>`:''}
+    </dl>
+    ${files.length?html`<div class="sezione-titolo">File allegati</div><ul class="file-doc">${files.map(m=>html`<li>${icona(ePdf(m.mime,m.nome)?'pdf':eImmagine(m.mime,m.nome)?'immagine':'file','piccola')}<button class="nome-file" data-azione="doc-anteprima-file" data-id="${m.id}" title="Mostra">${m.nome}</button><span class="piccolo silenzioso">${fPeso(m.dimensione)}</span><button class="pulsante discreto icona piccolo" data-azione="file-scarica" data-id="${m.id}" title="Scarica">${icona('scarica','piccola')}</button><button class="pulsante discreto icona piccolo" data-azione="file-condividi" data-id="${m.id}" title="Condividi">${icona('condividi','piccola')}</button><button class="pulsante discreto icona piccolo" data-azione="doc-rimuovi-file" data-doc="${d.id}" data-id="${m.id}" title="Togli il file dal documento">${icona('chiudi','piccola')}</button></li>`)}</ul>
+      <div class="riga mt-s"><button class="pulsante discreto piccolo" data-azione="doc-aggiungi-file" data-doc="${d.id}">${icona('allega','piccola')}Allega un altro file</button><button class="pulsante discreto piccolo" data-azione="file-apri" data-id="${files[0].id}">${icona('occhio','piccola')}A tutto schermo</button></div>`:''}
+    ${precedenti.length?html`<div class="sezione-titolo">Storico</div><ul class="storico-doc"><li class="attuale"><i></i><div><b>${t?t.nome:'Documento'} del ${fData(d.dataEmissione)||'—'}</b><span>quello in vigore</span></div></li>${precedenti.map(v=>html`<li><i></i><div><b>${fData(v.dataEmissione)||'senza data'}</b><span>sostituito${v.dataScadenza?' · scadeva il '+fData(v.dataScadenza):''}</span></div><button class="pulsante discreto piccolo" data-azione="doc-apri" data-id="${v.id}">Apri</button></li>`)}</ul>`:''}`;
+  const rinnovabile=!!(info.data||info.stato==='mancante')&&!successivo;
+  apriPannello({titolo:(t?t.nome:'Documento')+' · '+nomeSoggettoDoc(d),largo:!!files.length,affiancato:!!files.length,corpo:meta,anteprima:files.length?'anteprima-doc':null,
+    azioni:html`${pillolaDocumento(info)}`,
+    piede:html`${rinnovabile?html`<button class="pulsante primario" data-azione="documento-rinnova" data-id="${d.id}" title="Carica il documento nuovo: questo passa nello storico">${icona('aggiorna','piccola')}Rinnova con un documento nuovo</button>`:''}<button class="pulsante ${rinnovabile?'':'primario'}" data-azione="documento-modifica" data-id="${d.id}">${icona('modifica','piccola')}Modifica</button>${rinnovabile?html`<button class="pulsante discreto" data-azione="documento-duplica" data-id="${d.id}" title="Rinnovo senza scansione: stesso tipo e soggetto, date nuove">Rinnovo senza file</button>`:''}<span class="spazio"></span><button class="pulsante discreto pericolo" data-azione="documento-elimina" data-id="${d.id}">${icona('elimina','piccola')}Elimina</button>`});
   if(files.length){const a=await htmlAnteprimaFile(files[0].id);const c=el('#anteprima-doc');if(c)c.innerHTML=a}
 }
+// Rinnovo: si sceglie subito il file nuovo; date e tipo si leggono dal file, il vecchio passa nello storico
+AZIONI['documento-rinnova']=async d=>{const o=perId('documenti',d.id);const fs=await scegliFile({accetta:'.pdf,image/*'});if(!fs.length)return;dialogoDocumento({soggettoTipo:o.soggettoTipo,soggettoId:o.soggettoId,tipoId:o.tipoId,titolo:o.titolo,ente:o.ente,durata:o.durata,rinnovoDi:o.id},fs)};
 AZIONI['doc-anteprima-file']=async d=>{const c=el('#anteprima-doc');if(c){c.innerHTML=html`<div class="anteprima-nessuna">Caricamento…</div>`;c.innerHTML=await htmlAnteprimaFile(d.id)}};
 AZIONI['doc-rimuovi-file']=async d=>{const m=fileMeta(d.id);if(!(await conferma(`Togliere «${m?m.nome:''}» da questo documento? Il file resta nel cestino per 30 giorni.`)))return;esegui('Tolto file dal documento',s=>{const doc=s.documenti.find(x=>x.id===d.doc);doc.file=doc.file.filter(f=>f!==d.id);cestinaFileOrfani(s)});apriDocumento(d.doc)};
 AZIONI['doc-aggiungi-file']=async d=>{const fs=await scegliFile({accetta:'.pdf,image/*'});if(fs.length)await allegaFilesADocumento(d.doc,fs)};
@@ -4567,12 +4609,13 @@ async function dialogoDocumento(d,filesIniziali){
   const soggetti=[{v:'azienda:azienda',t:stato.azienda.ragioneSociale},...stato.persone.filter(p=>p.attivo||p.id===d.soggettoId).map(p=>({v:'persona:'+p.id,t:nomePersona(p)})),...stato.cantieri.map(c=>({v:'cantiere:'+c.id,t:'Cantiere '+c.nome})),...stato.clienti.map(c=>({v:'cliente:'+c.id,t:'Cliente '+c.ragioneSociale})),...stato.mezzi.map(m=>({v:'mezzo:'+m.id,t:'Mezzo '+nomeMezzo(m)}))];
   const filesNuovi=filesIniziali?Array.from(filesIniziali):[];
   // proposta di tipo dai nomi file
-  if(!d.tipoId&&filesNuovi.length){const prop=classificaFile(filesNuovi[0].percorso||filesNuovi[0].name);if(prop.tipoId)d.tipoId=prop.tipoId;if(prop.data&&!d.dataEmissione)d.dataEmissione=prop.data;if(!d.soggettoId&&prop.personaId){d.soggettoTipo='persona';d.soggettoId=prop.personaId}if(!d.soggettoId&&prop.azienda){d.soggettoTipo='azienda';d.soggettoId='azienda'}}
+  const proposti={};// campo → da dove viene la proposta: si evidenzia, così si controlla prima di salvare
+  if(!d.tipoId&&filesNuovi.length){const prop=classificaFile(filesNuovi[0].percorso||filesNuovi[0].name);if(prop.tipoId){d.tipoId=prop.tipoId;proposti.tipoId='dal nome del file'}if(prop.data&&!d.dataEmissione){d.dataEmissione=prop.data;proposti.dataEmissione='dal nome del file'}if(!d.soggettoId&&prop.personaId){d.soggettoTipo='persona';d.soggettoId=prop.personaId;proposti.soggetto='dal nome del file'}if(!d.soggettoId&&prop.azienda){d.soggettoTipo='azienda';d.soggettoId='azienda';proposti.soggetto='dal nome del file'}}
   for(const f of filesNuovi) f.nomeProposto=nomeFileProposto(d.tipoId,f.name);
   // proposta di date lette nel testo del documento (es. "scade il ..."): mai inventate, solo trovate scritte
   if(filesNuovi.length===1&&(!d.dataScadenza||!d.dataEmissione)){
     const proposte=await proponiDateDaFile(filesNuovi[0]);
-    if(proposte){ if(proposte.dataScadenza&&!d.dataScadenza)d.dataScadenza=proposte.dataScadenza; if(proposte.dataEmissione&&!d.dataEmissione)d.dataEmissione=proposte.dataEmissione; }
+    if(proposte){ if(proposte.dataScadenza&&!d.dataScadenza){d.dataScadenza=proposte.dataScadenza;proposti.dataScadenza='letta nel documento: prevale sul calcolo'} if(proposte.dataEmissione&&!d.dataEmissione){d.dataEmissione=proposte.dataEmissione;proposti.dataEmissione='letta nel documento'} }
   }
   const ambitoDi=k=>k.startsWith('persona')?'persona':k.startsWith('azienda')?'azienda':k.startsWith('cantiere')?'cantiere':k.startsWith('mezzo')?'mezzo':'cliente';
   const campi=[
@@ -4591,6 +4634,7 @@ async function dialogoDocumento(d,filesIniziali){
   const listaFile=()=>html`<div class="sezione-titolo">File</div><ul class="elenco-piatto" id="dlg-file-lista">${(d.file||[]).map(id=>{const m=fileMeta(id);return m?html`<li>${icona('allega','piccola')}<span class="spazio taglia">${m.nome}</span><span class="piccolo secondario">${fPeso(m.dimensione)}</span></li>`:''})}${filesNuovi.map((f,i)=>html`<li>${icona('carica','piccola')}<input type="text" class="spazio" data-nome-file="${i}" value="${f.nomeProposto||f.name}" aria-label="Nome del file (era «${f.name}»)" title="Nome originale: ${f.name}"><span class="piccolo secondario">${fPeso(f.size)} · nuovo</span><button class="pulsante piccolo icona" data-togli-nuovo="${i}" aria-label="Togli">${icona('chiudi','piccola')}</button></li>`)}</ul><div class="zona-drop" id="dlg-drop" data-drop-locale>${icona('carica')}Trascina qui o clicca per aggiungere file</div>`;
   const ris=await dialogoModulo(nuovo?'Nuovo documento':'Modifica documento',campi,val,{coda:listaFile(),alMontaggio:v=>{
     const form=v.querySelector('form');
+    for(const [n,da] of Object.entries(proposti)){const c=form.querySelector(`[name=${n}]`);if(!c)continue;c.classList.add('proposto');const r=c.closest('.campo');if(r)r.insertAdjacentHTML('beforeend',`<div class="aiuto proposta">✦ ${h(da)}</div>`);c.addEventListener('change',()=>c.classList.remove('proposto'),{once:true})}
     const sel=form.querySelector('[name=soggetto]'),tipoSel=form.querySelector('[name=tipoId]'),em=form.querySelector('[name=dataEmissione]'),sc=form.querySelector('[name=dataScadenza]'),ss=form.querySelector('[name=senzaScadenza]');
     const filtraTipi=()=>{const amb=sel.value?ambitoDi(sel.value):null;tutti('option',tipoSel).forEach(o=>{const t=tipoDoc(o.value);o.hidden=!!(t&&amb&&t.ambito!==amb&&!(amb==='cliente'&&t.ambito==='cantiere'))})};
     const dur=form.querySelector('[name=durata]'),fine=form.querySelector('[name=dataFine]'),annoI=form.querySelector('[name=anno]');

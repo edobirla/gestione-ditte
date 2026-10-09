@@ -193,7 +193,7 @@ function apriPannello(opz){
   // Serve per i PDF: dentro un corpo scorrevole la rotella finisce nel visore del PDF e il
   // pannello non si muove più; con il riquadro fisso il PDF ha il suo spazio e il resto il suo.
   p.innerHTML=html`<div class="testa"><button class="pulsante discreto icona" data-chiudi-pannello aria-label="Chiudi pannello">${icona('chiudi')}</button><h2>${opz.titolo||''}</h2>${opz.azioni?grezzo(opz.azioni):''}</div><div class="corpo ${opz.pieno?'pieno':''} ${opz.anteprima?'con-anteprima':''}">${grezzo(opz.corpo||'')}</div>${opz.anteprima?html`<div class="anteprima-fissa" id="${opz.anteprima}"><div class="anteprima-nessuna">Caricamento…</div></div>`:''}${opz.piede?html`<div class="piede">${grezzo(opz.piede)}</div>`:''}`;
-  p.classList.add('aperto');p.classList.toggle('largo',!!opz.largo);p.setAttribute('aria-hidden','false');
+  p.classList.add('aperto');p.classList.toggle('largo',!!opz.largo);p.classList.toggle('affiancato',!!opz.affiancato);p.setAttribute('aria-hidden','false');
   el('#velo-pannello').classList.add('aperto');
   document.body.classList.add('con-pannello');document.body.classList.toggle('pannello-largo',!!opz.largo);
   if(opz.alMontaggio) opz.alMontaggio(p);

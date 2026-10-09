@@ -93,6 +93,7 @@ svg.ic.piccola{width:15px;height:15px} svg.ic.grande{width:24px;height:24px}
 .grassetto{font-weight:600} .taglia{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .destra{text-align:right} .centro{text-align:center}
 .nascosto{display:none!important}
+[hidden]{display:none!important} /* i campi nascosti dai moduli restano nascosti anche se la loro classe dice flex */
 .riga{display:flex;align-items:center;gap:var(--sp-2);flex-wrap:wrap} .riga.stretta{flex-wrap:nowrap}
 .colonna{display:flex;flex-direction:column;gap:var(--sp-2)}
 .spazio{flex:1 1 auto}
@@ -347,7 +348,8 @@ input[type=checkbox],input[type=radio]{width:17px;height:17px;accent-color:var(-
 #pannello .piede{border-top:1px solid var(--line);padding:12px 16px;display:flex;gap:var(--sp-2);flex-wrap:wrap;flex:none;background:var(--card);padding-bottom:calc(12px + env(safe-area-inset-bottom))}
 #velo-pannello{position:fixed;inset:0;background:rgba(14,14,18,.24);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);z-index:44;display:none;animation:apparire .3s var(--ease)}
 #velo-pannello.aperto{display:block}
-@media (min-width:1280px){ #velo-pannello.aperto{display:none} body.con-pannello #contenuto{padding-right:calc(560px + 24px)} body.con-pannello.pannello-largo #contenuto{padding-right:calc(900px + 24px)} }
+/* il pannello stretto si affianca al contenuto; quello largo (documenti con anteprima) gli va sopra */
+@media (min-width:1280px){ body.con-pannello:not(.pannello-largo) #velo-pannello.aperto{display:none} body.con-pannello:not(.pannello-largo) #contenuto{padding-right:calc(560px + 24px)} }
 .anteprima-doc{width:100%;height:100%;min-height:60vh;max-height:70vh;border:0;background:var(--sunk)}
 #pannello .corpo.con-anteprima{flex:0 1 auto;max-height:55%;min-height:120px}
 #pannello .anteprima-fissa{flex:1;min-height:200px;border-top:1px solid var(--line);background:var(--sunk);display:flex;flex-direction:column;overflow:auto;-webkit-overflow-scrolling:touch}
@@ -551,6 +553,29 @@ input[type=checkbox],input[type=radio]{width:17px;height:17px;accent-color:var(-
 #velo-menu{position:fixed;inset:0;z-index:125;background:rgba(14,14,18,.3);display:none}
 
 /* ═══════════ componenti del nuovo disegno ═══════════ */
+/* ---- pannello documento: anteprima a sinistra, dati a destra ---- */
+@media (min-width:1000px){
+  #pannello.affiancato{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(330px,1fr);grid-template-rows:auto minmax(0,1fr) auto}
+  #pannello.affiancato .testa,#pannello.affiancato .piede{grid-column:1/-1}
+  #pannello.affiancato .anteprima-fissa{grid-row:2;grid-column:1;border-top:0;border-right:1px solid var(--line)}
+  #pannello.affiancato .corpo.con-anteprima{grid-row:2;grid-column:2;max-height:none;min-height:0}
+}
+#pannello .testa .pillola{flex:none}
+.dati-doc{display:grid;grid-template-columns:110px 1fr;gap:12px 16px;font-size:13.5px;margin:4px 0 0}
+.dati-doc dt{color:var(--ink-3)} .dati-doc dd{margin:0;min-width:0}
+.file-doc{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.file-doc li{display:flex;align-items:center;gap:8px;padding:6px 6px 6px 12px;border-radius:12px;background:var(--sunk);font-size:13px}
+.file-doc .nome-file{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border:0;background:none;text-align:left;cursor:pointer;padding:0;color:var(--ink)}
+.file-doc .nome-file:hover{color:var(--accent)}
+.storico-doc{list-style:none;margin:0;padding:0;position:relative}
+.storico-doc::before{content:"";position:absolute;left:7px;top:12px;bottom:12px;width:1.5px;background:var(--line-2)}
+.storico-doc li{display:grid;grid-template-columns:16px 1fr auto;gap:12px;align-items:center;padding:7px 0;position:relative;font-size:13px}
+.storico-doc li i{width:16px;height:16px;border-radius:50%;background:var(--card);box-shadow:0 0 0 1.5px var(--line-3) inset}
+.storico-doc li.attuale i{background:var(--ok);box-shadow:0 0 0 4px var(--ok-soft)}
+.storico-doc li b{font-weight:520;display:block} .storico-doc li span{color:var(--ink-3);font-size:12px}
+input.proposto,select.proposto{box-shadow:0 0 0 1.5px var(--accent) inset;background-color:var(--accent-soft)}
+.aiuto.proposta{color:var(--accent-ink)!important}
+
 /* ---- testata del cantiere: fascia scura, o la foto del cantiere con una sfumatura che tiene leggibili le scritte ---- */
 .testata-cantiere{position:relative;border-radius:var(--r-xl);overflow:hidden;padding:26px 28px 22px;margin-bottom:22px;background:#141418;color:#F4F3EF;min-height:230px;display:flex;flex-direction:column;justify-content:flex-end;isolation:isolate}
 .testata-cantiere::before{content:"";position:absolute;inset:0;z-index:-1;background:radial-gradient(600px 300px at 85% -10%,rgba(246,215,116,.4),transparent 62%),radial-gradient(520px 320px at 8% 125%,rgba(58,52,210,.85),transparent 65%)}
