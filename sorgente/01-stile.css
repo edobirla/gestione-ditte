@@ -553,6 +553,76 @@ input[type=checkbox],input[type=radio]{width:17px;height:17px;accent-color:var(-
 #velo-menu{position:fixed;inset:0;z-index:125;background:rgba(14,14,18,.3);display:none}
 
 /* ═══════════ componenti del nuovo disegno ═══════════ */
+/* ---- preventivi: lavagna per stato ed editor ---- */
+.lavagna{display:grid;grid-template-columns:repeat(4,minmax(250px,1fr));gap:12px;overflow-x:auto;padding-bottom:6px}
+.corsia{border-radius:var(--r-xl);background:color-mix(in srgb,var(--ink) 3%,transparent);box-shadow:0 0 0 1px var(--line) inset;padding:10px;display:flex;flex-direction:column;gap:8px;min-height:320px;transition:background .2s,box-shadow .2s}
+.corsia.sopra{background:var(--accent-soft);box-shadow:0 0 0 2px var(--accent) inset}
+.corsia-testa{display:flex;align-items:center;gap:8px;padding:4px 6px 6px}
+.corsia-testa i{width:8px;height:8px;border-radius:3px} .corsia-testa b{font-weight:560;font-size:13.5px}
+.corsia-testa .somma{margin-left:auto;font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.carta-prev{display:flex;flex-direction:column;background:var(--card);border-radius:14px;padding:14px;box-shadow:var(--ombra-s),0 0 0 1px var(--line);cursor:grab;transition:transform .35s var(--molla),box-shadow .25s,opacity .2s;color:var(--ink);text-decoration:none!important}
+.carta-prev:hover{transform:translateY(-2px);box-shadow:var(--ombra-m),0 0 0 1px var(--line-2)}
+.carta-prev.in-volo{opacity:.4}
+.carta-prev .n{font-size:11.5px;color:var(--ink-3)} .carta-prev .n .mono{font-size:11px}
+.carta-prev b{font-weight:540;margin:4px 0 2px;letter-spacing:-.01em;line-height:1.3}
+.carta-prev .c{font-size:12.5px;color:var(--ink-3)}
+.carta-prev .f{display:flex;align-items:center;gap:8px;margin-top:12px}
+.carta-prev .importo{font-size:17px;font-weight:560;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.carta-prev .nota-carta{display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--ink-3);margin-top:10px}
+.aggiungi-carta{border:0;background:transparent;border-radius:12px;padding:10px;color:var(--ink-3);font-size:13px;cursor:pointer;text-align:left;display:flex;gap:6px;align-items:center;box-shadow:0 0 0 1.5px var(--line-2) inset}
+.aggiungi-carta:hover{color:var(--ink);background:var(--card)}
+.editor-prev{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:22px;align-items:start}
+.lato-prev{position:sticky;top:84px}
+.occhiello-prev{font-size:12px;color:var(--ink-3);display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.occhiello-prev::before{content:"";width:6px;height:6px;border-radius:2px;background:var(--accent)}
+.titolo-prev{font-size:30px!important;font-weight:560;letter-spacing:-.04em;border:0!important;background:transparent!important;box-shadow:none!important;padding:0!important;min-height:0!important;width:100%;line-height:1.15}
+.titolo-prev:focus{box-shadow:0 2px 0 var(--accent)!important}
+.capitolo{margin-bottom:14px}
+.capitolo-testa{display:flex;align-items:center;gap:10px;padding:8px 4px 10px;font-size:14.5px}
+.capitolo-testa b{font-weight:560} .capitolo-testa span{margin-left:auto;font-size:12.5px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.voce-prev{display:grid;grid-template-columns:minmax(0,1fr) 112px 132px 100px 70px;gap:12px;align-items:center;padding:10px 10px 10px 14px;border-radius:14px;background:var(--card);box-shadow:var(--ombra-s),0 0 0 1px var(--line);margin-bottom:6px;transition:box-shadow .2s}
+.voce-prev:hover{box-shadow:var(--ombra-m),0 0 0 1px var(--line-2)}
+.voce-prev.da-quotare{box-shadow:var(--ombra-s),0 0 0 1.5px color-mix(in srgb,var(--warn) 60%,transparent)}
+.voce-prev.esclusa{opacity:.6}
+.voce-prev input{min-height:30px!important;padding:4px 8px!important;font-size:13.5px}
+.voce-prev .ds{min-width:0;display:flex;flex-direction:column;gap:2px}
+.voce-prev .ds input{background:transparent!important;box-shadow:none!important;padding-left:0!important;font-weight:520}
+.voce-prev .ds input:focus{background:var(--sunk)!important;padding-left:8px!important}
+.voce-prev .codice,.proposta .codice{font-family:var(--mono);font-size:11px;color:var(--ink-4);margin-right:6px}
+.voce-prev .estesa{font-size:12px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.voce-prev .qta,.voce-prev .pz,.totali-prev .sconto{display:flex;align-items:center;height:32px;border-radius:9px;background:var(--sunk);box-shadow:0 0 0 1px var(--line) inset;overflow:hidden}
+.voce-prev .qta input,.voce-prev .pz input,.totali-prev .sconto input{border:0;background:transparent!important;box-shadow:none!important;text-align:right;font-variant-numeric:tabular-nums;font-weight:540;min-width:0;width:100%}
+.voce-prev .qta input.um{width:44px;flex:none;text-align:left;color:var(--ink-3);font-weight:450;padding-left:2px!important}
+.voce-prev .pz span,.totali-prev .sconto span{padding:0 9px 0 0;color:var(--ink-3);font-size:12px}
+.voce-prev .prezzo{display:flex;flex-direction:column;gap:3px;align-items:stretch}
+.voce-prev .tipo{font-size:10.5px;color:var(--ink-3);border:0;background:var(--sunk-2);border-radius:5px;padding:1px 6px;cursor:pointer;align-self:flex-end}
+.voce-prev .tipo:hover{color:var(--accent-ink)}
+.voce-prev .imp{text-align:right;font-weight:600;font-variant-numeric:tabular-nums;display:flex;flex-direction:column;align-items:flex-end}
+.voce-prev .az{display:flex;align-items:center;gap:2px;justify-content:flex-end}
+.voce-prev .az .spunta{font-size:11.5px;min-height:0;gap:4px;color:var(--ink-3)}
+.aggiungi-voce{position:relative;margin-top:6px}
+.campo-voce{display:flex;align-items:center;gap:10px;height:46px;padding:0 14px;border-radius:14px;background:var(--sunk);box-shadow:0 0 0 1.5px var(--line-2) inset;color:var(--ink-3);transition:all .2s}
+.campo-voce:focus-within{background:var(--card);box-shadow:0 0 0 2px var(--accent),0 0 0 6px var(--accent-glow)}
+.campo-voce input{border:0!important;background:transparent!important;box-shadow:none!important;padding:0!important;font-size:14px}
+.proposte-voce{position:absolute;left:0;right:0;top:calc(100% + 6px);background:var(--card);border-radius:16px;box-shadow:var(--ombra-pop);padding:6px;z-index:20;display:none}
+.proposte-voce.aperte{display:block;animation:comparsa .3s var(--molla)}
+.proposta{display:grid;grid-template-columns:1fr auto auto;gap:14px;align-items:center;padding:9px 10px;border-radius:10px;cursor:pointer;font-size:13px;width:100%;border:0;background:none;text-align:left;color:var(--ink)}
+.proposta:hover,.proposta.prima{background:var(--sunk)}
+.proposta small{color:var(--ink-3);font-variant-numeric:tabular-nums;font-size:12px;white-space:nowrap}
+.flusso{display:flex;gap:4px;padding:4px;border-radius:12px;background:var(--sunk-2)}
+.flusso button{flex:1;border:0;background:transparent;border-radius:9px;padding:7px 4px;font-size:12px;color:var(--ink-3);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;transition:all .3s var(--ease)}
+.flusso button i{width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.6}
+.flusso button.fatto{color:var(--ink-2)}
+.flusso button.attivo{background:var(--card);color:var(--ink);box-shadow:var(--ombra-s);font-weight:540}
+.totali-prev{margin-top:16px}
+.totali-prev .r{display:flex;justify-content:space-between;align-items:center;font-size:13px;padding:5px 0;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.totali-prev .sconto{width:76px;height:28px}
+.totali-prev .r.t{border-top:1px solid var(--line);margin-top:6px;padding-top:12px;color:var(--ink)}
+.totali-prev .r.t small{display:block;font-size:11px;color:var(--ink-3)}
+.totali-prev .r.t b{font-size:26px;letter-spacing:-.04em;font-weight:560}
+@media (max-width:1100px){.editor-prev{grid-template-columns:1fr}.lato-prev{position:static}}
+@media (max-width:760px){.voce-prev{grid-template-columns:1fr 1fr}.voce-prev .ds{grid-column:1/-1}.lavagna{grid-template-columns:repeat(4,84vw)}}
+
 /* ---- pannello documento: anteprima a sinistra, dati a destra ---- */
 @media (min-width:1000px){
   #pannello.affiancato{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(330px,1fr);grid-template-rows:auto minmax(0,1fr) auto}
