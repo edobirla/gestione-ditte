@@ -620,6 +620,150 @@ input[type=checkbox],input[type=radio]{width:17px;height:17px;accent-color:var(-
 #velo-menu{position:fixed;inset:0;z-index:125;background:rgba(14,14,18,.3);display:none}
 
 /* ═══════════ componenti del nuovo disegno ═══════════ */
+.intesta>.pulsante:last-child{margin-left:auto}
+.campo>.gruppo-pulsanti{width:max-content}
+
+.targa{font-family:var(--mono);font-size:12px;font-weight:600;padding:3px 8px;border-radius:6px;box-shadow:0 0 0 1.5px var(--line-3) inset;white-space:nowrap}
+.riga-mezzo{display:flex;align-items:center;gap:8px;font-size:12.5px;padding:7px 0;border-top:1px solid var(--line)}
+.sigla-piccola{width:30px;height:30px;border-radius:9px;background:var(--ks);color:var(--kc);display:grid;place-items:center;font-weight:600;font-size:11px;flex:none}
+
+/* ---- budget ---- */
+.mesi-budget{display:flex;align-items:flex-end;gap:10px;height:180px;padding-top:10px}
+.mesi-budget>div{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end}
+.coppia-barre{display:flex;gap:3px;align-items:flex-end;height:100%;width:100%;justify-content:center}
+.coppia-barre i{width:38%;max-width:16px;border-radius:5px 5px 2px 2px;background:var(--ink);min-height:2px}
+.coppia-barre i.u{background:var(--sunk-3)}
+[data-tema="scuro"] .coppia-barre i{background:var(--accent)} [data-tema="scuro"] .coppia-barre i.u{background:var(--sunk-3)}
+.mesi-budget small{font-size:11px;color:var(--ink-3)}
+.legenda i{background:var(--ink)}
+
+/* ---- clienti ---- */
+.griglia-clienti{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.carta-cliente{display:flex;flex-direction:column;padding:18px;border-radius:var(--r-xl);background:var(--card);box-shadow:var(--ombra-m),0 0 0 1px var(--line);color:var(--ink);text-decoration:none!important;transition:transform .35s var(--molla),box-shadow .25s}
+.carta-cliente:hover{transform:translateY(-2px);box-shadow:var(--ombra-pop)}
+.carta-cliente b{display:block;font-weight:540;letter-spacing:-.01em}
+.carta-cliente .sotto-cliente{display:block;font-size:12.5px;color:var(--ink-3)}
+.carta-cliente .sigla{width:38px;height:38px;border-radius:12px;background:var(--ks);color:var(--kc);display:grid;place-items:center;font-weight:600;font-size:13px;flex:none}
+.carta-cliente .coppia{display:grid}
+.carta-cliente .k{display:block} .carta-cliente .v{display:block} .carta-cliente .piccolo-v{font-size:15px}
+
+.figure{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}
+.figura{padding:12px 14px;border-radius:14px;background:var(--sunk);min-width:0}
+.figura small{display:block;font-size:11.5px;color:var(--ink-3)}
+.figura b{display:block;font-weight:520;margin-top:2px} .figura span{display:block;font-size:11.5px;color:var(--ink-3)}
+
+.riga-ck{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:14px;align-items:center;padding:11px 0;color:var(--ink);text-decoration:none!important}
+.riga-ck+.riga-ck{border-top:1px solid var(--line)}
+.riga-ck b{display:block;font-weight:520} .riga-ck span{font-size:12.5px;color:var(--ink-3)} .riga-ck span.bad-t{color:var(--bad)} .riga-ck span.warn-t{color:var(--warn)}
+.pips{display:flex;gap:3px;flex-wrap:wrap;max-width:120px;justify-content:flex-end}
+.pips i{width:14px;height:6px;border-radius:2px;background:var(--ok)} .pips i.w{background:var(--warn)} .pips i.b{background:var(--bad)}
+
+/* ---- cantieri: diagramma ---- */
+.diagramma{position:relative;--dg-n:200px}
+.dg-mesi{display:grid;grid-template-columns:var(--dg-n) 1fr;padding-bottom:8px;border-bottom:1px solid var(--line)}
+.dg-asse{position:relative;height:16px}
+.dg-asse span{position:absolute;font-size:11.5px;color:var(--ink-3);white-space:nowrap;padding-left:3px;border-left:1px solid var(--line-2)}
+.dg-riga{display:grid;grid-template-columns:var(--dg-n) 1fr;align-items:center;min-height:48px;border-bottom:1px solid var(--line);color:var(--ink);text-decoration:none!important}
+.dg-riga:hover{background:var(--sunk)}
+.dg-nome{display:flex;flex-direction:column;padding-right:12px;min-width:0}
+.dg-nome b{font-weight:520;white-space:nowrap;overflow:hidden;text-overflow:ellipsis} .dg-nome span{font-size:11.5px;color:var(--ink-3)}
+.dg-barre{position:relative;height:28px}
+.dg-barre i{position:absolute;top:0;bottom:0;border-radius:8px;background:var(--ks);box-shadow:0 0 0 1px color-mix(in srgb,var(--kc) 35%,transparent) inset;display:flex;align-items:center;padding:0 10px;font-size:11.5px;color:var(--kc);font-weight:540;font-style:normal;white-space:nowrap;overflow:hidden}
+.dg-barre i.chiusa{opacity:.45} .dg-barre i.aperta{-webkit-mask-image:linear-gradient(90deg,#000 80%,transparent);mask-image:linear-gradient(90deg,#000 80%,transparent)}
+.dg-oggi{position:absolute;top:0;bottom:0;left:calc(var(--dg-n) + (100% - var(--dg-n)) * var(--x) / 100);width:2px;background:var(--bad);border-radius:2px;pointer-events:none}
+@media (max-width:760px){.diagramma{--dg-n:110px}}
+
+/* ---- buste paga ---- */
+tr.riga-segnata>td{background:color-mix(in srgb,var(--warn-soft) 55%,transparent)}
+.persone-chip{display:flex;gap:6px;flex-wrap:wrap}
+.persona-chip{display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 10px 0 4px;border-radius:10px;background:var(--sunk);font-size:13px;color:var(--ink);text-decoration:none!important;transition:background .2s}
+.persona-chip:hover{background:var(--sunk-2)}
+.persona-chip.attiva{background:var(--ink);color:var(--foglio)}
+.persona-chip small{color:var(--ink-3);font-size:11px} .persona-chip.attiva small{color:inherit;opacity:.6}
+.mesi-12.sei{grid-template-columns:repeat(6,minmax(0,1fr))}
+
+/* ---- documenti: archivio e modelli ---- */
+.icona-tipo{width:30px;height:30px;border-radius:9px;background:var(--sunk-2);display:grid;place-items:center;color:var(--ink-2);flex:none}
+.chi>span:last-child{min-width:0}
+.chi>span:last-child>span{display:block;font-size:12.5px;color:var(--ink-3)}
+.griglia-modelli{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.modello{display:flex;flex-direction:column;padding:16px;border-radius:16px;background:var(--card);box-shadow:var(--ombra-s),0 0 0 1px var(--line);transition:transform .35s var(--molla),box-shadow .25s}
+.modello:hover{transform:translateY(-2px);box-shadow:var(--ombra-m),0 0 0 1px var(--line-2)}
+.modello .icona-modello{width:36px;height:36px;border-radius:11px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;margin-bottom:12px}
+.modello b{font-weight:540;line-height:1.3}
+.modello .desc-modello{font-size:12.5px;color:var(--ink-3);margin-top:4px;flex:1}
+.modello .azioni-modello{display:flex;gap:6px;margin-top:14px}
+
+/* ---- pannello: testata con icona e sottotitolo; anteprima con barra e miniature ---- */
+#pannello .testa{gap:12px;padding:14px 14px 12px 18px}
+#pannello .testa .icona-pannello{width:38px;height:38px;border-radius:11px;background:var(--sunk-2);display:grid;place-items:center;flex:none;color:var(--ink-2)}
+#pannello .testa .titoli-pannello{flex:1;min-width:0}
+#pannello .testa .titoli-pannello h2{font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#pannello .testa .sottotitolo-pannello{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink-3);margin-top:2px}
+#pannello .testa .sottotitolo-pannello a{color:var(--ink-3)}
+#pannello .anteprima-fissa{padding:14px 18px;gap:12px;align-items:stretch}
+.barra-anteprima{display:flex;align-items:center;gap:4px;flex:none}
+.barra-anteprima .nome-anteprima{margin-right:auto;font-size:11.5px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.foglio-anteprima{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;overflow:auto}
+.foglio-anteprima .anteprima-doc{width:100%;height:100%;min-height:0;max-height:none;border-radius:6px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.08),0 12px 40px -12px rgba(0,0,0,.25)}
+.foglio-anteprima .anteprima-img{max-width:100%;max-height:100%;border-radius:6px;box-shadow:0 1px 2px rgba(0,0,0,.08),0 16px 40px -14px rgba(0,0,0,.3);transition:transform .4s var(--ease);background:#fff}
+.foglio-anteprima .anteprima-img.grande{max-width:none;max-height:none;width:160%}
+.foglio-anteprima:has(.grande){align-items:flex-start;justify-content:flex-start}
+.miniature{display:flex;gap:6px;justify-content:center;flex:none;flex-wrap:wrap}
+.miniature button{display:flex;align-items:center;gap:6px;height:30px;padding:0 10px;border:0;border-radius:9px;background:var(--card);box-shadow:0 0 0 1px var(--line-2);font-size:11.5px;color:var(--ink-2);cursor:pointer}
+.miniature button.attiva{box-shadow:0 0 0 2px var(--accent);color:var(--ink)}
+
+/* ---- operai: elenco e scheda della persona ---- */
+.persona-avatar.medio{width:38px;height:38px;border-radius:12px;font-size:13px}
+.scheda.scheda-tabella{padding:6px 8px}
+.elenco-persone td{padding-top:10px;padding-bottom:10px}
+.chi{display:flex;align-items:center;gap:12px;min-width:0}
+.chi b{display:block;font-weight:520;letter-spacing:-.01em}
+.chi span span{font-size:12.5px;color:var(--ink-3)}
+.scad-cella{display:flex;flex-direction:column;gap:5px;min-width:170px}
+.scad-cella .traccia{height:4px}
+.testata-persona{display:flex;gap:22px;align-items:center;margin-bottom:24px;flex-wrap:wrap}
+.testata-persona .nome-persona{flex:1 1 300px;min-width:0}
+.testata-persona .occhiello{display:inline-flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-3);margin-bottom:6px}
+.testata-persona .occhiello::before{content:"";width:6px;height:6px;border-radius:2px;background:var(--accent)}
+.testata-persona .azioni{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.chip-persona{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;align-items:center}
+.foto-persona{width:84px;height:84px;border-radius:26px;object-fit:cover;flex:none;box-shadow:0 0 0 1px var(--line)}
+.foto-persona.placeholder{display:flex;align-items:center;justify-content:center;background:var(--ks,var(--accent-soft));color:var(--kc,var(--accent-ink));font-weight:600;font-size:28px;letter-spacing:-.03em}
+.foto-persona-bottone{padding:0;border:none;background:none;cursor:pointer;display:inline-flex;border-radius:26px;transition:transform .35s var(--molla)}
+.foto-persona-bottone:hover{transform:scale(1.03)}
+.righe-doc{list-style:none;margin:0;padding:0}
+.righe-doc li{display:grid;grid-template-columns:36px minmax(0,1fr) 150px 112px 18px;gap:14px;align-items:center;padding:10px;margin:0 -10px;border-radius:12px;cursor:pointer;transition:background .2s}
+.righe-doc li+li{background:linear-gradient(var(--line),var(--line)) top/100% 1px no-repeat}
+.righe-doc li:hover{background:var(--sunk)} .righe-doc li:hover+li{background:none}
+.icona-doc{width:36px;height:44px;border-radius:7px;background:var(--sunk-2);display:grid;place-items:center;color:var(--ink-3);position:relative;overflow:hidden}
+.icona-doc::after{content:"";position:absolute;right:0;top:0;width:10px;height:10px;background:linear-gradient(225deg,var(--card) 50%,var(--sunk-3) 50%)}
+.icona-doc.vuota{background:transparent;box-shadow:0 0 0 1.5px var(--line-3) inset} .icona-doc.vuota::after{display:none}
+.testo-doc{min-width:0} .testo-doc b{display:block;font-weight:520} .testo-doc span{display:block;font-size:12.5px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.testo-doc span.bad-t{color:var(--bad)}
+.barra-doc .traccia{height:4px}
+.data-doc{text-align:right}
+.righe-doc .va{color:var(--ink-4)}
+.gruppo-doc>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;padding:10px 0;font-size:13.5px}
+.gruppo-doc>summary::-webkit-details-marker{display:none}
+.gruppo-doc>summary b{font-weight:560}
+.gruppo-doc>summary .freccia{color:var(--ink-3);transition:transform .3s var(--ease)}
+.gruppo-doc[open]>summary .freccia{transform:rotate(90deg)}
+.gruppo-doc+.gruppo-doc{border-top:1px solid var(--line)}
+.gruppo-doc .righe-doc{margin-bottom:8px}
+.sei-mesi{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:14px}
+.mese-col{display:flex;flex-direction:column;gap:8px;color:var(--ink);text-decoration:none!important;font-size:12.5px}
+.colonna-ore{height:110px;display:flex;align-items:flex-end;justify-content:center}
+.colonna-ore i{width:38%;max-width:44px;border-radius:10px;background:var(--ink);opacity:.88;transition:opacity .2s}
+[data-tema="scuro"] .colonna-ore i{background:var(--accent)}
+.mese-col:hover .colonna-ore i{opacity:1}
+.mesi-12{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:6px}
+.mesi-12 .mese-cella{position:relative}
+.mese-cella b{font-weight:540} .mese-cella span{font-size:11px;font-variant-numeric:tabular-nums}
+.mese-cella.vuota{background:var(--sunk);box-shadow:none;color:var(--ink-4);cursor:default}
+.mese-cella .segno-scarto{position:absolute;top:6px;right:6px;width:7px;height:7px;border-radius:50%;background:var(--warn)}
+@media (max-width:900px){.mesi-12{grid-template-columns:repeat(6,minmax(0,1fr))}.righe-doc li{grid-template-columns:36px minmax(0,1fr) auto}.righe-doc .barra-doc,.righe-doc .va{display:none}.nascondi-telefono{display:none}.sei-mesi{gap:6px}}
+
 /* ---- ISA ---- */
 .riga-isa{display:grid;grid-template-columns:minmax(150px,240px) 1fr 52px;gap:14px;align-items:center;padding:8px 0;font-size:13px}
 .riga-isa+.riga-isa{border-top:1px solid var(--line)}
@@ -1057,9 +1201,6 @@ select.stato-rapido.inviato{background:var(--giallo-chiaro);border-color:var(--g
 .ritaglio-foto{position:relative;width:320px;max-width:100%;margin:0 auto;touch-action:none}
 .ritaglio-foto canvas{display:block;width:100%;height:auto;border-radius:var(--raggio-grande);background:#fff;cursor:grab}
 .ritaglio-foto canvas:active{cursor:grabbing}
-.foto-persona{width:140px;height:140px;border-radius:var(--raggio-grande);object-fit:cover;border:1px solid var(--bordo);flex:none}
-.foto-persona.placeholder{display:flex;align-items:center;justify-content:center;background:var(--blu-chiaro);color:var(--blu-testo);font-weight:700;font-size:36px}
-.foto-persona-bottone{padding:0;border:none;background:none;cursor:pointer;display:inline-flex;border-radius:var(--raggio-grande)}
 .foto-persona-bottone:hover .foto-persona{opacity:.85}
 .segnaposto-picker{border:1px solid var(--bordo);border-radius:var(--raggio);padding:var(--sp-2);max-height:220px;overflow:auto;background:var(--superficie-2)}
 .segnaposto-picker .gruppo+.gruppo{margin-top:var(--sp-2)}
@@ -1181,6 +1322,10 @@ select.stato-rapido.inviato{background:var(--giallo-chiaro);border-color:var(--g
   <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></symbol>
   <symbol id="i-fotocamera-piu" viewBox="0 0 24 24"><path d="M4.5 8h2.8l1.7-2.5h6l1.7 2.5h2.8a1 1 0 0 1 1 1v9.5a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.25" r="3.25"/></symbol>
   <symbol id="i-anno" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="16" rx="3"/><path d="M3.5 9.5h17M8 2.5v4M16 2.5v4M8 14h8M8 17.5h5"/></symbol>
+  <symbol id="i-carta-id" viewBox="0 0 24 24"><rect x="3" y="5.5" width="18" height="13" rx="2.5"/><circle cx="8.5" cy="11" r="2"/><path d="M5.5 15.5c.5-1.3 1.6-2 3-2s2.5.7 3 2M14 10h4M14 13h3"/></symbol>
+  <symbol id="i-sanitario" viewBox="0 0 24 24"><path d="M6 3.5v5a4 4 0 0 0 8 0v-5"/><path d="M10 12.5v2a5 5 0 0 0 10 0V12"/><circle cx="20" cy="10" r="2"/></symbol>
+  <symbol id="i-attestato" viewBox="0 0 24 24"><path d="M3 9.5 12 5l9 4.5-9 4.5z"/><path d="M7 11.5v4c0 1.4 2.2 2.5 5 2.5s5-1.1 5-2.5v-4M21 9.5v5"/></symbol>
+  <symbol id="i-contratto" viewBox="0 0 24 24"><path d="M6 3.5h8.5l4 4V20a.5.5 0 0 1-.5.5H6a.5.5 0 0 1-.5-.5V4a.5.5 0 0 1 .5-.5z"/><path d="M14.5 3.5V8h4M8.5 13h7M8.5 16.5h4"/></symbol>
 </svg>
 
 <div id="app">
@@ -2638,7 +2783,7 @@ function apriPannello(opz){
   // opz.anteprima: id di un riquadro fisso sotto il corpo, che prende tutta l'altezza rimasta.
   // Serve per i PDF: dentro un corpo scorrevole la rotella finisce nel visore del PDF e il
   // pannello non si muove più; con il riquadro fisso il PDF ha il suo spazio e il resto il suo.
-  p.innerHTML=html`<div class="testa"><button class="pulsante discreto icona" data-chiudi-pannello aria-label="Chiudi pannello">${icona('chiudi')}</button><h2>${opz.titolo||''}</h2>${opz.azioni?grezzo(opz.azioni):''}</div><div class="corpo ${opz.pieno?'pieno':''} ${opz.anteprima?'con-anteprima':''}">${grezzo(opz.corpo||'')}</div>${opz.anteprima?html`<div class="anteprima-fissa" id="${opz.anteprima}"><div class="anteprima-nessuna">Caricamento…</div></div>`:''}${opz.piede?html`<div class="piede">${grezzo(opz.piede)}</div>`:''}`;
+  p.innerHTML=html`<div class="testa">${opz.icona?html`<span class="icona-pannello">${icona(opz.icona)}</span>`:''}<div class="titoli-pannello"><h2>${opz.titolo||''}</h2>${opz.sottotitolo?html`<div class="sottotitolo-pannello">${grezzo(opz.sottotitolo)}</div>`:''}</div>${opz.azioni?grezzo(opz.azioni):''}<button class="pulsante discreto icona" data-chiudi-pannello aria-label="Chiudi pannello">${icona('chiudi')}</button></div><div class="corpo ${opz.pieno?'pieno':''} ${opz.anteprima?'con-anteprima':''}">${grezzo(opz.corpo||'')}</div>${opz.anteprima?html`<div class="anteprima-fissa" id="${opz.anteprima}"><div class="anteprima-nessuna">Caricamento…</div></div>`:''}${opz.piede?html`<div class="piede">${grezzo(opz.piede)}</div>`:''}`;
   p.classList.add('aperto');p.classList.toggle('largo',!!opz.largo);p.classList.toggle('affiancato',!!opz.affiancato);p.setAttribute('aria-hidden','false');
   el('#velo-pannello').classList.add('aperto');
   document.body.classList.add('con-pannello');document.body.classList.toggle('pannello-largo',!!opz.largo);
@@ -2795,7 +2940,7 @@ function sezioneMenu(sezione){const m=MENU.find(x=>x.id===sezione||(x.alias||[])
 function disegnaBriciole(r){
   const b=el('#briciole-barra');if(!b)return;
   const m=MENU.find(x=>x.id===sezioneMenu(r.sezione));if(!m){b.innerHTML='';return}
-  const t=el('#contenuto h1');const pagina=r.id&&t?t.textContent.trim():'';
+  const t=el('#contenuto h1');const pagina=r.id&&t&&t.textContent.trim()!==m.testo?t.textContent.trim():'';
   const freccia=icona('destra','piccola');
   b.innerHTML=html`${m.gruppo&&m.gruppo!=='Sistema'?html`<a>${m.gruppo}</a>${freccia}`:''}${pagina?html`<a href="#/${m.id}">${m.testo}</a>${freccia}<b>${pagina}</b>`:html`<b>${m.testo}</b>`}`;
 }
@@ -2929,6 +3074,7 @@ document.addEventListener('change',e=>{
 });
 AZIONI['dettaglio-errore']=d=>dialogoErrore(d.dettaglio);
 AZIONI['tema']=()=>cicloTema();
+AZIONI['tema-imposta']=d=>{applicaTema(d.valore);stato.impostazioni.tema=ui.tema;salvaStato();render()};
 AZIONI['apri-ricerca']=()=>apriRicerca();
 AZIONI['tendina']=(d,t)=>{const box=t.closest('.tendina-box');const aperta=box.classList.contains('aperta');tutti('.tendina-box.aperta').forEach(x=>x.classList.remove('aperta'));if(!aperta)box.classList.add('aperta')};
 AZIONI['apri-menu']=()=>document.body.classList.add('menu-aperto');
@@ -3248,20 +3394,35 @@ VISTE.operai=function(r){
   if(filtro.stato==='attivi') persone=persone.filter(p=>p.attivo);
   if(filtro.stato==='cessati') persone=persone.filter(p=>!p.attivo);
   if(filtro.cerca){const q=normalizzaTesto(filtro.cerca);persone=persone.filter(p=>normalizzaTesto(nomePersona(p)+' '+(p.mansione||'')+' '+(p.cf||'')).includes(q))}
-  const righe=persone.map(p=>{const idn=p.inCantiere!==false?idoneita(p):null;const crit=documentoPiuCritico(p);const prossima=documentiPersona(p.id).map(d=>infoDocumento(d)).filter(i=>i.data&&i.giorni>=0).sort((a,b)=>a.giorni-b.giorni)[0];return {p,idn,crit,prossima}});
+  const oggiD=new Date();const km=chiaveMese(oggiD.getFullYear(),oggiD.getMonth()+1);const mm=meseP(oggiD.getFullYear(),oggiD.getMonth()+1);
+  const righe=persone.map(p=>{const idn=p.inCantiere!==false?idoneita(p):null;const crit=documentoPiuCritico(p);const pros=prossimaScadenza(p);const ore=mm&&mm.persone[p.id]?calcolaMesePersona(mm.persone[p.id],p).oreGriglia:null;return {p,idn,crit,pros,ore}});
   const sc=riepilogoScadenze();
-  return html`<div class="testata"><div><h1>Operai</h1><div class="sotto">${plurale(stato.persone.filter(p=>p.attivo).length,'persona attiva','persone attive')} · ${sc.scaduti.length} documenti scaduti · ${sc.mancanti.filter(m=>m.bloccante).length} mancanti bloccanti</div></div>
-    <div class="azioni"><a class="pulsante" href="#/operai/scadenzario">${icona('calendario')}Scadenzario</a><button class="pulsante" data-azione="persona-da-documento" title="Carica l'UNILAV (o un altro PDF con i dati scritti) e compilo l'anagrafica">${icona('magia')}Da UNILAV o documento</button><button class="pulsante primario" data-azione="persona-nuova">${icona('piu')}Nuova persona</button></div></div>
-  <div class="strumenti-tabella"><input type="search" placeholder="Cerca per nome, mansione, codice fiscale" value="${filtro.cerca}" data-cambio="filtro-operai" data-campo="cerca" aria-label="Cerca persone"><div class="gruppo-pulsanti">${['attivi','tutti','cessati'].map(s=>html`<button class="pulsante piccolo ${filtro.stato===s?'attivo':''}" data-azione="filtro-operai-stato" data-valore="${s}">${capitalizza(s)}</button>`)}</div>${pulsanteCancellaFiltri(!!filtro.cerca||filtro.stato!=='attivi','filtro-operai-reset')}<span class="conteggio">${righe.length} persone</span></div>
-  ${tabella({id:'operai',righe,chiaveOrd:'nome',href:r=>'#/operai/'+r.p.id,classeRiga:r=>'riga-'+r.crit.stato,colonne:[
-    {chiave:'nome',titolo:'Persona',principale:true,valore:r=>nomePersona(r.p),formatta:r=>html`<span class="riga stretta">${avatar(r.p)}<span><b>${nomePersona(r.p)}</b><br><span class="piccolo secondario">${r.p.mansione||''}${r.p.attivo?'':' · cessato'}</span></span></span>`},
-    {chiave:'tipo',titolo:'Tipo',valore:r=>TIPI_PERSONA[r.p.tipo]||r.p.tipo},
-    {chiave:'idoneita',titolo:'Idoneità al cantiere',valore:r=>r.idn?(r.idn.idonea?1:0):2,formatta:r=>r.idn?(r.idn.idonea?html`<span class="pillola valido">${icona('ok')}Idoneo</span>${r.idn.avvisi.length?html` <span class="piccolo secondario" title="${r.idn.avvisi.join('; ')}">manca ${r.idn.avvisi.length}</span>`:''}`:html`<span class="pillola scaduto" title="${r.idn.motivi.join('; ')}">${icona('blocco')}Non idoneo</span><br><span class="piccolo secondario">${tronca(r.idn.motivi[0],48)}</span>`):html`<span class="silenzioso">non va in cantiere</span>`},
-    {chiave:'critico',titolo:'Documento più critico',valore:r=>STATI_DOC[r.crit.stato]?STATI_DOC[r.crit.stato].ordine:9,formatta:r=>html`${pillola(r.crit.stato,undefined,{stimata:r.crit.info&&r.crit.info.stimata})}<br><span class="piccolo secondario">${r.crit.testo}</span>`},
-    {chiave:'prossima',titolo:'Prossima scadenza',valore:r=>r.prossima?r.prossima.giorni:99999,formatta:r=>r.prossima?html`${fData(r.prossima.data)} <span class="piccolo secondario">(${fGiorni(r.prossima.giorni)})</span>`:html`<span class="silenzioso">—</span>`},
-    {chiave:'tariffa',titolo:'Retribuzione',num:true,valore:r=>r.p.retribuzione.tariffaOraria||r.p.retribuzione.importoFisso||0,formatta:r=>testoRetribuzione(r.p)},
-  ],vuoto:vuoto({icona:'operai',titolo:'Nessuna persona',testo:'Aggiungi le persone dell\'azienda per seguire documenti, scadenze e presenze.',azione:{testo:'Nuova persona',azione:'persona-nuova'}})})}`;
+  const gruppi=[['legale_rappresentante','Legale rappresentante'],['socio','Soci'],['dipendente','Dipendenti'],['amministrativo','Amministrativi']];
+  const altri=righe.filter(r=>!gruppi.some(g=>g[0]===r.p.tipo));
+  const riga=r=>html`<tr class="cliccabile" data-azione="vai" data-href="operai/${r.p.id}">
+    <td><span class="chi">${avatar(r.p,'medio')}<span><b>${nomePersona(r.p)}</b><span>${r.p.mansione||TIPI_PERSONA[r.p.tipo]||''}${r.p.attivo?'':' · cessato'}</span></span></span></td>
+    <td>${r.idn?(r.idn.idonea?html`<span class="pillola ${r.idn.avvisi.length?'scadenza':'valido'}" title="${r.idn.avvisi.join('; ')}"><span class="punto-stato ${r.idn.avvisi.length?'scadenza':'valido'}"></span>${r.idn.avvisi.length?'Idoneo, manca '+r.idn.avvisi.length:'Idoneo'}</span>`:html`<span class="pillola scaduto" title="${r.idn.motivi.join('; ')}"><span class="punto-stato scaduto"></span>Bloccato</span><br><span class="piccolo silenzioso">${tronca(r.idn.motivi[0],44)}</span>`):html`<span class="piccolo silenzioso">non va in cantiere</span>`}</td>
+    <td class="nascondi-telefono">${r.pros?html`<div class="scad-cella"><span class="piccolo">${r.pros.nome} · <span class="${r.pros.info.stato==='scaduto'?'bad-t':r.pros.info.stato==='scadenza'?'warn-t':'silenzioso'}">${quandoScade(r.pros.info)}</span></span>${r.pros.fr!=null?html`<div class="traccia"><i class="${r.pros.info.stato==='scaduto'?'tardi':r.pros.info.stato==='scadenza'?'presto':''}" style="width:${Math.max(3,r.pros.fr*100)}%"></i></div>`:''}</div>`:html`<span class="silenzioso">—</span>`}</td>
+    <td class="num nascondi-telefono">${r.ore!=null?fOre(r.ore)+' h':html`<span class="silenzioso">—</span>`}</td>
+    <td class="num nascondi-telefono">${testoRetribuzione(r.p)}</td>
+    <td class="nascondi-telefono silenzioso">${r.p.dataAssunzione?fData(r.p.dataAssunzione):''}</td></tr>`;
+  const corpo=[...gruppi.map(([t,tit])=>[tit,righe.filter(r=>r.p.tipo===t)]),['Altri',altri]].filter(g=>g[1].length).map(([tit,rr])=>html`<tr class="gruppo-riga"><td colspan="6">${tit}</td></tr>${rr.map(riga)}`);
+  return html`<div class="testata"><div><div class="occhiello">Squadra</div><h1>Operai</h1><p class="sotto">${plurale(stato.persone.filter(p=>p.attivo).length,'persona attiva','persone attive')} · <b>${plurale(sc.scaduti.length,'documento scaduto','documenti scaduti')}</b> · ${sc.entro60.length} in scadenza · ${plurale(sc.mancanti.filter(m=>m.bloccante).length,'mancante bloccante','mancanti bloccanti')}</p></div>
+    <div class="azioni"><a class="pulsante" href="#/operai/scadenzario">${icona('scudo','piccola')}Scadenzario</a><button class="pulsante" data-azione="persona-da-documento" title="Carica l'UNILAV (o un altro PDF con i dati scritti) e compilo l'anagrafica">${icona('magia','piccola')}Da UNILAV</button><button class="pulsante primario" data-azione="persona-nuova">Nuova persona<span class="manopola">${icona('piu','piccola')}</span></button></div></div>
+  <div class="strumenti-tabella"><input type="search" placeholder="Nome, mansione, codice fiscale" value="${filtro.cerca}" data-cambio="filtro-operai" data-campo="cerca" aria-label="Cerca persone"><div class="gruppo-pulsanti">${['attivi','tutti','cessati'].map(s=>html`<button class="pulsante ${filtro.stato===s?'attivo':''}" data-azione="filtro-operai-stato" data-valore="${s}">${capitalizza(s)}</button>`)}</div>${pulsanteCancellaFiltri(!!filtro.cerca||filtro.stato!=='attivi','filtro-operai-reset')}<span class="conteggio">${plurale(righe.length,'persona','persone')}</span></div>
+  ${righe.length?html`<div class="guscio"><div class="scheda scheda-tabella"><table class="tabella elenco-persone"><thead><tr><th>Persona</th><th>Al cantiere</th><th class="nascondi-telefono">Prossima scadenza</th><th class="num nascondi-telefono">Ore ${nomeMese(oggiD.getMonth()+1)}</th><th class="num nascondi-telefono">Retribuzione</th><th class="nascondi-telefono">Assunto</th></tr></thead><tbody>${corpo}</tbody></table></div></div>`
+  :vuoto({icona:'operai',titolo:filtro.stato==='cessati'?'Nessuna persona cessata':'Nessuna persona',testo:filtro.stato==='cessati'?'Quando chiudi un rapporto, la persona e i suoi documenti finiscono qui.':'Aggiungi le persone dell\'azienda per seguire documenti, scadenze e presenze.',azione:filtro.stato==='cessati'?null:{testo:'Nuova persona',azione:'persona-nuova'}})}`;
 };
+// la scadenza più vicina (o già passata) fra i documenti in vigore della persona
+function prossimaScadenza(p){
+  const xs=documentiPersona(p.id).filter(d=>!documentoSuperato(d)).map(d=>({d,info:infoDocumento(d),t:tipoDoc(d.tipoId)})).filter(x=>x.info.data&&!x.info.silenziato&&!(x.t&&(x.t.periodo||x.t.annuale))).sort((a,b)=>a.info.giorni-b.info.giorni);
+  const x=xs[0];if(!x)return null;
+  return {nome:x.t?x.t.nome:'Documento',info:x.info,fr:frazioneDoc(x.d,x.info),doc:x.d};
+}
+// quanto manca alla scadenza, come frazione del periodo di validità (1 = appena emesso, 0 = scaduto)
+function frazioneDoc(d,info){if(!info.data||!d.dataEmissione)return null;const tot=giorniTra(d.dataEmissione,info.data),rim=giorniTra(oggi(),info.data);return tot>0?Math.max(0,Math.min(1,rim/tot)):null}
+function quandoScade(info){if(!info.data)return '';const g=info.giorni;return g<0?'scaduto da '+plurale(-g,'giorno','giorni'):g===0?'scade oggi':g>90?'tra '+Math.round(g/30.4)+' mesi':'tra '+plurale(g,'giorno','giorni')}
+const ICONA_CATEGORIA={identita:'carta-id',contratto:'contratto',sanitario:'sanitario',malattia:'sanitario',formazione:'attestato',nomina:'firma',sicurezza:'scudo',amministrativo:'documenti',impresa:'azienda',cantiere:'cantieri',mezzo:'mezzo'};
 function testoRetribuzione(p){const r=p.retribuzione||{};const parti=[];if(r.tariffaOraria)parti.push(fNum(r.tariffaOraria,r.tariffaOraria%1?2:0)+' €/h');if(r.importoFisso)parti.push(fEuroInt(r.importoFisso)+'/mese');return parti.length?grezzo(parti.map(h).join(' + ')):daCompilare('da definire')}
 AZIONI['filtro-operai']=(d,t)=>{ui.filtri.operai=Object.assign({stato:'attivi',cerca:''},ui.filtri.operai,{[d.campo]:t.value});render();setTimeout(()=>{const i=el('.strumenti-tabella input[type=search]');if(i&&d.campo==='cerca'){i.focus();i.setSelectionRange(i.value.length,i.value.length)}},0)};
 document.addEventListener('input',debounce(e=>{const t=e.target;if(t.matches&&t.matches('[data-cambio="filtro-operai"]')){AZIONI['filtro-operai']({campo:t.dataset.campo},t)}},250));
@@ -3410,48 +3571,67 @@ AZIONI['persona-riattiva']=async d=>{
 function vistaPersona(id,r){
   const p=persona(id); if(!p) return html`<div class="vuoto">${icona('attenzione')}<h3>Persona non trovata</h3><a class="pulsante" href="#/operai">Torna all'elenco</a></div>`;
   const idn=p.inCantiere!==false?idoneita(p):null;
-  const ling=linguettaAttiva('persona:'+p.id,'documenti');
+  const ling=linguettaAttiva('persona:'+p.id,'panoramica');
   const docs=documentiPersona(p.id);
-  const nDocCritici=docs.filter(d=>documentoCritico(infoDocumento(d))).length+(idn?idn.dettagliTutti.filter(x=>x.stato==='mancante').length:0);
-  return html`<div class="briciole"><a href="#/operai">Operai</a> › ${nomePersona(p)}</div>
-  <div class="testata"><div class="riga stretta" style="gap:14px">
-    <button class="foto-persona-bottone" data-azione="persona-foto-menu" data-id="${p.id}" aria-label="Foto di ${nomePersona(p)}" title="Cambia o ritaglia la foto">${p.fotoImg?html`<img src="${p.fotoImg}" alt="Foto di ${nomePersona(p)}" class="foto-persona">`:html`<span class="foto-persona placeholder">${iniziali(nomePersona(p))}</span>`}</button>
-    <div><h1>${nomePersona(p)}</h1><div class="sotto">${p.mansione||''} · ${TIPI_PERSONA[p.tipo]||p.tipo}${p.attivo?'':' · cessato il '+fData(p.dataCessazione)}${(p.qualifiche||[]).length?' · '+p.qualifiche.map(q=>QUALIFICHE[q]||q).join(', '):''}</div></div></div>
-    <div class="azioni"><button class="pulsante" data-azione="documento-nuovo" data-soggetto-tipo="persona" data-soggetto-id="${p.id}" data-drop-soggetto="persona:${p.id}" title="Puoi anche trascinare qui le scansioni">${icona('allega')}Aggiungi documento</button><button class="pulsante" data-azione="persona-modifica" data-id="${p.id}">${icona('modifica')}Modifica</button>${p.attivo?html`<button class="pulsante pericolo" data-azione="persona-cessa" data-id="${p.id}">${icona('elimina')}Cessa</button>`:html`<button class="pulsante" data-azione="persona-riattiva" data-id="${p.id}">${icona('aggiorna')}Riattiva</button>`}</div></div>
-  ${idn?html`<div class="mb">${idn.idonea?html`<span class="idoneita si">${icona('ok')}Può entrare in cantiere oggi</span>`:html`<span class="idoneita no">${icona('blocco')}Non può entrare in cantiere: ${idn.motivi.join('; ')}</span>`}${idn.avvisi.length?html`<div class="piccolo secondario mt-s">Da regolarizzare (richiesti dalle committenze, non bloccanti): ${idn.avvisi.join('; ')}</div>`:''}</div>`:html`<div class="mb piccolo secondario">Questa persona non va in cantiere: l'idoneità non viene calcolata.</div>`}
-  ${linguette('persona:'+p.id,[{id:'documenti',testo:'Documenti',icona:'documenti',contatore:nDocCritici||null,critico:nDocCritici>0},{id:'anagrafica',testo:'Anagrafica',icona:'persona'},{id:'buste',testo:'Buste paga',icona:'busta-paga'},{id:'ore',testo:'Ore',icona:'presenze'},{id:'cantieri',testo:'Cantieri',icona:'cantieri'},{id:'retribuzione',testo:'Retribuzione',icona:'euro'}],ling)}
-  ${ling==='documenti'?schedaDocumentiPersona(p,idn):ling==='anagrafica'?schedaAnagrafica(p):ling==='buste'?schedaBustePersona(p):ling==='ore'?schedaOrePersona(p):ling==='cantieri'?schedaCantieriPersona(p):schedaRetribuzione(p)}`;
+  const nDocCritici=docs.filter(d=>!documentoSuperato(d)&&documentoCritico(infoDocumento(d))).length+(idn?idn.dettagliTutti.filter(x=>x.stato==='mancante').length:0);
+  const cantieriAperti=stato.cantieri.filter(c=>(c.stato==='attivo'||c.stato==='sospeso')&&((c.operai||[]).includes(p.id)||c.prepostoId===p.id));
+  const nBuste=stato.bustePaga.filter(b=>b.personaId===p.id).length;
+  return html`<div class="testata-persona">
+    <button class="foto-persona-bottone" data-azione="persona-foto-menu" data-id="${p.id}" aria-label="Foto di ${nomePersona(p)}" title="${p.fotoImg?'Cambia o ritaglia la foto':'Aggiungi una foto'}">${p.fotoImg?html`<img src="${p.fotoImg}" alt="Foto di ${nomePersona(p)}" class="foto-persona">`:html`<span class="foto-persona placeholder ${coloreDa(p.id)}">${iniziali(nomePersona(p))}</span>`}</button>
+    <div class="nome-persona"><div class="occhiello">${[p.mansione,TIPI_PERSONA[p.tipo]].filter(Boolean).join(' · ')}${(p.qualifiche||[]).length?' · '+p.qualifiche.map(q=>QUALIFICHE[q]||q).join(', '):''}</div><h1>${nomePersona(p)}</h1>
+      <div class="chip-persona">${idn?(idn.idonea?html`<span class="pillola ${idn.avvisi.length?'scadenza':'valido'}"><span class="punto-stato ${idn.avvisi.length?'scadenza':'valido'}"></span>Idoneo al cantiere</span>`:html`<span class="pillola scaduto"><span class="punto-stato scaduto"></span>Non può entrare in cantiere</span>`):html`<span class="pillola">Non va in cantiere</span>`}
+      ${p.dataAssunzione?html`<span class="pillola">Dal ${fData(p.dataAssunzione)}</span>`:''}${p.attivo?'':html`<span class="pillola scaduto">Cessato il ${fData(p.dataCessazione)}</span>`}
+      ${cantieriAperti.map(c=>html`<a class="cantiere-tag ${coloreCantiere(c)}" href="#/cantieri/${c.id}">${c.nome}</a>`)}</div></div>
+    <div class="azioni"><button class="pulsante" data-azione="persona-modifica" data-id="${p.id}">${icona('modifica','piccola')}Modifica</button>${p.attivo?html`<button class="pulsante discreto pericolo" data-azione="persona-cessa" data-id="${p.id}">Cessa</button>`:html`<button class="pulsante" data-azione="persona-riattiva" data-id="${p.id}">${icona('aggiorna','piccola')}Riattiva</button>`}<button class="pulsante primario" data-azione="documento-nuovo" data-soggetto-tipo="persona" data-soggetto-id="${p.id}" data-drop-soggetto="persona:${p.id}" title="Puoi anche trascinare qui le scansioni">Aggiungi documento<span class="manopola">${icona('piu','piccola')}</span></button></div></div>
+  ${idn&&!idn.idonea?html`<div class="avviso-inline critico">${icona('blocco')}<div class="corpo"><b>Non può entrare in cantiere:</b> ${idn.motivi.join('; ')}</div></div>`:''}
+  ${idn&&idn.avvisi.length?html`<div class="avviso-inline attenzione">${icona('attenzione')}<div class="corpo"><b>Da regolarizzare</b> (richiesti dalle committenze, non bloccanti): ${idn.avvisi.join('; ')}</div></div>`:''}
+  ${linguette('persona:'+p.id,[{id:'panoramica',testo:'Panoramica'},{id:'documenti',testo:'Documenti',contatore:nDocCritici||docs.filter(d=>!documentoSuperato(d)).length||null,critico:nDocCritici>0},{id:'buste',testo:'Buste paga',contatore:nBuste||null},{id:'ore',testo:'Presenze'},{id:'cantieri',testo:'Cantieri',contatore:cantieriAperti.length||null},{id:'anagrafica',testo:'Anagrafica'},{id:'retribuzione',testo:'Retribuzione'}],ling)}
+  ${ling==='panoramica'?schedaPanoramicaPersona(p,idn):ling==='documenti'?schedaDocumentiPersona(p,idn):ling==='anagrafica'?schedaAnagrafica(p):ling==='buste'?schedaBustePersona(p):ling==='ore'?schedaOrePersona(p):ling==='cantieri'?schedaCantieriPersona(p):schedaRetribuzione(p)}`;
 }
+// riga di un documento: icona, nome, dettaglio, barra della scadenza, data, freccia
+function rigaDocumento(r){
+  const t=r.tipo;const d=r.d;const info=r.info;const fr=d?frazioneDoc(d,info):null;
+  const manca=!d;const file=d?(d.file||[]).length:0;
+  const sotto=manca?'manca: '+(r.motivo||'da caricare'):[d.titolo,d.ente,t&&t.periodo&&d.dataFine?'dal '+fData(d.dataEmissione)+' al '+fData(d.dataFine):'',t&&t.annuale?'anno '+(d.anno||'?'):'',file?'':'nessun file allegato'].filter(Boolean).join(' · ')||(file===1?'1 file':file+' file');
+  const tag=manca?html`<span class="pillola scaduto">manca</span>`:info.data&&!(t&&(t.periodo||t.annuale))?html`<span class="pillola ${info.silenziato?'neutro':info.stato==='scaduto'?'scaduto':info.stato==='scadenza'?'scadenza':'valido'}" title="${quandoScade(info)}">${fData(info.data)}</span>`:html`<span class="pillola neutro">${t&&t.annuale?'annuale':t&&t.periodo?'periodo':'non scade'}</span>`;
+  return html`<li ${manca?html`data-azione="documento-nuovo" data-soggetto-tipo="persona" data-soggetto-id="${r.pid}" data-tipo-id="${t?t.id:''}"`:html`data-azione="doc-apri" data-id="${d.id}"`}><span class="icona-doc ${manca?'vuota':''}">${icona(manca?'piu':ICONA_CATEGORIA[(t&&t.categoria)||'amministrativo']||'documenti','piccola')}</span><div class="testo-doc"><b>${t?t.nome:'[tipo?]'}</b><span class="${manca||!file?'bad-t':''}">${sotto}</span></div><div class="barra-doc">${fr!=null?html`<div class="traccia"><i class="${info.stato==='scaduto'?'tardi':info.stato==='scadenza'?'presto':''}" style="width:${Math.max(3,fr*100)}%"></i></div>`:''}</div><div class="data-doc">${tag}</div>${icona('destra','piccola va')}</li>`;
+}
+function schedaPanoramicaPersona(p,idn){
+  const docs=documentiPersona(p.id).filter(d=>!documentoSuperato(d)).map(d=>({d,info:infoDocumento(d),tipo:tipoDoc(d.tipoId),pid:p.id}));
+  const manc=(idn?idn.dettagliTutti.filter(x=>x.stato==='mancante'):[]).map(x=>({tipo:x.tipo,info:{},pid:p.id,motivo:x.tipo&&x.tipo.bloccaIdoneita?'blocca il cantiere':'richiesto'}));
+  const occhio=[...manc,...docs.filter(x=>x.info.data&&!x.info.silenziato).sort((a,b)=>a.info.giorni-b.info.giorni)].slice(0,6);
+  // ultimi sei mesi: ore in presenze e netto della busta (con il confronto)
+  const d=new Date();const mesi=[];for(let i=5;i>=0;i--){const x=new Date(d.getFullYear(),d.getMonth()-i,1);const anno=x.getFullYear(),mese=x.getMonth()+1;const mp=(meseP(anno,mese)||{persone:{}}).persone[p.id];const calc=mp?calcolaMesePersona(mp,p):null;const b=stato.bustePaga.find(y=>y.personaId===p.id&&y.anno===anno&&y.mese===mese);mesi.push({anno,mese,ore:calc?calc.oreGriglia:0,imp:calc?calc.importo:null,b,c:b?confrontoBusta(b):null})}
+  const mx=Math.max(...mesi.map(m=>m.ore),1);const r=p.retribuzione||{};
+  return html`<div class="bento">
+    <div class="guscio c-7"><div class="scheda"><div class="intesta"><h2>Da tenere d’occhio</h2><a class="vai" data-azione="linguetta-persona" data-id="${p.id}" data-valore="documenti">Tutti i documenti ${icona('destra','piccola')}</a></div>
+      ${occhio.length?html`<ul class="righe-doc">${occhio.map(rigaDocumento)}</ul>`:html`<p class="secondario piccolo">Nessuna scadenza in vista e nessun documento mancante.</p>`}</div></div>
+    <div class="guscio c-5"><div class="scheda"><div class="intesta"><h2>Dati principali</h2><a class="vai" data-azione="persona-modifica" data-id="${p.id}">Modifica</a></div>
+      <dl class="dati-doc"><dt>Codice fiscale</dt><dd class="mono">${valoreODaCompilare(p.cf)}</dd><dt>Nato</dt><dd>${[p.dataNascita?fData(p.dataNascita):'',p.luogoNascita].filter(Boolean).join(' · ')||daCompilare()}</dd><dt>Telefono</dt><dd>${p.telefono?contattoCliccabile('tel',p.telefono):daCompilare()}</dd><dt>Mansione</dt><dd>${valoreODaCompilare(p.mansione)}</dd><dt>Retribuzione</dt><dd>${testoRetribuzione(p)}</dd><dt>Firma</dt><dd>${p.firmaImg?html`<span class="pillola valido">${icona('ok','piccola')}caricata</span>`:html`<a href="#" data-azione="persona-firma" data-id="${p.id}">Carica da una foto</a>`}</dd></dl></div></div>
+    <div class="guscio c-12"><div class="scheda"><div class="intesta"><h2>Ore e netto, ultimi sei mesi</h2><span class="piccolo silenzioso">la busta paga contro le presenze</span><a class="vai" data-azione="linguetta-persona" data-id="${p.id}" data-valore="buste">Buste paga ${icona('destra','piccola')}</a></div>
+      <div class="sei-mesi">${mesi.map(m=>html`<a class="mese-col" href="#/presenze/${chiaveMese(m.anno,m.mese)}"><span class="colonna-ore"><i style="height:${m.ore?Math.max(6,m.ore/mx*100):3}%"></i></span><span class="riga stretta" style="justify-content:space-between"><b>${NOMI_MESI_BREVI[m.mese-1]}</b><span class="silenzioso">${fOre(m.ore)||0} h</span></span><span class="piccolo">${m.b&&m.b.netto!=null?html`${fEuro(m.b.netto,0)} ${m.c&&m.c.scarto&&!(m.b.verifica&&m.b.verifica.stato==='accettata')?html`<span class="pillola scadenza" title="Differenza con il tuo importo">${m.c.diffEuro!=null?(m.c.diffEuro>0?'+':'')+fNum(m.c.diffEuro,0):'≠'}</span>`:icona('ok','piccola ok-t')}`:m.imp!=null?html`<span class="silenzioso">busta da caricare</span>`:html`<span class="silenzioso">—</span>`}</span></a>`)}</div></div></div>
+  </div>`;
+}
+AZIONI['linguetta-persona']=d=>{ui.filtri['ling:persona:'+d.id]=d.valore;render();window.scrollTo({top:0,behavior:'smooth'})};
 function schedaDocumentiPersona(p,idn){
   const q=normalizzaTesto(ui.filtri.docPersona||'');
   const mostraRinnovati=!!ui.filtri.docPersonaArchiviati;
   const tutti=documentiPersona(p.id);
   const rinnovati=tutti.filter(d=>documentoSuperato(d)).length;
-  let docs=(mostraRinnovati?tutti:tutti.filter(d=>!documentoSuperato(d))).map(d=>({d,info:infoDocumento(d),tipo:tipoDoc(d.tipoId)}));
+  let docs=(mostraRinnovati?tutti:tutti.filter(d=>!documentoSuperato(d))).map(d=>({d,info:infoDocumento(d),tipo:tipoDoc(d.tipoId),pid:p.id}));
   if(q) docs=docs.filter(r=>normalizzaTesto([r.tipo&&r.tipo.nome,r.d.titolo,r.d.note,r.d.ente,r.d.anno,r.d.dataEmissione&&fData(r.d.dataEmissione),r.info.data&&fData(r.info.data)].filter(Boolean).join(' ')).includes(q));
-  const mancanti=idn?idn.dettagliTutti.filter(x=>x.stato==='mancante'):[];
+  const mancanti=(idn?idn.dettagliTutti.filter(x=>x.stato==='mancante'):[]).filter(x=>!q||normalizzaTesto(x.nome).includes(q)).map(x=>({tipo:x.tipo,info:{},pid:p.id,motivo:x.tipo&&x.tipo.bloccaIdoneita?'blocca il cantiere':'richiesto'}));
   const ord=['scaduto','scadenza','pianificare','valido','riferimento'];
   docs.sort((a,b)=>ord.indexOf(a.info.stato)-ord.indexOf(b.info.stato)||(a.info.giorni||0)-(b.info.giorni||0));
-  const COLONNE=[
-
-    {chiave:'tipo',titolo:'Documento',principale:true,valore:r=>r.tipo?r.tipo.nome:'',formatta:r=>html`<b>${r.tipo?r.tipo.nome:'[tipo?]'}</b>${r.d.titolo?html`<br><span class="piccolo secondario">${r.d.titolo}</span>`:''}${!(r.d.file||[]).length?html`<br><span class="piccolo da-compilare">nessun file allegato</span>`:''}`},
-    {chiave:'emissione',titolo:'Emissione',valore:r=>r.d.dataEmissione||'',formatta:r=>r.d.dataEmissione?fData(r.d.dataEmissione):html`<span class="silenzioso">—</span>`},
-    {chiave:'scadenza',titolo:'Scadenza',valore:r=>r.info.data||'',formatta:r=>r.tipo&&r.tipo.periodo?html`<span class="piccolo">${r.d.dataFine?'fino al '+fData(r.d.dataFine):'—'}${r.d.dataEmissione&&r.d.dataFine?html` <span class="secondario">(${plurale(giorniTra(r.d.dataEmissione,r.d.dataFine)+1,'giorno','giorni')})</span>`:''}</span>`:r.tipo&&r.tipo.annuale?html`<span class="etichetta-tag">anno ${r.d.anno||'?'}</span>`:r.info.data?html`<span class="${r.info.stimata?'stimata':''}" title="${r.info.stimata?'Stimata dalla validità tipica':''}">${fData(r.info.data)}${r.info.stimata?' ~':''}</span>`:r.d.senzaScadenza?html`<span class="silenzioso">nessuna</span>`:daCompilare('data?')},
-    {chiave:'stato',titolo:'Stato',valore:r=>ord.indexOf(r.info.stato),formatta:r=>pillolaDocumento(r.info)},
-    {chiave:'file',titolo:'File',valore:r=>(r.d.file||[]).length,formatta:r=>html`${(r.d.file||[]).map(f=>{const m=fileMeta(f);return m?html`<span class="etichetta-tag" title="${m.nome}">${icona(ePdf(m.mime,m.nome)?'pdf':'immagine','piccola')} ${fPeso(m.dimensione)}</span> `:''})}`},
-  ]
-  // I documenti di una persona sono tanti e di natura diversa: raggrupparli per argomento e tenere
-  // chiuso quello che è a posto è l'unico modo per trovare qualcosa senza scorrere tutto.
-  const ordineCat=ORDINE_CATEGORIE_DOC;
+  // per argomento, chiuso quello che è a posto: si trova tutto senza scorrere
   const gruppi=new Map();
-  for(const r of docs){const c=(r.tipo&&r.tipo.categoria)||'amministrativo';if(!gruppi.has(c))gruppi.set(c,[]);gruppi.get(c).push(r)}
-  const chiavi=Array.from(gruppi.keys()).sort((a,b)=>{const ia=ordineCat.indexOf(a),ib=ordineCat.indexOf(b);return (ia<0?99:ia)-(ib<0?99:ib)});
-  const problemi=(rr)=>rr.filter(r=>documentoCritico(r.info)).length;
-  return html`
-  ${mancanti.length?html`<div class="avviso-inline ${mancanti.some(m=>m.tipo.bloccaIdoneita)?'critico':'attenzione'}">${icona('attenzione')}<div class="corpo"><b>Documenti mancanti:</b> ${mancanti.map(m=>m.nome).join(' · ')}</div></div>`:''}
-  <div class="strumenti-tabella"><input type="search" placeholder="Cerca fra i documenti di ${nomePersona(p)}" value="${ui.filtri.docPersona||''}" data-cambio="filtro-doc-persona" aria-label="Cerca documenti">${rinnovati?html`<label class="spunta piccolo" title="Documenti sostituiti da un rinnovo più recente dello stesso tipo"><input type="checkbox" data-cambio="filtro-doc-persona-archiviati" ${mostraRinnovati?'checked':''}> Mostra rinnovati (${rinnovati})</label>`:''}<span class="conteggio">${plurale(docs.length,'documento','documenti')}</span></div>
-  ${docs.length?chiavi.map(c=>{const rr=gruppi.get(c);const pb=problemi(rr);return html`<details class="ck-sezione" ${pb||q?'open':''}><summary><span class="freccia">${icona('destra','piccola')}</span><b class="spazio">${CATEGORIE_TIPO_DOC[c]||c}</b>${pb?html`<span class="pillola scaduto piccolo">${pb} da sistemare</span>`:html`<span class="pillola valido piccolo">${icona('ok','piccola')}a posto</span>`}<span class="conteggio">${rr.length}</span></summary><div class="ck-corpo">${tabella({id:'docp'+c,righe:rr,onRiga:r=>apriDocumento(r.d.id),classeRiga:r=>'riga-'+(r.info.silenziato?'riferimento':r.info.stato),colonne:COLONNE})}</div></details>`})
-    :html`<div class="vuoto">${icona('documenti')}<h3>${q?'Nessun documento trovato':'Nessun documento'}</h3><p class="secondario">${q?'Prova con un altro termine di ricerca.':'Usa «Aggiungi documento» qui sopra, o trascina le scansioni sul pulsante.'}</p></div>`}`;
+  for(const r of [...mancanti,...docs]){const c=(r.tipo&&r.tipo.categoria)||'amministrativo';if(!gruppi.has(c))gruppi.set(c,[]);gruppi.get(c).push(r)}
+  const chiavi=Array.from(gruppi.keys()).sort((a,b)=>{const ia=ORDINE_CATEGORIE_DOC.indexOf(a),ib=ORDINE_CATEGORIE_DOC.indexOf(b);return (ia<0?99:ia)-(ib<0?99:ib)});
+  const problemi=rr=>rr.filter(r=>!r.d||documentoCritico(r.info)).length;
+  return html`<div class="strumenti-tabella"><input type="search" placeholder="Cerca fra i documenti di ${nomePersona(p)}" value="${ui.filtri.docPersona||''}" data-cambio="filtro-doc-persona" aria-label="Cerca documenti">${rinnovati?html`<label class="spunta piccolo" title="Documenti sostituiti da un rinnovo più recente dello stesso tipo"><input type="checkbox" data-cambio="filtro-doc-persona-archiviati" ${mostraRinnovati?'checked':''}> Mostra rinnovati (${rinnovati})</label>`:''}<span class="spazio"></span><button class="pulsante" data-azione="documento-nuovo" data-soggetto-tipo="persona" data-soggetto-id="${p.id}">${icona('carica','piccola')}Carica</button></div>
+  <div class="zona-drop piccola mb" data-azione="documento-nuovo" data-soggetto-tipo="persona" data-soggetto-id="${p.id}" data-drop-soggetto="persona:${p.id}">${icona('carica')}<div><b>Trascina qui un file di ${p.nome||nomePersona(p)}</b><br><span>PDF o foto: riconosco il tipo dal nome e dal testo, leggo le date e lo assegno a ${p.nome||nomePersona(p)}.</span></div></div>
+  ${gruppi.size?html`<div class="guscio"><div class="scheda">${chiavi.map(c=>{const rr=gruppi.get(c);const pb=problemi(rr);return html`<details class="gruppo-doc" ${pb||q||gruppi.size<=2?'open':''}><summary>${icona('destra','piccola freccia')}<b>${CATEGORIE_TIPO_DOC[c]||c}</b><span class="pillola neutro">${rr.length}</span>${pb?html`<span class="pillola scadenza">${pb} da sistemare</span>`:''}</summary><ul class="righe-doc">${rr.map(rigaDocumento)}</ul></details>`})}</div></div>`
+  :html`<div class="vuoto">${icona('documenti')}<h3>${q?'Nessun documento trovato':'Nessun documento'}</h3><p>${q?'Prova con un altro termine di ricerca.':'Trascina qui sopra le scansioni, o usa «Carica».'}</p></div>`}`;
 }
 AZIONI['filtro-doc-persona']=(d,t)=>{ui.filtri.docPersona=t.value;render();setTimeout(()=>{const i=el('[data-cambio="filtro-doc-persona"]');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}},0)};
 AZIONI['filtro-doc-persona-archiviati']=(d,t)=>{ui.filtri.docPersonaArchiviati=t.checked;render()};
@@ -3459,31 +3639,15 @@ document.addEventListener('input',debounce(e=>{const t=e.target;if(t.matches&&t.
 
 function schedaAnagrafica(p){
   const cfv=p.cf?validaCodiceFiscale(p.cf):null;
-  const campo=(et,v,fmt)=>html`<div class="campo"><span class="etichetta-campo">${et}</span><div>${valoreODaCompilare(v,fmt)}</div></div>`;
-  return html`<div class="griglia due">
-  <div class="scheda"><h3>${icona('persona')}Dati anagrafici</h3><div class="campi">
-    ${campo('Cognome',p.cognome)}${campo('Nome',p.nome)}
-    <div class="campo"><span class="etichetta-campo">Codice fiscale</span><div class="mono">${valoreODaCompilare(p.cf)} ${cfv&&!cfv.ok?html`<span class="da-compilare piccolo">${cfv.errore}</span>`:''}</div></div>
-    ${campo('Data di nascita',p.dataNascita,fData)}${campo('Luogo di nascita',p.luogoNascita)}${campo('Nazionalità',p.nazionalita)}
-    <div class="campo largo"><span class="etichetta-campo">Residenza</span><div>${valoreODaCompilare(p.residenza)}</div></div>
-  </div></div>
-  <div class="scheda"><h3>${icona('telefono')}Contatti</h3><div class="campi">
-    <div class="campo"><span class="etichetta-campo">Telefono</span><div>${p.telefono?contattoCliccabile('tel',p.telefono):daCompilare()}</div></div>
-    <div class="campo"><span class="etichetta-campo">Email</span><div>${p.email?contattoCliccabile('mail',p.email):daCompilare()}</div></div>
-  </div>
-  <h3 class="mt">${icona('cantieri')}Rapporto di lavoro</h3><div class="campi">
-    ${campo('Tipo',TIPI_PERSONA[p.tipo])}${campo('Mansione',p.mansione)}
-    ${campo('Assunzione',p.dataAssunzione,fData)}${campo('Cessazione',p.dataCessazione||(p.attivo?'in forza':null),v=>v==='in forza'?v:fData(v))}
-    <div class="campo largo"><span class="etichetta-campo">Qualifiche</span><div>${(p.qualifiche||[]).length?p.qualifiche.map(q=>html`<span class="etichetta-tag">${QUALIFICHE[q]||q}</span> `):html`<span class="silenzioso">nessuna</span>`}</div></div>
-  </div></div>
-  <div class="scheda"><h3>${icona('presenze')}Presenze e cantiere</h3><div class="campi">
-    <div class="campo"><span class="etichetta-campo">Libro presenze</span><div>${p.inLibroPresenze?html`sì, sezione ${p.sezionePresenze}${p.soloTrasferte?' (solo riga trasferte)':''}`:'no'}</div></div>
-    <div class="campo"><span class="etichetta-campo">Va in cantiere</span><div>${p.inCantiere!==false?'sì':'no'}</div></div>
-
-  </div></div>
-  <div class="scheda"><h3>${icona('firma')}Firma <span class="azioni"><button class="pulsante piccolo" data-azione="persona-firma" data-id="${p.id}">${icona('fotocamera','piccola')}${p.firmaImg?'Sostituisci':'Carica da una foto'}</button>${p.firmaImg?html`<button class="pulsante piccolo pericolo" data-azione="persona-firma-togli" data-id="${p.id}">${icona('elimina','piccola')}Togli</button>`:''}</span></h3>
-    ${p.firmaImg?html`<div class="riquadro-firma"><img src="${p.firmaImg}" alt="Firma di ${nomePersona(p)}"></div>`:html`<p class="secondario piccolo">Nessuna firma. Fotografa la firma su un foglio bianco: l'app toglie lo sfondo e la usa nelle nomine che questa persona deve firmare per accettazione.</p>`}</div>
-  ${p.note?html`<div class="scheda"><h3>${icona('info')}Note</h3><p>${p.note}</p></div>`:''}
+  const v=(x,fmt)=>valoreODaCompilare(x,fmt);
+  const scheda=(tit,corpo,az)=>html`<div class="guscio c-6"><div class="scheda"><div class="intesta"><h2>${tit}</h2>${az||''}</div>${corpo}</div></div>`;
+  const modifica=html`<a class="vai" data-azione="persona-modifica" data-id="${p.id}">Modifica</a>`;
+  return html`<div class="bento">
+  ${scheda('Dati anagrafici',html`<dl class="dati-doc"><dt>Cognome</dt><dd>${v(p.cognome)}</dd><dt>Nome</dt><dd>${v(p.nome)}</dd><dt>Codice fiscale</dt><dd class="mono">${v(p.cf)} ${cfv&&!cfv.ok?html`<span class="da-compilare piccolo">${cfv.errore}</span>`:''}</dd><dt>Nato il</dt><dd>${v(p.dataNascita,fData)}</dd><dt>A</dt><dd>${v(p.luogoNascita)}</dd><dt>Nazionalità</dt><dd>${v(p.nazionalita)}</dd><dt>Residenza</dt><dd>${v(p.residenza)}</dd></dl>`,modifica)}
+  ${scheda('Contatti e rapporto di lavoro',html`<dl class="dati-doc"><dt>Telefono</dt><dd>${p.telefono?contattoCliccabile('tel',p.telefono):daCompilare()}</dd><dt>Email</dt><dd>${p.email?contattoCliccabile('mail',p.email):daCompilare()}</dd><dt>Tipo</dt><dd>${v(TIPI_PERSONA[p.tipo])}</dd><dt>Mansione</dt><dd>${v(p.mansione)}</dd><dt>Assunzione</dt><dd>${v(p.dataAssunzione,fData)}</dd><dt>Cessazione</dt><dd>${p.dataCessazione?fData(p.dataCessazione):p.attivo?'in forza':daCompilare()}</dd><dt>Qualifiche</dt><dd>${(p.qualifiche||[]).length?p.qualifiche.map(q=>html`<span class="etichetta-tag">${QUALIFICHE[q]||q}</span> `):html`<span class="silenzioso">nessuna</span>`}</dd></dl>`,modifica)}
+  ${scheda('Presenze e cantiere',html`<dl class="dati-doc"><dt>Libro presenze</dt><dd>${p.inLibroPresenze?html`sì, sezione ${p.sezionePresenze}${p.soloTrasferte?' (solo riga trasferte)':''}`:'no'}</dd><dt>Va in cantiere</dt><dd>${p.inCantiere!==false?'sì':'no'}</dd><dt>Festività pagate</dt><dd>${p.festivitaPagate?'sì':'no'}</dd></dl>`,modifica)}
+  ${scheda('Firma',p.firmaImg?html`<div class="riquadro-firma"><img src="${p.firmaImg}" alt="Firma di ${nomePersona(p)}"></div>`:html`<p class="secondario piccolo">Nessuna firma. Fotografa la firma su un foglio bianco: l'app toglie lo sfondo e la usa nelle nomine che questa persona deve firmare per accettazione.</p>`,html`<span class="spazio"></span><button class="pulsante piccolo" data-azione="persona-firma" data-id="${p.id}">${icona('fotocamera','piccola')}${p.firmaImg?'Sostituisci':'Carica da una foto'}</button>${p.firmaImg?html`<button class="pulsante piccolo discreto pericolo" data-azione="persona-firma-togli" data-id="${p.id}">Togli</button>`:''}`)}
+  ${p.note?html`<div class="guscio c-12"><div class="scheda"><div class="intesta"><h2>Note</h2></div><p>${p.note}</p></div></div>`:''}
   </div>`;
 }
 // Firma da foto: si sceglie la soglia guardando l'anteprima, perché la carta fotografata non è mai
@@ -3572,20 +3736,23 @@ function schedaBustePersona(p){
   const buste=stato.bustePaga.filter(b=>b.personaId===p.id);
   const anni=unici([...buste.map(b=>b.anno),new Date().getFullYear()]).sort((a,b)=>b-a);
   const oggiD=new Date();
-  return html`<div class="scheda"><h3>Buste paga <span class="azioni"><a class="pulsante piccolo" href="#/documenti/buste?persona=${p.id}">${icona('busta-paga')}Smistamento</a></span></h3>
-  ${anni.map(anno=>html`<div class="sezione-titolo">${anno}</div><div class="griglia-mesi">${Array.from({length:12},(_,i)=>i+1).map(m=>{const b=buste.find(x=>x.anno===anno&&x.mese===m);const futuro=anno>oggiD.getFullYear()||(anno===oggiD.getFullYear()&&m>oggiD.getMonth());const lavorato=!!(meseP(anno,m)&&meseP(anno,m).persone[p.id]);return html`<div class="mese-cella ${b?'presente':futuro?'futuro':lavorato?'mancante':''}" ${b?html`data-azione="busta-apri" data-id="${b.id}"`:''} title="${b?'Busta paga presente':futuro?'':lavorato?'Mese lavorato senza busta paga':'Nessuna busta'}">${NOMI_MESI_BREVI[m-1]}${b?html`<br>${icona('ok','piccola')}`:lavorato&&!futuro?html`<br>${icona('attenzione','piccola')}`:''}</div>`})}</div>`)}
-  <p class="piccolo secondario mt">I mesi con presenze registrate ma senza busta paga sono evidenziati in rosso.</p></div>`;
+  return html`<div class="strumenti-tabella"><span class="secondario piccolo">Clicca un mese per vedere la busta. Un mese rosso ha ore in presenze ma nessuna busta.</span><span class="spazio"></span><a class="pulsante" href="#/documenti/buste?persona=${p.id}">${icona('busta-paga','piccola')}Smistamento buste</a></div>
+  ${anni.map(anno=>html`<div class="guscio mb"><div class="scheda"><div class="intesta"><h2>${anno}</h2><span class="piccolo silenzioso">${plurale(buste.filter(b=>b.anno===anno).length,'busta','buste')}</span></div><div class="mesi-12">${Array.from({length:12},(_,i)=>i+1).map(m=>{const b=buste.find(x=>x.anno===anno&&x.mese===m);const futuro=anno>oggiD.getFullYear()||(anno===oggiD.getFullYear()&&m>oggiD.getMonth());const lavorato=!!(meseP(anno,m)&&meseP(anno,m).persone[p.id]);const c=b?confrontoBusta(b):null;return html`<div class="mese-cella ${b?'presente':futuro?'futuro':lavorato?'mancante':'vuota'}" ${b?html`data-azione="busta-apri" data-id="${b.id}"`:''} title="${b?'Busta paga':futuro?'':lavorato?'Mese lavorato senza busta paga':'Nessuna busta'}"><b>${NOMI_MESI_BREVI[m-1]}</b><span>${b?(b.netto!=null?fEuro(b.netto,0):'busta'):lavorato&&!futuro?'manca':''}</span>${c&&c.scarto&&!(b.verifica&&b.verifica.stato==='accettata')?html`<i class="segno-scarto" title="Il netto non torna con le presenze"></i>`:''}</div>`})}</div></div></div>`)}`;
 }
 function schedaOrePersona(p){
   const oggiD=new Date();const righe=[];
   for(let i=0;i<12;i++){const d=new Date(oggiD.getFullYear(),oggiD.getMonth()-i,1);const anno=d.getFullYear(),mese=d.getMonth()+1;const m=meseP(anno,mese);const mp=m&&m.persone[p.id];const calc=mp?calcolaMesePersona(mp,p):null;righe.push({anno,mese,mp,calc})}
-  return html`<div class="scheda"><h3>Ore negli ultimi dodici mesi</h3>${tabella({righe,colonne:[
-    {chiave:'mese',titolo:'Mese',principale:true,formatta:r=>html`<a href="#/presenze/${r.anno}-${pad2(r.mese)}">${fMeseAnno(r.anno,r.mese)}</a>`},
+  const anno=oggiD.getFullYear();const mesiAnno=Object.keys(stato.presenze).filter(k=>k.startsWith(anno+'-')).map(k=>stato.presenze[k].persone[p.id]).filter(Boolean);
+  let fe=0,pe=0;for(const mp of mesiAnno)for(const c of Object.values(mp.giorni||{})){const v=valoreCella(c);if(v==='FE')fe++;if(v==='PE')pe+=8}
+  const ult=righe.find(x=>x.calc);
+  return html`<div class="griglia quattro mb"><div class="indicatore" style="cursor:default"><span class="etichetta">${ult?fMeseAnno(ult.anno,ult.mese):'Ultimo mese'} · ore</span><span class="valore md">${ult?fOre(ult.calc.oreGriglia):'—'}</span></div><div class="indicatore" style="cursor:default"><span class="etichetta">Importo</span><span class="valore md">${ult?fEuro(ult.calc.importo,0):'—'}</span></div><div class="indicatore" style="cursor:default"><span class="etichetta">Ferie nel ${anno}</span><span class="valore md">${fe} <span class="piccolo silenzioso">/ ${CODICI_ASSENZA.FE.massimaleGiorniAnno} giorni</span></span></div><div class="indicatore" style="cursor:default"><span class="etichetta">Permessi nel ${anno}</span><span class="valore md">${pe} <span class="piccolo silenzioso">/ ${CODICI_ASSENZA.PE.massimaleOreAnno} h</span></span></div></div>
+  <div class="guscio"><div class="scheda"><div class="intesta"><h2>Ultimi dodici mesi</h2><span class="spazio"></span><button class="pulsante piccolo" data-azione="presenze-compila" data-k="${chiaveMese(oggiD.getFullYear(),oggiD.getMonth()+1)}" data-pid="${p.id}">${icona('tastiera','piccola')}Compila il mese di ${p.nome||''}</button></div>${tabella({righe,href:r=>'#/presenze/'+chiaveMese(r.anno,r.mese),colonne:[
+    {chiave:'mese',titolo:'Mese',principale:true,formatta:r=>html`<b>${fMeseAnno(r.anno,r.mese)}</b>`},
     {chiave:'ore',titolo:'Ore',num:true,formatta:r=>r.calc?fOre(r.calc.oreGriglia):html`<span class="silenzioso">—</span>`},
     {chiave:'assenze',titolo:'Assenze',formatta:r=>r.calc?Object.entries(r.calc.perCodice).map(([c,n])=>html`<span class="etichetta-tag" title="${CODICI_ASSENZA[c]?CODICI_ASSENZA[c].nome:c}">${c} ${n}</span> `):''},
     {chiave:'importo',titolo:'Importo',num:true,formatta:r=>r.calc?html`${fEuro(r.calc.importo,0)}`:html`<span class="silenzioso">—</span>`},
     {chiave:'foglio',titolo:'Foglio ore',formatta:r=>r.mp&&r.mp.foglioOreId?html`<button class="pulsante piccolo" data-azione="file-apri" data-id="${r.mp.foglioOreId}">${icona('immagine','piccola')}Vedi</button>`:html`<span class="silenzioso">—</span>`},
-  ]})}</div>`;
+  ]})}</div></div>`;
 }
 function schedaCantieriPersona(p){
   const cs=stato.cantieri.filter(c=>(c.operai||[]).includes(p.id)||c.prepostoId===p.id);
@@ -3649,23 +3816,23 @@ function dialogoPersona(p){
 function vistaScadenzario(r){
   const sc=riepilogoScadenze();
   const conData=sc.righe.filter(x=>x.info.data).sort((a,b)=>a.info.data<b.info.data?-1:1);
-  const gruppi=raggruppa(conData,x=>x.info.data.slice(0,7));
   const filtro=ui.filtri.scadenzario||'tutti';
   const visibili=filtro==='tutti'?conData:filtro==='critici'?conData.filter(x=>['scaduto','scadenza','pianificare'].includes(x.info.stato)):conData.filter(x=>x.info.stato===filtro);
-  const gruppiV=raggruppa(visibili,x=>x.info.data.slice(0,7));
-  return html`<div class="briciole"><a href="#/operai">Operai</a> › Scadenzario</div>
-  <div class="testata"><div><h1>Scadenzario</h1><div class="sotto">Tutte le scadenze di persone, azienda e mezzi, in ordine cronologico. Aggiornato a oggi ${fData(sc.oggi)}.</div></div>
-  <div class="azioni"><button class="pulsante" data-azione="stampa-scadenzario">${icona('stampa')}Stampa</button><button class="pulsante" data-azione="esporta-scadenzario-md">${icona('scarica')}Markdown</button><button class="pulsante" data-azione="esporta-scadenzario-csv">${icona('scarica')}CSV</button></div></div>
+  const barra=x=>{const fr=frazioneDoc(x.doc,x.info);return fr!=null?html`<div class="traccia"><i class="${x.info.stato==='scaduto'?'tardi':x.info.stato==='scadenza'?'presto':''}" style="width:${Math.max(3,fr*100)}%"></i></div>`:''};
+  const chi=x=>x.doc.soggettoTipo==='persona'&&persona(x.doc.soggettoId)?html`<span class="chi">${avatar(persona(x.doc.soggettoId),'mini')}<span>${x.soggetto}</span></span>`:x.soggetto;
+  const nomeDoc=x=>html`<b>${x.tipo?x.tipo.nome:'Documento'}</b>${x.doc.titolo?html` <span class="piccolo silenzioso">${x.doc.titolo}</span>`:''}${(x.doc.file||[]).length?'':html` <span class="pillola scaduto">senza file</span>`}`;
+  return html`<div class="testata"><div><div class="occhiello">Squadra</div><h1>Scadenzario</h1><p class="sotto">Tutti i documenti con una scadenza, dal più urgente. Clicca una riga per aprirlo, rinnovarlo o sostituirlo.</p></div>
+  <div class="azioni"><button class="pulsante" data-azione="stampa-scadenzario">${icona('stampa','piccola')}Stampa</button><button class="pulsante" data-azione="esporta-scadenzario-md">${icona('scarica','piccola')}Markdown</button><button class="pulsante" data-azione="esporta-scadenzario-csv">${icona('scarica','piccola')}CSV</button></div></div>
   <div class="griglia quattro mb">
     <div class="indicatore critico" data-azione="filtro-scadenzario" data-valore="scaduto"><span class="etichetta">${icona('errore')}Scaduti</span><span class="valore">${sc.scaduti.length}</span></div>
     <div class="indicatore critico" data-azione="filtro-scadenzario" data-valore="mancanti"><span class="etichetta">${icona('blocco')}Mancanti</span><span class="valore">${sc.mancanti.length}</span><span class="nota">${sc.mancanti.filter(m=>m.bloccante).length} bloccanti</span></div>
     <div class="indicatore attenzione" data-azione="filtro-scadenzario" data-valore="scadenza"><span class="etichetta">${icona('attenzione')}Entro ${sc.soglie.scadenza} giorni</span><span class="valore">${sc.entro60.length}</span></div>
     <div class="indicatore" data-azione="filtro-scadenzario" data-valore="pianificare"><span class="etichetta">${icona('calendario')}Entro ${sc.soglie.pianificare} giorni</span><span class="valore">${sc.entro90.length}</span></div>
   </div>
-  ${filtro!=='mancanti'?html`<div class="strumenti-tabella"><div class="gruppo-pulsanti">${[['tutti','Tutti'],['critici','Da fare'],['scaduto','Scaduti'],['scadenza','In scadenza'],['pianificare','Da pianificare'],['valido','Validi']].map(([v,t])=>html`<button class="pulsante piccolo ${filtro===v?'attivo':''}" data-azione="filtro-scadenzario" data-valore="${v}">${t}</button>`)}</div><span class="conteggio">${visibili.length} scadenze</span></div>`:''}
-  ${sc.mancanti.length&&(filtro==='tutti'||filtro==='mancanti')?html`<div class="scheda mb"><h3>${icona('blocco')}Documenti mancanti</h3>${tabella({righe:sc.mancanti,href:m=>'#/operai/'+m.persona.id,colonne:[{chiave:'p',titolo:'Persona',principale:true,formatta:m=>nomePersona(m.persona)},{chiave:'d',titolo:'Documento',formatta:m=>m.nome},{chiave:'b',titolo:'Effetto',formatta:m=>m.bloccante?html`<span class="pillola scaduto">${icona('blocco')}Blocca l'ingresso in cantiere</span>`:html`<span class="pillola pianificare">${icona('info')}Richiesto dalle committenze</span>`}]})}</div>`:''}
-  ${filtro!=='mancanti'?html`${Array.from(gruppiV.entries()).length?Array.from(gruppiV.entries()).map(([k,righe])=>{const {anno,mese}=daChiaveMese(k);return html`<div class="sezione-titolo">${fMeseAnno(anno,mese)} · ${righe.length}</div>${tabella({righe,onRiga:x=>apriDocumento(x.doc.id),classeRiga:x=>'riga-'+x.info.stato,colonne:[{chiave:'data',titolo:'Scadenza',principale:true,formatta:x=>html`<b class="${x.info.stimata?'stimata':''}">${fData(x.info.data)}${x.info.stimata?' ~':''}</b> <span class="piccolo secondario">${fGiorni(x.info.giorni)}</span>`},{chiave:'sogg',titolo:'Chi',formatta:x=>x.soggetto},{chiave:'doc',titolo:'Documento',formatta:x=>html`${x.tipo?x.tipo.nome:''}${x.doc.titolo?html` <span class="piccolo secondario">${x.doc.titolo}</span>`:''}`},{chiave:'stato',titolo:'Stato',formatta:x=>pillolaDocumento(x.info,{breve:true})},{chiave:'file',titolo:'File',formatta:x=>(x.doc.file||[]).length?icona('allega','piccola'):html`<span class="da-compilare piccolo">nessuno</span>`}]})}`}):html`<div class="vuoto">${icona('ok')}<h3>Niente in questo filtro</h3></div>`}`:''}
-  ${filtro==='tutti'&&sc.senzaScadenza.length?html`<div class="sezione-titolo">Senza scadenza (riferimento) · ${sc.senzaScadenza.length}</div>${tabella({righe:sc.senzaScadenza,onRiga:x=>apriDocumento(x.doc.id),colonne:[{chiave:'sogg',titolo:'Chi',principale:true,formatta:x=>x.soggetto},{chiave:'doc',titolo:'Documento',formatta:x=>html`${x.tipo?x.tipo.nome:''}${x.doc.titolo?html` <span class="piccolo secondario">${x.doc.titolo}</span>`:''}`},{chiave:'em',titolo:'Emissione',formatta:x=>x.doc.dataEmissione?fData(x.doc.dataEmissione):html`<span class="silenzioso">—</span>`},{chiave:'file',titolo:'File',formatta:x=>(x.doc.file||[]).length?icona('allega','piccola'):html`<span class="da-compilare piccolo">nessuno</span>`}]})}`:''}`;
+  <div class="strumenti-tabella"><div class="gruppo-pulsanti">${[['tutti','Tutti'],['critici','Da fare'],['scaduto','Scaduti'],['scadenza','In scadenza'],['pianificare','Da pianificare'],['valido','Validi'],['mancanti','Mancanti']].map(([v,t])=>html`<button class="pulsante piccolo ${filtro===v?'attivo':''}" data-azione="filtro-scadenzario" data-valore="${v}">${t}</button>`)}</div><span class="conteggio">${filtro==='mancanti'?plurale(sc.mancanti.length,'documento mancante','documenti mancanti'):plurale(visibili.length,'scadenza','scadenze')}</span></div>
+  ${sc.mancanti.length&&(filtro==='tutti'||filtro==='mancanti')?html`<div class="guscio mb"><div class="scheda scheda-tabella"><div class="card-h"><h2>${icona('blocco')}Documenti mancanti</h2></div><table class="tabella"><thead><tr><th>Documento</th><th>Di chi</th><th>Effetto</th></tr></thead><tbody>${sc.mancanti.map(m=>html`<tr class="cliccabile" data-azione="vai" data-href="operai/${m.persona.id}/documenti"><td><b>${m.nome}</b></td><td><span class="chi">${avatar(m.persona,'mini')}<span>${nomePersona(m.persona)}</span></span></td><td>${m.bloccante?html`<span class="pillola scaduto">${icona('blocco')}Blocca l'ingresso in cantiere</span>`:html`<span class="pillola pianificare">${icona('info')}Richiesto dalle committenze</span>`}</td></tr>`)}</tbody></table></div></div>`:''}
+  ${filtro!=='mancanti'?(visibili.length?html`<div class="guscio"><div class="scheda scheda-tabella"><table class="tabella"><thead><tr><th>Documento</th><th>Di chi</th><th class="num">Scadenza</th><th class="nascondi-telefono" style="width:180px"></th><th>Stato</th></tr></thead><tbody>${visibili.map(x=>html`<tr class="cliccabile riga-${x.info.stato}" data-azione="doc-apri" data-id="${x.doc.id}"><td>${nomeDoc(x)}</td><td>${chi(x)}</td><td class="num"><b class="${x.info.stimata?'stimata':''}">${fData(x.info.data)}${x.info.stimata?' ~':''}</b><br><span class="piccolo silenzioso">${quandoScade(x.info)}</span></td><td class="nascondi-telefono">${barra(x)}</td><td>${pillolaDocumento(x.info,{breve:true})}</td></tr>`)}</tbody></table></div></div>`:html`<div class="vuoto">${icona('ok')}<h3>Niente in questo filtro</h3></div>`):''}
+  ${filtro==='tutti'&&sc.senzaScadenza.length?html`<details class="gruppo-doc mt"><summary>Senza scadenza (riferimento) <span class="pillola neutro">${sc.senzaScadenza.length}</span></summary><div class="scheda scheda-tabella"><table class="tabella"><tbody>${sc.senzaScadenza.map(x=>html`<tr class="cliccabile" data-azione="doc-apri" data-id="${x.doc.id}"><td>${nomeDoc(x)}</td><td>${chi(x)}</td><td class="num silenzioso">${x.doc.dataEmissione?fData(x.doc.dataEmissione):'—'}</td></tr>`)}</tbody></table></div></details>`:''}`;
 }
 AZIONI['filtro-scadenzario']=d=>{ui.filtri.scadenzario=ui.filtri.scadenzario===d.valore?'tutti':d.valore;render()};
 
@@ -3756,12 +3923,9 @@ VISTE.cantieri=function(r){
   if(r.id&&r.sotto==='pacchetto') return vistaPacchetto(cantiere(r.id),r);
   if(r.id) return vistaCantiere(r.id,r);
   const vista=r.query.vista||ui.filtri.cantieriVista||'elenco';
-  const testa=html`<div class="testata"><div><h1>Cantieri</h1><div class="sotto">${stato.cantieri.filter(c=>c.stato==='attivo').length} attivi · ${stato.cantieri.length} totali</div></div><div class="azioni"><div class="gruppo-pulsanti"><button class="pulsante ${vista==='elenco'?'attivo':''}" data-azione="cantieri-vista" data-valore="elenco">${icona('elenco')}Elenco</button><button class="pulsante ${vista==='tempo'?'attivo':''}" data-azione="cantieri-vista" data-valore="tempo">${icona('tempo')}Diagramma</button></div><button class="pulsante primario" data-azione="cantiere-nuovo">${icona('piu')}Nuovo cantiere</button></div></div>`;
-  if(vista==='tempo'){
-    const righe=stato.cantieri.filter(c=>c.stato!=='archiviato').map(c=>({etichetta:c.nome,inizio:c.dataInizio,fine:c.dataFine||(c.stato==='attivo'?oggi():null),classe:c.stato,href:'#/cantieri/'+c.id,testo:(c.operai||[]).length?c.operai.length+' operai':''}));
-    const senza=stato.cantieri.filter(c=>!c.dataInizio&&c.stato!=='archiviato');
-    return html`${testa}<div class="scheda"><h3>Diagramma temporale</h3><p class="secondario piccolo">Ogni barra è un cantiere sull'asse dei mesi; la linea rossa è oggi. Le sovrapposizioni mostrano dove la squadra è impegnata due volte.</p>${graficoTemporale(righe.filter(r=>r.inizio))}<div class="legenda"><span><i></i>attivo</span><span><i class="s4"></i>chiuso</span><span><i class="s3"></i>sospeso</span></div>${senza.length?html`<div class="sezione-titolo">Senza date</div><div class="chip-lista">${senza.map(c=>html`<a class="chip" href="#/cantieri/${c.id}">${c.nome} <span class="secondario piccolo">${c.periodoTesto||'date da compilare'}</span></a>`)}</div>`:''}</div>`;
-  }
+  const aperti=stato.cantieri.filter(c=>c.stato==='attivo'||c.stato==='sospeso');
+  const inRitardo=aperti.filter(c=>{const av=avanzamentoCantiere(c);return av&&av.ritardo}).length;
+  const testa=html`<div class="testata"><div><div class="occhiello">Lavori</div><h1>Cantieri</h1><p class="sotto">${plurale(aperti.length,'aperto','aperti')}${inRitardo?html` · <b>${inRitardo} in ritardo</b>`:''} · ${plurale(stato.cantieri.length,'cantiere','cantieri')} in tutto</p></div><div class="azioni"><button class="pulsante primario" data-azione="cantiere-nuovo">Nuovo cantiere<span class="manopola">${icona('piu','piccola')}</span></button></div></div>`;
   const CHIUSI=['chiuso','archiviato'];
   const f=Object.assign({stato:'attivi',anno:'',comune:'',cerca:''},ui.filtri.cantieri);
   let cantieriF=stato.cantieri.slice();
@@ -3772,18 +3936,37 @@ VISTE.cantieri=function(r){
   if(f.cerca){const q=normalizzaTesto(f.cerca);cantieriF=cantieriF.filter(c=>normalizzaTesto([c.nome,c.indirizzo&&c.indirizzo.comune,c.indirizzo&&c.indirizzo.via,nomeCliente(c.committenteId)+' '+nomeCliente(c.affidatariaId),c.commessa].filter(Boolean).join(' ')).includes(q))}
   const anni=[...new Set(stato.cantieri.map(c=>c.anno).filter(Boolean))].sort((a,b)=>b-a);
   const comuni=[...new Set(stato.cantieri.map(c=>c.indirizzo&&c.indirizzo.comune).filter(Boolean))].sort();
-  const barra=html`<div class="strumenti-tabella"><input type="search" placeholder="Cerca per nome, località o cliente" value="${f.cerca}" data-cambio="filtro-cantieri" data-campo="cerca" aria-label="Cerca cantieri"><div class="gruppo-pulsanti">${[['attivi','In corso'],['chiusi','Chiusi'],['tutti','Tutti']].map(([v,t])=>html`<button class="pulsante piccolo ${f.stato===v?'attivo':''}" data-azione="filtro-cantieri-stato" data-valore="${v}">${t}</button>`)}</div><select data-cambio="filtro-cantieri" data-campo="anno" aria-label="Anno"><option value="">Tutti gli anni</option>${anni.map(a=>html`<option value="${a}" ${String(a)===f.anno?'selected':''}>${a}</option>`)}</select><select data-cambio="filtro-cantieri" data-campo="comune" aria-label="Località"><option value="">Tutte le località</option>${comuni.map(cm=>html`<option value="${cm}" ${cm===f.comune?'selected':''}>${cm}</option>`)}</select>${pulsanteCancellaFiltri(f.stato!=='attivi'||!!f.anno||!!f.comune||!!f.cerca,'filtro-cantieri-reset')}<span class="conteggio">${cantieriF.length} cantieri</span></div>`;
-  const gruppi=['attivo','sospeso','preventivo','chiuso','archiviato'];
-  const righe=cantieriF.map(c=>{const ck=checklistCantiere(c);const eco=economiaCantiere(c.id,stato.movimenti);return {c,ck,eco}});
-  return html`${testa}${barra}${gruppi.map(g=>{const rr=righe.filter(x=>x.c.stato===g);if(!rr.length)return '';return html`<div class="sezione-titolo">${STATI_CANTIERE[g]} · ${rr.length}</div>${tabella({id:'cant'+g,righe:rr,href:x=>'#/cantieri/'+x.c.id,colonne:[
-    {chiave:'nome',titolo:'Cantiere',principale:true,valore:x=>x.c.nome,formatta:x=>html`<span class="riga stretta" style="align-items:flex-start"><span class="puntino ${coloreCantiere(x.c)}" style="margin-top:6px"></span><span><b>${x.c.nome}</b><br><span class="piccolo secondario">${[x.c.indirizzo.comune,x.c.indirizzo.provincia?'('+x.c.indirizzo.provincia+')':''].filter(Boolean).join(' ')||''}</span></span></span>`},
-    {chiave:'comm',titolo:'Committente / affidataria',formatta:x=>html`${nomeCliente(x.c.committenteId)||daCompilare()}<br><span class="piccolo secondario">${nomeCliente(x.c.affidatariaId)||''}</span>`},
-    {chiave:'periodo',titolo:'Periodo',valore:x=>x.c.dataInizio||'',formatta:x=>x.c.dataInizio?html`${fData(x.c.dataInizio)} → ${x.c.dataFine?fData(x.c.dataFine):'…'}`:html`<span class="secondario">${x.c.periodoTesto||daCompilare()}</span>`},
-    {chiave:'operai',titolo:'Squadra',formatta:x=>(x.c.operai||[]).length?html`${x.c.operai.length} operai${x.c.prepostoId?html` · preposto ${nomePersona(persona(x.c.prepostoId)).split(' ')[0]}`:''}`:html`<span class="silenzioso">—</span>`},
-    {chiave:'doc',titolo:'Documenti',formatta:x=>html`${x.ck.pronti}/${x.ck.totale}${x.ck.urgenti.length?html` <span class="pillola scaduto">${icona('attenzione','piccola')}${x.ck.urgenti.length}</span>`:''}`},
-    {chiave:'margine',titolo:'Margine',num:true,valore:x=>x.eco.margine,formatta:x=>(x.eco.entrate||x.eco.uscite)?html`<span class="${x.eco.margine<0?'da-compilare':''}">${fEuro(x.eco.margine,0)}</span>`:html`<span class="silenzioso">—</span>`},
-  ]})}`})}${stato.cantieri.length?(cantieriF.length?'':vuoto({icona:'cantieri',titolo:'Nessun cantiere con questi filtri',testo:'Prova a cambiare stato, anno o località.'})):vuoto({icona:'cantieri',titolo:'Nessun cantiere',testo:'Crea il primo cantiere: da lì partono POS, checklist e pacchetto per la committenza.',azione:{testo:'Nuovo cantiere',azione:'cantiere-nuovo'}})}`;
+  const barra=html`<div class="strumenti-tabella"><div class="gruppo-pulsanti"><button class="pulsante ${vista==='elenco'?'attivo':''}" data-azione="cantieri-vista" data-valore="elenco">Elenco</button><button class="pulsante ${vista==='tempo'?'attivo':''}" data-azione="cantieri-vista" data-valore="tempo">Diagramma</button></div><input type="search" placeholder="Nome, località, committente" value="${f.cerca}" data-cambio="filtro-cantieri" data-campo="cerca" aria-label="Cerca cantieri"><select data-cambio="filtro-cantieri-statosel" aria-label="Stato">${[['attivi','Aperti'],['tutti','Tutti'],['chiusi','Chiusi']].map(([v,t])=>html`<option value="${v}" ${f.stato===v?'selected':''}>${t}</option>`)}</select><select data-cambio="filtro-cantieri" data-campo="anno" aria-label="Anno"><option value="">Tutti gli anni</option>${anni.map(a=>html`<option value="${a}" ${String(a)===f.anno?'selected':''}>${a}</option>`)}</select><select data-cambio="filtro-cantieri" data-campo="comune" aria-label="Località"><option value="">Tutte le località</option>${comuni.map(cm=>html`<option value="${cm}" ${cm===f.comune?'selected':''}>${cm}</option>`)}</select>${pulsanteCancellaFiltri(f.stato!=='attivi'||!!f.anno||!!f.comune||!!f.cerca,'filtro-cantieri-reset')}</div>`;
+  if(!stato.cantieri.length) return html`${testa}${vuoto({icona:'cantieri',titolo:'Nessun cantiere',testo:'Crea il primo cantiere: da lì partono POS, checklist e pacchetto per la committenza.',azione:{testo:'Nuovo cantiere',azione:'cantiere-nuovo'}})}`;
+  if(!cantieriF.length) return html`${testa}${barra}${vuoto({icona:'cantieri',titolo:'Nessun cantiere con questi filtri',testo:'Prova a cambiare stato, anno o località.'})}`;
+  if(vista==='tempo') return html`${testa}${barra}${diagrammaCantieri(cantieriF)}`;
+  const righe=cantieriF.map(c=>({c,ck:checklistCantiere(c),eco:economiaCantiere(c.id,stato.movimenti),av:avanzamentoCantiere(c)}));
+  const ordineStato={attivo:0,sospeso:1,preventivo:2,chiuso:3,archiviato:4};
+  righe.sort((a,b)=>(ordineStato[a.c.stato]??9)-(ordineStato[b.c.stato]??9)||(b.c.dataInizio||'').localeCompare(a.c.dataInizio||''));
+  return html`${testa}${barra}<div class="guscio"><div class="scheda scheda-tabella"><table class="tabella"><thead><tr><th>Cantiere</th><th class="nascondi-telefono">Committente</th><th>Avanzamento</th><th class="nascondi-telefono">Squadra</th><th class="num nascondi-telefono">Documenti</th><th class="num">Margine</th></tr></thead><tbody>
+  ${righe.map(x=>{const c=x.c;return html`<tr class="cliccabile" data-azione="vai" data-href="cantieri/${c.id}"><td><span class="chi ${coloreCantiere(c)}"><span class="puntino"></span><span><b>${c.nome}</b><span>${[c.indirizzo&&c.indirizzo.comune,(c.lavorazioni||[]).map(id=>(stato.lavorazioni.find(l=>l.id===id)||{}).breve).filter(Boolean).slice(0,2).join(', ')].filter(Boolean).join(' · ')}</span></span></span></td>
+    <td class="nascondi-telefono">${nomeCliente(c.committenteId)||nomeCliente(c.affidatariaId)||html`<span class="silenzioso">—</span>`}</td>
+    <td style="min-width:170px">${CHIUSI.includes(c.stato)?html`<span class="pillola">${STATI_CANTIERE[c.stato]}${c.dataFine?' il '+fDataBreve(c.dataFine):''}</span>`:x.av?html`<div class="scad-cella"><div class="traccia"><i class="${x.av.ritardo?'tardi':''}" style="width:${Math.min(100,Math.max(3,x.av.fr*100))}%"></i></div><span class="piccolo ${x.av.ritardo?'bad-t':'silenzioso'}">${x.av.ritardo?'in ritardo di '+plurale(x.av.ritardo,'giorno','giorni'):'fine '+fData(c.dataFine)}</span></div>`:html`<span class="piccolo silenzioso">${c.stato==='sospeso'?'sospeso · ':''}${c.periodoTesto||'date da scrivere'}</span>`}</td>
+    <td class="nascondi-telefono"><span class="pila">${(c.operai||[]).slice(0,6).map(id=>persona(id)?avatar(persona(id),'mini'):'')}</span></td>
+    <td class="num nascondi-telefono"><b>${x.ck.pronti}</b><span class="silenzioso">/${x.ck.totale}</span>${x.ck.urgenti.length?html` <span class="pillola scaduto">${x.ck.urgenti.length}</span>`:''}</td>
+    <td class="num">${x.eco.entrate||x.eco.uscite?html`<b class="${x.eco.margine<0?'bad-t':''}">${fEuro(x.eco.margine,0)}</b>`:html`<span class="silenzioso">—</span>`}</td></tr>`})}</tbody></table></div></div>`;
 };
+// diagramma: una riga per cantiere, una barra colorata dall'inizio alla fine, la linea rossa è oggi
+function diagrammaCantieri(cc){
+  const conDate=cc.filter(c=>c.dataInizio);const senza=cc.filter(c=>!c.dataInizio);
+  if(!conDate.length) return html`<div class="vuoto">${icona('calendario')}<h3>Nessun cantiere con le date</h3><p>Scrivi inizio e fine dei cantieri per vederli sull'asse dei mesi.</p></div>`;
+  const oggiD=daIso(oggi());let min=oggiD,max=oggiD;
+  for(const c of conDate){const a=daIso(c.dataInizio),b=daIso(c.dataFine||oggi());if(a<min)min=a;if(b>max)max=b}
+  min=new Date(min.getFullYear(),min.getMonth(),1);max=new Date(max.getFullYear(),max.getMonth()+1,1);
+  const tot=max-min;const pos=d=>Math.max(0,Math.min(100,(d-min)/tot*100));
+  const mesi=[];for(let d=new Date(min);d<max;d=new Date(d.getFullYear(),d.getMonth()+1,1))mesi.push(d);
+  return html`<div class="guscio"><div class="scheda"><div class="diagramma"><div class="dg-mesi"><span></span><div class="dg-asse">${mesi.map(d=>html`<span style="left:${pos(d)}%">${NOMI_MESI_BREVI[d.getMonth()]}${d.getMonth()===0||d.getTime()===min.getTime()?' '+String(d.getFullYear()).slice(2):''}</span>`)}</div></div>
+    ${conDate.sort((a,b)=>a.dataInizio.localeCompare(b.dataInizio)).map(c=>{const a=pos(daIso(c.dataInizio)),b=pos(new Date(daIso(c.dataFine||oggi()).getTime()+86400000));return html`<a class="dg-riga ${coloreCantiere(c)}" href="#/cantieri/${c.id}"><span class="dg-nome"><b>${c.nome}</b><span>${(c.indirizzo&&c.indirizzo.comune)||''}</span></span><span class="dg-barre"><i class="${c.stato==='chiuso'||c.stato==='archiviato'?'chiusa':''} ${c.dataFine?'':'aperta'}" style="left:${a}%;width:${Math.max(1.2,b-a)}%">${nomeCliente(c.committenteId)||nomeCliente(c.affidatariaId)||''}</i></span></a>`})}
+    <div class="dg-oggi" style="--x:${pos(oggiD)}"></div></div>
+    <p class="piccolo silenzioso mt-s">La linea rossa è oggi. Le barre senza fine arrivano a oggi. Le sovrapposizioni mostrano dove la squadra è impegnata due volte.</p>
+    ${senza.length?html`<div class="sezione-titolo">Senza date</div><div class="chip-lista">${senza.map(c=>html`<a class="chip" href="#/cantieri/${c.id}">${c.nome} <span class="secondario piccolo">${c.periodoTesto||'date da scrivere'}</span></a>`)}</div>`:''}</div></div>`;
+}
+AZIONI['filtro-cantieri-statosel']=(d,t)=>{ui.filtri.cantieri=Object.assign({stato:'attivi',anno:'',comune:'',cerca:''},ui.filtri.cantieri,{stato:t.value});render()};
 AZIONI['cantieri-vista']=d=>{ui.filtri.cantieriVista=d.valore;render()};
 AZIONI['filtro-cantieri-stato']=d=>{ui.filtri.cantieri=Object.assign({stato:'attivi',anno:'',comune:'',cerca:''},ui.filtri.cantieri,{stato:d.valore});render()};
 AZIONI['filtro-cantieri']=(d,t)=>{ui.filtri.cantieri=Object.assign({stato:'attivi',anno:'',comune:'',cerca:''},ui.filtri.cantieri,{[d.campo]:t.value});render();if(d.campo==='cerca')setTimeout(()=>{const i=el('.strumenti-tabella input[type=search]');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}},0)};
@@ -3804,7 +3987,7 @@ document.addEventListener('change',e=>{const t=e.target;if(t.dataset&&t.dataset.
 
 function vistaCantiere(id,r){
   const c=cantiere(id); if(!c) return html`<div class="vuoto">${icona('attenzione')}<h3>Cantiere non trovato</h3><a class="pulsante" href="#/cantieri">Elenco</a></div>`;
-  const ling=linguettaAttiva('cantiere:'+c.id,'scheda');
+  const ling=linguettaAttiva('cantiere:'+c.id,'panoramica');
   const ck=checklistCantiere(c,{tutto:ui.filtri.checklistTutto});
   const av=avanzamentoCantiere(c);const cliente_=nomeCliente(c.committenteId);const aff=nomeCliente(c.affidatariaId);
   if(c.fotoId) dopoRender(async()=>{const u=await urlFile(c.fotoId);const t=el('.testata-cantiere');if(u&&t)t.style.setProperty('--foto',`url("${u}")`)});
@@ -3817,21 +4000,42 @@ function vistaCantiere(id,r){
       <span class="spazio"></span><a class="pulsante piccolo" href="#/cantieri/${c.id}/pos">${icona('scudo','piccola')}Genera POS</a><a class="pulsante piccolo" href="#/cantieri/${c.id}/pacchetto">${icona('pacchetto','piccola')}Pacchetto committenza</a><button class="pulsante piccolo" data-azione="cantiere-modifica" data-id="${c.id}">${icona('modifica','piccola')}Modifica</button></div>
   </div>
   ${ck.urgenti.length?html`<div class="avviso-inline critico">${icona('errore')}<div class="corpo"><b>Prima dell'ingresso in cantiere:</b> ${ck.urgenti.map(v=>html`${v.soggetto}: ${v.nome}${v.motivo?' ('+v.motivo+')':''}`).reduce((a,b)=>html`${a} · ${b}`)}</div></div>`:''}
-  ${linguette('cantiere:'+c.id,[{id:'scheda',testo:'Scheda',icona:'cantieri'},{id:'squadra',testo:'Squadra e lavorazioni',icona:'operai'},{id:'documenti',testo:'Documenti',icona:'documenti'},{id:'checklist',testo:'Checklist committenza',icona:'spunta',contatore:ck.totale-ck.pronti||null,critico:ck.urgenti.length>0},{id:'pagamenti',testo:'Pagamenti del mese',icona:'bonifici'},{id:'economia',testo:'Economia',icona:'euro'},{id:'diario',testo:'Diario e invii',icona:'orologio'}],ling)}
-  ${ling==='scheda'?schedaCantiereAnagrafica(c):ling==='squadra'?schedaCantiereSquadra(c):ling==='documenti'?schedaCantiereDocumenti(c):ling==='checklist'?schedaCantiereChecklist(c,ck):ling==='pagamenti'?schedaCantierePagamenti(c):ling==='economia'?schedaCantiereEconomia(c):schedaCantiereDiario(c)}`;
+  ${linguette('cantiere:'+c.id,[{id:'panoramica',testo:'Panoramica'},{id:'checklist',testo:'Documenti per la committenza',contatore:ck.pronti+'/'+ck.totale,critico:ck.urgenti.length>0},{id:'pagamenti',testo:'Pagamenti del mese'},{id:'squadra',testo:'Squadra',contatore:(c.operai||[]).length||null},{id:'scheda',testo:'Dati e figure'},{id:'documenti',testo:'Sicurezza e documenti'},{id:'economia',testo:'Economia'},{id:'diario',testo:'Diario e invii'}],ling)}
+  ${ling==='panoramica'?schedaCantierePanoramica(c,ck):ling==='scheda'?schedaCantiereAnagrafica(c):ling==='squadra'?schedaCantiereSquadra(c):ling==='documenti'?schedaCantiereDocumenti(c):ling==='checklist'?schedaCantiereChecklist(c,ck):ling==='pagamenti'?schedaCantierePagamenti(c):ling==='economia'?schedaCantiereEconomia(c):schedaCantiereDiario(c)}`;
 }
+function schedaCantierePanoramica(c,ck){
+  // documenti pronti persona per persona (dalla checklist), più l'impresa
+  const perPersona=new Map();for(const v of ck.voci.filter(v=>v.persona&&v.stato!=='na')){if(!perPersona.has(v.persona.id))perPersona.set(v.persona.id,{p:v.persona,voci:[]});perPersona.get(v.persona.id).voci.push(v)}
+  const impresa=ck.voci.filter(v=>v.gruppo==='Impresa'&&v.stato!=='na');
+  const eco=economiaCantiere(c.id,stato.movimenti);
+  // ore sul cantiere negli ultimi sei mesi (anche dalla località scritta in presenze)
+  const d=new Date();const mesi=[];for(let i=5;i>=0;i--){const x=new Date(d.getFullYear(),d.getMonth()-i,1);const anno=x.getFullYear(),mese=x.getMonth()+1;const k=chiaveMese(anno,mese);const mm=meseP(anno,mese);let ore=0;if(mm)for(const pid of Object.keys(mm.persone))for(const [g,cella] of Object.entries(mm.persone[pid].giorni||{})){const v=valoreCella(cella);if(typeof v!=='number'||!v)continue;const cc=cantiereDaCella(cella,k+'-'+pad2(+g));if(cc&&cc.id===c.id)ore+=v}mesi.push({anno,mese,ore})}
+  const mx=Math.max(...mesi.map(m=>m.ore),1);
+  const pips=voci=>html`<span class="pips">${voci.map(v=>html`<i class="${v.stato==='ok'?'':v.stato==='scaduto'||v.stato==='richiedere'?'b':'w'}" title="${v.nome}: ${STATI_CHECKLIST[v.stato].t}"></i>`)}</span>`;
+  return html`<div class="bento">
+    <div class="guscio c-7"><div class="scheda"><div class="intesta"><h2>Documenti pronti per persona</h2><a class="vai" data-azione="linguetta-cantiere" data-id="${c.id}" data-valore="checklist">Checklist ${icona('destra','piccola')}</a></div>
+      ${impresa.length?html`<div class="riga-ck"><span class="icona-tipo">${icona('azienda','piccola')}</span><div><b>${nomeImpresa(true)||'Impresa'}</b><span class="${impresa.some(v=>v.stato!=='ok')?'warn-t':''}">${impresa.filter(v=>v.stato!=='ok').map(v=>v.nome).join(', ')||'tutto pronto'}</span></div>${pips(impresa)}</div>`:''}
+      ${Array.from(perPersona.values()).map(({p,voci})=>{const male=voci.filter(v=>v.stato!=='ok');return html`<a class="riga-ck" href="#/operai/${p.id}">${avatar(p,'medio')}<div><b>${nomePersona(p)}</b><span class="${male.some(v=>v.stato==='scaduto'||v.bloccante)?'bad-t':male.length?'warn-t':''}">${male.length?'Manca: '+male.map(v=>v.nome+(v.motivo?' ('+v.motivo+')':'')).join(', '):'Tutto pronto'}</span></div>${pips(voci)}</a>`})}
+      ${perPersona.size?'':html`<p class="secondario piccolo">Nessun operaio assegnato: aggiungilo nella linguetta Squadra.</p>`}
+      <div class="riga mt"><a class="pulsante" href="#/cantieri/${c.id}/pacchetto">${icona('pacchetto','piccola')}Pacchetto per entrare in cantiere</a><button class="pulsante discreto" data-azione="linguetta-cantiere" data-id="${c.id}" data-valore="pagamenti">Pagamenti del mese</button></div></div></div>
+    <div class="guscio c-5"><div class="scheda"><div class="intesta"><h2>Economia</h2><span class="piccolo silenzioso">imponibile</span><a class="vai" data-azione="linguetta-cantiere" data-id="${c.id}" data-valore="economia">Movimenti ${icona('destra','piccola')}</a></div>
+      ${eco.entrate||eco.uscite?html`<div class="grande-numero ${eco.margine<0?'bad-t':''}">${eco.margine>=0?'+':''}${fEuro(eco.margine,0).replace(' €','')}<small>€ margine</small></div><div class="coppia"><div><div class="k">Fatturato</div><div class="v">${fEuro(eco.entrate,0)}</div></div><div><div class="k">Costi</div><div class="v">${fEuro(eco.uscite,0)}</div></div></div>`:html`<p class="secondario piccolo">Ancora nessun movimento collegato. Le fatture e le spese assegnate a questo cantiere in Budget compaiono qui.</p><button class="pulsante piccolo" data-azione="movimento-nuovo" data-cantiere="${c.id}">${icona('piu','piccola')}Nuovo movimento</button>`}</div></div>
+    <div class="guscio c-12"><div class="scheda"><div class="intesta"><h2>Ore su questo cantiere</h2><span class="piccolo silenzioso">dalle presenze, anche quando c'è scritta solo la località</span></div>
+      <div class="sei-mesi">${mesi.map(m=>html`<a class="mese-col" href="#/presenze/${chiaveMese(m.anno,m.mese)}"><span class="colonna-ore"><i style="height:${m.ore?Math.max(6,m.ore/mx*100):3}%"></i></span><span class="riga stretta" style="justify-content:space-between"><b>${NOMI_MESI_BREVI[m.mese-1]}</b><span class="silenzioso">${fOre(m.ore)||0} h</span></span></a>`)}</div></div></div>
+  </div>`;
+}
+AZIONI['linguetta-cantiere']=d=>{ui.filtri['ling:cantiere:'+d.id]=d.valore;render()};
 function schedaCantiereAnagrafica(c){
-  const campo=(et,v,fmt)=>html`<div class="campo"><span class="etichetta-campo">${et}</span><div>${valoreODaCompilare(v,fmt)}</div></div>`;
-  return html`<div class="griglia due"><div class="scheda"><h3>Dati del cantiere</h3><div class="campi">
-    ${campo('Descrizione dell\'opera',c.descrizione)}${campo('Indirizzo',c.indirizzo.via)}${campo('Comune',c.indirizzo.comune)}${campo('Provincia',c.indirizzo.provincia)}${campo('CAP',c.indirizzo.cap)}
-    ${campo('Inizio lavori',c.dataInizio,fData)}${campo('Fine lavori',c.dataFine,fData)}${c.periodoTesto?campo('Periodo (testo)',c.periodoTesto):''}
-    ${campo('Importo di contratto',c.importoContratto,fEuro)}${campo('Orari di lavoro',c.orari)}${campo('Entità presunta uomini/giorno',c.uominiGiorno)}
-    </div>
-    <div class="sezione-titolo">PSC</div><div class="campi">${campo('Data PSC',c.psc.data||c.psc.periodoTesto,v=>dataValida(v)?fData(v):v)}${campo('Redattore',c.psc.redattore)}<div class="campo largo"><span class="etichetta-campo">Prescrizioni</span><div>${c.psc.prescrizioni||html`<span class="silenzioso">—</span>`}</div></div><div class="campo"><span class="etichetta-campo">File</span><div>${c.psc.fileId?html`<button class="pulsante piccolo" data-azione="file-apri" data-id="${c.psc.fileId}">${icona('pdf','piccola')}Apri PSC</button>`:html`<button class="pulsante piccolo" data-azione="cantiere-psc-carica" data-id="${c.id}">${icona('carica','piccola')}Carica PSC</button>`}</div></div></div>
-    <div class="sezione-titolo">Denuncia di apertura cantiere</div><div class="campi">${campo('Data',c.denuncia.data,fData)}${campo('Periodo',c.denuncia.dal?fData(c.denuncia.dal)+' → '+fData(c.denuncia.al):null)}${campo('Importo complessivo lavori',c.denuncia.importoComplessivo,fEuro)}${campo('Importo dell\u2019impresa',c.denuncia.importoPavimass,fEuro)}</div>
-    ${c.note?html`<div class="sezione-titolo">Note</div><p>${c.note}</p>`:''}</div>
-  <div class="scheda"><h3>Le sei figure <span class="azioni"><button class="pulsante piccolo" data-azione="cantiere-modifica" data-id="${c.id}">${icona('modifica','piccola')}Modifica</button></span></h3><p class="piccolo secondario">Progettista e direttore dei lavori non sono mai facoltativi.</p>
-    ${FIGURE_CANTIERE.map(f=>{const t=testoFigura(c,f);return html`<div class="figura-riga"><span class="ruolo">${f.ruolo}</span><span>${t?html`<b>${t.href?html`<a href="${t.href}">${t.nome}</a>`:t.nome}</b>${t.righe.map(x=>html`<br><span class="piccolo secondario">${x}</span>`)}`:daCompilare()}</span><span></span></div>`})}</div></div>`;
+  const v=(x,fmt)=>valoreODaCompilare(x,fmt);
+  return html`<div class="bento">
+  <div class="guscio c-7"><div class="scheda"><div class="intesta"><h2>Dati del cantiere</h2><a class="vai" data-azione="cantiere-modifica" data-id="${c.id}">Modifica</a></div>
+    <dl class="dati-doc"><dt>Descrizione</dt><dd>${v(c.descrizione)}</dd><dt>Indirizzo</dt><dd>${v(c.indirizzo.via)}</dd><dt>Comune</dt><dd>${v(c.indirizzo.comune)}${c.indirizzo.provincia?' ('+c.indirizzo.provincia+')':''}${c.indirizzo.cap?' · '+c.indirizzo.cap:''}</dd><dt>Inizio lavori</dt><dd>${v(c.dataInizio,fData)}</dd><dt>Fine lavori</dt><dd>${v(c.dataFine,fData)}</dd>${c.periodoTesto?html`<dt>Periodo</dt><dd>${c.periodoTesto}</dd>`:''}<dt>Importo contratto</dt><dd>${v(c.importoContratto,fEuro)}</dd><dt>Orari</dt><dd>${v(c.orari)}</dd><dt>Uomini/giorno</dt><dd>${v(c.uominiGiorno)}</dd></dl>
+    <div class="sezione-titolo">PSC</div><dl class="dati-doc"><dt>Data</dt><dd>${v(c.psc.data||c.psc.periodoTesto,x=>dataValida(x)?fData(x):x)}</dd><dt>Redattore</dt><dd>${v(c.psc.redattore)}</dd>${c.psc.prescrizioni?html`<dt>Prescrizioni</dt><dd>${c.psc.prescrizioni}</dd>`:''}<dt>File</dt><dd>${c.psc.fileId?html`<button class="pulsante piccolo" data-azione="file-apri" data-id="${c.psc.fileId}">${icona('pdf','piccola')}Apri PSC</button>`:html`<button class="pulsante piccolo" data-azione="cantiere-psc-carica" data-id="${c.id}">${icona('carica','piccola')}Carica PSC</button>`}</dd></dl>
+    <div class="sezione-titolo">Denuncia di apertura cantiere</div><dl class="dati-doc"><dt>Data</dt><dd>${v(c.denuncia.data,fData)}</dd><dt>Periodo</dt><dd>${c.denuncia.dal?fData(c.denuncia.dal)+' → '+fData(c.denuncia.al):daCompilare()}</dd><dt>Importo lavori</dt><dd>${v(c.denuncia.importoComplessivo,fEuro)}</dd><dt>Importo impresa</dt><dd>${v(c.denuncia.importoPavimass,fEuro)}</dd></dl>
+    ${c.note?html`<div class="sezione-titolo">Note</div><p>${c.note}</p>`:''}</div></div>
+  <div class="guscio c-5"><div class="scheda"><div class="intesta"><h2>Le sei figure</h2><a class="vai" data-azione="cantiere-modifica" data-id="${c.id}">Modifica</a></div><p class="piccolo silenzioso">Progettista e direttore dei lavori non sono mai facoltativi.</p>
+    <div class="figure">${FIGURE_CANTIERE.map(f=>{const t=testoFigura(c,f);return html`<div class="figura"><small>${f.ruolo}</small>${t?html`<b>${t.href?html`<a href="${t.href}">${t.nome}</a>`:t.nome}</b>${t.righe.map(x=>html`<span>${x}</span>`)}`:html`<b>${daCompilare()}</b>`}</div>`})}</div></div></div>
+  </div>`;
 }
 function schedaCantiereSquadra(c){
   const operai=(c.operai||[]).map(id=>persona(id)).filter(Boolean);
@@ -4023,7 +4227,9 @@ VISTE.clienti=function(r){
   if(r.query.nuovo){setTimeout(()=>dialogoCliente(null),0);history.replaceState(null,'','#/clienti')}
   if(r.id) return vistaCliente(r.id);
   const vista=r.query.vista||ui.filtri.clientiVista||'elenco';
-  const testa=html`<div class="testata"><div><h1>Clienti</h1><div class="sotto">${stato.clienti.length} soggetti · committenti, imprese affidatarie, fornitori</div></div><div class="azioni"><div class="gruppo-pulsanti"><button class="pulsante ${vista==='elenco'?'attivo':''}" data-azione="clienti-vista" data-valore="elenco">${icona('elenco')}Elenco</button><button class="pulsante ${vista==='confronto'?'attivo':''}" data-azione="clienti-vista" data-valore="confronto">${icona('bilancia')}Confronto</button><button class="pulsante ${vista==='professionisti'?'attivo':''}" data-azione="clienti-vista" data-valore="professionisti">${icona('persona')}Professionisti</button></div><button class="pulsante primario" data-azione="cliente-nuovo">${icona('piu')}Nuovo cliente</button></div></div>`;
+  const anno=new Date().getFullYear();const fattAnno=somma(fatturatoPerCliente(anno),x=>x.fatturato);
+  const fermi=stato.clienti.filter(c=>{const u=ultimoLavoroCliente(c.id);return c.stato!=='chiuso'&&(!u||giorniTra(u,oggi())>180)});
+  const testa=html`<div class="testata"><div><div class="occhiello">Lavori</div><h1>Clienti</h1><p class="sotto">Fatturato ${anno}: <b>${fEuro(fattAnno,0)}</b> · ${plurale(stato.clienti.length,'soggetto','soggetti')}${fermi.length?' · '+plurale(fermi.length,'fermo da più di sei mesi','fermi da più di sei mesi'):''}</p></div><div class="azioni"><div class="gruppo-pulsanti"><button class="pulsante ${vista==='elenco'?'attivo':''}" data-azione="clienti-vista" data-valore="elenco">Elenco</button><button class="pulsante ${vista==='confronto'?'attivo':''}" data-azione="clienti-vista" data-valore="confronto">Confronto</button><button class="pulsante ${vista==='professionisti'?'attivo':''}" data-azione="clienti-vista" data-valore="professionisti">Professionisti</button></div><button class="pulsante primario" data-azione="cliente-nuovo">Nuovo cliente<span class="manopola">${icona('piu','piccola')}</span></button></div></div>`;
   if(vista==='professionisti') return html`${testa}${vistaProfessionisti()}`;
   const righe=stato.clienti.map(c=>({c,st:statisticheCliente(c.id)}));
   if(vista==='confronto'){
@@ -4032,15 +4238,13 @@ VISTE.clienti=function(r){
     ${conDati.length?html`<div class="griglia due">${graficoBarreOrizzontali(conDati.slice().sort((a,b)=>b.st.fatturato-a.st.fatturato).map(x=>({etichetta:x.c.ragioneSociale,valore:Math.round(x.st.fatturato),href:'#/clienti/'+x.c.id})),{formatta:v=>fEuro(v,0),titolo:'Fatturato'})}${graficoBarreOrizzontali(conDati.filter(x=>x.st.margineMedioPct!=null).sort((a,b)=>b.st.margineMedioPct-a.st.margineMedioPct).map(x=>({etichetta:x.c.ragioneSociale,valore:Math.round(x.st.margineMedioPct),href:'#/clienti/'+x.c.id})),{formatta:v=>fPct(v,0),titolo:'Margine medio'})}</div>`:''}
     ${tabella({id:'confronto',righe,chiaveOrd:'fatt',dir:'desc',href:x=>'#/clienti/'+x.c.id,colonne:[{chiave:'nome',titolo:'Cliente',principale:true,valore:x=>x.c.ragioneSociale},{chiave:'fatt',titolo:'Fatturato',num:true,valore:x=>x.st.fatturato,formatta:x=>fEuro(x.st.fatturato,0)},{chiave:'marg',titolo:'Margine medio',num:true,valore:x=>x.st.margineMedioPct==null?-9999:x.st.margineMedioPct,formatta:x=>x.st.margineMedioPct==null?html`<span class="silenzioso">—</span>`:html`<span class="${x.st.margineMedioPct<0?'da-compilare':''}">${fPct(x.st.margineMedioPct,0)}</span>`},{chiave:'n',titolo:'Cantieri',num:true,valore:x=>x.st.cantieri.length},{chiave:'pag',titolo:'Giorni di pagamento',num:true,valore:x=>x.st.giorniPagamento==null?9999:x.st.giorniPagamento,formatta:x=>x.st.giorniPagamento==null?html`<span class="silenzioso" title="Nessuna data di incasso registrata">dato non registrato</span>`:fNum(x.st.giorniPagamento,0)},{chiave:'ult',titolo:'Ultimo lavoro',valore:x=>x.st.ultimoLavoro||'',formatta:x=>x.st.ultimoLavoro?fData(x.st.ultimoLavoro):html`<span class="silenzioso">—</span>`}]})}</div>`;
   }
-  return html`${testa}${tabella({id:'clienti',righe,chiaveOrd:'nome',href:x=>'#/clienti/'+x.c.id,colonne:[
-    {chiave:'nome',titolo:'Ragione sociale',principale:true,valore:x=>x.c.ragioneSociale,formatta:x=>html`<b>${x.c.ragioneSociale}</b><br><span class="piccolo secondario">${[x.c.indirizzo.comune,x.c.indirizzo.provincia?'('+x.c.indirizzo.provincia+')':''].filter(Boolean).join(' ')}</span>`},
-    {chiave:'ruoli',titolo:'Ruoli',formatta:x=>(x.c.ruoli||[]).map(r=>html`<span class="etichetta-tag">${RUOLI_CLIENTE[r]||r}</span> `)},
-    {chiave:'n',titolo:'Cantieri',num:true,valore:x=>x.st.cantieri.length},
-    {chiave:'fatt',titolo:'Fatturato',num:true,valore:x=>x.st.fatturato,formatta:x=>x.st.fatturato?fEuro(x.st.fatturato,0):html`<span class="silenzioso">—</span>`},
-    {chiave:'marg',titolo:'Margine medio',num:true,valore:x=>x.st.margineMedioPct||0,formatta:x=>x.st.margineMedioPct==null?html`<span class="silenzioso">—</span>`:html`<span class="${x.st.margineMedioPct<0?'da-compilare':''}">${fPct(x.st.margineMedioPct,0)}</span>`},
-    {chiave:'ult',titolo:'Ultimo lavoro',valore:x=>x.st.ultimoLavoro||'',formatta:x=>x.st.ultimoLavoro?fData(x.st.ultimoLavoro):html`<span class="silenzioso">—</span>`},
-    {chiave:'stato',titolo:'Stato',formatta:x=>pillolaGenerica(STATI_CLIENTE[x.c.stato]||x.c.stato,x.c.stato==='attivo'?'valido':'neutro')},
-  ],vuoto:vuoto({icona:'clienti',titolo:'Nessun cliente',azione:{testo:'Nuovo cliente',azione:'cliente-nuovo'}})})}`;
+  if(!righe.length) return html`${testa}${vuoto({icona:'clienti',titolo:'Nessun cliente',testo:'Committenti, imprese affidatarie e privati: da qui partono cantieri e preventivi.',azione:{testo:'Nuovo cliente',azione:'cliente-nuovo'}})}`;
+  const ord=righe.slice().sort((a,b)=>(b.st.fatturato||0)-(a.st.fatturato||0)||a.c.ragioneSociale.localeCompare(b.c.ragioneSociale));
+  return html`${testa}<div class="griglia-clienti">${ord.map(x=>{const c=x.c;const u=x.st.ultimoLavoro;const fermo=c.stato!=='chiuso'&&(!u||giorniTra(u,oggi())>180);const ref=(c.referenti||[])[0];return html`<a class="carta-cliente" href="#/clienti/${c.id}">
+    <span class="riga stretta" style="align-items:flex-start"><span class="sigla ${coloreDa(c.id)}">${iniziali(c.ragioneSociale)}</span><span style="min-width:0;flex:1"><b>${c.ragioneSociale}</b><span class="sotto-cliente">${[(c.ruoli||[]).map(r=>RUOLI_CLIENTE[r]||r).join(', '),c.indirizzo.comune].filter(Boolean).join(' · ')}</span></span>${c.stato==='chiuso'?html`<span class="pillola">chiuso</span>`:fermo?html`<span class="pillola scadenza">fermo</span>`:''}</span>
+    <span class="coppia"><span><span class="k">Fatturato</span><span class="v">${x.st.fatturato?fEuro(x.st.fatturato,0):'—'}</span></span><span><span class="k">Ultimo lavoro</span><span class="v piccolo-v">${u?fData(u):'—'}</span></span></span>
+    <span class="riga mt-s">${x.st.cantieri.length?x.st.cantieri.slice(0,4).map(y=>html`<span class="cantiere-tag ${coloreCantiere(y.c)}">${y.c.nome}</span>`):html`<span class="piccolo silenzioso">Nessun cantiere</span>`}${x.st.cantieri.length>4?html`<span class="piccolo silenzioso">+${x.st.cantieri.length-4}</span>`:''}</span>
+    ${ref?html`<span class="piccolo silenzioso mt-s riga stretta">${icona('persona','piccola')}${ref.nome||''}${ref.ruolo?' · '+ref.ruolo:''}</span>`:''}</a>`})}</div>`;
 };
 AZIONI['clienti-vista']=d=>{ui.filtri.clientiVista=d.valore;render()};
 AZIONI['cliente-nuovo']=()=>dialogoCliente(null);
@@ -4195,7 +4399,7 @@ VISTE.presenze=function(r){
   const sezioni=[['soci','Soci'],['dipendenti','Dipendenti']];
   completaFestivita(anno,mese);
   dopoRender(montaGriglia);
-  return html`<div class="testata"><div class="riga stretta"><a class="pulsante icona" href="#/presenze/${chiaveMese(prev.anno,prev.mese)}" aria-label="Mese precedente">${icona('sinistra')}</a><h1 style="min-width:220px;text-align:center">${fMeseAnno(anno,mese)}</h1><a class="pulsante icona" href="#/presenze/${chiaveMese(succ.anno,succ.mese)}" aria-label="Mese successivo">${icona('destra')}</a><a class="pulsante piccolo discreto" href="#/presenze">Oggi</a></div>
+  return html`<div class="testata"><div><div class="occhiello">Presenze</div><div class="riga stretta"><a class="pulsante icona" href="#/presenze/${chiaveMese(prev.anno,prev.mese)}" aria-label="Mese precedente">${icona('sinistra')}</a><h1 style="min-width:220px;text-align:center">${fMeseAnno(anno,mese)}</h1><a class="pulsante icona" href="#/presenze/${chiaveMese(succ.anno,succ.mese)}" aria-label="Mese successivo">${icona('destra')}</a><a class="pulsante piccolo discreto" href="#/presenze">Oggi</a></div></div>
     <div class="azioni"><button class="pulsante" data-azione="presenze-strumenti" data-k="${k}">${icona('magia')}Strumenti</button><button class="pulsante" data-azione="presenze-trascrizione" data-k="${k}">${icona('tastiera')}Compila un operaio</button><button class="pulsante" data-azione="presenze-uscite" data-k="${k}">${icona('scarica')}Esporta</button><button class="pulsante icona" data-azione="presenze-aiuto" title="Tasti e regole">${icona('info')}</button></div></div>
   <div class="griglia quattro mb"><div class="indicatore" style="cursor:default"><span class="etichetta">Ore in griglia</span><span class="valore md">${fOre(rie.oreTotali)}</span></div><div class="indicatore" style="cursor:default"><span class="etichetta">Importo del mese</span><span class="valore md">${fEuro(rie.importoTotale,0)}</span></div><div class="indicatore ${rie.giorniDaCompilare?'attenzione':''}" style="cursor:default"><span class="etichetta">Giorni-persona da compilare</span><span class="valore md">${rie.giorniDaCompilare}</span></div><div class="indicatore" style="cursor:default"><span class="etichetta">Giorni lavorativi</span><span class="valore md">${giorniLavorativiMese(anno,mese,stato.impostazioni.festivitaLocali).length}</span><span class="nota">${giorni.filter(x=>x.festivo&&!x.we).map(x=>'FS '+x.g).join(', ')||'nessuna festività feriale'}</span></div></div>
   ${avvisi.length?html`<div class="avviso-inline attenzione">${icona('attenzione')}<div class="corpo">${avvisi.map(a=>html`${a}<br>`)}</div></div>`:''}
@@ -4546,8 +4750,11 @@ AZIONI['presenze-uscite']=async d=>{
 VISTE.documenti=function(r){
   if(r.query.doc){setTimeout(()=>apriDocumento(r.query.doc),0);history.replaceState(null,'','#/documenti')}
   const sotto=r.id||'archivio';
-  const testa=html`<div class="testata"><div><h1>Documenti</h1><div class="sotto">${stato.file.filter(f=>!f.cestinato).length} file · ${fPeso(somma(stato.file.filter(f=>!f.cestinato),f=>f.dimensione))} nell'archivio</div></div><div class="azioni"><button class="pulsante" data-azione="assistente-documento-esterno" title="Copri intestazioni, aggiungi timbro/firma e dati del legale rappresentante su un documento di un'altra azienda">${icona('magia')}Assistente documento esterno</button><button class="pulsante" data-azione="documento-nuovo">${icona('allega')}Aggiungi documento</button><a class="pulsante" href="#/documenti/caricamento">${icona('cartella')}Caricamento cartelle</a></div></div>
-  ${linguette('documenti',[{id:'archivio',testo:'Archivio',icona:'documenti'},{id:'buste',testo:'Buste paga',icona:'busta-paga'},{id:'modelli',testo:'Modelli',icona:'firma'},{id:'generati',testo:'Generati',icona:'stampa'},{id:'caricamento',testo:'Caricamento',icona:'cartella'}].map(x=>({...x,href:'#/documenti/'+(x.id==='archivio'?'':x.id)})),sotto)}`;
+  const vivi=stato.file.filter(f=>!f.cestinato);const nDoc=stato.documenti.filter(d=>!documentoArchiviato(d)).length;
+  const daSistemare=stato.documenti.filter(d=>!documentoArchiviato(d)&&documentoCritico(infoDocumento(d))).length;
+  const busteDaRivedere=stato.bustePaga.filter(b=>{const c=confrontoBusta(b);return c&&c.scarto&&!b.verifica}).length;
+  const testa=html`<div class="testata"><div><div class="occhiello">Amministrazione</div><h1>Documenti</h1><p class="sotto">${plurale(nDoc,'documento','documenti')} · ${plurale(vivi.length,'file','file')} · ${fPeso(somma(vivi,f=>f.dimensione))} nell'archivio${daSistemare?html` · <b>${daSistemare} da sistemare</b>`:''}</p></div><div class="azioni"><button class="pulsante" data-azione="assistente-documento-esterno" title="Copri intestazioni, aggiungi timbro/firma e dati del legale rappresentante su un documento di un'altra azienda">${icona('magia','piccola')}Documento di un’altra azienda</button><button class="pulsante primario" data-azione="documento-nuovo">Carica<span class="manopola">${icona('carica','piccola')}</span></button></div></div>
+  ${linguette('documenti',[{id:'archivio',testo:'Archivio',contatore:nDoc||null},{id:'buste',testo:'Buste paga',contatore:busteDaRivedere||null,critico:busteDaRivedere>0},{id:'modelli',testo:'Modelli',contatore:stato.modelli.dichiarazioni.length||null},{id:'generati',testo:'Generati'},{id:'caricamento',testo:'Caricamento in blocco'}],sotto)}`;
   const corpo=sotto==='buste'?vistaBustePaga(r):sotto==='modelli'?vistaModelli(r):sotto==='generati'?vistaGenerati():sotto==='caricamento'?vistaCaricamento():vistaArchivio();
   return html`${testa}${corpo}`;
 };
@@ -4583,25 +4790,16 @@ function vistaArchivio(){
   const soggetti=[{v:'azienda',t:stato.azienda.ragioneSociale},...stato.persone.map(p=>({v:'persona:'+p.id,t:nomePersona(p)})),...stato.cantieri.map(c=>({v:'cantiere:'+c.id,t:'Cantiere '+c.nome})),...stato.mezzi.map(m=>({v:'mezzo:'+m.id,t:'Mezzo '+nomeMezzo(m)}))];
   const anni=unici(stato.documenti.flatMap(d=>[(d.dataEmissione||'').slice(0,4),(d.dataScadenza||'').slice(0,4)]).filter(Boolean)).sort().reverse();
   const sel=(nome,opz,val,etic)=>html`<select data-cambio="filtro-archivio" data-campo="${nome}" aria-label="${etic}"><option value="">${etic}</option>${opz.map(o=>html`<option value="${o.v}" ${o.v===val?'selected':''}>${o.t}</option>`)}</select>`;
-  // Come nella scheda persona: raggruppati per argomento (categoria del tipo di documento) invece
-  // di un'unica lista lunga, con le sezioni a posto chiuse — vale per tutti i soggetti insieme
-  // (persone, cantieri, mezzi, azienda), non solo per una persona alla volta.
-  const filtroAttivo=!!(f.cerca||f.soggetto||f.tipo||f.anno||f.stato);
-  const gruppi=new Map();
-  for(const x of docs){const c=(x.tipo&&x.tipo.categoria)||'amministrativo';if(!gruppi.has(c))gruppi.set(c,[]);gruppi.get(c).push(x)}
-  const chiavi=Array.from(gruppi.keys()).sort((a,b)=>{const ia=ORDINE_CATEGORIE_DOC.indexOf(a),ib=ORDINE_CATEGORIE_DOC.indexOf(b);return (ia<0?99:ia)-(ib<0?99:ib)});
-  const problemi=rr=>rr.filter(x=>documentoCritico(x.info)).length;
-  const COLONNE=[
-    {chiave:'sogg',titolo:'Soggetto',principale:true,valore:x=>nomeSoggettoDoc(x.d)},
-    {chiave:'tipo',titolo:'Documento',valore:x=>x.tipo?x.tipo.nome:'',formatta:x=>html`<b>${x.tipo?x.tipo.nome:'[tipo?]'}</b>${x.d.titolo?html`<br><span class="piccolo secondario">${x.d.titolo}</span>`:''}`},
-    {chiave:'em',titolo:'Emissione',valore:x=>x.d.dataEmissione||'',formatta:x=>x.d.dataEmissione?fData(x.d.dataEmissione):''},
-    {chiave:'scad',titolo:'Scadenza',valore:x=>x.info.data||'',formatta:x=>x.info.data?html`<span class="${x.info.stimata?'stimata':''}">${fData(x.info.data)}${x.info.stimata?' ~':''}</span>`:''},
-    {chiave:'stato',titolo:'Stato',valore:x=>STATI_DOC[x.info.stato].ordine,formatta:x=>pillolaDocumento(x.info,{breve:true})},
-  ];
-  return html`<div class="strumenti-tabella"><input type="search" placeholder="Cerca nel nome, titolo, note" value="${f.cerca||''}" data-cambio="filtro-archivio" data-campo="cerca" aria-label="Cerca documenti">${sel('soggetto',soggetti,f.soggetto,'Tutti i soggetti')}${sel('tipo',stato.tipiDocumento.map(t=>({v:t.id,t:t.nome})),f.tipo,'Tutti i tipi')}${sel('anno',anni.map(a=>({v:a,t:a})),f.anno,'Anno')}${sel('stato',Object.entries(STATI_DOC).map(([v,x])=>({v,t:x.etichetta})),f.stato,'Validità')}${pulsanteCancellaFiltri(filtroAttivo,'filtro-archivio-reset')}${archiviati?html`<label class="spunta piccolo" title="Documenti di persone cessate, cantieri chiusi e documenti rinnovati (sostituiti da uno più recente dello stesso tipo)"><input type="checkbox" data-cambio="filtro-archivio-archiviati" ${f.archiviati?'checked':''}> Mostra archiviati (${archiviati})</label>`:''}<span class="conteggio">${docs.length} documenti</span></div>
-  ${docs.length?chiavi.map(c=>{const rr=gruppi.get(c);const pb=problemi(rr);return html`<details class="ck-sezione" ${pb||filtroAttivo?'open':''}><summary><span class="freccia">${icona('destra','piccola')}</span><b class="spazio">${CATEGORIE_TIPO_DOC[c]||c}</b>${pb?html`<span class="pillola scaduto piccolo">${pb} da sistemare</span>`:html`<span class="pillola valido piccolo">${icona('ok','piccola')}a posto</span>`}<span class="conteggio">${rr.length}</span></summary><div class="ck-corpo">${tabella({id:'arch'+c,righe:rr,chiaveOrd:'stato',onRiga:x=>apriDocumento(x.d.id),classeRiga:x=>'riga-'+(x.info.silenziato?'riferimento':x.info.stato),colonne:COLONNE})}</div></details>`})
-    :vuoto({icona:'documenti',titolo:'Nessun documento con questi filtri',testo:'Prova ad allargare i filtri o aggiungi un documento.'})}`;
+  const filtroAttivo=!!(f.cerca||f.soggetto||f.tipo||f.anno||f.stato||f.critici);
+  if(f.critici) docs=docs.filter(x=>documentoCritico(x.info)||!(x.d.file||[]).length);
+  const ord=['scaduto','scadenza','pianificare','valido','riferimento'];
+  docs.sort((a,b)=>ord.indexOf(a.info.silenziato?'riferimento':a.info.stato)-ord.indexOf(b.info.silenziato?'riferimento':b.info.stato)||(a.info.giorni==null?99999:a.info.giorni)-(b.info.giorni==null?99999:b.info.giorni));
+  const chiDi=d=>{if(d.soggettoTipo==='persona'){const p=persona(d.soggettoId);return p?html`<span class="chi">${avatar(p,'mini')}<span>${nomePersona(p)}</span></span>`:'—'}if(d.soggettoTipo==='cantiere'){const c=cantiere(d.soggettoId);return c?html`<span class="cantiere-tag ${coloreCantiere(c)}">${c.nome}</span>`:'—'}return html`<span>${nomeSoggettoDoc(d)}</span>`};
+  return html`<div class="strumenti-tabella"><input type="search" placeholder="Cerca per nome, persona, tipo, note" value="${f.cerca||''}" data-cambio="filtro-archivio" data-campo="cerca" aria-label="Cerca documenti">${sel('soggetto',soggetti,f.soggetto,'Tutti i soggetti')}${sel('tipo',stato.tipiDocumento.map(t=>({v:t.id,t:t.nome})),f.tipo,'Tutti i tipi')}${sel('anno',anni.map(a=>({v:a,t:a})),f.anno,'Anno')}<div class="gruppo-pulsanti"><button class="pulsante ${f.critici?'':'attivo'}" data-azione="filtro-archivio-critici" data-valore="">Tutti</button><button class="pulsante ${f.critici?'attivo':''}" data-azione="filtro-archivio-critici" data-valore="1">Da sistemare</button></div>${pulsanteCancellaFiltri(filtroAttivo,'filtro-archivio-reset')}<span class="spazio"></span>${archiviati?html`<label class="spunta piccolo" title="Documenti di persone cessate, cantieri chiusi e documenti rinnovati (sostituiti da uno più recente dello stesso tipo)"><input type="checkbox" data-cambio="filtro-archivio-archiviati" ${f.archiviati?'checked':''}> Archiviati (${archiviati})</label>`:''}</div>
+  ${docs.length?html`<div class="guscio"><div class="scheda scheda-tabella"><table class="tabella"><thead><tr><th>Documento</th><th>Di chi</th><th class="nascondi-telefono">Scadenza</th><th class="nascondi-telefono"></th><th>Stato</th><th class="num nascondi-telefono">File</th></tr></thead><tbody>${docs.map(x=>{const fr=frazioneDoc(x.d,x.info);const nf=(x.d.file||[]).length;return html`<tr class="cliccabile" data-azione="doc-apri" data-id="${x.d.id}"><td><span class="chi"><span class="icona-tipo">${icona(ICONA_CATEGORIA[(x.tipo&&x.tipo.categoria)||'amministrativo']||'documenti','piccola')}</span><span><b>${x.tipo?x.tipo.nome:'[tipo?]'}</b>${x.d.titolo?html`<span>${x.d.titolo}</span>`:''}</span></span></td><td>${chiDi(x.d)}</td><td class="nascondi-telefono num">${x.info.data?html`<span class="${x.info.stimata?'stimata':''}">${fData(x.info.data)}</span>`:html`<span class="silenzioso">—</span>`}</td><td class="nascondi-telefono" style="width:150px">${fr!=null?html`<div class="traccia" style="height:4px"><i class="${x.info.stato==='scaduto'?'tardi':x.info.stato==='scadenza'?'presto':''}" style="width:${Math.max(3,fr*100)}%"></i></div>`:''}</td><td>${pillolaDocumento(x.info,{breve:true})}</td><td class="num nascondi-telefono">${nf?html`<span class="silenzioso">${icona('allega','piccola')} ${nf}</span>`:html`<span class="bad-t piccolo" style="white-space:nowrap">nessun file</span>`}</td></tr>`})}</tbody></table></div></div>`
+    :vuoto({icona:'documenti',titolo:'Nessun documento con questi filtri',testo:'Prova ad allargare i filtri o carica un documento.'})}`;
 }
+AZIONI['filtro-archivio-critici']=d=>{ui.filtri.archivio=Object.assign({},ui.filtri.archivio,{critici:d.valore});render()};
 AZIONI['filtro-archivio']=(d,t)=>{ui.filtri.archivio=Object.assign({},ui.filtri.archivio,{[d.campo]:t.value});render();if(d.campo==='cerca')setTimeout(()=>{const i=el('[data-cambio="filtro-archivio"][data-campo="cerca"]');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}},0)};
 AZIONI['filtro-archivio-archiviati']=(d,t)=>{ui.filtri.archivio=Object.assign({},ui.filtri.archivio,{archiviati:t.checked});render()};
 AZIONI['filtro-archivio-reset']=()=>{ui.filtri.archivio={};render()};
@@ -4619,6 +4817,15 @@ async function htmlAnteprimaFile(fileId,pagina){
   }
   return html`<div class="anteprima-nessuna">${icona('file')}<p>Anteprima non disponibile per questo tipo di file (${m.mime||estensioneDi(m.nome)}).</p><button class="pulsante" data-azione="file-scarica" data-id="${m.id}">${icona('scarica')}Scarica</button></div>`;
 }
+// anteprima con la sua barra: nome del file, ingrandisci, ruota, a tutto schermo; più file = miniature per passare dall'uno all'altro
+async function anteprimaConBarra(files,attivo){
+  const m=fileMeta(attivo)||files[0];if(!m)return '';const img=eImmagine(m.mime,m.nome);
+  return html`<div class="barra-anteprima"><span class="nome-anteprima" title="${m.nome}">${m.nome} · ${fPeso(m.dimensione)}</span>${img?html`<button class="pulsante discreto icona piccolo" data-azione="anteprima-ingrandisci" title="Ingrandisci">${icona('zoom-piu','piccola')}</button><button class="pulsante discreto icona piccolo" data-azione="anteprima-ruota" title="Ruota">${icona('aggiorna','piccola')}</button>`:''}<button class="pulsante discreto icona piccolo" data-azione="file-apri" data-id="${m.id}" title="A tutto schermo">${icona('occhio','piccola')}</button></div>
+  <div class="foglio-anteprima">${await htmlAnteprimaFile(m.id)}</div>
+  ${files.length>1?html`<div class="miniature">${files.map(f=>html`<button class="${f.id===m.id?'attiva':''}" data-azione="doc-anteprima-file" data-id="${f.id}" data-files="${files.map(x=>x.id).join(',')}" title="${f.nome}">${icona(ePdf(f.mime,f.nome)?'pdf':'immagine','piccola')}<span>${tronca(f.nome.replace(/\.[^.]+$/,''),14)}</span></button>`)}</div>`:''}`;
+}
+AZIONI['anteprima-ingrandisci']=()=>{const i=el('#pannello .foglio-anteprima img');if(i)i.classList.toggle('grande')};
+AZIONI['anteprima-ruota']=()=>{const i=el('#pannello .foglio-anteprima img');if(i){const r=((+i.dataset.r||0)+90)%360;i.dataset.r=r;i.style.transform='rotate('+r+'deg)'}};
 AZIONI['immagine-zoom']=d=>{dialogo({titolo:'Immagine',enorme:true,corpo:html`<img src="${d.src}" style="max-height:calc(100dvh - 160px);margin:0 auto;object-fit:contain">`,pulsanti:[{testo:'Chiudi',valore:true}]})};
 AZIONI['file-apri']=async d=>{const m=fileMeta(d.id);if(!m)return avviso('File non trovato',{tipo:'errore'});apriPannello({titolo:m.nome,largo:true,pieno:true,corpo:html`<div class="anteprima-nessuna">Caricamento…</div>`,piede:html`<button class="pulsante" data-azione="file-scarica" data-id="${m.id}">${icona('scarica')}Scarica</button><button class="pulsante" data-azione="file-condividi" data-id="${m.id}">${icona('condividi')}Condividi</button><span class="spazio"></span><span class="piccolo secondario">${fPeso(m.dimensione)}${m.compresso?' · compresso da '+fPeso(m.dimensioneOriginale):''}</span>`});const a=await htmlAnteprimaFile(m.id);const c=el('#pannello .corpo');if(c)c.innerHTML=a};
 AZIONI['file-scarica']=async d=>{const m=fileMeta(d.id);const b=await leggiFile(m.hash);if(!b)return avviso('Contenuto non disponibile',{tipo:'errore'});scaricaBlob(b,m.nome)};
@@ -4643,7 +4850,6 @@ async function apriDocumento(docId){
     ${t&&t.bloccaIdoneita&&['scaduto','mancante'].includes(info.stato)&&d.soggettoTipo==='persona'?html`<div class="avviso-inline critico">${icona('blocco')}<div class="corpo"><b>Blocca l'ingresso in cantiere.</b> Rinnovalo caricando il documento nuovo: il blocco sparisce da solo.</div></div>`:''}
     ${files.length?'':html`<div class="zona-drop mb" data-azione="doc-aggiungi-file" data-doc="${d.id}" data-drop-doc="${d.id}">${icona('carica')}<b>Trascina qui la scansione</b><br>o clicca per scegliere un PDF o una foto</div>`}
     <dl class="dati-doc">
-      <dt>Di chi</dt><dd><a href="${hrefSoggettoDoc(d)}">${nomeSoggettoDoc(d)}</a></dd>
       <dt>Tipo</dt><dd>${t?t.nome:daCompilare('tipo')}</dd>
       ${d.titolo?html`<dt>Titolo</dt><dd>${d.titolo}</dd>`:''}
       ${d.ente?html`<dt>Ente</dt><dd>${d.ente}</dd>`:''}
@@ -4657,17 +4863,18 @@ async function apriDocumento(docId){
       <div class="riga mt-s"><button class="pulsante discreto piccolo" data-azione="doc-aggiungi-file" data-doc="${d.id}">${icona('allega','piccola')}Allega un altro file</button><button class="pulsante discreto piccolo" data-azione="file-apri" data-id="${files[0].id}">${icona('occhio','piccola')}A tutto schermo</button></div>`:''}
     ${precedenti.length?html`<div class="sezione-titolo">Storico</div><ul class="storico-doc"><li class="attuale"><i></i><div><b>${t?t.nome:'Documento'} del ${fData(d.dataEmissione)||'—'}</b><span>quello in vigore</span></div></li>${precedenti.map(v=>html`<li><i></i><div><b>${fData(v.dataEmissione)||'senza data'}</b><span>sostituito${v.dataScadenza?' · scadeva il '+fData(v.dataScadenza):''}</span></div><button class="pulsante discreto piccolo" data-azione="doc-apri" data-id="${v.id}">Apri</button></li>`)}</ul>`:''}`;
   const rinnovabile=!!(info.data||info.stato==='mancante')&&!successivo;
-  apriPannello({titolo:(t?t.nome:'Documento')+' · '+nomeSoggettoDoc(d),largo:!!files.length,affiancato:!!files.length,corpo:meta,anteprima:files.length?'anteprima-doc':null,
+  const sogg=d.soggettoTipo==='persona'?persona(d.soggettoId):null;
+  apriPannello({titolo:t?t.nome:'Documento',icona:ICONA_CATEGORIA[(t&&t.categoria)||'amministrativo']||'documenti',sottotitolo:html`${sogg?avatar(sogg,'mini'):''}<a href="${hrefSoggettoDoc(d)}">${nomeSoggettoDoc(d)}</a>`,largo:!!files.length,affiancato:!!files.length,corpo:meta,anteprima:files.length?'anteprima-doc':null,
     azioni:html`${pillolaDocumento(info)}`,
-    piede:html`${rinnovabile?html`<button class="pulsante primario" data-azione="documento-rinnova" data-id="${d.id}" title="Carica il documento nuovo: questo passa nello storico">${icona('aggiorna','piccola')}Rinnova con un documento nuovo</button>`:''}<button class="pulsante ${rinnovabile?'':'primario'}" data-azione="documento-modifica" data-id="${d.id}">${icona('modifica','piccola')}Modifica</button>${rinnovabile?html`<button class="pulsante discreto" data-azione="documento-duplica" data-id="${d.id}" title="Rinnovo senza scansione: stesso tipo e soggetto, date nuove">Rinnovo senza file</button>`:''}<span class="spazio"></span><button class="pulsante discreto pericolo" data-azione="documento-elimina" data-id="${d.id}">${icona('elimina','piccola')}Elimina</button>`});
-  if(files.length){const a=await htmlAnteprimaFile(files[0].id);const c=el('#anteprima-doc');if(c)c.innerHTML=a}
+    piede:html`${rinnovabile?html`<button class="pulsante primario" data-azione="documento-rinnova" data-id="${d.id}" title="Carica il documento nuovo: questo passa nello storico">${icona('aggiorna','piccola')}Rinnova con un documento nuovo</button>`:''}<button class="pulsante ${rinnovabile?'':'primario'}" data-azione="documento-modifica" data-id="${d.id}">${icona('modifica','piccola')}Modifica</button>${files.length?html`<button class="pulsante discreto" data-azione="file-condividi" data-id="${files[0].id}">${icona('condividi','piccola')}Condividi</button>`:''}${rinnovabile?html`<button class="pulsante discreto" data-azione="documento-duplica" data-id="${d.id}" title="Rinnovo senza scansione: stesso tipo e soggetto, date nuove">Rinnovo senza file</button>`:''}<span class="spazio"></span><button class="pulsante discreto pericolo" data-azione="documento-elimina" data-id="${d.id}">${icona('elimina','piccola')}Elimina</button>`});
+  if(files.length){const a=await anteprimaConBarra(files,files[0].id);const c=el('#anteprima-doc');if(c)c.innerHTML=a}
 }
 // Rinnovo: si sceglie subito il file nuovo; date e tipo si leggono dal file, il vecchio passa nello storico
 AZIONI['documento-rinnova']=async d=>{const o=perId('documenti',d.id);const fs=await scegliFile({accetta:'.pdf,image/*'});if(!fs.length)return;dialogoDocumento({soggettoTipo:o.soggettoTipo,soggettoId:o.soggettoId,tipoId:o.tipoId,titolo:o.titolo,ente:o.ente,durata:o.durata,rinnovoDi:o.id},fs)};
-AZIONI['doc-anteprima-file']=async d=>{const c=el('#anteprima-doc');if(c){c.innerHTML=html`<div class="anteprima-nessuna">Caricamento…</div>`;c.innerHTML=await htmlAnteprimaFile(d.id)}};
+AZIONI['doc-anteprima-file']=async d=>{const c=el('#anteprima-doc');if(!c)return;const ids=(d.files||d.id).split(',');const files=ids.map(fileMeta).filter(Boolean);c.innerHTML=await anteprimaConBarra(files.length?files:[fileMeta(d.id)],d.id)};
 AZIONI['doc-rimuovi-file']=async d=>{const m=fileMeta(d.id);if(!(await conferma(`Togliere «${m?m.nome:''}» da questo documento? Il file resta nel cestino per 30 giorni.`)))return;esegui('Tolto file dal documento',s=>{const doc=s.documenti.find(x=>x.id===d.doc);doc.file=doc.file.filter(f=>f!==d.id);cestinaFileOrfani(s)});apriDocumento(d.doc)};
 AZIONI['doc-aggiungi-file']=async d=>{const fs=await scegliFile({accetta:'.pdf,image/*'});if(fs.length)await allegaFilesADocumento(d.doc,fs)};
-AZIONI['documento-nuovo']=d=>dialogoDocumento({soggettoTipo:d.soggettoTipo||null,soggettoId:d.soggettoId||null});
+AZIONI['documento-nuovo']=d=>dialogoDocumento({soggettoTipo:d.soggettoTipo||null,soggettoId:d.soggettoId||null,tipoId:d.tipoId||null});
 AZIONI['documento-modifica']=d=>dialogoDocumento(perId('documenti',d.id));
 AZIONI['documento-taci']=d=>{const doc=perId('documenti',d.id);const ora=!doc.avvisoTaciuto;esegui(ora?'Scadenza non più segnalata':'Scadenza segnalata di nuovo',s=>{const x=s.documenti.find(x=>x.id===d.id);if(ora)x.avvisoTaciuto=true;else delete x.avvisoTaciuto},{senzaRender:true});apriDocumento(d.id);render()};
 AZIONI['documento-duplica']=d=>{const o=perId('documenti',d.id);dialogoDocumento({soggettoTipo:o.soggettoTipo,soggettoId:o.soggettoId,tipoId:o.tipoId,titolo:o.titolo,rinnovoDi:o.id})};
@@ -5018,23 +5225,23 @@ function vistaBustePagaMese(){
 // Tutte le buste di un mese contro le presenze, per accettare o segnare gli scostamenti in un colpo.
 function vistaControlloBuste(){
   const mesi=unici(stato.bustePaga.filter(b=>b.anno&&b.mese&&b.personaId).map(b=>b.anno*100+b.mese)).sort((a,b)=>b-a);
-  if(!mesi.length) return html`<div class="scheda mb"><h3>${icona('busta-paga')}Buste contro presenze</h3><p class="secondario">Qui vedrai, mese per mese, il netto di ogni busta contro il tuo importo in presenze, con la differenza da accettare o segnare da rivedere. Compare appena archivi le buste qui sotto (pulsante «Archivia»).</p></div>`;
+  if(!mesi.length) return html`<div class="guscio c-12"><div class="scheda"><div class="intesta"><h2>Buste contro presenze</h2></div><p class="secondario piccolo">Qui vedrai, mese per mese, il netto di ogni busta contro il tuo importo in presenze, con la differenza da accettare o segnare da rivedere. Compare appena archivi le buste.</p></div></div>`;
   const sel=mesi.includes(+ui.filtri.busteControllo)?+ui.filtri.busteControllo:mesi[0];
   const buste=stato.bustePaga.filter(b=>b.anno*100+b.mese===sel&&b.personaId).sort((a,b)=>nomePersona(persona(a.personaId)).localeCompare(nomePersona(persona(b.personaId))));
-  const cella=v=>v==null?html`<span class="silenzioso">—</span>`:v;
-  return html`<div class="scheda mb"><div class="riga"><h3>${icona('busta-paga')}Buste contro presenze</h3><span class="spazio"></span>
-    <select data-cambio="buste-controllo-mese">${mesi.map(k=>html`<option value="${k}" ${k===sel?'selected':''}>${fMeseAnno(Math.floor(k/100),k%100)}</option>`)}</select></div>
-    <table class="tabella densa"><thead><tr><th>Operaio</th><th class="num">Netto busta</th><th class="num">Tuo importo</th><th class="num">Differenza</th><th class="num">Ore busta / tue</th><th>Stato</th></tr></thead><tbody>
-    ${buste.map(b=>{const c=confrontoBusta(b);const v=b.verifica;return html`<tr class="cliccabile ${c&&c.scarto&&!v?'riga-scadenza':''}" data-azione="busta-apri" data-id="${b.id}">
-      <td>${nomePersona(persona(b.personaId))}</td>
-      <td class="num">${cella(b.netto!=null?fEuro(b.netto):null)}</td><td class="num">${cella(c?fEuro(c.importoGriglia):null)}</td>
-      <td class="num"><b>${cella(c&&c.diffEuro!=null?piuMeno(c.diffEuro,fEuro):null)}</b></td>
-      <td class="num">${cella(c&&c.diff!=null?fOre(c.oreBusta)+' / '+fOre(c.oreGriglia):null)}</td>
-      <td>${!c?html`<span class="piccolo secondario">${b.netto==null&&b.oreRetribuite==null?'netto da scrivere':'presenze mancanti'}</span>`
-        :v?html`${icona(v.stato==='revisione'?'attenzione':'ok','piccola')} ${v.stato==='revisione'?'Da rivedere':'Accettata'} <button class="pulsante piccolo" data-azione="busta-verifica-annulla" data-tabella="1" data-id="${b.id}">Cambia</button>`
-        :!c.scarto?html`${icona('ok','piccola')} Torna`
-        :html`<button class="pulsante piccolo" data-azione="busta-verifica" data-tabella="1" data-id="${b.id}" data-valore="accettata">${icona('ok','piccola')}Va bene così</button> <button class="pulsante piccolo pericolo" data-azione="busta-verifica" data-tabella="1" data-id="${b.id}" data-valore="revisione">${icona('attenzione','piccola')}Da rivedere</button>`}</td></tr>`})}
-    </tbody></table></div>`;
+  const vuota=html`<span class="silenzioso">—</span>`;
+  return html`<div class="guscio c-12"><div class="scheda scheda-tabella"><div class="intesta" style="padding:10px 8px 0"><h2>Buste contro presenze</h2><span class="piccolo silenzioso">il netto di ogni busta contro il tuo importo del mese</span><span class="spazio"></span>
+    <select data-cambio="buste-controllo-mese" aria-label="Mese">${mesi.map(k=>html`<option value="${k}" ${k===sel?'selected':''}>${fMeseAnno(Math.floor(k/100),k%100)}</option>`)}</select></div>
+    <table class="tabella"><thead><tr><th>Operaio</th><th class="num">Netto busta</th><th class="num nascondi-telefono">Tuo importo</th><th class="num">Differenza</th><th class="num nascondi-telefono">Ore busta / tue</th><th class="num">Stato</th></tr></thead><tbody>
+    ${buste.map(b=>{const c=confrontoBusta(b);const v=b.verifica;const p=persona(b.personaId);return html`<tr class="cliccabile ${c&&c.scarto&&!v?'riga-segnata':''}" data-azione="busta-apri" data-id="${b.id}">
+      <td><span class="chi">${p?avatar(p,'mini'):''}<b>${nomePersona(p)}</b></span></td>
+      <td class="num"><b>${b.netto!=null?fEuro(b.netto):vuota}</b></td><td class="num nascondi-telefono">${c?fEuro(c.importoGriglia):vuota}</td>
+      <td class="num">${c&&c.diffEuro!=null&&Math.abs(c.diffEuro)>=1?html`<b class="${c.diffEuro>0?'ok-t':'bad-t'}">${piuMeno(c.diffEuro,fEuro)}</b>`:vuota}</td>
+      <td class="num nascondi-telefono">${c&&c.diff!=null?fOre(c.oreBusta)+' / '+fOre(c.oreGriglia)+' h':vuota}</td>
+      <td class="num" style="white-space:nowrap">${!c?html`<span class="piccolo silenzioso">${b.netto==null&&b.oreRetribuite==null?'netto da scrivere':'presenze mancanti'}</span>`
+        :v?html`<span class="pillola ${v.stato==='revisione'?'scadenza':'valido'}">${v.stato==='revisione'?'Da rivedere':'Accettata'}</span> <button class="pulsante piccolo discreto" data-azione="busta-verifica-annulla" data-tabella="1" data-id="${b.id}">Cambia</button>`
+        :!c.scarto?html`<span class="pillola valido">${icona('ok','piccola')}Torna</span>`
+        :html`<button class="pulsante piccolo" data-azione="busta-verifica" data-tabella="1" data-id="${b.id}" data-valore="accettata">${icona('spunta','piccola')}Va bene così</button> <button class="pulsante piccolo discreto pericolo" data-azione="busta-verifica" data-tabella="1" data-id="${b.id}" data-valore="revisione">Da rivedere</button>`}</td></tr>`})}
+    </tbody></table></div></div>`;
 }
 AZIONI['buste-controllo-mese']=(d,t)=>{ui.filtri.busteControllo=t.value;render()};
 function vistaBustePaga(r){
@@ -5046,18 +5253,21 @@ function vistaBustePaga(r){
   const buste=p?stato.bustePaga.filter(b=>b.personaId===p.id):[];
   const anni=unici([...buste.map(b=>b.anno),new Date().getFullYear()]).sort((a,b)=>b-a);
   const oggiD=new Date();
-  return html`${vistaControlloBuste()}${vistaBustePagaMese()}<div class="griglia ${coda.length?'':'due'}">
-    <div class="scheda"><h3>${icona('busta-paga')}Smistamento buste paga</h3><p class="secondario">Trascina qui tutti i PDF del mese: per ciascuno propongo operaio, anno e mese dal nome del file. Le tue correzioni insegnano all'applicazione come leggere i nomi la volta dopo.</p>
-      <div class="zona-drop" data-azione="buste-scegli" data-drop-buste>${icona('carica')}Trascina i PDF delle buste paga o clicca per sceglierli</div>
-      <button class="pulsante piccolo mt-s" data-azione="buste-smistamento-scegli">${icona('magia','piccola')}Oppure carica un unico PDF con tutte le buste del mese (separate da pagine bianche): le smisto da solo</button>
-      ${coda.length?html`<div class="mt"><table class="tabella densa"><thead><tr><th>File</th><th>Operaio</th><th>Anno</th><th>Mese</th><th class="num">Netto / tuo importo</th><th></th></tr></thead><tbody>${coda.map((c,i)=>{const cf=confrontoBusta({personaId:c.personaId,anno:c.anno,mese:c.mese,netto:c.netto,oreRetribuite:c.oreBusta});return html`<tr class="${c.fiducia<0.7?'riga-scadenza':''}"><td><span class="taglia" style="display:block;max-width:220px" title="${c.f.name}">${c.f.name}</span><span class="piccolo secondario">${c.motivi.join('; ')||'nessun indizio'}</span></td><td><select data-busta="personaId" data-i="${i}"><option value="">— da assegnare —</option>${persone.map(pp=>html`<option value="${pp.id}" ${pp.id===c.personaId?'selected':''}>${nomePersona(pp)}</option>`)}</select></td><td><input type="text" inputmode="numeric" value="${c.anno||''}" data-busta="anno" data-i="${i}" style="width:72px"></td><td><select data-busta="mese" data-i="${i}"><option value="">—</option>${NOMI_MESI.map((mn,mi)=>html`<option value="${mi+1}" ${mi+1===c.mese?'selected':''}>${mn}</option>`)}</select></td><td class="num">${c.netto!=null?fEuro(c.netto):'—'}<br><span class="piccolo ${cf&&cf.scarto?'':'secondario'}">${cf&&cf.diffEuro!=null?html`${fEuro(cf.importoGriglia)} · <b>${piuMeno(cf.diffEuro,fEuro)}</b>`:cf?'':'presenze mancanti'}</span></td><td><button class="pulsante piccolo icona" data-azione="buste-togli" data-i="${i}" aria-label="Togli">${icona('chiudi','piccola')}</button></td></tr>`})}</tbody></table><div class="riga mt-s"><span class="piccolo secondario">${coda.filter(c=>!c.personaId||!c.anno||!c.mese).length} senza destinazione completa: finiranno in «da assegnare»</span><span class="spazio"></span><button class="pulsante primario" data-azione="buste-applica">${icona('spunta')}Archivia ${coda.length} buste</button></div></div>`:''}
+  const pdfMese=fileBustePerMese();const annoPdf=Math.max(...Array.from(pdfMese.keys()).map(k=>+k.split('-')[0]),oggiD.getFullYear());
+  const codaHtml=coda.length?html`<div class="guscio c-12"><div class="scheda scheda-tabella"><div class="intesta" style="padding:10px 8px 0"><h2>Da archiviare</h2><span class="pillola neutro">${plurale(coda.length,'busta','buste')}</span><span class="piccolo silenzioso">${coda.filter(c=>!c.personaId||!c.anno||!c.mese).length?coda.filter(c=>!c.personaId||!c.anno||!c.mese).length+' senza destinazione completa: finiranno in «da assegnare»':'controlla e archivia'}</span><span class="spazio"></span><button class="pulsante primario" data-azione="buste-applica">${icona('spunta','piccola')}Archivia tutte</button></div>
+    <table class="tabella"><thead><tr><th>File</th><th>Operaio</th><th>Anno</th><th>Mese</th><th class="num">Netto</th><th class="num">Tuo importo</th><th class="num">Differenza</th><th></th></tr></thead><tbody>${coda.map((c,i)=>{const cf=confrontoBusta({personaId:c.personaId,anno:c.anno,mese:c.mese,netto:c.netto,oreRetribuite:c.oreBusta});return html`<tr class="${c.fiducia<0.7?'riga-segnata':''}"><td><span class="chi"><span class="icona-tipo">${icona('pdf','piccola')}</span><span><b class="taglia" style="display:block;max-width:200px" title="${c.f.name}">${c.f.name}</b><span>${c.motivi.join('; ')||'nessun indizio'}</span></span></span></td><td><select data-busta="personaId" data-i="${i}" class="${c.fiducia<0.7?'proposto':''}"><option value="">— da assegnare —</option>${persone.map(pp=>html`<option value="${pp.id}" ${pp.id===c.personaId?'selected':''}>${nomePersona(pp)}</option>`)}</select></td><td><input type="text" inputmode="numeric" value="${c.anno||''}" data-busta="anno" data-i="${i}" style="width:72px"></td><td><select data-busta="mese" data-i="${i}"><option value="">—</option>${NOMI_MESI.map((mn,mi)=>html`<option value="${mi+1}" ${mi+1===c.mese?'selected':''}>${mn}</option>`)}</select></td><td class="num"><b>${c.netto!=null?fEuro(c.netto):'—'}</b></td><td class="num">${cf?fEuro(cf.importoGriglia):html`<span class="silenzioso">—</span>`}</td><td class="num">${cf&&cf.diffEuro!=null&&Math.abs(cf.diffEuro)>=1?html`<b class="${cf.diffEuro>0?'ok-t':'bad-t'}">${piuMeno(cf.diffEuro,fEuro)}</b>`:html`<span class="silenzioso">${cf?'—':'presenze mancanti'}</span>`}</td><td><button class="pulsante piccolo icona discreto" data-azione="buste-togli" data-i="${i}" aria-label="Togli">${icona('chiudi','piccola')}</button></td></tr>`})}</tbody></table></div></div>`:'';
+  return html`<div class="bento">${codaHtml}${vistaControlloBuste()}
+    <div class="guscio ${coda.length?'c-6':'c-5'}"><div class="scheda"><div class="intesta"><h2>Smista le buste del mese</h2></div>
+      <div class="zona-drop" data-azione="buste-smistamento-scegli">${icona('magia')}<b>Carica il PDF del commercialista</b><br><span class="piccolo">Tutte le buste del mese in un file solo: salto le pagine doppie, riconosco i nomi e faccio un PDF per operaio. Leggo netto e ore.</span></div>
+      <div class="zona-drop piccola mt-s" data-azione="buste-scegli" data-drop-buste>${icona('carica')}<div><b>Oppure più PDF separati</b><br><span>Uno per busta: propongo operaio e mese dal nome del file, e imparo dalle tue correzioni.</span></div></div>
       ${daAssegnare.length?html`<div class="sezione-titolo">Da assegnare (${daAssegnare.length})</div><ul class="elenco-piatto">${daAssegnare.map(b=>{const m=fileMeta(b.fileId);return html`<li>${icona('attenzione','piccola')}<span class="spazio taglia">${m?m.nome:'file?'}</span><button class="pulsante piccolo" data-azione="busta-apri" data-id="${b.id}">Assegna</button></li>`})}</ul>`:''}
-      ${(stato.regoleBuste||[]).length?html`<details class="mt"><summary class="piccolo secondario">Regole apprese (${stato.regoleBuste.length})</summary><ul class="elenco-piatto piccolo">${stato.regoleBuste.map((rg,i)=>html`<li><span class="mono">${rg.segno}</span> → ${nomePersona(persona(rg.personaId))}<span class="spazio"></span><button class="pulsante piccolo icona" data-azione="busta-regola-elimina" data-i="${i}" aria-label="Elimina regola">${icona('chiudi','piccola')}</button></li>`)}</ul></details>`:''}
-    </div>
-    <div class="scheda"><h3>Consultazione per operaio</h3>
-      <div class="chip-lista mb">${persone.map(pp=>html`<a class="chip ${pid===pp.id?'attiva':''}" href="#/documenti/buste?persona=${pp.id}">${nomePersona(pp)} <span class="piccolo secondario">${stato.bustePaga.filter(b=>b.personaId===pp.id).length}</span></a>`)}</div>
-      ${p?anni.map(anno=>html`<div class="sezione-titolo">${anno}</div><div class="griglia-mesi">${Array.from({length:12},(_,i)=>i+1).map(mm=>{const b=buste.find(x=>x.anno===anno&&x.mese===mm);const futuro=anno>oggiD.getFullYear()||(anno===oggiD.getFullYear()&&mm>oggiD.getMonth());const lavorato=!!(meseP(anno,mm)&&meseP(anno,mm).persone[p.id]);return html`<div class="mese-cella ${b?'presente':futuro?'futuro':lavorato?'mancante':''}" ${b?html`data-azione="busta-apri" data-id="${b.id}"`:''} title="${b?'Busta presente':lavorato&&!futuro?'Mese lavorato senza busta':''}">${NOMI_MESI_BREVI[mm-1]}${b?html`<br>${(()=>{const c=confrontoBusta(b);const scarto=c&&c.scarto&&(!b.verifica||b.verifica.stato==='revisione');return html`${icona(scarto?'attenzione':'ok','piccola')}${b.fileId?html`<button class="pulsante piccolo icona" data-azione="file-condividi" data-id="${b.fileId}" title="Condividi la busta">${icona('condividi','piccola')}</button>`:''}`})()}`:lavorato&&!futuro?html`<br>${icona('attenzione','piccola')}`:''}</div>`})}</div>`):html`<p class="secondario">Scegli una persona per vedere le buste per anno e mese, con i mesi mancanti evidenziati.</p>`}
-    </div></div>`;
+      ${(stato.regoleBuste||[]).length?html`<details class="mt"><summary class="piccolo secondario" style="cursor:pointer">Regole imparate dai nomi dei file (${stato.regoleBuste.length})</summary><ul class="elenco-piatto piccolo">${stato.regoleBuste.map((rg,i)=>html`<li><span class="mono">${rg.segno}</span> → ${nomePersona(persona(rg.personaId))}<span class="spazio"></span><button class="pulsante piccolo icona discreto" data-azione="busta-regola-elimina" data-i="${i}" aria-label="Elimina regola">${icona('chiudi','piccola')}</button></li>`)}</ul></details>`:''}
+    </div></div>
+    <div class="guscio ${coda.length?'c-6':'c-7'}"><div class="scheda"><div class="intesta"><h2>Per operaio</h2></div>
+      <div class="persone-chip mb">${persone.map(pp=>html`<a class="persona-chip ${pid===pp.id?'attiva':''}" href="#/documenti/buste?persona=${pp.id}">${avatar(pp,'mini')}${pp.nome||nomePersona(pp)}<small>${stato.bustePaga.filter(b=>b.personaId===pp.id).length}</small></a>`)}</div>
+      ${p?anni.map(anno=>html`<div class="sezione-titolo">${anno}</div><div class="mesi-12 sei">${Array.from({length:12},(_,i)=>i+1).map(mm=>{const b=buste.find(x=>x.anno===anno&&x.mese===mm);const futuro=anno>oggiD.getFullYear()||(anno===oggiD.getFullYear()&&mm>oggiD.getMonth());const lavorato=!!(meseP(anno,mm)&&meseP(anno,mm).persone[p.id]);const c=b?confrontoBusta(b):null;const scarto=c&&c.scarto&&(!b.verifica||b.verifica.stato==='revisione');return html`<div class="mese-cella ${b?'presente':futuro?'futuro':lavorato?'mancante':'vuota'}" ${b?html`data-azione="busta-apri" data-id="${b.id}"`:''} title="${b?'Busta presente':lavorato&&!futuro?'Mese lavorato senza busta':''}"><b>${NOMI_MESI_BREVI[mm-1]}</b><span>${b?(b.netto!=null?fEuro(b.netto,0):'busta'):lavorato&&!futuro?'manca':''}</span>${scarto?html`<i class="segno-scarto"></i>`:''}</div>`})}</div>`):html`<p class="secondario piccolo">Scegli una persona per vedere le buste per anno e mese, con i mesi mancanti in rosso.</p>`}
+      ${pdfMese.size?html`<div class="sezione-titolo">PDF interi del commercialista</div><div class="riga">${Array.from(pdfMese.entries()).sort((a,b)=>{const [x,y]=[a[0],b[0]].map(k=>k.split('-').map(Number));return (y[0]*100+y[1])-(x[0]*100+x[1])}).slice(0,12).flatMap(([k,ids])=>{const [an,me]=k.split('-').map(Number);return Array.from(ids).map(id=>html`<button class="pulsante piccolo" data-azione="file-apri" data-id="${id}">${icona('pdf','piccola')}${NOMI_MESI_BREVI[me-1]} ${an}</button>`)})}</div>`:''}
+    </div></div></div>`;
 }
 document.addEventListener('change',e=>{const t=e.target;if(!t.dataset||!t.dataset.busta||!ui.busteCoda)return;const c=ui.busteCoda[+t.dataset.i];if(!c)return;const k=t.dataset.busta;const v=t.value;if(k==='personaId'){c.personaId=v||null;c.corretto=true}else if(k==='anno')c.anno=v?+v:null;else if(k==='mese')c.mese=v?+v:null});
 AZIONI['buste-scegli']=async()=>{const fs=await scegliFile({accetta:'.pdf'});if(fs.length)accodaBuste(fs)};
@@ -5221,9 +5431,9 @@ AZIONI['busta-elimina']=async d=>{if(!(await conferma('Eliminare questa busta pa
 function vistaModelli(r){
   const sotto=ui.filtri.modelli||'dichiarazioni';
   return html`${linguette('modelli',[{id:'dichiarazioni',testo:'Dichiarazioni'},{id:'pos',testo:'Testo POS'},{id:'carta',testo:'Carta intestata e firme'}],sotto)}
-  ${sotto==='dichiarazioni'?html`<div class="scheda"><h3>Modelli di dichiarazione <span class="azioni"><button class="pulsante piccolo" data-azione="modello-nuovo">${icona('piu')}Nuovo</button></span></h3><p class="secondario piccolo">Clicca <b>Compila</b> per averla pronta da stampare in pochi secondi: si riempie da sola con i dati dell'azienda e, se scegli un cantiere, anche i suoi.</p>
-    <input type="search" placeholder="Cerca un modello" value="${ui.filtri.cercaModelli||''}" data-cambio="filtro-modelli-cerca" aria-label="Cerca modello" class="mb-s" style="max-width:320px">
-    ${tabella({righe:stato.modelli.dichiarazioni.filter(m=>!ui.filtri.cercaModelli||normalizzaTesto(m.nome).includes(normalizzaTesto(ui.filtri.cercaModelli))),onRiga:m=>dialogoModello(m),colonne:[{chiave:'nome',titolo:'Documento',principale:true,formatta:m=>html`<b>${m.nome}</b>${m.firmatario?html`<br><span class="piccolo secondario">Firma: ${m.firmatario}</span>`:''}`},{chiave:'az',titolo:'',classe:'azioni',formatta:m=>html`<button class="pulsante piccolo primario" data-azione="dichiarazione-compila" data-modello="${m.id}">${icona('stampa','piccola')}Compila</button>`}],vuoto:vuoto({icona:'firma',titolo:'Nessun modello trovato',testo:'Prova un altro termine di ricerca.'})})}</div>`:''}
+  ${sotto==='dichiarazioni'?(()=>{const q=normalizzaTesto(ui.filtri.cercaModelli||'');const mm=stato.modelli.dichiarazioni.filter(m=>!q||normalizzaTesto(m.nome).includes(q));
+    return html`<div class="strumenti-tabella"><input type="search" placeholder="Cerca un modello" value="${ui.filtri.cercaModelli||''}" data-cambio="filtro-modelli-cerca" aria-label="Cerca modello"><span class="piccolo secondario">«Compila» la prepara in pochi secondi con i dati dell'azienda e, se scegli un cantiere, anche i suoi.</span><span class="spazio"></span><button class="pulsante" data-azione="modello-nuovo">${icona('piu','piccola')}Nuovo modello</button></div>
+    ${mm.length?html`<div class="griglia-modelli">${mm.map(m=>html`<div class="modello"><span class="icona-modello">${icona('firma','piccola')}</span><b>${m.nome}</b><span class="desc-modello">${[m.cartaIntestata?'Carta intestata':'',m.timbro?'timbro':'',m.firma?'firma '+(m.firmatario?'— '+m.firmatario.toLowerCase():''):''].filter(Boolean).join(', ')||'Testo libero'}${m.soloConSubappalto?' · solo con subappalto':''}</span><div class="azioni-modello"><button class="pulsante piccolo primario" data-azione="dichiarazione-compila" data-modello="${m.id}">Compila</button><button class="pulsante piccolo discreto" data-azione="modello-modifica" data-id="${m.id}">Modifica testo</button></div></div>`)}</div>`:vuoto({icona:'firma',titolo:'Nessun modello trovato',testo:'Prova un altro termine di ricerca.'})}`})():''}
   ${sotto==='pos'?vistaModelloPos():''}
   ${sotto==='carta'?html`<div class="griglia due"><div class="scheda"><h3>Carta intestata</h3><p class="secondario piccolo">Righe di testo accanto al logo, su ogni pagina dei documenti.</p><ol>${(stato.azienda.cartaIntestata.righe||[]).map(x=>html`<li>${x}</li>`)}</ol><button class="pulsante" data-azione="carta-modifica">${icona('modifica')}Modifica righe</button>
     <div class="mt"><div class="etichetta-campo">Logo</div><div class="mt-s"><img src="${immagineAzienda('logo')}" alt="Logo" style="height:60px"></div><div class="mt-s"><button class="pulsante piccolo" data-azione="immagine-sostituisci" data-chiave="logo">${icona('carica','piccola')}Sostituisci</button>${stato.azienda.img_logo?html` <button class="pulsante piccolo" data-azione="immagine-ripristina" data-chiave="logo">Originale</button>`:''}</div></div></div>
@@ -5237,6 +5447,7 @@ AZIONI['immagine-sostituisci']=async d=>{const fs=await scegliFile({multipli:fal
 AZIONI['immagine-ripristina']=d=>esegui('Ripristinata immagine originale',s=>{delete s.azienda['img_'+d.chiave]});
 AZIONI['carta-modifica']=async()=>{const v=await chiediTesto('Righe della carta intestata',{multiriga:true,valore:(stato.azienda.cartaIntestata.righe||[]).join('\n'),aiuto:'Una riga per ogni linea'});if(v==null)return;esegui('Modificata carta intestata',s=>{s.azienda.cartaIntestata.righe=v.split('\n').map(x=>x.trim()).filter(Boolean)})};
 AZIONI['modello-nuovo']=()=>dialogoModello(null);
+AZIONI['modello-modifica']=d=>dialogoModello(stato.modelli.dichiarazioni.find(m=>m.id===d.id));
 // I campi che si riempiono da soli. Ogni voce ha un nome in italiano: chi scrive un modello clicca
 // "Nome del cantiere", non deve sapere che dietro c'è {{cantiere.nome}}. La sintassi resta valida
 // per chi la conosce, ma non è più necessario conoscerla.
@@ -5543,13 +5754,28 @@ VISTE.budget=function(r){
   const vista=r.id||'movimenti';
   const anni=unici(stato.movimenti.map(m=>(m.data||'').slice(0,4)).filter(Boolean).concat([String(new Date().getFullYear())])).sort().reverse();
   const anno=ui.filtri.budgetAnno||anni[0];
-  const testa=html`<div class="testata"><div><h1>Budget</h1><div class="sotto">${stato.movimenti.length} movimenti · si lavora sempre sull'<b>imponibile</b>, mai sul totale documento</div></div><div class="azioni"><select data-cambio="budget-anno" aria-label="Anno" style="width:auto">${anni.map(a=>html`<option value="${a}" ${a===anno?'selected':''}>${a}</option>`)}</select><button class="pulsante" data-azione="budget-importa-xml" title="Importa fatture elettroniche in formato XML (FatturaPA)">${icona('carica')}Importa XML</button><button class="pulsante" data-azione="budget-stampa" data-anno="${anno}">${icona('stampa')}Stampa</button><button class="pulsante" data-azione="budget-csv" data-anno="${anno}">${icona('scarica')}CSV</button><button class="pulsante primario" data-azione="movimento-nuovo">${icona('piu')}Nuovo movimento</button></div></div>
-  ${linguette('budget',[{id:'movimenti',testo:'Movimenti',icona:'elenco'},{id:'cantieri',testo:'Per cantiere',icona:'cantieri'},{id:'clienti',testo:'Per cliente',icona:'clienti'},{id:'annuale',testo:'Riepilogo annuale',icona:'budget'}],vista)}`;
+  const testa=html`<div class="testata"><div><div class="occhiello">Amministrazione</div><h1>Budget <span class="silenzioso">${anno}</span></h1><p class="sotto">Entrate, uscite e margine, per cantiere e per cliente. Sempre sull'<b>imponibile</b>, mai sul totale documento.</p></div><div class="azioni"><select data-cambio="budget-anno" aria-label="Anno">${anni.map(a=>html`<option value="${a}" ${a===anno?'selected':''}>${a}</option>`)}</select><button class="pulsante" data-azione="budget-importa-xml" title="Importa fatture elettroniche in formato XML (FatturaPA)">${icona('carica','piccola')}Importa fatture XML</button><button class="pulsante discreto" data-azione="budget-stampa" data-anno="${anno}">${icona('stampa','piccola')}Stampa</button><button class="pulsante discreto" data-azione="budget-csv" data-anno="${anno}">CSV</button><button class="pulsante primario" data-azione="movimento-nuovo">Nuovo movimento<span class="manopola">${icona('piu','piccola')}</span></button></div></div>
+  ${linguette('budget',[{id:'movimenti',testo:'Movimenti'},{id:'cantieri',testo:'Per cantiere'},{id:'clienti',testo:'Per cliente'},{id:'annuale',testo:'Riepilogo annuale'}],vista)}`;
   return html`${testa}${vista==='cantieri'?budgetPerCantiere(anno):vista==='clienti'?budgetPerCliente(anno):vista==='annuale'?budgetAnnuale(anno):budgetMovimenti(anno,r)}`;
 };
 document.addEventListener('click',e=>{const b=e.target.closest('[data-linguetta="budget"]');if(b){e.stopImmediatePropagation();vai('budget/'+(b.dataset.valore==='movimenti'?'':b.dataset.valore))}},true);
 AZIONI['budget-anno']=(d,t)=>{ui.filtri.budgetAnno=t.value;render()};
 AZIONI['movimento-nuovo']=d=>dialogoMovimento(null,d.cantiere);
+function riepilogoBudget(anno){
+  const mm=stato.movimenti.filter(m=>(m.data||'').startsWith(anno));
+  const E=somma(mm.filter(m=>m.tipo==='entrata'),m=>+m.imponibile||0)-somma(mm.filter(m=>m.tipo==='nota_credito'),m=>+m.imponibile||0),U=somma(mm.filter(m=>m.tipo==='uscita'),m=>+m.imponibile||0),M=E-U;
+  const prec=stato.movimenti.filter(m=>(m.data||'').startsWith(String(+anno-1))&&(m.data||'').slice(5)<=oggi().slice(5));const Ep=somma(prec.filter(m=>m.tipo==='entrata'),m=>+m.imponibile||0);
+  const mesi=Array.from({length:12},(_,i)=>{const k=anno+'-'+pad2(i+1);const x=mm.filter(m=>(m.data||'').startsWith(k));return {e:somma(x.filter(m=>m.tipo==='entrata'),m=>+m.imponibile||0),u:somma(x.filter(m=>m.tipo==='uscita'),m=>+m.imponibile||0)}});
+  const mx=Math.max(...mesi.flatMap(x=>[x.e,x.u]),1);
+  const cat=Object.entries(CATEGORIE_MOVIMENTO).map(([k,t])=>({t,v:somma(mm.filter(m=>m.tipo==='uscita'&&m.categoria===k),m=>+m.imponibile||0)})).filter(x=>x.v).sort((a,b)=>b.v-a.v).slice(0,3);
+  return html`<div class="bento mb">
+    <div class="guscio c-4"><div class="scheda"><div class="intesta"><h2>Fatturato</h2></div><div class="grande-numero">${fEuro(E,0).replace(' €','')}<small>€</small></div>${Ep?html`<div class="piccolo mt-s ${E>=Ep?'ok-t':'bad-t'}">${E>=Ep?'+':''}${fNum((E-Ep)/Ep*100,0)}% sul ${+anno-1} a questa data</div>`:''}</div></div>
+    <div class="guscio c-4"><div class="scheda"><div class="intesta"><h2>Costi</h2></div><div class="grande-numero">${fEuro(U,0).replace(' €','')}<small>€</small></div>${cat.length&&U?html`<div class="piccolo silenzioso mt-s">${cat.map(x=>x.t.toLowerCase()+' '+fNum(x.v/U*100,0)+'%').join(' · ')}</div>`:''}</div></div>
+    <div class="guscio c-4"><div class="scheda"><div class="intesta"><h2>Margine</h2></div><div class="grande-numero ${M<0?'bad-t':'ok-t'}">${M>=0?'+':''}${fEuro(M,0).replace(' €','')}<small>€</small></div>${E?html`<div class="piccolo silenzioso mt-s">${fNum(M/E*100,1)}% del fatturato</div>`:''}</div></div>
+    <div class="guscio c-12"><div class="scheda"><div class="intesta"><h2>Mese per mese</h2><span class="legenda"><span><i></i>entrate</span><span><i class="s4" style="background:var(--sunk-3)"></i>uscite</span></span></div>
+      <div class="mesi-budget">${mesi.map((x,i)=>html`<div><span class="coppia-barre"><i style="height:${x.e/mx*100}%" title="Entrate ${fEuro(x.e,0)}"></i><i class="u" style="height:${x.u/mx*100}%" title="Uscite ${fEuro(x.u,0)}"></i></span><small>${NOMI_MESI_BREVI[i]}</small></div>`)}</div></div></div>
+  </div>`;
+}
 function budgetMovimenti(anno,r){
   const f=Object.assign({filtro:r.query.filtro||''},ui.filtri.budget||{});
   let mov=stato.movimenti.filter(m=>(m.data||'').startsWith(anno));
@@ -5559,7 +5785,7 @@ function budgetMovimenti(anno,r){
   if(f.categoria) mov=mov.filter(m=>m.categoria===f.categoria);
   if(f.cerca){const q=normalizzaTesto(f.cerca);mov=mov.filter(m=>normalizzaTesto([m.numero,m.controparte,m.note,nomeCliente(m.clienteId)].join(' ')).includes(q))}
   const tot={entrate:somma(mov.filter(m=>m.tipo==='entrata'),m=>+m.imponibile||0),uscite:somma(mov.filter(m=>m.tipo==='uscita'),m=>+m.imponibile||0),note:somma(mov.filter(m=>m.tipo==='nota_credito'),m=>+m.imponibile||0)};
-  return html`<div class="strumenti-tabella"><input type="search" placeholder="Cerca numero, controparte, note" value="${f.cerca||''}" data-cambio="budget-filtro" data-campo="cerca"><select data-cambio="budget-filtro" data-campo="tipo"><option value="">Tutti i tipi</option>${Object.entries(TIPI_MOVIMENTO).map(([v,t])=>html`<option value="${v}" ${f.tipo===v?'selected':''}>${t}</option>`)}</select><select data-cambio="budget-filtro" data-campo="categoria"><option value="">Tutte le categorie</option>${Object.entries(CATEGORIE_MOVIMENTO).map(([v,t])=>html`<option value="${v}" ${f.categoria===v?'selected':''}>${t}</option>`)}</select><div class="gruppo-pulsanti"><button class="pulsante piccolo ${!f.filtro?'attivo':''}" data-azione="budget-filtro-rapido" data-valore="">Anno ${anno}</button><button class="pulsante piccolo ${f.filtro==='nonassegnate'?'attivo':''}" data-azione="budget-filtro-rapido" data-valore="nonassegnate">Non assegnate</button><button class="pulsante piccolo ${f.filtro==='daverificare'?'attivo':''}" data-azione="budget-filtro-rapido" data-valore="daverificare">Da verificare</button></div>${pulsanteCancellaFiltri(!!(f.cerca||f.tipo||f.categoria),'budget-filtro-reset')}<span class="conteggio">${mov.length} movimenti · entrate ${fEuro(tot.entrate,0)} · uscite ${fEuro(tot.uscite,0)}${tot.note?' · note di credito '+fEuro(tot.note,0):''}</span></div>
+  return html`${riepilogoBudget(anno)}<div class="strumenti-tabella"><input type="search" placeholder="Cerca numero, controparte, note" value="${f.cerca||''}" data-cambio="budget-filtro" data-campo="cerca"><select data-cambio="budget-filtro" data-campo="tipo"><option value="">Tutti i tipi</option>${Object.entries(TIPI_MOVIMENTO).map(([v,t])=>html`<option value="${v}" ${f.tipo===v?'selected':''}>${t}</option>`)}</select><select data-cambio="budget-filtro" data-campo="categoria"><option value="">Tutte le categorie</option>${Object.entries(CATEGORIE_MOVIMENTO).map(([v,t])=>html`<option value="${v}" ${f.categoria===v?'selected':''}>${t}</option>`)}</select><div class="gruppo-pulsanti"><button class="pulsante piccolo ${!f.filtro?'attivo':''}" data-azione="budget-filtro-rapido" data-valore="">Anno ${anno}</button><button class="pulsante piccolo ${f.filtro==='nonassegnate'?'attivo':''}" data-azione="budget-filtro-rapido" data-valore="nonassegnate">Non assegnate</button><button class="pulsante piccolo ${f.filtro==='daverificare'?'attivo':''}" data-azione="budget-filtro-rapido" data-valore="daverificare">Da verificare</button></div>${pulsanteCancellaFiltri(!!(f.cerca||f.tipo||f.categoria),'budget-filtro-reset')}<span class="conteggio">${mov.length} movimenti · entrate ${fEuro(tot.entrate,0)} · uscite ${fEuro(tot.uscite,0)}${tot.note?' · note di credito '+fEuro(tot.note,0):''}</span></div>
   ${tabella({id:'movimenti',righe:mov,chiaveOrd:'data',dir:'desc',onRiga:m=>dialogoMovimento(m),classeRiga:m=>m.daVerificare?'riga-scadenza':m.tipo==='nota_credito'?'riga-pianificare':'',colonne:[
     {chiave:'data',titolo:'Data',principale:true,formatta:m=>html`<b>${fData(m.data)}</b>${m.daVerificare?html` <span class="pillola scadenza">${icona('attenzione','piccola')}da verificare</span>`:''}`},
     {chiave:'tipo',titolo:'Tipo',formatta:m=>m.tipo==='nota_credito'?html`<span class="pillola pianificare">${icona('meno','piccola')}Nota di credito</span>`:TIPI_MOVIMENTO[m.tipo]},
@@ -5755,8 +5981,8 @@ AZIONI['budget-stampa']=d=>stampaBudget(d.anno);
 // ---------------------------------------------------------------------
 VISTE.impostazioni=function(r){
   const sotto=r.id||(r.query.backup?'backup':'azienda');
-  return html`<div class="testata"><div><h1>Impostazioni</h1><div class="sotto">Versione schema ${VERSIONE_SCHEMA} · ${stato.impostazioni.dispositivo||''}</div></div></div>
-  ${linguette('impostazioni',[{id:'azienda',testo:'Azienda',icona:'azienda'},{id:'backup',testo:'Backup',icona:'backup'},{id:'peso',testo:'Peso archivio',icona:'peso'},{id:'tipi',testo:'Tipi di documento',icona:'documenti'},{id:'preferenze',testo:'Preferenze',icona:'impostazioni'},{id:'esporta',testo:'Esportazioni',icona:'scarica'},{id:'sistema',testo:'Sistema',icona:'chiave'}],sotto)}
+  return html`<div class="testata"><div><div class="occhiello">Sistema</div><h1>Impostazioni</h1><p class="sotto">Dati dell'azienda, backup, documenti e preferenze. Versione dati ${VERSIONE_SCHEMA}${stato.impostazioni.dispositivo?' · '+stato.impostazioni.dispositivo:''}.</p></div></div>
+  ${linguette('impostazioni',[{id:'azienda',testo:'Azienda'},{id:'backup',testo:'Backup'},{id:'peso',testo:'Peso archivio'},{id:'tipi',testo:'Tipi di documento'},{id:'preferenze',testo:'Preferenze'},{id:'esporta',testo:'Esportazioni'},{id:'sistema',testo:'Sistema'}],sotto)}
   ${sotto==='azienda'?impAzienda():sotto==='backup'?impBackup():sotto==='peso'?vistaPeso():sotto==='tipi'?impTipi():sotto==='preferenze'?impPreferenze():sotto==='esporta'?impEsporta():impSistema()}`;
 };
 // ---- peso dell'archivio ----
@@ -5925,17 +6151,18 @@ AZIONI['azienda-da-visura']=async()=>{
 function impBackup(){
   const imp=stato.impostazioni;const peso=pesoArchivio();
   dopoRender(async()=>{const ist=await elencoIstantanee();const e=el('#istantanee');if(e)e.innerHTML=ist.length?html`<ul class="elenco-piatto piccolo">${ist.map(i=>html`<li><span class="spazio">${i.nome}</span><span class="secondario">${fDataOra(i.quando)}</span><button class="pulsante piccolo" data-azione="istantanea-ripristina" data-chiave="${i.chiave}">Ripristina</button></li>`)}</ul>`:html`<p class="piccolo secondario">Nessuna istantanea. Si creano da sole prima delle operazioni rischiose (ripristino, fusione, caricamento iniziale, azzeramento).</p>`});
-  return html`<div class="griglia due"><div class="scheda"><h3>${icona('backup')}Backup</h3>
-    <div class="indicatore" style="cursor:default"><span class="etichetta">Ultimo backup</span><span class="valore md">${imp.ultimoBackup?fDataOra(imp.ultimoBackup):'mai'}</span><span class="nota">${imp.modificheDopoBackup?imp.modificheDopoBackup+' modifiche da allora':'nessuna modifica da allora'}</span></div>
-    <p class="mt">Il backup è <b>un solo file ZIP</b> con tutti i dati e tutti i documenti (${fPeso(peso.totale)}). Basta per ripristinare tutto da zero su un altro computer. Non passa via mail se pesa decine di MB: usa AirDrop, iCloud Drive, WhatsApp o una chiavetta.</p>
-    <div class="riga"><button class="pulsante primario" data-azione="backup-esegui">${icona('scarica')}Backup completo</button><button class="pulsante" data-azione="backup-esegui" data-solo-dati="1">${icona('scarica')}Solo dati (pochi KB)</button></div>
-    <p class="piccolo secondario mt">Il backup «solo dati» non contiene i documenti: serve per passare rapidamente anagrafiche e presenze, o per una copia di sicurezza leggera.</p>
-    <div class="sezione-titolo">Ripristino</div><p>Sostituisce <b>tutto</b> con il contenuto del backup. Prima viene salvata un'istantanea dello stato attuale. Un backup fatto con una versione precedente dell'applicazione viene migrato automaticamente.</p><button class="pulsante pericolo" data-azione="backup-ripristina">${icona('carica')}Ripristina da backup</button>
-    <div class="sezione-titolo">Fusione (lavoro di un collaboratore)</div><p>Carica il backup che ti ha rimandato un collaboratore: vedrai cosa aggiungerebbe o cambierebbe rispetto al tuo archivio e sceglierai cosa accettare. Niente viene sovrascritto senza il tuo sì.</p><button class="pulsante" data-azione="backup-fondi">${icona('fusione')}Fondi un backup</button>
-  </div>
-  <div class="scheda"><h3>Istantanee recuperabili</h3><div id="istantanee"></div>
-    <div class="sezione-titolo">Come condividere con un collaboratore</div><ol class="piccolo"><li>Fai un backup completo e passaglielo (AirDrop, iCloud Drive, chiavetta).</li><li>Il collaboratore apre lo stesso file del gestionale e usa «Ripristina da backup».</li><li>Lavora, poi fa a sua volta un backup e te lo rimanda.</li><li>Tu usi «Fondi un backup» e accetti solo le sue modifiche.</li></ol>
-    <div class="sezione-titolo">Stato dell'archivio del browser</div><p class="piccolo" id="quota-info-imp"></p></div></div>`;
+  const giorni=imp.ultimoBackup?giorniTra(imp.ultimoBackup.slice(0,10),oggi()):null;
+  const [n,u]=fPeso(peso.totale).split(' ');
+  return html`<div class="bento">
+  <div class="guscio c-6"><div class="scheda"><div class="intesta"><h2>Backup completo</h2><span class="pillola ${giorni==null||giorni>7?'scadenza':'valido'}">${giorni==null?'mai fatto':giorni===0?'fatto oggi':plurale(giorni,'giorno','giorni')+' fa'}</span></div>
+    <p class="piccolo silenzioso">Dati e documenti in un solo file .zip, basta per ripristinare tutto su un altro computer. ${imp.modificheDopoBackup?plurale(imp.modificheDopoBackup,'modifica','modifiche')+' da allora.':''} Se pesa decine di MB usa AirDrop, iCloud Drive o una chiavetta.</p>
+    <div class="grande-numero">${n}<small>${u||''}</small></div>
+    <div class="riga mt"><button class="pulsante primario" data-azione="backup-esegui">${icona('scarica','piccola')}Fai il backup ora</button><button class="pulsante" data-azione="backup-esegui" data-solo-dati="1">Solo dati</button></div></div></div>
+  <div class="guscio c-6"><div class="scheda"><div class="intesta"><h2>Ripristina o unisci</h2></div>
+    <p class="piccolo silenzioso"><b>Ripristina</b> sostituisce tutto con il backup (un backup di una versione precedente viene aggiornato da solo). <b>Unisci</b> carica il backup di un collaboratore: vedi cosa cambierebbe e scegli tu cosa tenere. Prima viene sempre salvata un'istantanea.</p>
+    <div class="riga mt"><button class="pulsante" data-azione="backup-fondi">${icona('fusione','piccola')}Unisci un backup</button><button class="pulsante pericolo" data-azione="backup-ripristina">${icona('carica','piccola')}Ripristina da backup</button></div></div></div>
+  <div class="guscio c-7"><div class="scheda"><div class="intesta"><h2>Istantanee recuperabili</h2></div><div id="istantanee"></div><p class="piccolo silenzioso" id="quota-info-imp"></p></div></div>
+  <div class="guscio c-5"><div class="scheda"><div class="intesta"><h2>Lavorare con un collaboratore</h2></div><ol class="piccolo"><li>Fai un backup completo e passaglielo.</li><li>Lui apre lo stesso gestionale e usa «Ripristina da backup».</li><li>Lavora, poi fa a sua volta un backup e te lo rimanda.</li><li>Tu usi «Unisci un backup» e accetti solo le sue modifiche.</li></ol></div></div></div>`;
 }
 AZIONI['backup-esegui']=async d=>{
   const prog=dialogoAvanzamento('Preparazione del backup',{testo:'Raccolgo dati e documenti…'});
@@ -5968,8 +6195,8 @@ AZIONI['backup-fondi']=async()=>{
 };
 AZIONI['istantanea-ripristina']=async d=>{if(!(await conferma('Ripristinare questa istantanea? Lo stato attuale verrà salvato a sua volta come istantanea.',{pericolo:true})))return;const v=await idbGet('dati',d.chiave);if(!v||!v.stato)return avviso('Istantanea non trovata',{tipo:'errore'});await istantanea('prima del ritorno a istantanea');stato=migraStato(clona(v.stato));delete stato.__migrato;storia.annulla.length=0;storia.ripristina.length=0;await salvaSubito();render();avviso('Istantanea ripristinata')};
 function impTipi(){
-  return html`<div class="scheda"><h3>Catalogo dei tipi di documento <span class="azioni"><button class="pulsante piccolo" data-azione="tipo-nuovo">${icona('piu','piccola')}Nuovo tipo</button></span></h3><p class="secondario piccolo">La validità tipica serve solo a stimare una scadenza quando manca la data: la data scritta sul documento prevale sempre. «Blocca idoneità» = se manca o è scaduto, la persona non può entrare in cantiere; gli altri obbligatori entrano solo nella checklist.</p>
-  ${tabella({righe:stato.tipiDocumento,onRiga:t=>dialogoTipoDoc(t),colonne:[{chiave:'nome',titolo:'Tipo',principale:true},{chiave:'ambito',titolo:'Ambito'},{chiave:'val',titolo:'Validità',formatta:t=>t.validitaMesi?t.validitaMesi+' mesi':t.validitaGiorni?t.validitaGiorni+' giorni':html`<span class="silenzioso">nessuna</span>`},{chiave:'obb',titolo:'Obbligatorio',formatta:t=>({si:'sì',no:'no',extraUE:'extra UE',preposto:'preposto',rls:'RLS',rspp:'RSPP',antincendio:'antincendio',primoSoccorso:'primo soccorso',ple:'se usa PLE',ponteggi:'se monta ponteggi',ruolo:'secondo il ruolo',richiesta:'a richiesta',attrezzatura:'se usate'})[t.obbligatorio]||t.obbligatorio},{chiave:'bl',titolo:'Blocca idoneità',formatta:t=>t.bloccaIdoneita?icona('blocco','piccola'):''},{chiave:'cat',titolo:'Categoria',formatta:t=>CATEGORIE_TIPO_DOC[t.categoria]||t.categoria||''},{chiave:'n',titolo:'Documenti',num:true,valore:t=>stato.documenti.filter(d=>d.tipoId===t.id).length}]})}</div>`;
+  return html`<div class="guscio"><div class="scheda"><div class="intesta"><h2>Tipi di documento</h2><button class="pulsante piccolo" data-azione="tipo-nuovo">${icona('piu','piccola')}Nuovo tipo</button></div><p class="secondario piccolo">La validità tipica serve solo a stimare una scadenza quando manca la data: la data scritta sul documento prevale sempre. «Blocca idoneità» = se manca o è scaduto, la persona non può entrare in cantiere; gli altri obbligatori entrano solo nella checklist.</p>
+  ${tabella({righe:stato.tipiDocumento,onRiga:t=>dialogoTipoDoc(t),colonne:[{chiave:'nome',titolo:'Tipo',principale:true},{chiave:'ambito',titolo:'Per',formatta:t=>html`<span class="pillola neutro">${t.ambito}</span>`},{chiave:'val',titolo:'Validità',formatta:t=>t.validitaMesi?t.validitaMesi+' mesi':t.validitaGiorni?t.validitaGiorni+' giorni':html`<span class="silenzioso">nessuna</span>`},{chiave:'obb',titolo:'Obbligatorio',formatta:t=>({si:'sì',no:'no',extraUE:'extra UE',preposto:'preposto',rls:'RLS',rspp:'RSPP',antincendio:'antincendio',primoSoccorso:'primo soccorso',ple:'se usa PLE',ponteggi:'se monta ponteggi',ruolo:'secondo il ruolo',richiesta:'a richiesta',attrezzatura:'se usate'})[t.obbligatorio]||t.obbligatorio},{chiave:'bl',titolo:'Blocca idoneità',formatta:t=>t.bloccaIdoneita?html`<span class="pillola scaduto">sì</span>`:html`<span class="silenzioso">no</span>`},{chiave:'cat',titolo:'Categoria',formatta:t=>CATEGORIE_TIPO_DOC[t.categoria]||t.categoria||''},{chiave:'n',titolo:'Documenti',num:true,valore:t=>stato.documenti.filter(d=>d.tipoId===t.id).length}]})}</div></div>`;
 }
 AZIONI['tipo-nuovo']=()=>dialogoTipoDoc(null);
 function dialogoTipoDoc(t){
@@ -5980,23 +6207,23 @@ function dialogoTipoDoc(t){
 }
 function impPreferenze(){
   const imp=stato.impostazioni;
-  return html`<div class="griglia due"><div class="scheda"><h3>Preferenze <span class="azioni"><button class="pulsante piccolo" data-azione="preferenze-modifica">${icona('modifica','piccola')}Modifica</button></span></h3><div class="campi">
+  return html`<div class="guscio"><div class="scheda"><div class="intesta"><h2>Preferenze</h2><button class="pulsante piccolo" data-azione="preferenze-modifica">${icona('modifica','piccola')}Modifica</button></div><div class="campi">
     <div class="campo"><span class="etichetta-campo">Nome utente</span><div>${imp.nomeUtente||'—'}</div></div><div class="campo"><span class="etichetta-campo">Dispositivo</span><div>${imp.dispositivo||'—'}</div></div>
-    <div class="campo"><span class="etichetta-campo">Tema</span><div>${({sistema:'come il sistema',chiaro:'chiaro',scuro:'scuro'})[ui.tema]} <button class="pulsante piccolo" data-azione="tema">Cambia</button></div></div><div class="campo"><span class="etichetta-campo">Densità</span><div>${imp.densita==='compatta'?'compatta':'normale'}</div></div>
+    <div class="campo largo"><span class="etichetta-campo">Tema</span><div class="gruppo-pulsanti">${[['sistema','Come il sistema'],['chiaro','Chiaro'],['scuro','Scuro']].map(([v,t])=>html`<button class="pulsante ${ui.tema===v?'attivo':''}" data-azione="tema-imposta" data-valore="${v}">${t}</button>`)}</div></div><div class="campo"><span class="etichetta-campo">Densità</span><div>${imp.densita==='compatta'?'compatta':'normale'}</div></div>
     <div class="campo"><span class="etichetta-campo">Soglia «in scadenza»</span><div>${imp.soglie.scadenza} giorni</div></div><div class="campo"><span class="etichetta-campo">Soglia «da pianificare»</span><div>${imp.soglie.pianificare} giorni</div></div><div class="campo"><span class="etichetta-campo">Avviso DURC</span><div>${imp.soglie.durcAvviso||30} giorni prima</div></div>
     <div class="campo"><span class="etichetta-campo">Compressione immagini</span><div>${imp.compressioneImmagini===false?'spenta':'sotto '+(imp.obiettivoKb||300)+' KB'}</div></div><div class="campo"><span class="etichetta-campo">Avviso PDF pesanti</span><div>oltre ${imp.avvisaPdfMb||2} MB</div></div>
     <div class="campo largo"><span class="etichetta-campo">Festività locali</span><div>${(imp.festivitaLocali||[]).length?imp.festivitaLocali.map(f=>typeof f==='string'?f:f.data+(f.nome?' '+f.nome:'')).join(', '):html`<span class="silenzioso">nessuna (es. patrono: 08-11 per Subbiano se ricorre)</span>`}</div></div></div></div></div>`;
 }
 AZIONI['preferenze-modifica']=async()=>{const imp=stato.impostazioni;const v=await dialogoModulo('Preferenze',[{nome:'nomeUtente',etichetta:'Nome utente'},{nome:'dispositivo',etichetta:'Nome dispositivo'},{nome:'densita',etichetta:'Densità',tipo:'select',vuoto:false,opzioni:[{v:'normale',t:'Normale'},{v:'compatta',t:'Compatta'}]},{nome:'soglie.scadenza',etichetta:'Soglia in scadenza (giorni)',tipo:'numero',decimali:0},{nome:'soglie.pianificare',etichetta:'Soglia da pianificare (giorni)',tipo:'numero',decimali:0},{nome:'soglie.durcAvviso',etichetta:'Avviso DURC (giorni prima)',tipo:'numero',decimali:0},{nome:'compressioneImmagini',tipo:'spunta',testo:'Comprimi le immagini in ingresso'},{nome:'obiettivoKb',etichetta:'Obiettivo compressione (KB)',tipo:'numero',decimali:0},{nome:'avvisaPdfMb',etichetta:'Avvisa per PDF oltre (MB)',tipo:'numero',decimali:1},{nome:'festivitaTesto',etichetta:'Festività locali (MM-GG o AAAA-MM-GG, separate da virgola)',largo:true}],Object.assign(clona(imp),{festivitaTesto:(imp.festivitaLocali||[]).map(f=>typeof f==='string'?f:f.data).join(', ')}));if(!v)return;v.festivitaLocali=(v.festivitaTesto||'').split(',').map(x=>x.trim()).filter(x=>/^\d{2}-\d{2}$|^\d{4}-\d{2}-\d{2}$/.test(x));delete v.festivitaTesto;esegui('Modificate preferenze',s=>{Object.assign(s.impostazioni,v);s.impostazioni.soglie=Object.assign({},imp.soglie,v.soglie)});applicaDensita(v.densita)};
 function impEsporta(){
-  return html`<div class="scheda"><h3>${icona('scarica')}Esportazioni per il resto del flusso di lavoro</h3><p class="secondario piccolo">Testi in Markdown pronti da copiare o da salvare con il nome corretto, per gli altri strumenti che leggono file di testo.</p>
+  return html`<div class="guscio"><div class="scheda"><div class="intesta"><h2>Esportazioni</h2></div><p class="secondario piccolo">Testi in Markdown pronti da copiare o da salvare con il nome corretto, per gli altri strumenti che leggono file di testo.</p>
   <ul class="elenco-piatto"><li><span class="spazio"><b>Scadenzario</b> <span class="secondario">Worker &amp; Company Expiry Tracker</span></span><button class="pulsante piccolo" data-azione="esporta-scadenzario-md">Markdown</button><button class="pulsante piccolo" data-azione="esporta-scadenzario-csv">CSV</button><button class="pulsante piccolo" data-azione="stampa-scadenzario">Stampa</button></li>
   <li><span class="spazio"><b>Scheda di un cantiere</b> <span class="secondario">Site Details, Key Figures, impresa Dates, Documents</span></span><select id="esp-cantiere" style="width:auto">${stato.cantieri.map(c=>html`<option value="${c.id}">${c.nome}</option>`)}</select><button class="pulsante piccolo" data-azione="esporta-cantiere-md-sel">Markdown</button></li>
   <li><span class="spazio"><b>Indice dei cantieri</b> <span class="secondario">Active Sites / Completed Sites</span></span><button class="pulsante piccolo" data-azione="esporta-indice-cantieri-md">Markdown</button></li>
   <li><span class="spazio"><b>Riepilogo presenze del mese</b> <span class="secondario">per il commercialista</span></span><input type="month" id="esp-mese" value="${chiaveMese(new Date().getFullYear(),new Date().getMonth()+1)}" style="width:auto"><button class="pulsante piccolo" data-azione="esporta-presenze-md-sel">Markdown</button></li>
   <li><span class="spazio"><b>Checklist documenti di un cantiere</b> <span class="secondario">testo pronto per la mail</span></span><select id="esp-cantiere-ck" style="width:auto">${stato.cantieri.map(c=>html`<option value="${c.id}">${c.nome}</option>`)}</select><button class="pulsante piccolo" data-azione="esporta-checklist-sel">Testo</button></li>
   <li><span class="spazio"><b>Documentazione dello schema dati</b> <span class="secondario">per leggere e scrivere il backup senza l'applicazione</span></span><button class="pulsante piccolo" data-azione="esporta-schema">Markdown</button></li>
-  <li><span class="spazio"><b>Libro presenze annuale</b> <span class="secondario">Excel per il commercialista</span></span><input type="number" id="esp-anno" value="${new Date().getFullYear()}" style="width:90px"><button class="pulsante piccolo" data-azione="esporta-presenze-xlsx-sel">Excel</button></li></ul></div>`;
+  <li><span class="spazio"><b>Libro presenze annuale</b> <span class="secondario">Excel per il commercialista</span></span><input type="number" id="esp-anno" value="${new Date().getFullYear()}" style="width:90px"><button class="pulsante piccolo" data-azione="esporta-presenze-xlsx-sel">Excel</button></li></ul></div></div>`;
 }
 AZIONI['esporta-cantiere-md-sel']=()=>AZIONI['esporta-cantiere-md']({id:el('#esp-cantiere').value});
 AZIONI['esporta-presenze-md-sel']=()=>{const {anno,mese}=daChiaveMese(el('#esp-mese').value)||{};if(!anno)return;mostraTestoEsportato('Riepilogo presenze',riepilogoPresenzeMarkdown(anno,mese),nomeFileData('Riepilogo presenze '+capitalizza(nomeMese(mese))+' '+anno,'md'))};
@@ -6004,9 +6231,9 @@ AZIONI['esporta-checklist-sel']=()=>{const c=cantiere(el('#esp-cantiere-ck').val
 AZIONI['esporta-presenze-xlsx-sel']=()=>esportaPresenzeXlsx(+el('#esp-anno').value);
 function impSistema(){
   dopoRender(async()=>{const q=await stimaQuota();const e=el('#sys-quota');if(e)e.textContent=q?`Spazio usato dal browser: ${fPeso(q.usato)} su circa ${fPeso(q.quota)}.`:'Stima dello spazio non disponibile su questo browser.';const v=await verificaArchivio();const e2=el('#sys-verifica');if(e2)e2.innerHTML=v.senzaBlob.length||v.orfani.length?html`<span class="pillola scadenza">${icona('attenzione')}${v.senzaBlob.length} documenti senza contenuto, ${v.orfani.length} contenuti orfani</span> ${v.orfani.length?html`<button class="pulsante piccolo" data-azione="sys-pulisci-orfani">Elimina orfani</button>`:''}`:html`<span class="pillola valido">${icona('ok')}Archivio coerente</span>`});
-  return html`<div class="griglia due"><div class="scheda"><h3>Verifica delle regole</h3><p class="secondario piccolo">Esegue i controlli sulle funzioni pure: arrotondamento aziendale, Pasquetta, codice fiscale, stati dei documenti, calcolo presenze.</p><button class="pulsante" data-azione="sys-autoverifica">${icona('scudo')}Esegui verifica</button><div id="sys-esiti" class="mt"></div>
-    <div class="sezione-titolo">Archivio</div><p class="piccolo" id="sys-quota"></p><p id="sys-verifica"></p><p class="piccolo secondario">Origine: <span class="mono">${location.protocol==='file:'?'file:// (locale)':location.origin}</span>. In Chrome tutti i file locali condividono lo stesso archivio; in Safari l'archivio è per file.</p></div>
-  <div class="scheda"><h3 class="da-compilare">Azzeramento</h3><p>Cancella tutti i dati e tutti i documenti da questo browser e riparte dai dati iniziali dell'azienda. Fai prima un backup. Prima dell'azzeramento viene salvata un'istantanea, ma i documenti (file) vengono eliminati davvero.</p><button class="pulsante pericolo pieno" data-azione="sys-azzera">${icona('elimina')}Azzera tutto</button></div></div>`;
+  return html`<div class="bento"><div class="guscio c-7"><div class="scheda"><div class="intesta"><h2>Verifica delle regole</h2></div><div class="avviso-inline">${icona('info')}<div class="corpo">Versione dati ${VERSIONE_SCHEMA} · l'archivio si chiama sempre <span class="mono">${NOME_DB}</span>: aggiornare l'app non tocca i dati.</div></div><p class="secondario piccolo">Esegue i controlli sulle funzioni pure: arrotondamento aziendale, Pasquetta, codice fiscale, stati dei documenti, calcolo presenze.</p><button class="pulsante" data-azione="sys-autoverifica">${icona('scudo')}Esegui verifica</button><div id="sys-esiti" class="mt"></div>
+    <div class="sezione-titolo">Archivio</div><p class="piccolo" id="sys-quota"></p><p id="sys-verifica"></p><p class="piccolo secondario">Origine: <span class="mono">${location.protocol==='file:'?'file:// (locale)':location.origin}</span>. In Chrome tutti i file locali condividono lo stesso archivio; in Safari l'archivio è per file.</p></div></div>
+  <div class="guscio c-5"><div class="scheda"><div class="intesta"><h2 class="bad-t">Azzeramento</h2></div><p>Cancella tutti i dati e tutti i documenti da questo browser e riparte dai dati iniziali dell'azienda. Fai prima un backup. Prima dell'azzeramento viene salvata un'istantanea, ma i documenti (file) vengono eliminati davvero.</p><button class="pulsante pericolo pieno" data-azione="sys-azzera">${icona('elimina')}Azzera tutto</button></div></div></div>`;
 }
 AZIONI['sys-autoverifica']=()=>{const es=autoverifica();const ok=es.filter(e=>e.ok).length;el('#sys-esiti').innerHTML=html`<p><b>${ok}/${es.length} controlli superati</b></p><ul class="elenco-piatto piccolo">${es.map(e=>html`<li>${e.ok?icona('ok','piccola'):icona('errore','piccola')}${e.nome}</li>`)}</ul>`};
 AZIONI['sys-pulisci-orfani']=async()=>{const v=await verificaArchivio();for(const k of v.orfani)await idbDel('file',k);avviso('Eliminati '+v.orfani.length+' contenuti orfani');render()};
@@ -6040,15 +6267,13 @@ VISTE.mezzi=function(r){
   if(r.query.nuovo){setTimeout(()=>dialogoMezzo(null),0);history.replaceState(null,'','#/mezzi')}
   if(r.id) return vistaMezzo(r.id);
   const righe=stato.mezzi.map(m=>({m,crit:documentoPiuCriticoMezzo(m)}));
-  return html`<div class="testata"><div><h1>Mezzi</h1><div class="sotto">${plurale(stato.mezzi.length,'mezzo','mezzi')} · ${righe.filter(r=>r.crit.stato==='scaduto').length} con documenti scaduti</div></div>
-    <div class="azioni"><button class="pulsante primario" data-azione="mezzo-nuovo">${icona('piu')}Nuovo mezzo</button></div></div>
-  ${tabella({id:'mezzi',righe,chiaveOrd:'targa',href:r=>'#/mezzi/'+r.m.id,classeRiga:r=>'riga-'+r.crit.stato,colonne:[
-    {chiave:'targa',titolo:'Targa',principale:true,formatta:r=>html`<b>${r.m.targa||daCompilare()}</b>`},
-    {chiave:'tipo',titolo:'Tipo',valore:r=>r.m.tipo||''},
-    {chiave:'modello',titolo:'Marca e modello',valore:r=>[r.m.marca,r.m.modello].filter(Boolean).join(' ')},
-    {chiave:'assegnato',titolo:'Assegnato a',formatta:r=>r.m.assegnatoA?nomePersona(persona(r.m.assegnatoA)):html`<span class="silenzioso">—</span>`},
-    {chiave:'critico',titolo:'Documento più critico',valore:r=>STATI_DOC[r.crit.stato]?STATI_DOC[r.crit.stato].ordine:9,formatta:r=>html`${pillola(r.crit.stato,undefined,{stimata:r.crit.info&&r.crit.info.stimata})}<br><span class="piccolo secondario">${r.crit.testo}</span>`},
-  ],vuoto:vuoto({icona:'mezzo',titolo:'Nessun mezzo',testo:'Aggiungi i mezzi aziendali per seguire assicurazione, revisione e bollo.',azione:{testo:'Nuovo mezzo',azione:'mezzo-nuovo'}})})}`;
+  const scaduti=righe.filter(r=>r.crit.stato==='scaduto').length;
+  return html`<div class="testata"><div><div class="occhiello">Squadra</div><h1>Mezzi</h1><p class="sotto">${plurale(stato.mezzi.length,'mezzo','mezzi')}${scaduti?html` · <b>${scaduti} con documenti scaduti</b>`:''} · le scadenze dei mezzi finiscono da sole nello Scadenzario.</p></div>
+    <div class="azioni"><button class="pulsante primario" data-azione="mezzo-nuovo">Nuovo mezzo<span class="manopola">${icona('piu','piccola')}</span></button></div></div>
+  ${righe.length?html`<div class="griglia-clienti">${righe.map(({m})=>{const docs=stato.documenti.filter(d=>d.soggettoTipo==='mezzo'&&d.soggettoId===m.id&&!documentoSuperato(d)).map(d=>({d,info:infoDocumento(d),t:tipoDoc(d.tipoId)}));return html`<a class="carta-cliente" href="#/mezzi/${m.id}">
+    <span class="riga stretta"><span class="sigla" style="background:var(--sunk-2);color:var(--ink-2)">${icona('mezzo','piccola')}</span><span style="flex:1;min-width:0"><b>${[m.marca,m.modello].filter(Boolean).join(' ')||m.tipo||'Mezzo'}</b><span class="sotto-cliente">${[m.tipo,m.assegnatoA?nomePersona(persona(m.assegnatoA)):''].filter(Boolean).join(' · ')}</span></span><span class="targa">${m.targa||'—'}</span></span>
+    <span class="colonna mt" style="gap:0">${docs.length?docs.map(x=>html`<span class="riga-mezzo"><span>${x.t?x.t.nome:'Documento'}</span><span class="spazio"></span><span class="silenzioso">${x.info.data?fData(x.info.data):''}</span>${pillolaDocumento(x.info,{breve:true})}</span>`):html`<span class="piccolo silenzioso">Nessun documento: aggiungi assicurazione, revisione e bollo.</span>`}</span></a>`})}</div>`
+  :vuoto({icona:'mezzo',titolo:'Nessun mezzo',testo:'Aggiungi i mezzi aziendali per seguire assicurazione, revisione e bollo.',azione:{testo:'Nuovo mezzo',azione:'mezzo-nuovo'}})}`;
 };
 AZIONI['mezzo-nuovo']=()=>dialogoMezzo(null);
 AZIONI['mezzo-modifica']=d=>dialogoMezzo(perId('mezzi',d.id));
@@ -6947,16 +7172,13 @@ VISTE.fornitori=function(r){
   if(r.query.nuovo){setTimeout(()=>dialogoFornitore(null),0);history.replaceState(null,'','#/fornitori')}
   if(r.id) return vistaFornitore(r.id);
   const righe=stato.fornitori.map(f=>{const mov=movimentiFornitore(f);return {f,mov,speso:somma(mov,m=>+m.imponibile||0)}});
-  return html`<div class="testata"><div><h1>Fornitori</h1><div class="sotto">${plurale(stato.fornitori.length,'fornitore','fornitori')} · esclusi gli operai</div></div>
-    <div class="azioni"><button class="pulsante primario" data-azione="fornitore-nuovo">${icona('piu')}Nuovo fornitore</button></div></div>
-  ${tabella({id:'fornitori',righe,chiaveOrd:'nome',href:r=>'#/fornitori/'+r.f.id,colonne:[
-    {chiave:'nome',titolo:'Ragione sociale',principale:true,valore:r=>r.f.ragioneSociale},
-    {chiave:'cosa',titolo:'Cosa fornisce',valore:r=>r.f.cosaFornisce||''},
-    {chiave:'con',titolo:'Contatti',formatta:r=>html`${r.f.telefono?contattoCliccabile('tel',r.f.telefono):''} ${r.f.email?contattoCliccabile('mail',r.f.email):''}`},
-    {chiave:'fatture',titolo:'Fatture',num:true,valore:r=>r.mov.length},
-    {chiave:'speso',titolo:'Speso',num:true,valore:r=>r.speso,formatta:r=>fEuro(r.speso,0)},
-  ],vuoto:vuoto({icona:'fornitori',titolo:'Nessun fornitore',testo:'Aggiungi i fornitori dell\'azienda per vedere la spesa collegata dal budget.',azione:{testo:'Nuovo fornitore',azione:'fornitore-nuovo'}})})}`;
+  const mx=Math.max(...righe.map(r=>r.speso),1);
+  return html`<div class="testata"><div><div class="occhiello">Amministrazione</div><h1>Fornitori</h1><p class="sotto">La spesa viene dai movimenti del Budget, manodopera esclusa.</p></div>
+    <div class="azioni"><button class="pulsante primario" data-azione="fornitore-nuovo">Nuovo fornitore<span class="manopola">${icona('piu','piccola')}</span></button></div></div>
+  ${righe.length?html`<div class="guscio"><div class="scheda scheda-tabella"><table class="tabella"><thead><tr><th>Fornitore</th><th class="nascondi-telefono">Cosa fornisce</th><th class="nascondi-telefono">Contatti</th><th class="num">Fatture</th><th class="num">Speso</th><th class="nascondi-telefono" style="width:24%"></th></tr></thead><tbody>${righe.sort((a,b)=>b.speso-a.speso||a.f.ragioneSociale.localeCompare(b.f.ragioneSociale)).map(r=>html`<tr class="cliccabile" data-azione="vai" data-href="fornitori/${r.f.id}"><td><span class="chi"><span class="sigla-piccola ${coloreDa(r.f.id)}">${iniziali(r.f.ragioneSociale)}</span><b>${r.f.ragioneSociale}</b></span></td><td class="nascondi-telefono silenzioso">${r.f.cosaFornisce||''}</td><td class="nascondi-telefono">${r.f.telefono?contattoCliccabile('tel',r.f.telefono):''}</td><td class="num">${r.mov.length||html`<span class="silenzioso">—</span>`}</td><td class="num"><b>${r.speso?fEuro(r.speso,0):'—'}</b></td><td class="nascondi-telefono"><div class="traccia"><i style="width:${r.speso/mx*100}%;background:var(--accent)"></i></div></td></tr>`)}</tbody></table></div></div>`
+  :vuoto({icona:'fornitori',titolo:'Nessun fornitore',testo:'Aggiungi i fornitori dell\'azienda per vedere la spesa collegata dal budget.',azione:{testo:'Nuovo fornitore',azione:'fornitore-nuovo'}})}`;
 };
+
 AZIONI['fornitore-nuovo']=()=>dialogoFornitore(null);
 AZIONI['fornitore-modifica']=d=>dialogoFornitore(perId('fornitori',d.id));
 function vistaFornitore(id){
@@ -8490,8 +8712,8 @@ async function apriVersamento(id){
   const corpo=html`<dl class="dati-doc"><dt>Tipo</dt><dd>${TIPI_VERSAMENTO[v.tipo]}</dd><dt>${v.tipo==='f24'?'Mese':'Riferito a'}</dt><dd>${fMeseAnno(v.anno,v.mese)}</dd><dt>Scadenza</dt><dd>${fData(scadenzaVersamento(v))}</dd><dt>Pagato il</dt><dd>${v.dataPagamento?fData(v.dataPagamento):daCompilare()}</dd><dt>Importo</dt><dd><b>${v.importo!=null?fEuro(v.importo):daCompilare()}</b></dd>
     ${v.voci?html`${v.voci.credito?html`<dt>A debito</dt><dd>${fEuro(v.voci.debito)}</dd><dt>Compensato</dt><dd>${fEuro(v.voci.credito)}</dd>`:''}<dt>INPS</dt><dd>${fEuro(v.voci.inps)}</dd><dt>Erario</dt><dd>${fEuro(v.voci.erario)}</dd>${v.voci.altro?html`<dt>Altro</dt><dd>${fEuro(v.voci.altro)}</dd>`:''}`:''}${v.note?html`<dt>Note</dt><dd>${v.note}</dd>`:''}</dl>
     ${m?html`<div class="sezione-titolo">File</div><ul class="file-doc"><li>${icona('pdf','piccola')}<span class="nome-file">${m.nome}</span><span class="piccolo silenzioso">${fPeso(m.dimensione)}</span><button class="pulsante discreto icona piccolo" data-azione="file-scarica" data-id="${m.id}" title="Scarica">${icona('scarica','piccola')}</button><button class="pulsante discreto icona piccolo" data-azione="file-condividi" data-id="${m.id}" title="Condividi">${icona('condividi','piccola')}</button></li></ul>`:''}`;
-  apriPannello({titolo:TIPI_VERSAMENTO[v.tipo]+' · '+fMeseAnno(v.anno,v.mese),largo:!!m,affiancato:!!m,corpo,anteprima:m?'anteprima-doc':null,piede:html`<button class="pulsante primario" data-azione="versamento-modifica" data-id="${v.id}">${icona('modifica','piccola')}Modifica</button><span class="spazio"></span><button class="pulsante discreto pericolo" data-azione="versamento-elimina" data-id="${v.id}">${icona('elimina','piccola')}Elimina</button>`});
-  if(m){const a=await htmlAnteprimaFile(m.id);const c=el('#anteprima-doc');if(c)c.innerHTML=a}
+  apriPannello({titolo:TIPI_VERSAMENTO[v.tipo]+' · '+fMeseAnno(v.anno,v.mese),icona:'bonifici',sottotitolo:v.dataPagamento?'pagato il '+fData(v.dataPagamento):'',largo:!!m,affiancato:!!m,corpo,anteprima:m?'anteprima-doc':null,piede:html`<button class="pulsante primario" data-azione="versamento-modifica" data-id="${v.id}">${icona('modifica','piccola')}Modifica</button><span class="spazio"></span><button class="pulsante discreto pericolo" data-azione="versamento-elimina" data-id="${v.id}">${icona('elimina','piccola')}Elimina</button>`});
+  if(m){const a=await anteprimaConBarra([m],m.id);const c=el('#anteprima-doc');if(c)c.innerHTML=a}
 }
 AZIONI['versamento-apri']=d=>apriVersamento(d.id);
 AZIONI['versamento-modifica']=async d=>{const v=perId('versamenti',d.id);const r=await dialogoModulo('Modifica versamento',[{nome:'tipo',etichetta:'Tipo',tipo:'select',vuoto:false,opzioni:Object.entries(TIPI_VERSAMENTO).map(([v,t])=>({v,t}))},{nome:'mese',etichetta:'Mese',tipo:'select',vuoto:false,opzioni:NOMI_MESI.map((n,i)=>({v:i+1,t:capitalizza(n)}))},{nome:'anno',etichetta:'Anno',tipo:'numero',decimali:0,obbligatorio:true},{nome:'dataPagamento',etichetta:'Pagato il',tipo:'data'},{nome:'importo',etichetta:'Importo',tipo:'euro'},{nome:'note',etichetta:'Note',tipo:'textarea',largo:true}],v);if(!r)return;esegui('Modificato versamento',s=>{const x=s.versamenti.find(y=>y.id===d.id);Object.assign(x,r,{mese:+r.mese})});apriVersamento(d.id)};
