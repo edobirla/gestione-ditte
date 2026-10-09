@@ -3798,8 +3798,8 @@ function vistaCantiere(id,r){
       <span class="spazio"></span><a class="pulsante piccolo" href="#/cantieri/${c.id}/pos">${icona('scudo','piccola')}Genera POS</a><a class="pulsante piccolo" href="#/cantieri/${c.id}/pacchetto">${icona('pacchetto','piccola')}Pacchetto committenza</a><button class="pulsante piccolo" data-azione="cantiere-modifica" data-id="${c.id}">${icona('modifica','piccola')}Modifica</button></div>
   </div>
   ${ck.urgenti.length?html`<div class="avviso-inline critico">${icona('errore')}<div class="corpo"><b>Prima dell'ingresso in cantiere:</b> ${ck.urgenti.map(v=>html`${v.soggetto}: ${v.nome}${v.motivo?' ('+v.motivo+')':''}`).reduce((a,b)=>html`${a} · ${b}`)}</div></div>`:''}
-  ${linguette('cantiere:'+c.id,[{id:'scheda',testo:'Scheda',icona:'cantieri'},{id:'squadra',testo:'Squadra e lavorazioni',icona:'operai'},{id:'documenti',testo:'Documenti',icona:'documenti'},{id:'checklist',testo:'Checklist committenza',icona:'spunta',contatore:ck.totale-ck.pronti||null,critico:ck.urgenti.length>0},{id:'economia',testo:'Economia',icona:'euro'},{id:'diario',testo:'Diario e invii',icona:'orologio'}],ling)}
-  ${ling==='scheda'?schedaCantiereAnagrafica(c):ling==='squadra'?schedaCantiereSquadra(c):ling==='documenti'?schedaCantiereDocumenti(c):ling==='checklist'?schedaCantiereChecklist(c,ck):ling==='economia'?schedaCantiereEconomia(c):schedaCantiereDiario(c)}`;
+  ${linguette('cantiere:'+c.id,[{id:'scheda',testo:'Scheda',icona:'cantieri'},{id:'squadra',testo:'Squadra e lavorazioni',icona:'operai'},{id:'documenti',testo:'Documenti',icona:'documenti'},{id:'checklist',testo:'Checklist committenza',icona:'spunta',contatore:ck.totale-ck.pronti||null,critico:ck.urgenti.length>0},{id:'pagamenti',testo:'Pagamenti del mese',icona:'bonifici'},{id:'economia',testo:'Economia',icona:'euro'},{id:'diario',testo:'Diario e invii',icona:'orologio'}],ling)}
+  ${ling==='scheda'?schedaCantiereAnagrafica(c):ling==='squadra'?schedaCantiereSquadra(c):ling==='documenti'?schedaCantiereDocumenti(c):ling==='checklist'?schedaCantiereChecklist(c,ck):ling==='pagamenti'?schedaCantierePagamenti(c):ling==='economia'?schedaCantiereEconomia(c):schedaCantiereDiario(c)}`;
 }
 function schedaCantiereAnagrafica(c){
   const campo=(et,v,fmt)=>html`<div class="campo"><span class="etichetta-campo">${et}</span><div>${valoreODaCompilare(v,fmt)}</div></div>`;
@@ -8346,6 +8346,52 @@ async function apriVersamento(id){
 AZIONI['versamento-apri']=d=>apriVersamento(d.id);
 AZIONI['versamento-modifica']=async d=>{const v=perId('versamenti',d.id);const r=await dialogoModulo('Modifica versamento',[{nome:'tipo',etichetta:'Tipo',tipo:'select',vuoto:false,opzioni:Object.entries(TIPI_VERSAMENTO).map(([v,t])=>({v,t}))},{nome:'mese',etichetta:'Mese',tipo:'select',vuoto:false,opzioni:NOMI_MESI.map((n,i)=>({v:i+1,t:capitalizza(n)}))},{nome:'anno',etichetta:'Anno',tipo:'numero',decimali:0,obbligatorio:true},{nome:'dataPagamento',etichetta:'Pagato il',tipo:'data'},{nome:'importo',etichetta:'Importo',tipo:'euro'},{nome:'note',etichetta:'Note',tipo:'textarea',largo:true}],v);if(!r)return;esegui('Modificato versamento',s=>{const x=s.versamenti.find(y=>y.id===d.id);Object.assign(x,r,{mese:+r.mese})});apriVersamento(d.id)};
 AZIONI['versamento-elimina']=async d=>{const v=perId('versamenti',d.id);if(!(await conferma(`Eliminare ${TIPI_VERSAMENTO[v.tipo]} di ${fMeseAnno(v.anno,v.mese)}? Il file resta nel cestino 30 giorni.`,{pericolo:true,ok:'Elimina'})))return;chiudiPannello();esegui('Eliminato versamento',s=>{s.versamenti=s.versamenti.filter(x=>x.id!==d.id);cestinaFileOrfani(s)})};
+
+// ---- pacchetto dei pagamenti del mese, per la committenza (SAL) ----
+// Per pagare il SAL la committenza vuole, per il mese: l'F24 che paga quel mese (quello del 16 del
+// mese dopo), la Cassa Edile del mese, le buste di chi ha lavorato sul cantiere e il DURC valido.
+function pagamentiMeseCantiere(c,anno,mese){
+  const k=chiaveMese(anno,mese);const mm=meseP(anno,mese);const ore=new Map();
+  if(mm)for(const pid of Object.keys(mm.persone))for(const [g,cella] of Object.entries(mm.persone[pid].giorni||{})){const v=valoreCella(cella);if(typeof v!=='number'||!v)continue;const cc=cantiereDaCella(cella,k+'-'+pad2(+g));if(cc&&cc.id===c.id)ore.set(pid,(ore.get(pid)||0)+v)}
+  const persone=Array.from(ore.keys()).map(persona).filter(Boolean);
+  const succ=meseSuccessivo(anno,mese);const f24=versamentoDi('f24',succ.anno,succ.mese);const ce=versamentoDi('cassaEdile',anno,mese);
+  const durc=documentiAzienda().filter(d=>d.tipoId==='durc'&&!d.sostituitoDa).map(d=>({d,i:infoDocumento(d)})).sort((a,b)=>(b.d.dataEmissione||'')<(a.d.dataEmissione||'')?-1:1)[0];
+  const voci=[
+    {cartella:'01 F24',nome:`F24 del 16 ${nomeMese(succ.mese)} ${succ.anno}`,sotto:f24?(f24.dataPagamento?'pagato il '+fData(f24.dataPagamento):'caricato')+(f24.importo!=null?' · '+fEuro(f24.importo):''):`paga ${nomeMese(mese)}: si carica dopo il 16 ${nomeMese(succ.mese)}`,ok:!!(f24&&f24.fileId),file:f24&&f24.fileId?[f24.fileId]:[],href:'versamenti'},
+    {cartella:'02 Cassa Edile',nome:`Cassa Edile di ${nomeMese(mese)} ${anno}`,sotto:ce?(ce.importo!=null?fEuro(ce.importo):'caricata'):`scade il ${fData(scadenzaVersamento({tipo:'cassaEdile',anno,mese}))}`,ok:!!(ce&&ce.fileId),file:ce&&ce.fileId?[ce.fileId]:[],href:'versamenti'},
+    {cartella:'03 DURC',nome:'DURC',sotto:durc?(durc.i.data?'valido fino al '+fData(durc.i.data):'in archivio'):'non in archivio',ok:!!(durc&&durc.i.stato!=='scaduto'&&(durc.d.file||[]).length),file:durc?durc.d.file||[]:[],href:durc?'documenti?doc='+durc.d.id:'documenti'},
+    ...persone.map(p=>{const b=stato.bustePaga.find(x=>x.personaId===p.id&&x.anno===anno&&x.mese===mese);return {cartella:'04 Buste paga',nome:'Busta di '+nomeMese(mese)+' · '+nomePersona(p),sotto:fOre(ore.get(p.id))+' ore su questo cantiere'+(b&&b.netto!=null?' · netto '+fEuro(b.netto):''),ok:!!(b&&b.fileId),file:b&&b.fileId?[b.fileId]:[],persona:p,href:'documenti/buste?persona='+p.id}}),
+  ];
+  return {voci,persone,ore};
+}
+function schedaCantierePagamenti(c){
+  const d=new Date();const prec=mesePrecedente(d.getFullYear(),d.getMonth()+1);
+  const [anno,mese]=(ui.filtri['pag:'+c.id]||prec.anno+'-'+prec.mese).split('-').map(Number);
+  const {voci,persone}=pagamentiMeseCantiere(c,anno,mese);const pronti=voci.filter(v=>v.ok).length;
+  const mesi=[];for(let i=0;i<12;i++){const x=new Date(d.getFullYear(),d.getMonth()-1-i,1);mesi.push([x.getFullYear(),x.getMonth()+1])}
+  const invii=(c.invii||[]).filter(i=>i.tipo==='pagamenti').slice().reverse();
+  return html`<div class="avviso-inline info">${icona('info')}<div class="corpo">Ogni mese, per pagare il SAL, la committenza chiede la prova che contributi e stipendi di chi ha lavorato qui sono pagati. Prendo F24 e Cassa Edile da <a href="#/versamenti">Versamenti</a>, le buste di chi risulta in presenze su questo cantiere, e il DURC.</div></div>
+  <div class="strumenti-tabella"><select data-cambio="pagamenti-mese" data-id="${c.id}" aria-label="Mese">${mesi.map(([a,m])=>html`<option value="${a}-${m}" ${a===anno&&m===mese?'selected':''}>${fMeseAnno(a,m)}</option>`)}</select><span class="pillola ${pronti===voci.length?'valido':'scadenza'}">${pronti}/${voci.length} pronti</span><span class="spazio"></span><button class="pulsante primario" data-azione="pagamenti-pacchetto" data-id="${c.id}" data-anno="${anno}" data-mese="${mese}" ${pronti?'':'disabled'}>${icona('pacchetto','piccola')}Prepara il pacchetto di ${nomeMese(mese)}</button></div>
+  <div class="scheda"><ul class="elenco-piatto">${voci.map(v=>html`<li class="link" data-azione="vai" data-href="${v.href}">${v.persona?avatar(v.persona,'mini'):icona(v.ok?'pdf':'attenzione','piccola')}<span class="spazio"><b>${v.nome}</b><br><span class="piccolo silenzioso">${v.sotto}</span></span>${v.ok?html`<span class="pillola valido">${icona('ok','piccola')}pronto</span>`:html`<span class="pillola scadenza">manca</span>`}</li>`)}</ul>
+  ${persone.length?'':html`<p class="piccolo silenzioso mt-s">Nessuno risulta in presenze su questo cantiere a ${nomeMese(mese)}: le buste compaiono appena la griglia lo collega (anche dalla località).</p>`}</div>
+  ${invii.length?html`<div class="sezione-titolo">Già mandati</div><div class="scheda"><ul class="elenco-piatto">${invii.map(i=>html`<li class="link" data-azione="invio-dettaglio" data-cantiere="${c.id}" data-id="${i.id}"><span class="spazio"><b>${i.titolo||'Pagamenti'}</b><br><span class="piccolo silenzioso">${fData(i.data.slice(0,10))} · a ${i.destinatario} · ${plurale((i.contenuto||[]).length,'documento','documenti')}</span></span>${icona('destra','piccola')}</li>`)}</ul></div>`:''}`;
+}
+AZIONI['pagamenti-mese']=(d,t)=>{ui.filtri['pag:'+d.id]=t.value;render()};
+AZIONI['pagamenti-pacchetto']=async d=>{
+  const c=cantiere(d.id);const anno=+d.anno,mese=+d.mese;const {voci,ore}=pagamentiMeseCantiere(c,anno,mese);
+  const pronte=voci.filter(v=>v.ok),mancanti=voci.filter(v=>!v.ok);
+  const dest=await dialogoModulo('Pacchetto pagamenti · '+fMeseAnno(anno,mese),[{nome:'destinatario',etichetta:'Destinatario',obbligatorio:true},{nome:'mezzo',etichetta:'Mezzo',tipo:'select',vuoto:false,opzioni:[{v:'mail',t:'Mail'},{v:'pec',t:'PEC'},{v:'portale',t:'Portale della committenza'},{v:'whatsapp',t:'WhatsApp'},{v:'altro',t:'Altro'}]},{nome:'note',etichetta:'Note',tipo:'textarea',largo:true}],{destinatario:nomeCliente(c.affidatariaId)||nomeCliente(c.committenteId)||'',mezzo:'mail'},{ok:'Prepara lo ZIP',intro:html`<p>Dentro: <b>${plurale(pronte.length,'documento','documenti')}</b>.${mancanti.length?html` Mancano: ${mancanti.map(v=>v.nome).join(', ')}.`:''}</p>`});
+  if(!dest) return;
+  const pulisci=s=>pulisciNomeFile(s).replace(/\s+/g,' ').trim();
+  const zip=[];const indice=[];
+  for(const v of pronte)for(const fid of v.file){const m=fileMeta(fid);if(!m)continue;const b=await leggiFile(m.hash);if(!b)continue;const nome=v.cartella+'/'+pulisci(v.nome)+'.'+(estensioneDi(m.nome)||'pdf');zip.push({nome,dati:b});indice.push(nome)}
+  let txt=`PAGAMENTI DEL MESE — ${stato.azienda.ragioneSociale||''}\nCantiere: ${c.nome}\nMese: ${fMeseAnno(anno,mese)}\nPreparato il ${fData(oggi())} per ${dest.destinatario}\n\nPERSONE IN CANTIERE NEL MESE (dalle presenze)\n`+Array.from(ore.entries()).map(([pid,o])=>`  ${nomePersona(persona(pid))}: ${fOre(o)} ore`).join('\n')+`\n\nFILE\n`+indice.map(x=>'  '+x).join('\n')+(mancanti.length?`\n\nNON INCLUSI\n`+mancanti.map(v=>'  - '+v.nome+' ('+v.sotto+')').join('\n'):'')+'\n';
+  zip.unshift({nome:'00 Indice.txt',dati:txt});
+  const blob=await creaZip(zip);const nome=nomeFileData('Pagamenti '+nomeMese(mese)+' '+anno+' '+pulisci(c.nome),'zip');
+  esegui('Pacchetto pagamenti '+c.nome,s=>{s.cantieri.find(x=>x.id===c.id).invii.push({id:nuovoId('inv'),tipo:'pagamenti',titolo:'Pagamenti di '+fMeseAnno(anno,mese),data:new Date().toISOString(),destinatario:dest.destinatario,mezzo:dest.mezzo,note:dest.note,contenuto:indice,mancanti:mancanti.map(v=>v.nome),peso:blob.size,nomeFile:nome})},{senzaRender:true});
+  await condividiOScarica(blob,nome,{testo:'Pagamenti di '+fMeseAnno(anno,mese)+' — cantiere '+c.nome});
+  render();
+};
 
 
 /* ═══════════════════════════════════════════════════════════════════
