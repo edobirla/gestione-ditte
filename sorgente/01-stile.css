@@ -551,6 +551,34 @@ input[type=checkbox],input[type=radio]{width:17px;height:17px;accent-color:var(-
 #velo-menu{position:fixed;inset:0;z-index:125;background:rgba(14,14,18,.3);display:none}
 
 /* ═══════════ componenti del nuovo disegno ═══════════ */
+/* ---- testata del cantiere: fascia scura, o la foto del cantiere con una sfumatura che tiene leggibili le scritte ---- */
+.testata-cantiere{position:relative;border-radius:var(--r-xl);overflow:hidden;padding:26px 28px 22px;margin-bottom:22px;background:#141418;color:#F4F3EF;min-height:230px;display:flex;flex-direction:column;justify-content:flex-end;isolation:isolate}
+.testata-cantiere::before{content:"";position:absolute;inset:0;z-index:-1;background:radial-gradient(600px 300px at 85% -10%,rgba(246,215,116,.4),transparent 62%),radial-gradient(520px 320px at 8% 125%,rgba(58,52,210,.85),transparent 65%)}
+.testata-cantiere::after{content:"";position:absolute;inset:0;z-index:-1;background-image:linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px);background-size:28px 28px;-webkit-mask-image:linear-gradient(180deg,#000,transparent 85%);mask-image:linear-gradient(180deg,#000,transparent 85%)}
+.testata-cantiere.con-foto{background:#111 var(--foto) center var(--fy,50%)/cover no-repeat;min-height:310px}
+.testata-cantiere.con-foto::before{background:linear-gradient(0deg,rgba(8,8,12,.88) 0%,rgba(8,8,12,.6) 38%,rgba(8,8,12,.1) 66%,rgba(8,8,12,.5) 100%),linear-gradient(90deg,rgba(8,8,12,.45),transparent 60%)}
+.testata-cantiere.con-foto::after{display:none}
+.testata-cantiere.con-foto h1,.testata-cantiere.con-foto .meta-cantiere,.testata-cantiere.con-foto .avanzamento-cantiere{text-shadow:0 1px 18px rgba(0,0,0,.45)}
+.testata-cantiere h1{color:#fff;font-size:36px}
+.testata-cantiere .chip-cantiere{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.testata-cantiere .pillola{background:rgba(255,255,255,.13);color:#fff;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.testata-cantiere .meta-cantiere{display:flex;gap:8px 22px;margin-top:14px;font-size:13px;color:rgba(244,243,239,.75);flex-wrap:wrap;align-items:center}
+.testata-cantiere .meta-cantiere>span{display:inline-flex;align-items:center;gap:6px}
+.testata-cantiere .pulsante{background:rgba(255,255,255,.1);color:#fff;box-shadow:0 0 0 1px rgba(255,255,255,.16) inset;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.testata-cantiere .pulsante:hover{background:rgba(255,255,255,.18)}
+.testata-cantiere .avanzamento-cantiere{position:absolute;top:24px;right:28px;text-align:right}
+.testata-cantiere .avanzamento-cantiere b{font-size:40px;letter-spacing:-.05em;font-weight:500;display:block;line-height:1}
+.testata-cantiere .avanzamento-cantiere span{font-size:12px;color:rgba(244,243,239,.65)}
+.testata-cantiere .strumenti-foto{position:absolute;top:22px;left:24px;display:flex;gap:6px;align-items:center;opacity:0;transform:translateY(-4px);transition:all .35s var(--ease)}
+.testata-cantiere:hover .strumenti-foto,.testata-cantiere .strumenti-foto:focus-within{opacity:1;transform:none}
+.testata-cantiere:not(.con-foto) .strumenti-foto{opacity:.85;transform:none}
+.testata-cantiere .strumenti-foto .pulsante{background:rgba(20,20,24,.45)}
+.testata-cantiere .inquadra{display:none;align-items:center;gap:8px;height:30px;padding:0 12px;border-radius:999px;background:rgba(20,20,24,.45);backdrop-filter:blur(10px);font-size:12px}
+.testata-cantiere .inquadra.aperta{display:flex}
+.testata-cantiere .inquadra input{width:110px;accent-color:#fff;min-height:0;padding:0;box-shadow:none;background:none}
+@media (hover:none){.testata-cantiere .strumenti-foto{opacity:1;transform:none}}
+@media (max-width:760px){.testata-cantiere{padding:20px 18px}.testata-cantiere h1{font-size:28px}.testata-cantiere .avanzamento-cantiere{position:static;text-align:left;margin:46px 0 12px}}
+
 .bento{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:14px}
 .c-12{grid-column:span 12}.c-8{grid-column:span 8}.c-7{grid-column:span 7}.c-6{grid-column:span 6}.c-5{grid-column:span 5}.c-4{grid-column:span 4}.c-3{grid-column:span 3}
 @media (max-width:1240px){.c-8,.c-7{grid-column:span 12}.c-4,.c-5,.c-3{grid-column:span 6}}

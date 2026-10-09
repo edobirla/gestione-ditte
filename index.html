@@ -614,6 +614,34 @@ input[type=checkbox],input[type=radio]{width:17px;height:17px;accent-color:var(-
 #velo-menu{position:fixed;inset:0;z-index:125;background:rgba(14,14,18,.3);display:none}
 
 /* ═══════════ componenti del nuovo disegno ═══════════ */
+/* ---- testata del cantiere: fascia scura, o la foto del cantiere con una sfumatura che tiene leggibili le scritte ---- */
+.testata-cantiere{position:relative;border-radius:var(--r-xl);overflow:hidden;padding:26px 28px 22px;margin-bottom:22px;background:#141418;color:#F4F3EF;min-height:230px;display:flex;flex-direction:column;justify-content:flex-end;isolation:isolate}
+.testata-cantiere::before{content:"";position:absolute;inset:0;z-index:-1;background:radial-gradient(600px 300px at 85% -10%,rgba(246,215,116,.4),transparent 62%),radial-gradient(520px 320px at 8% 125%,rgba(58,52,210,.85),transparent 65%)}
+.testata-cantiere::after{content:"";position:absolute;inset:0;z-index:-1;background-image:linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px);background-size:28px 28px;-webkit-mask-image:linear-gradient(180deg,#000,transparent 85%);mask-image:linear-gradient(180deg,#000,transparent 85%)}
+.testata-cantiere.con-foto{background:#111 var(--foto) center var(--fy,50%)/cover no-repeat;min-height:310px}
+.testata-cantiere.con-foto::before{background:linear-gradient(0deg,rgba(8,8,12,.88) 0%,rgba(8,8,12,.6) 38%,rgba(8,8,12,.1) 66%,rgba(8,8,12,.5) 100%),linear-gradient(90deg,rgba(8,8,12,.45),transparent 60%)}
+.testata-cantiere.con-foto::after{display:none}
+.testata-cantiere.con-foto h1,.testata-cantiere.con-foto .meta-cantiere,.testata-cantiere.con-foto .avanzamento-cantiere{text-shadow:0 1px 18px rgba(0,0,0,.45)}
+.testata-cantiere h1{color:#fff;font-size:36px}
+.testata-cantiere .chip-cantiere{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.testata-cantiere .pillola{background:rgba(255,255,255,.13);color:#fff;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.testata-cantiere .meta-cantiere{display:flex;gap:8px 22px;margin-top:14px;font-size:13px;color:rgba(244,243,239,.75);flex-wrap:wrap;align-items:center}
+.testata-cantiere .meta-cantiere>span{display:inline-flex;align-items:center;gap:6px}
+.testata-cantiere .pulsante{background:rgba(255,255,255,.1);color:#fff;box-shadow:0 0 0 1px rgba(255,255,255,.16) inset;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.testata-cantiere .pulsante:hover{background:rgba(255,255,255,.18)}
+.testata-cantiere .avanzamento-cantiere{position:absolute;top:24px;right:28px;text-align:right}
+.testata-cantiere .avanzamento-cantiere b{font-size:40px;letter-spacing:-.05em;font-weight:500;display:block;line-height:1}
+.testata-cantiere .avanzamento-cantiere span{font-size:12px;color:rgba(244,243,239,.65)}
+.testata-cantiere .strumenti-foto{position:absolute;top:22px;left:24px;display:flex;gap:6px;align-items:center;opacity:0;transform:translateY(-4px);transition:all .35s var(--ease)}
+.testata-cantiere:hover .strumenti-foto,.testata-cantiere .strumenti-foto:focus-within{opacity:1;transform:none}
+.testata-cantiere:not(.con-foto) .strumenti-foto{opacity:.85;transform:none}
+.testata-cantiere .strumenti-foto .pulsante{background:rgba(20,20,24,.45)}
+.testata-cantiere .inquadra{display:none;align-items:center;gap:8px;height:30px;padding:0 12px;border-radius:999px;background:rgba(20,20,24,.45);backdrop-filter:blur(10px);font-size:12px}
+.testata-cantiere .inquadra.aperta{display:flex}
+.testata-cantiere .inquadra input{width:110px;accent-color:#fff;min-height:0;padding:0;box-shadow:none;background:none}
+@media (hover:none){.testata-cantiere .strumenti-foto{opacity:1;transform:none}}
+@media (max-width:760px){.testata-cantiere{padding:20px 18px}.testata-cantiere h1{font-size:28px}.testata-cantiere .avanzamento-cantiere{position:static;text-align:left;margin:46px 0 12px}}
+
 .bento{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:14px}
 .c-12{grid-column:span 12}.c-8{grid-column:span 8}.c-7{grid-column:span 7}.c-6{grid-column:span 6}.c-5{grid-column:span 5}.c-4{grid-column:span 4}.c-3{grid-column:span 3}
 @media (max-width:1240px){.c-8,.c-7{grid-column:span 12}.c-4,.c-5,.c-3{grid-column:span 6}}
@@ -1829,7 +1857,7 @@ function riferimentiFile(fileId){
   for(const b of stato.bustePaga) if(b.fileId===fileId) out.push({tipo:'busta',id:b.id});
   for(const m of stato.movimenti) if(m.fileId===fileId) out.push({tipo:'movimento',id:m.id});
   for(const b of stato.bonifici) if(b.fileId===fileId) out.push({tipo:'bonifico',id:b.id});
-  for(const c of stato.cantieri){ if(c.psc&&c.psc.fileId===fileId) out.push({tipo:'cantiere',id:c.id}); for(const dp of c.documentiProdotti||[]) if(dp.fileId===fileId) out.push({tipo:'cantiere',id:c.id}); }
+  for(const c of stato.cantieri){ if(c.psc&&c.psc.fileId===fileId) out.push({tipo:'cantiere',id:c.id}); if(c.fotoId===fileId) out.push({tipo:'cantiere',id:c.id}); for(const dp of c.documentiProdotti||[]) if(dp.fileId===fileId) out.push({tipo:'cantiere',id:c.id}); }
   for(const k of Object.keys(stato.presenze||{})) for(const pid of Object.keys(stato.presenze[k].persone||{})) if(stato.presenze[k].persone[pid].foglioOreId===fileId) out.push({tipo:'presenze',id:k});
   for(const p of stato.persone){ if(p.fotoId===fileId||p.firmaId===fileId) out.push({tipo:'persona',id:p.id}); }
   return out;
@@ -3602,7 +3630,7 @@ VISTE.cantieri=function(r){
   const gruppi=['attivo','sospeso','preventivo','chiuso','archiviato'];
   const righe=cantieriF.map(c=>{const ck=checklistCantiere(c);const eco=economiaCantiere(c.id,stato.movimenti);return {c,ck,eco}});
   return html`${testa}${barra}${gruppi.map(g=>{const rr=righe.filter(x=>x.c.stato===g);if(!rr.length)return '';return html`<div class="sezione-titolo">${STATI_CANTIERE[g]} · ${rr.length}</div>${tabella({id:'cant'+g,righe:rr,href:x=>'#/cantieri/'+x.c.id,colonne:[
-    {chiave:'nome',titolo:'Cantiere',principale:true,valore:x=>x.c.nome,formatta:x=>html`<b>${x.c.nome}</b><br><span class="piccolo secondario">${[x.c.indirizzo.comune,x.c.indirizzo.provincia?'('+x.c.indirizzo.provincia+')':''].filter(Boolean).join(' ')||''}</span>`},
+    {chiave:'nome',titolo:'Cantiere',principale:true,valore:x=>x.c.nome,formatta:x=>html`<span class="riga stretta" style="align-items:flex-start"><span class="puntino ${coloreCantiere(x.c)}" style="margin-top:6px"></span><span><b>${x.c.nome}</b><br><span class="piccolo secondario">${[x.c.indirizzo.comune,x.c.indirizzo.provincia?'('+x.c.indirizzo.provincia+')':''].filter(Boolean).join(' ')||''}</span></span></span>`},
     {chiave:'comm',titolo:'Committente / affidataria',formatta:x=>html`${nomeCliente(x.c.committenteId)||daCompilare()}<br><span class="piccolo secondario">${nomeCliente(x.c.affidatariaId)||''}</span>`},
     {chiave:'periodo',titolo:'Periodo',valore:x=>x.c.dataInizio||'',formatta:x=>x.c.dataInizio?html`${fData(x.c.dataInizio)} → ${x.c.dataFine?fData(x.c.dataFine):'…'}`:html`<span class="secondario">${x.c.periodoTesto||daCompilare()}</span>`},
     {chiave:'operai',titolo:'Squadra',formatta:x=>(x.c.operai||[]).length?html`${x.c.operai.length} operai${x.c.prepostoId?html` · preposto ${nomePersona(persona(x.c.prepostoId)).split(' ')[0]}`:''}`:html`<span class="silenzioso">—</span>`},
@@ -3617,14 +3645,31 @@ document.addEventListener('input',debounce(e=>{const t=e.target;if(t.matches&&t.
 AZIONI['filtro-cantieri-reset']=()=>{ui.filtri.cantieri={stato:'attivi',anno:'',comune:'',cerca:''};render()};
 AZIONI['cantiere-nuovo']=()=>dialogoCantiere(null);
 AZIONI['cantiere-modifica']=d=>dialogoCantiere(cantiere(d.id));
+// Foto del cantiere: sta nell'archivio dei file (compressa), il cantiere tiene solo il riferimento e l'inquadratura
+AZIONI['cantiere-foto']=async d=>{
+  const fs=await scegliFile({multipli:false,accetta:'image/*'});if(!fs.length)return;
+  const r=await acquisisciFile(fs[0],{compressione:{maxLato:2200,obiettivo:500*1024}});
+  esegui('Foto del cantiere',s=>{const c=s.cantieri.find(x=>x.id===d.id);c.fotoId=r.rec.id;c.fotoY=50;cestinaFileOrfani(s)});
+};
+AZIONI['cantiere-foto-togli']=async d=>{if(!(await conferma('Togliere la foto del cantiere? Resta nel cestino per 30 giorni.')))return;esegui('Tolta la foto del cantiere',s=>{const c=s.cantieri.find(x=>x.id===d.id);delete c.fotoId;delete c.fotoY;cestinaFileOrfani(s)})};
+AZIONI['cantiere-foto-inquadra']=()=>{const l=el('.testata-cantiere .inquadra');if(l)l.classList.toggle('aperta')};
+document.addEventListener('input',e=>{const t=e.target;if(t.dataset&&t.dataset.fotoY){const h=el('.testata-cantiere');if(h)h.style.setProperty('--fy',t.value+'%')}});
+document.addEventListener('change',e=>{const t=e.target;if(t.dataset&&t.dataset.fotoY)esegui('Inquadratura della foto',s=>{s.cantieri.find(x=>x.id===t.dataset.fotoY).fotoY=+t.value},{senzaRender:true,silenzioso:true})});
 
 function vistaCantiere(id,r){
   const c=cantiere(id); if(!c) return html`<div class="vuoto">${icona('attenzione')}<h3>Cantiere non trovato</h3><a class="pulsante" href="#/cantieri">Elenco</a></div>`;
   const ling=linguettaAttiva('cantiere:'+c.id,'scheda');
   const ck=checklistCantiere(c,{tutto:ui.filtri.checklistTutto});
-  return html`<div class="briciole"><a href="#/cantieri">Cantieri</a> › ${c.nome}</div>
-  <div class="testata"><div><h1>${c.nome}</h1><div class="sotto">${pillolaGenerica(STATI_CANTIERE[c.stato]||c.stato,c.stato==='attivo'?'valido':'neutro')} ${c.anno} · ${indirizzoTesto(c.indirizzo)||daCompilare('indirizzo')}</div></div>
-    <div class="azioni"><a class="pulsante" href="#/cantieri/${c.id}/pos">${icona('scudo')}Genera POS</a><a class="pulsante" href="#/cantieri/${c.id}/pacchetto">${icona('pacchetto')}Pacchetto committenza</a><button class="pulsante primario" data-azione="cantiere-modifica" data-id="${c.id}">${icona('modifica')}Modifica</button></div></div>
+  const av=avanzamentoCantiere(c);const cliente_=nomeCliente(c.committenteId);const aff=nomeCliente(c.affidatariaId);
+  if(c.fotoId) dopoRender(async()=>{const u=await urlFile(c.fotoId);const t=el('.testata-cantiere');if(u&&t)t.style.setProperty('--foto',`url("${u}")`)});
+  return html`<div class="testata-cantiere ${c.fotoId?'con-foto':''}" style="--fy:${c.fotoY==null?50:c.fotoY}%">
+    <div class="strumenti-foto">${c.fotoId?html`<button class="pulsante piccolo" data-azione="cantiere-foto" data-id="${c.id}">${icona('fotocamera','piccola')}Cambia foto</button><button class="pulsante piccolo" data-azione="cantiere-foto-inquadra">${icona('sposta','piccola')}Inquadratura</button><label class="inquadra"><span>su</span><input type="range" min="0" max="100" value="${c.fotoY==null?50:c.fotoY}" data-foto-y="${c.id}" aria-label="Inquadratura della foto"><span>giù</span></label><button class="pulsante piccolo icona" data-azione="cantiere-foto-togli" data-id="${c.id}" title="Togli la foto" aria-label="Togli la foto">${icona('elimina','piccola')}</button>`:html`<button class="pulsante piccolo" data-azione="cantiere-foto" data-id="${c.id}">${icona('fotocamera','piccola')}Aggiungi una foto del cantiere</button>`}</div>
+    ${av?html`<div class="avanzamento-cantiere"><b>${av.ritardo?'+'+av.ritardo:Math.min(100,Math.round(av.fr*100))+'%'}</b><span>${av.ritardo?'giorni di ritardo sulla fine prevista':'del tempo · '+(av.mancano?plurale(av.mancano,'giorno','giorni')+' alla fine':'ultimo giorno')}</span></div>`:''}
+    <div class="chip-cantiere"><span class="pillola"><span class="punto-stato ${c.stato==='attivo'?'valido':c.stato==='sospeso'?'scadenza':''}"></span>${STATI_CANTIERE[c.stato]||c.stato}</span>${c.anno?html`<span class="pillola">${c.anno}</span>`:''}${(c.lavorazioni||[]).length?html`<span class="pillola">${plurale(c.lavorazioni.length,'lavorazione','lavorazioni')}</span>`:''}</div>
+    <h1>${c.nome}</h1>
+    <div class="meta-cantiere"><span>${icona('luogo','piccola')}${indirizzoTesto(c.indirizzo)||'indirizzo da scrivere'}</span>${cliente_||aff?html`<span>${icona('clienti','piccola')}${[cliente_,aff&&aff!==cliente_?aff:''].filter(Boolean).join(' · ')}</span>`:''}<span>${icona('calendario','piccola')}${c.dataInizio?fData(c.dataInizio)+' → '+(c.dataFine?fData(c.dataFine):'…'):(c.periodoTesto||'date da scrivere')}</span>
+      <span class="spazio"></span><a class="pulsante piccolo" href="#/cantieri/${c.id}/pos">${icona('scudo','piccola')}Genera POS</a><a class="pulsante piccolo" href="#/cantieri/${c.id}/pacchetto">${icona('pacchetto','piccola')}Pacchetto committenza</a><button class="pulsante piccolo" data-azione="cantiere-modifica" data-id="${c.id}">${icona('modifica','piccola')}Modifica</button></div>
+  </div>
   ${ck.urgenti.length?html`<div class="avviso-inline critico">${icona('errore')}<div class="corpo"><b>Prima dell'ingresso in cantiere:</b> ${ck.urgenti.map(v=>html`${v.soggetto}: ${v.nome}${v.motivo?' ('+v.motivo+')':''}`).reduce((a,b)=>html`${a} · ${b}`)}</div></div>`:''}
   ${linguette('cantiere:'+c.id,[{id:'scheda',testo:'Scheda',icona:'cantieri'},{id:'squadra',testo:'Squadra e lavorazioni',icona:'operai'},{id:'documenti',testo:'Documenti',icona:'documenti'},{id:'checklist',testo:'Checklist committenza',icona:'spunta',contatore:ck.totale-ck.pronti||null,critico:ck.urgenti.length>0},{id:'economia',testo:'Economia',icona:'euro'},{id:'diario',testo:'Diario e invii',icona:'orologio'}],ling)}
   ${ling==='scheda'?schedaCantiereAnagrafica(c):ling==='squadra'?schedaCantiereSquadra(c):ling==='documenti'?schedaCantiereDocumenti(c):ling==='checklist'?schedaCantiereChecklist(c,ck):ling==='economia'?schedaCantiereEconomia(c):schedaCantiereDiario(c)}`;

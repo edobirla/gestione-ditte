@@ -64,7 +64,7 @@ function riferimentiFile(fileId){
   for(const b of stato.bustePaga) if(b.fileId===fileId) out.push({tipo:'busta',id:b.id});
   for(const m of stato.movimenti) if(m.fileId===fileId) out.push({tipo:'movimento',id:m.id});
   for(const b of stato.bonifici) if(b.fileId===fileId) out.push({tipo:'bonifico',id:b.id});
-  for(const c of stato.cantieri){ if(c.psc&&c.psc.fileId===fileId) out.push({tipo:'cantiere',id:c.id}); for(const dp of c.documentiProdotti||[]) if(dp.fileId===fileId) out.push({tipo:'cantiere',id:c.id}); }
+  for(const c of stato.cantieri){ if(c.psc&&c.psc.fileId===fileId) out.push({tipo:'cantiere',id:c.id}); if(c.fotoId===fileId) out.push({tipo:'cantiere',id:c.id}); for(const dp of c.documentiProdotti||[]) if(dp.fileId===fileId) out.push({tipo:'cantiere',id:c.id}); }
   for(const k of Object.keys(stato.presenze||{})) for(const pid of Object.keys(stato.presenze[k].persone||{})) if(stato.presenze[k].persone[pid].foglioOreId===fileId) out.push({tipo:'presenze',id:k});
   for(const p of stato.persone){ if(p.fotoId===fileId||p.firmaId===fileId) out.push({tipo:'persona',id:p.id}); }
   return out;
