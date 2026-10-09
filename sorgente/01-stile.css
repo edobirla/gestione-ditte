@@ -555,6 +555,76 @@ input[type=checkbox],input[type=radio]{width:17px;height:17px;accent-color:var(-
 #velo-menu{position:fixed;inset:0;z-index:125;background:rgba(14,14,18,.3);display:none}
 
 /* ═══════════ componenti del nuovo disegno ═══════════ */
+/* ---- pannello: testata con icona e sottotitolo; anteprima con barra e miniature ---- */
+#pannello .testa{gap:12px;padding:14px 14px 12px 18px}
+#pannello .testa .icona-pannello{width:38px;height:38px;border-radius:11px;background:var(--sunk-2);display:grid;place-items:center;flex:none;color:var(--ink-2)}
+#pannello .testa .titoli-pannello{flex:1;min-width:0}
+#pannello .testa .titoli-pannello h2{font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#pannello .testa .sottotitolo-pannello{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink-3);margin-top:2px}
+#pannello .testa .sottotitolo-pannello a{color:var(--ink-3)}
+#pannello .anteprima-fissa{padding:14px 18px;gap:12px;align-items:stretch}
+.barra-anteprima{display:flex;align-items:center;gap:4px;flex:none}
+.barra-anteprima .nome-anteprima{margin-right:auto;font-size:11.5px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.foglio-anteprima{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;overflow:auto}
+.foglio-anteprima .anteprima-doc{width:100%;height:100%;min-height:0;max-height:none;border-radius:6px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.08),0 12px 40px -12px rgba(0,0,0,.25)}
+.foglio-anteprima .anteprima-img{max-width:100%;max-height:100%;border-radius:6px;box-shadow:0 1px 2px rgba(0,0,0,.08),0 16px 40px -14px rgba(0,0,0,.3);transition:transform .4s var(--ease);background:#fff}
+.foglio-anteprima .anteprima-img.grande{max-width:none;max-height:none;width:160%}
+.foglio-anteprima:has(.grande){align-items:flex-start;justify-content:flex-start}
+.miniature{display:flex;gap:6px;justify-content:center;flex:none;flex-wrap:wrap}
+.miniature button{display:flex;align-items:center;gap:6px;height:30px;padding:0 10px;border:0;border-radius:9px;background:var(--card);box-shadow:0 0 0 1px var(--line-2);font-size:11.5px;color:var(--ink-2);cursor:pointer}
+.miniature button.attiva{box-shadow:0 0 0 2px var(--accent);color:var(--ink)}
+
+/* ---- operai: elenco e scheda della persona ---- */
+.persona-avatar.medio{width:38px;height:38px;border-radius:12px;font-size:13px}
+.scheda.scheda-tabella{padding:6px 8px}
+.elenco-persone td{padding-top:10px;padding-bottom:10px}
+.chi{display:flex;align-items:center;gap:12px;min-width:0}
+.chi b{display:block;font-weight:520;letter-spacing:-.01em}
+.chi span span{font-size:12.5px;color:var(--ink-3)}
+.scad-cella{display:flex;flex-direction:column;gap:5px;min-width:170px}
+.scad-cella .traccia{height:4px}
+.testata-persona{display:flex;gap:22px;align-items:center;margin-bottom:24px;flex-wrap:wrap}
+.testata-persona .nome-persona{flex:1 1 300px;min-width:0}
+.testata-persona .occhiello{display:inline-flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-3);margin-bottom:6px}
+.testata-persona .occhiello::before{content:"";width:6px;height:6px;border-radius:2px;background:var(--accent)}
+.testata-persona .azioni{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.chip-persona{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;align-items:center}
+.foto-persona{width:84px;height:84px;border-radius:26px;object-fit:cover;flex:none;box-shadow:0 0 0 1px var(--line)}
+.foto-persona.placeholder{display:flex;align-items:center;justify-content:center;background:var(--ks,var(--accent-soft));color:var(--kc,var(--accent-ink));font-weight:600;font-size:28px;letter-spacing:-.03em}
+.foto-persona-bottone{padding:0;border:none;background:none;cursor:pointer;display:inline-flex;border-radius:26px;transition:transform .35s var(--molla)}
+.foto-persona-bottone:hover{transform:scale(1.03)}
+.righe-doc{list-style:none;margin:0;padding:0}
+.righe-doc li{display:grid;grid-template-columns:36px minmax(0,1fr) 150px 112px 18px;gap:14px;align-items:center;padding:10px;margin:0 -10px;border-radius:12px;cursor:pointer;transition:background .2s}
+.righe-doc li+li{background:linear-gradient(var(--line),var(--line)) top/100% 1px no-repeat}
+.righe-doc li:hover{background:var(--sunk)} .righe-doc li:hover+li{background:none}
+.icona-doc{width:36px;height:44px;border-radius:7px;background:var(--sunk-2);display:grid;place-items:center;color:var(--ink-3);position:relative;overflow:hidden}
+.icona-doc::after{content:"";position:absolute;right:0;top:0;width:10px;height:10px;background:linear-gradient(225deg,var(--card) 50%,var(--sunk-3) 50%)}
+.icona-doc.vuota{background:transparent;box-shadow:0 0 0 1.5px var(--line-3) inset} .icona-doc.vuota::after{display:none}
+.testo-doc{min-width:0} .testo-doc b{display:block;font-weight:520} .testo-doc span{display:block;font-size:12.5px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.testo-doc span.bad-t{color:var(--bad)}
+.barra-doc .traccia{height:4px}
+.data-doc{text-align:right}
+.righe-doc .va{color:var(--ink-4)}
+.gruppo-doc>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;padding:10px 0;font-size:13.5px}
+.gruppo-doc>summary::-webkit-details-marker{display:none}
+.gruppo-doc>summary b{font-weight:560}
+.gruppo-doc>summary .freccia{color:var(--ink-3);transition:transform .3s var(--ease)}
+.gruppo-doc[open]>summary .freccia{transform:rotate(90deg)}
+.gruppo-doc+.gruppo-doc{border-top:1px solid var(--line)}
+.gruppo-doc .righe-doc{margin-bottom:8px}
+.sei-mesi{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:14px}
+.mese-col{display:flex;flex-direction:column;gap:8px;color:var(--ink);text-decoration:none!important;font-size:12.5px}
+.colonna-ore{height:110px;display:flex;align-items:flex-end;justify-content:center}
+.colonna-ore i{width:38%;max-width:44px;border-radius:10px;background:var(--ink);opacity:.88;transition:opacity .2s}
+[data-tema="scuro"] .colonna-ore i{background:var(--accent)}
+.mese-col:hover .colonna-ore i{opacity:1}
+.mesi-12{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:6px}
+.mesi-12 .mese-cella{position:relative}
+.mese-cella b{font-weight:540} .mese-cella span{font-size:11px;font-variant-numeric:tabular-nums}
+.mese-cella.vuota{background:var(--sunk);box-shadow:none;color:var(--ink-4);cursor:default}
+.mese-cella .segno-scarto{position:absolute;top:6px;right:6px;width:7px;height:7px;border-radius:50%;background:var(--warn)}
+@media (max-width:900px){.mesi-12{grid-template-columns:repeat(6,minmax(0,1fr))}.righe-doc li{grid-template-columns:36px minmax(0,1fr) auto}.righe-doc .barra-doc,.righe-doc .va{display:none}.nascondi-telefono{display:none}.sei-mesi{gap:6px}}
+
 /* ---- ISA ---- */
 .riga-isa{display:grid;grid-template-columns:minmax(150px,240px) 1fr 52px;gap:14px;align-items:center;padding:8px 0;font-size:13px}
 .riga-isa+.riga-isa{border-top:1px solid var(--line)}
@@ -992,9 +1062,6 @@ select.stato-rapido.inviato{background:var(--giallo-chiaro);border-color:var(--g
 .ritaglio-foto{position:relative;width:320px;max-width:100%;margin:0 auto;touch-action:none}
 .ritaglio-foto canvas{display:block;width:100%;height:auto;border-radius:var(--raggio-grande);background:#fff;cursor:grab}
 .ritaglio-foto canvas:active{cursor:grabbing}
-.foto-persona{width:140px;height:140px;border-radius:var(--raggio-grande);object-fit:cover;border:1px solid var(--bordo);flex:none}
-.foto-persona.placeholder{display:flex;align-items:center;justify-content:center;background:var(--blu-chiaro);color:var(--blu-testo);font-weight:700;font-size:36px}
-.foto-persona-bottone{padding:0;border:none;background:none;cursor:pointer;display:inline-flex;border-radius:var(--raggio-grande)}
 .foto-persona-bottone:hover .foto-persona{opacity:.85}
 .segnaposto-picker{border:1px solid var(--bordo);border-radius:var(--raggio);padding:var(--sp-2);max-height:220px;overflow:auto;background:var(--superficie-2)}
 .segnaposto-picker .gruppo+.gruppo{margin-top:var(--sp-2)}
