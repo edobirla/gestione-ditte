@@ -96,3 +96,15 @@ Una mappa in cima elenca le sezioni con un marcatore cercabile (`═══ SEZIO
 5. **Impaginazione JS**: misurare il DOM è preciso ma dipende dai font di sistema; i documenti usano font di sistema dichiarati con riserva, e l'anteprima mostra esattamente ciò che si stampa.
 6. **Lettura del PSC**: senza librerie, l'estrazione del testo dai PDF copre i casi comuni (Flate, ToUnicode). Per le scansioni senza testo si chiedono i dati: è previsto e detto.
 7. **Dimensione del codice**: fra 12 e 18 mila righe. La mappa delle sezioni e i nomi in italiano sono la difesa; le modifiche vanno fatte per sezione.
+
+## 7. Più ditte (da fare quando servirà)
+
+Oggi l'applicazione gestisce una ditta. Quando arriveranno il consorzio e la società immobiliare,
+la strada più sicura per i dati è **una ditta = un archivio separato**: ogni ditta ha il suo
+database nel browser (il nome del database prende il suffisso della ditta, mentre quello di
+Pavimass resta `GestionalePavimass` così com'è, per non perdere nulla), il suo backup e la sua
+cartella `azienda/`. Un selettore in cima al menu cambierebbe archivio. Le parti in comune
+(presenze, documenti, scadenze) restano le stesse funzioni; le differenze del consorzio e le
+sezioni dell'immobiliare (immobili, compravendite) si aggiungono come sezioni a sé.
+Il codice è già scritto senza il nome della ditta dentro: il marchio e i testi usano
+`nomeImpresa()` e i dati dell'azienda vengono da `azienda/`.

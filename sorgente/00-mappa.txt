@@ -9,7 +9,7 @@ iPhone e iPad. I dati vivono in IndexedDB del browser; il backup è uno ZIP.
 Per orientarsi cercare nel file la stringa "SEZIONE" seguita dal nome.
 
 MAPPA DELLE SEZIONI
-  CSS   STILE ................ sistema di design (token, temi, componenti, stampa)
+  CSS   STILE ................ sistema di design (token, temi, componenti, stampa); font Geist incorporati da sorgente/font/
   HTML  GUSCIO ............... barra, menu, contenuto, pannello, dialoghi, icone SVG
   JS    UTILITA .............. h() sicurezza HTML, formattazione date/numeri, date, festività, validazioni
   JS    REGOLE ............... funzioni pure: stato documento, scadenza stimata, idoneità, presenze, importi
@@ -33,6 +33,8 @@ MAPPA DELLE SEZIONI
   JS    PDF .................. estrazione testo dai PDF (inflate in JS), lettura Excel dei clienti
   JS    PDF-PAGINA ........... ricostruzione di una pagina PDF dentro l'app (testo e righe posizionati)
   JS    RIMANENZE ............ magazzino, lavori in corso, fatture da emettere al 31/12, PDF unico per il commercialista
+  JS    ISA .............. quadri C e A dalle fatture emesse e dai cantieri; sezione «Fine anno» (ISA + rimanenze)
+  JS    VERSAMENTI ........... F24 e Cassa Edile mese per mese, lettura delle quietanze, pagamenti del mese per il SAL
   JS    ASSISTENTE ........... moduli di altre aziende: campi proposti, dati e firme da trascinare
   JS    DATI ................. datiIniziali(): i dati reali di partenza dell'azienda
   JS    IMMAGINI ............. logo, firme, immagini del modello POS (base64)

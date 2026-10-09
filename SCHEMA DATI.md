@@ -31,6 +31,8 @@ Un backup con versione precedente viene migrato all'apertura (`migrazioni` nel c
 | `listino[]`, `preventivi[]` | listino e preventivi con righe | |
 | `movimenti[]` | entrate/uscite/note di credito con quote per cantiere | |
 | `generati[]` | storico dei documenti generati (HTML congelato) | |
+| `versamenti[]` | F24 e Cassa Edile: `{id, tipo:'f24'|'cassaEdile', anno, mese, dataPagamento, importo, voci:{inps,erario,altro,debito,credito}, fileId, note}`. F24: anno/mese = mese della scadenza (il 16). Cassa Edile: anno/mese = mese di riferimento (si paga entro la fine del mese dopo) | |
+| `isa` | `{"AAAA": {fatture:{[movimentoId]:{spec:[chiavi], comune, provincia, ambito}}, punteggio, fileId}}`: solo le classificazioni scelte a mano; il resto si calcola dai cantieri | |
 | `impostazioni` | preferenze, soglie, backup, chiave API (solo locale) | |
 | `cestino[]` | elementi eliminati recuperabili | |
 
@@ -376,6 +378,11 @@ Il contenuto binario sta nell'IndexedDB (archivio `file`, chiave = `hash`) e nel
 ```
 Per un operaio la cella giorno è `{ore, cantiere, committente}` oppure `{codice}`. Codici di assenza: M malattia, I infortunio, PE permesso (max 88 ore/anno), FS festività (solo in giorno feriale), FE ferie (max 20 giorni/anno), AS assenza, CI cassa integrazione. Mai ore di sabato e domenica.
 Importo mensile = arrotondaAziendale(ore in griglia × tariffaOraria + Σ aggiustamenti + importoFisso); arrotondamento a multipli di 10 con resto 0–3 per difetto, 4–9 per eccesso. `importoForzato` + `importoManuale` sostituiscono il calcolo. `foglioOreId` è il `fileId` della foto del foglio ore scritto a mano. Le ore nel fine settimana non sono in griglia (celle bloccate): eventuale lavoro extra si registra come `aggiustamenti` in euro, non in ore.
+
+Campi aggiunti col nuovo disegno (facoltativi, nascono quando servono):
+- `cantieri[].fotoId` (foto della testata, nell'archivio file), `cantieri[].fotoY` (inquadratura 0–100), `cantieri[].colore` (classe colore `k1`…`k8`; se manca si ricava dall'id)
+- `cantieri[].isa = {spec:[chiavi ISA], ambito:'nuova'|'recupero'}`: valgono per tutte le fatture del cantiere
+- `cantieri[].invii[].tipo = 'pagamenti'` per i pacchetti mensili (F24, Cassa Edile, buste, DURC) mandati per il SAL
 
 ### bustePaga[0]
 ```json
