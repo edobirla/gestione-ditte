@@ -127,7 +127,7 @@ async function ripristinaBackup(letto,avanzamento){
 }
 // Fusione: confronta il backup del collaboratore con lo stato attuale e propone le differenze.
 // Ogni elemento con id: nuovo (non esiste qui), modificato (esiste, ultimaModifica diversa), uguale.
-const COLLEZIONI_FONDIBILI=['persone','documenti','file','clienti','professionisti','cantieri','pos','bustePaga','listino','preventivi','movimenti','generati'];
+const COLLEZIONI_FONDIBILI=['persone','documenti','file','clienti','professionisti','cantieri','pos','bustePaga','listino','preventivi','movimenti','generati','versamenti'];
 function confrontaPerFusione(altro){
   const diff=[];
   for(const coll of COLLEZIONI_FONDIBILI){
@@ -160,6 +160,7 @@ function etichettaElemento(coll,x){
     case 'preventivi': return 'Preventivo '+(x.numero||'')+'/'+(x.anno||'');
     case 'movimenti': return 'Movimento '+(x.numero||'')+' '+(x.controparte||'');
     case 'generati': return 'Documento generato: '+(x.titolo||'');
+    case 'versamenti': return (x.tipo==='f24'?'F24 ':'Cassa Edile ')+(x.anno||'')+'-'+pad2(x.mese||0);
     default: return coll+' '+x.id;
   }
 }

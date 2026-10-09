@@ -157,7 +157,7 @@ svg.ic.piccola{width:15px;height:15px} svg.ic.grande{width:24px;height:24px}
 .destra{text-align:right} .centro{text-align:center}
 .nascosto{display:none!important}
 [hidden]{display:none!important} /* i campi nascosti dai moduli restano nascosti anche se la loro classe dice flex */
-.riga{display:flex;align-items:center;gap:var(--sp-2);flex-wrap:wrap} .riga.stretta{flex-wrap:nowrap}
+.riga{display:flex;align-items:center;gap:var(--sp-2);flex-wrap:wrap} .riga>select,.riga>input[type=date]{width:auto} .riga.stretta{flex-wrap:nowrap}
 .colonna{display:flex;flex-direction:column;gap:var(--sp-2)}
 .spazio{flex:1 1 auto}
 .mt{margin-top:var(--sp-4)} .mb{margin-bottom:var(--sp-4)} .mt-s{margin-top:var(--sp-2)} .mb-s{margin-bottom:var(--sp-2)}
@@ -616,6 +616,28 @@ input[type=checkbox],input[type=radio]{width:17px;height:17px;accent-color:var(-
 #velo-menu{position:fixed;inset:0;z-index:125;background:rgba(14,14,18,.3);display:none}
 
 /* ═══════════ componenti del nuovo disegno ═══════════ */
+/* ---- versamenti: calendario mese per mese ---- */
+.griglia-versamenti{display:grid;grid-template-columns:110px repeat(4,minmax(0,1fr));gap:6px;font-size:12.5px;align-items:stretch}
+.griglia-versamenti .tv{font-size:11.5px;color:var(--ink-3);padding:0 6px 4px}
+.griglia-versamenti .mv{display:flex;align-items:center;font-weight:540;padding-left:4px}
+.casella-v{border:0;font:inherit;text-align:left;border-radius:10px;padding:8px 10px;display:flex;flex-direction:column;gap:1px;background:var(--sunk);min-height:50px;justify-content:center;cursor:pointer;transition:transform .3s var(--molla),box-shadow .2s;color:var(--ink);text-decoration:none!important}
+.casella-v:hover:not(:disabled){transform:translateY(-1px)}
+.casella-v b{font-weight:560;font-variant-numeric:tabular-nums}
+.casella-v span{font-size:11px;color:var(--ink-3)}
+.casella-v.ok{background:var(--card);box-shadow:0 0 0 1px var(--line-2)} .casella-v.ok span{color:var(--ok)}
+.casella-v.presto{background:var(--warn-soft)} .casella-v.presto span{color:var(--warn)}
+.casella-v.tardi{background:var(--bad-soft)} .casella-v.tardi span{color:var(--bad)}
+.casella-v.manca b{color:var(--ink-4);font-weight:450}
+.casella-v.futuro{background:transparent;box-shadow:0 0 0 1px var(--line) inset;cursor:default}
+.zona-drop.piccola{display:flex;align-items:center;gap:14px;text-align:left;padding:16px 18px}
+.zona-drop.piccola svg.ic{margin:0;width:40px;height:40px;padding:10px;flex:none}
+.zona-drop.piccola b{color:var(--ink);font-weight:540}
+.linguette a{display:inline-flex;align-items:center;gap:7px;padding:10px 14px;color:var(--ink-3);font-weight:480;font-size:13.5px;white-space:nowrap;min-height:var(--tocco);position:relative;text-decoration:none!important;transition:color .2s}
+.linguette a:hover{color:var(--ink-2)} .linguette a.attiva{color:var(--ink)}
+.linguette a.attiva::after{content:"";position:absolute;left:10px;right:10px;bottom:-1px;height:2px;border-radius:2px;background:var(--ink)}
+.linguette a .contatore{font-size:11px;background:var(--sunk-2);border-radius:5px;padding:0 5px;color:var(--ink-3);line-height:17px}
+@media (max-width:760px){.griglia-versamenti{grid-template-columns:64px repeat(4,minmax(0,1fr))}.casella-v{padding:6px}.casella-v b{font-size:11.5px}}
+
 /* ---- preventivi: lavagna per stato ed editor ---- */
 .lavagna{display:grid;grid-template-columns:repeat(4,minmax(250px,1fr));gap:12px;overflow-x:auto;padding-bottom:6px}
 .corsia{border-radius:var(--r-xl);background:color-mix(in srgb,var(--ink) 3%,transparent);box-shadow:0 0 0 1px var(--line) inset;padding:10px;display:flex;flex-direction:column;gap:8px;min-height:320px;transition:background .2s,box-shadow .2s}
@@ -1952,6 +1974,7 @@ function riferimentiFile(fileId){
   for(const b of stato.bustePaga) if(b.fileId===fileId) out.push({tipo:'busta',id:b.id});
   for(const m of stato.movimenti) if(m.fileId===fileId) out.push({tipo:'movimento',id:m.id});
   for(const b of stato.bonifici) if(b.fileId===fileId) out.push({tipo:'bonifico',id:b.id});
+  for(const v of stato.versamenti||[]) if(v.fileId===fileId) out.push({tipo:'versamento',id:v.id});
   for(const c of stato.cantieri){ if(c.psc&&c.psc.fileId===fileId) out.push({tipo:'cantiere',id:c.id}); if(c.fotoId===fileId) out.push({tipo:'cantiere',id:c.id}); for(const dp of c.documentiProdotti||[]) if(dp.fileId===fileId) out.push({tipo:'cantiere',id:c.id}); }
   for(const k of Object.keys(stato.presenze||{})) for(const pid of Object.keys(stato.presenze[k].persone||{})) if(stato.presenze[k].persone[pid].foglioOreId===fileId) out.push({tipo:'presenze',id:k});
   for(const p of stato.persone){ if(p.fotoId===fileId||p.firmaId===fileId) out.push({tipo:'persona',id:p.id}); }
@@ -2097,6 +2120,7 @@ function pesoArchivio(){
       else if(r.tipo==='busta'){const b=perId('bustePaga',r.id);sogg=b?nomePersona(persona(b.personaId)):'Buste paga';tipo='Busta paga'}
       else if(r.tipo==='movimento'){sogg='Budget';tipo='Fattura'}
       else if(r.tipo==='bonifico'){sogg='Bonifici';tipo='Conferma bonifico'}
+      else if(r.tipo==='versamento'){sogg='Versamenti';tipo='F24 e Cassa Edile'}
       else if(r.tipo==='cantiere'){sogg='Cantiere '+nomeCantiere(r.id);tipo='Documento di cantiere'}
       else if(r.tipo==='presenze'){sogg='Presenze';tipo='Foglio ore'}
       else if(r.tipo==='persona'){sogg=nomePersona(persona(r.id));tipo='Foto/firma'}
@@ -2249,7 +2273,7 @@ async function ripristinaBackup(letto,avanzamento){
 }
 // Fusione: confronta il backup del collaboratore con lo stato attuale e propone le differenze.
 // Ogni elemento con id: nuovo (non esiste qui), modificato (esiste, ultimaModifica diversa), uguale.
-const COLLEZIONI_FONDIBILI=['persone','documenti','file','clienti','professionisti','cantieri','pos','bustePaga','listino','preventivi','movimenti','generati'];
+const COLLEZIONI_FONDIBILI=['persone','documenti','file','clienti','professionisti','cantieri','pos','bustePaga','listino','preventivi','movimenti','generati','versamenti'];
 function confrontaPerFusione(altro){
   const diff=[];
   for(const coll of COLLEZIONI_FONDIBILI){
@@ -2282,6 +2306,7 @@ function etichettaElemento(coll,x){
     case 'preventivi': return 'Preventivo '+(x.numero||'')+'/'+(x.anno||'');
     case 'movimenti': return 'Movimento '+(x.numero||'')+' '+(x.controparte||'');
     case 'generati': return 'Documento generato: '+(x.titolo||'');
+    case 'versamenti': return (x.tipo==='f24'?'F24 ':'Cassa Edile ')+(x.anno||'')+'-'+pad2(x.mese||0);
     default: return coll+' '+x.id;
   }
 }
@@ -2724,7 +2749,7 @@ const MENU=[
   {id:'preventivi',testo:'Preventivi',icona:'preventivi',gruppo:'Lavori'},
   {id:'documenti',testo:'Documenti',icona:'documenti',gruppo:'Amministrazione'},
   {id:'budget',testo:'Budget',icona:'budget',gruppo:'Amministrazione'},
-  {id:'bonifici',testo:'Bonifici',icona:'bonifici',gruppo:'Amministrazione'},
+  {id:'versamenti',testo:'Versamenti',icona:'bonifici',gruppo:'Amministrazione',alias:['bonifici']},
   {id:'fornitori',testo:'Fornitori',icona:'fornitori',gruppo:'Amministrazione'},
   {id:'rimanenze',testo:'Rimanenze',icona:'pacchetto',gruppo:'Amministrazione'},
   {id:'impostazioni',testo:'Impostazioni',icona:'impostazioni',gruppo:'Sistema'},
@@ -2742,12 +2767,15 @@ function disegnaMenu(){
   const n=contatoriMenu();
   const mn=el('#marchio-nome');if(mn)mn.textContent=nomeImpresa(true)||'Gestionale';
   let gruppo=null;
-  el('#menu').innerHTML=MENU.map(m=>{const t=m.gruppo&&m.gruppo!==gruppo?html`<h6>${m.gruppo}</h6>`:'';gruppo=m.gruppo||gruppo;const c=n[m.id];return t+html`<a href="#/${m.id}" class="${r.sezione===m.id?'attivo':''}" aria-current="${r.sezione===m.id?'page':'false'}">${icona(m.icona)}<span class="testo">${m.testo}</span>${c?html`<span class="contatore ${c.classe||''}" title="${c.titolo||''}">${c.n}</span>`:''}</a>`}).join('');
+  const sez=sezioneMenu(r.sezione);
+  el('#menu').innerHTML=MENU.map(m=>{const t=m.gruppo&&m.gruppo!==gruppo?html`<h6>${m.gruppo}</h6>`:'';gruppo=m.gruppo||gruppo;const c=n[m.id];return t+html`<a href="#/${m.id}" class="${sez===m.id?'attivo':''}" aria-current="${sez===m.id?'page':'false'}">${icona(m.icona)}<span class="testo">${m.testo}</span>${c?html`<span class="contatore ${c.classe||''}" title="${c.titolo||''}">${c.n}</span>`:''}</a>`}).join('');
 }
 // percorso nella barra in alto: gruppo › sezione › pagina (il titolo della pagina lo prende dalla pagina stessa)
+// alcune sezioni vecchie vivono ora dentro un'altra (i bonifici dentro Versamenti)
+function sezioneMenu(sezione){const m=MENU.find(x=>x.id===sezione||(x.alias||[]).includes(sezione));return m?m.id:sezione}
 function disegnaBriciole(r){
   const b=el('#briciole-barra');if(!b)return;
-  const m=MENU.find(x=>x.id===r.sezione);if(!m){b.innerHTML='';return}
+  const m=MENU.find(x=>x.id===sezioneMenu(r.sezione));if(!m){b.innerHTML='';return}
   const t=el('#contenuto h1');const pagina=r.id&&t?t.textContent.trim():'';
   const freccia=icona('destra','piccola');
   b.innerHTML=html`${m.gruppo&&m.gruppo!=='Sistema'?html`<a>${m.gruppo}</a>${freccia}`:''}${pagina?html`<a href="#/${m.id}">${m.testo}</a>${freccia}<b>${pagina}</b>`:html`<b>${m.testo}</b>`}`;
@@ -2755,6 +2783,7 @@ function disegnaBriciole(r){
 function contatoriMenu(){
   const out={};
   try{ const sc=riepilogoScadenze(); const k=(sc.scaduti.length+sc.mancanti.length)||0; if(k) out.operai={n:k,titolo:k+' documenti scaduti o mancanti'}; }catch(e){}
+  try{ const v=scadenzeVersamenti(); if(v.length) out.versamenti={n:v.length,classe:v.some(x=>x.livello==='scaduto')?'':'giallo',titolo:v.map(x=>x.testo).join('\n')}; }catch(e){}
   return out;
 }
 // ---- render principale ----
@@ -2783,7 +2812,7 @@ function render(){
   document.title=titoloPagina(r);
 }
 function dopoRender(fn){(ui.montaggi=ui.montaggi||[]).push(fn)}
-function titoloPagina(r){const m=MENU.find(x=>x.id===r.sezione);return (m?m.testo+' · ':'')+('Gestionale'+(nomeImpresa()?' '+nomeImpresa():''))}
+function titoloPagina(r){const m=MENU.find(x=>x.id===sezioneMenu(r.sezione));return (m?m.testo+' · ':'')+('Gestionale'+(nomeImpresa()?' '+nomeImpresa():''))}
 window.addEventListener('hashchange',()=>{ui.storicoProfondita=(ui.storicoProfondita||0)+1;chiudiPannello();chiudiRicerca();document.body.classList.remove('menu-aperto');render();el('#contenuto').scrollTop=0;window.scrollTo(0,0)});
 
 // ---- tema: sistema / chiaro / scuro, ricordato ----
@@ -2811,9 +2840,10 @@ function indiceRicerca(){
   for(const m of stato.mezzi) voci.push({gruppo:'Mezzi',testo:'Mezzo '+nomeMezzo(m),sotto:m.tipo||'',href:'mezzi/'+m.id,chiavi:[m.targa,m.marca,m.modello]});
   for(const f of stato.fornitori) voci.push({gruppo:'Fornitori',testo:f.ragioneSociale,sotto:f.cosaFornisce||'',href:'fornitori/'+f.id});
   for(const b of stato.bonifici) voci.push({gruppo:'Bonifici',testo:'Bonifico '+(b.controparte||''),sotto:fData(b.data)+' · '+fEuro(b.importo),href:'bonifici?bonifico='+b.id});
+  for(const v of stato.versamenti) voci.push({gruppo:'Versamenti',testo:(v.tipo==='f24'?'F24 ':'Cassa Edile ')+fMeseAnno(v.anno,v.mese),sotto:fEuro(v.importo),href:'versamenti/'+(v.tipo==='f24'?'f24':'cassa')});
   const azioni=[
     {testo:'Nuovo operaio',href:'operai?nuovo=1'},{testo:'Nuovo cantiere',href:'cantieri?nuovo=1'},{testo:'Nuovo cliente',href:'clienti?nuovo=1'},{testo:'Nuovo preventivo',href:'preventivi?nuovo=1'},{testo:'Nuovo movimento',href:'budget?nuovo=1'},{testo:'Nuovo mezzo',href:'mezzi?nuovo=1'},{testo:'Nuovo fornitore',href:'fornitori?nuovo=1'},
-    {testo:'Scadenzario',href:'operai/scadenzario'},{testo:'Presenze del mese',href:'presenze'},{testo:'Fai il backup',href:'impostazioni?backup=1'},{testo:'Caricamento iniziale documenti',href:'documenti/caricamento'},{testo:'Buste paga',href:'documenti/buste'},{testo:'Peso dell\'archivio',href:'impostazioni/peso'},{testo:'Cambia tema',azione:'tema'},{testo:'Diagramma temporale cantieri',href:'cantieri?vista=tempo'},{testo:'Confronto clienti',href:'clienti?vista=confronto'},
+    {testo:'Scadenzario',href:'operai/scadenzario'},{testo:'Presenze del mese',href:'presenze'},{testo:'Fai il backup',href:'impostazioni?backup=1'},{testo:'Carica F24 o Cassa Edile',href:'versamenti'},{testo:'Versamenti mese per mese',href:'versamenti'},{testo:'Caricamento iniziale documenti',href:'documenti/caricamento'},{testo:'Buste paga',href:'documenti/buste'},{testo:'Peso dell\'archivio',href:'impostazioni/peso'},{testo:'Cambia tema',azione:'tema'},{testo:'Diagramma temporale cantieri',href:'cantieri?vista=tempo'},{testo:'Confronto clienti',href:'clienti?vista=confronto'},
   ];
   for(const a of azioni) voci.push({gruppo:'Azioni',testo:a.testo,href:a.href,azione:a.azione,sotto:''});
   return voci;
@@ -2896,7 +2926,7 @@ AZIONI['copia']=d=>copiaNegliAppunti(d.testo).then(()=>avviso('Copiato negli app
 // dragenter/dragleave da tenere in sincronia, che su Chrome si disallineava facilmente e lasciava
 // il drop "morto" nonostante il cursore mostrasse la copia.
 let zonaDropAttiva=null;
-function trovaZonaDrop(target){return target&&target.closest&&(target.closest('[data-drop-bonifico]')||target.closest('[data-drop-doc]')||target.closest('[data-drop-soggetto]')||target.closest('[data-drop-caricamento]')||target.closest('[data-drop-buste]')||target.closest('.zona-drop'))}
+function trovaZonaDrop(target){return target&&target.closest&&(target.closest('[data-drop-bonifico]')||target.closest('[data-drop-doc]')||target.closest('[data-drop-soggetto]')||target.closest('[data-drop-caricamento]')||target.closest('[data-drop-buste]')||target.closest('[data-drop-versamenti]')||target.closest('.zona-drop'))}
 function evidenziaZona(z){if(z===zonaDropAttiva)return;if(zonaDropAttiva)zonaDropAttiva.classList.remove('sopra');if(z)z.classList.add('sopra');zonaDropAttiva=z}
 // Mentre si trascina un file, le anteprime dei PDF (iframe) devono farsi da parte: un iframe è un
 // documento a sé, gli eventi di trascinamento sopra di lui non arrivano mai a questa pagina e il
@@ -2928,6 +2958,7 @@ window.addEventListener('drop',async e=>{
     if(z.dataset.dropSoggetto){const [tipo,id]=z.dataset.dropSoggetto.split(':');return dialogoDocumento({soggettoTipo:tipo,soggettoId:id},files)}
     if(z.hasAttribute('data-drop-caricamento')){ui.caricamentoFiles=files;ui.caricamentoRighe=null;return render()}
     if(z.hasAttribute('data-drop-buste')) return accodaBuste(files);
+    if(z.hasAttribute('data-drop-versamenti')) return caricaVersamenti(files);
   }
   if(typeof acquisizioneRapida==='function') acquisizioneRapida(files);
 });
@@ -3100,6 +3131,7 @@ function azioniConsigliate(){
   const nonAss=stato.movimenti.filter(m=>m.categoria!=='spese_generali'&&!quoteMovimentoPerCantiere(m).length);
   if(nonAss.length) out.push({p:3,livello:'pianificare',testo:`${nonAss.length} fatture non assegnate a un cantiere`,href:'budget?filtro=nonassegnate'});
   const dv=stato.movimenti.filter(m=>m.daVerificare);if(dv.length) out.push({p:3,livello:'pianificare',testo:`${dv.length} movimenti da verificare`,href:'budget?filtro=daverificare'});
+  try{out.push(...scadenzeVersamenti())}catch(e){}
   const imp=stato.impostazioni;
   if(!imp.ultimoBackup||giorniTra(imp.ultimoBackup.slice(0,10),oggiIso)>3) if((imp.modificheDopoBackup||0)>0||!imp.ultimoBackup) out.push({p:imp.ultimoBackup?3:1,livello:imp.ultimoBackup?'pianificare':'scadenza',testo:imp.ultimoBackup?`Backup non fatto da ${giorniTra(imp.ultimoBackup.slice(0,10),oggiIso)} giorni`:'Nessun backup ancora eseguito',href:'impostazioni?backup=1'});
   return out.sort((a,b)=>a.p-b.p);
@@ -7310,18 +7342,17 @@ function proponiDatiDaPsc(testo){
 // ---------------------------------------------------------------------
 // BONIFICI: archivio delle conferme di bonifico, ricercabile e filtrabile.
 // ---------------------------------------------------------------------
-VISTE.bonifici=function(r){
-  if(r.query.nuovo){setTimeout(()=>dialogoBonifico(null),0);history.replaceState(null,'','#/bonifici')}
-  if(r.query.bonifico){setTimeout(()=>dialogoBonifico(perId('bonifici',r.query.bonifico)),0);history.replaceState(null,'','#/bonifici')}
+VISTE.bonifici=r=>VISTE.versamenti(Object.assign({},r,{id:'bonifici'}));
+function contenutoBonifici(r){
+  if(r.query.nuovo){setTimeout(()=>dialogoBonifico(null),0);history.replaceState(null,'','#/versamenti/bonifici')}
+  if(r.query.bonifico){setTimeout(()=>dialogoBonifico(perId('bonifici',r.query.bonifico)),0);history.replaceState(null,'','#/versamenti/bonifici')}
   const f=ui.filtri.bonifici||{};
   let righe=stato.bonifici.slice();
   if(f.cerca){const q=normalizzaTesto(f.cerca);righe=righe.filter(b=>normalizzaTesto([b.controparte,b.causale,b.note].join(' ')).includes(q))}
   if(f.anno) righe=righe.filter(b=>(b.data||'').startsWith(f.anno));
   righe.sort((a,b)=>(b.data||'')<(a.data||'')?-1:1);
   const anni=unici(stato.bonifici.map(b=>(b.data||'').slice(0,4)).filter(Boolean)).sort().reverse();
-  return html`<div class="testata"><div><h1>Bonifici</h1><div class="sotto">${plurale(stato.bonifici.length,'conferma di bonifico','conferme di bonifico')}</div></div>
-    <div class="azioni"><button class="pulsante primario" data-azione="bonifico-nuovo">${icona('piu')}Nuovo bonifico</button></div></div>
-  <div class="strumenti-tabella"><input type="search" placeholder="Cerca per controparte, causale, note" value="${f.cerca||''}" data-cambio="filtro-bonifici" data-campo="cerca" aria-label="Cerca bonifici"><select data-cambio="filtro-bonifici" data-campo="anno"><option value="">Tutti gli anni</option>${anni.map(a=>html`<option value="${a}" ${f.anno===a?'selected':''}>${a}</option>`)}</select>${pulsanteCancellaFiltri(!!(f.cerca||f.anno),'filtro-bonifici-reset')}<span class="conteggio">${righe.length} bonifici · ${fEuro(somma(righe,b=>+b.importo||0),0)}</span></div>
+  return html`<div class="strumenti-tabella"><input type="search" placeholder="Cerca per controparte, causale, note" value="${f.cerca||''}" data-cambio="filtro-bonifici" data-campo="cerca" aria-label="Cerca bonifici"><select data-cambio="filtro-bonifici" data-campo="anno"><option value="">Tutti gli anni</option>${anni.map(a=>html`<option value="${a}" ${f.anno===a?'selected':''}>${a}</option>`)}</select>${pulsanteCancellaFiltri(!!(f.cerca||f.anno),'filtro-bonifici-reset')}<span class="conteggio">${righe.length} bonifici · ${fEuro(somma(righe,b=>+b.importo||0),0)}</span></div>
   ${tabella({id:'bonifici',righe,onRiga:b=>apriBonifico(b.id),colonne:[
     {chiave:'data',titolo:'Data',principale:true,formatta:b=>fData(b.data)},
     {chiave:'controparte',titolo:'Controparte',valore:b=>b.controparte||''},
@@ -8174,6 +8205,150 @@ AZIONI['rim-stampa']=d=>{const doc=docRimanenze(d.anno,d.sez);anteprimaStampa({t
 
 
 /* ═══════════════════════════════════════════════════════════════════
+   SEZIONE JS · VERSAMENTI
+   ═══════════════════════════════════════════════════════════════════ */
+// ---------------------------------------------------------------------
+// VERSAMENTI: F24 e Cassa Edile mese per mese, con i bonifici dentro.
+// F24: si paga entro il 16 del mese (anno/mese = mese della scadenza). Cassa Edile: anno/mese = mese di
+// riferimento, si paga entro la fine del mese dopo. Ogni versamento tiene il suo file nell'archivio:
+// è lo stesso PDF che la committenza chiede ogni mese per pagare il SAL.
+// I PDF delle quietanze a volte hanno il testo (si leggono), a volte sono scansioni (si scrive a mano).
+// ---------------------------------------------------------------------
+const TIPI_VERSAMENTO={f24:'F24',cassaEdile:'Cassa Edile'};
+function scadenzaVersamento(v){return v.tipo==='f24'?v.anno+'-'+pad2(v.mese)+'-16':(()=>{const s=meseSuccessivo(v.anno,v.mese);return s.anno+'-'+pad2(s.mese)+'-'+pad2(giorniNelMese(s.anno,s.mese))})()}
+function versamentoDi(tipo,anno,mese){return stato.versamenti.find(v=>v.tipo===tipo&&v.anno===anno&&v.mese===mese)}
+// stato di una casella del calendario: pagato, da pagare a breve, scaduto da poco, non caricato, futuro
+function statoCasella(tipo,anno,mese){
+  const v=versamentoDi(tipo,anno,mese);if(v)return {stato:'ok',v};
+  const sc=scadenzaVersamento({tipo,anno,mese});const gg=giorniTra(oggi(),sc);
+  if(gg<0)return {stato:-gg<=45?'tardi':'manca',scadenza:sc};
+  return {stato:gg<=20?'presto':'futuro',scadenza:sc};
+}
+// usato da Oggi: le scadenze vicine, solo se la sezione è in uso (almeno un versamento caricato)
+function scadenzeVersamenti(){
+  if(!stato.versamenti.length) return [];
+  const d=new Date();const out=[];const anno=d.getFullYear(),mese=d.getMonth()+1;const prec=mesePrecedente(anno,mese);
+  for(const [tipo,a,m] of [['f24',anno,mese],['cassaEdile',prec.anno,prec.mese]]){
+    const c=statoCasella(tipo,a,m);if(c.stato!=='presto'&&c.stato!=='tardi')continue;
+    const gg=giorniTra(oggi(),c.scadenza);
+    out.push({p:c.stato==='tardi'?0:1,livello:c.stato==='tardi'?'scaduto':'scadenza',testo:tipo==='f24'?`F24 di ${nomeMese(m)}: ${c.stato==='tardi'?'scaduto il 16, carica la quietanza':'da pagare entro il 16'}`:`Cassa Edile di ${nomeMese(m)}: ${c.stato==='tardi'?'scaduta, carica la distinta':'da pagare entro il '+fData(c.scadenza)}`,sotto:c.stato==='tardi'?'':(gg===0?'scade oggi':'mancano '+plurale(gg,'giorno','giorni')),href:'versamenti'});
+  }
+  return out;
+}
+VISTE.versamenti=function(r){
+  const t=r.id||'mesi';
+  const prossime=scadenzeVersamenti();
+  const testa=html`<div class="testata"><div><div class="occhiello">Amministrazione</div><h1>Versamenti</h1><p class="sotto">F24, Cassa Edile e stipendi, mese per mese.${prossime.length?html` <b>${plurale(prossime.length,'scadenza','scadenze')}</b> nei prossimi giorni.`:''}</p></div>
+    <div class="azioni">${t==='bonifici'?html`<button class="pulsante" data-azione="bonifico-nuovo">${icona('piu','piccola')}Nuovo bonifico</button>`:''}<button class="pulsante primario" data-azione="versamenti-carica">Carica F24 o Cassa Edile<span class="manopola">${icona('carica','piccola')}</span></button></div></div>
+  ${linguetteRotta('versamenti',[{id:'mesi',testo:'Mese per mese'},{id:'f24',testo:'F24',contatore:stato.versamenti.filter(v=>v.tipo==='f24').length||null},{id:'cassa',testo:'Cassa Edile',contatore:stato.versamenti.filter(v=>v.tipo==='cassaEdile').length||null},{id:'bonifici',testo:'Bonifici',contatore:stato.bonifici.length||null}],t)}`;
+  if(t==='bonifici') return html`${testa}${contenutoBonifici(r)}`;
+  if(t==='f24'||t==='cassa') return html`${testa}${elencoVersamenti(t==='f24'?'f24':'cassaEdile')}`;
+  // mese per mese
+  const anno=+(r.query.anno||ui.filtri.versamentiAnno||new Date().getFullYear());
+  const anni=unici([new Date().getFullYear(),...stato.versamenti.map(v=>v.anno)]).sort((a,b)=>b-a);
+  const etichetta={ok:'pagato',presto:'da pagare',tardi:'scaduto',manca:'non caricato',futuro:''};
+  const cella=(tipo,m)=>{const c=statoCasella(tipo,anno,m);return html`<button class="casella-v ${c.stato}" ${c.v?html`data-azione="versamento-apri" data-id="${c.v.id}"`:c.stato==='futuro'?'disabled':html`data-azione="versamenti-carica"`} title="${c.v?'Apri':'Scadenza '+fData(c.scadenza)}"><b>${c.v?(c.v.importo===0&&c.v.voci&&c.v.voci.credito?'Compensato':c.v.importo!=null?fEuro(c.v.importo,0):'importo da scrivere'):c.stato==='futuro'?'':tipo==='f24'?'F24':'Cassa Edile'}</b><span>${c.v?(c.v.dataPagamento?'pagato il '+fDataBreve(c.v.dataPagamento):'pagato'):etichetta[c.stato]+(c.stato==='presto'?' entro il '+fDataBreve(c.scadenza):'')}</span></button>`};
+  const buste=m=>{const n=stato.bustePaga.filter(b=>b.anno===anno&&b.mese===m).length;const lav=meseP(anno,m)?Object.keys(meseP(anno,m).persone).length:0;const fut=anno*100+m>new Date().getFullYear()*100+new Date().getMonth()+1;return html`<a class="casella-v ${n?'ok':fut||!lav?'futuro':'manca'}" href="#/documenti/buste"><b>${n?plurale(n,'busta','buste'):fut?'':'—'}</b><span>${n?'archiviate':lav&&!fut?'da caricare':''}</span></a>`};
+  // stipendi: i bonifici fatti nel mese dopo a persone dell'anagrafica
+  const nomi=new Set(stato.persone.map(p=>normalizzaTesto(nomePersona(p))));
+  const stip=m=>{const s=meseSuccessivo(anno,m);const k=s.anno+'-'+pad2(s.mese);const bb=stato.bonifici.filter(b=>(b.data||'').startsWith(k)&&(nomi.has(normalizzaTesto(b.controparte))||/stipend|retribuz/i.test(b.causale||'')));return html`<a class="casella-v ${bb.length?'ok':'futuro'}" href="#/versamenti/bonifici"><b>${bb.length?fEuro(somma(bb,b=>+b.importo||0),0):''}</b><span>${bb.length?plurale(bb.length,'bonifico','bonifici'):''}</span></a>`};
+  return html`${testa}
+  <div class="zona-drop piccola mb" data-azione="versamenti-carica" data-drop-versamenti>${icona('carica')}<div><b>Trascina qui F24 quietanzati e distinte della Cassa Edile</b><br><span>Anche tanti insieme: riconosco di che documento si tratta, leggo mese e importo quando il PDF ha il testo. Le scansioni le completi tu.</span></div></div>
+  <div class="riga mb-s"><span class="spazio"></span><select data-cambio="versamenti-anno" aria-label="Anno">${anni.map(a=>html`<option value="${a}" ${a===anno?'selected':''}>${a}</option>`)}</select></div>
+  <div class="scheda"><div class="griglia-versamenti"><span></span><span class="tv">F24 · entro il 16</span><span class="tv">Cassa Edile · entro fine mese dopo</span><span class="tv">Buste paga</span><span class="tv">Stipendi pagati</span>
+    ${NOMI_MESI.map((nm,i)=>html`<span class="mv">${capitalizza(nm)}</span>${cella('f24',i+1)}${cella('cassaEdile',i+1)}${buste(i+1)}${stip(i+1)}`)}</div></div>
+  <p class="piccolo silenzioso mt-s">Le caselle gialle sono le prossime scadenze (compaiono anche in Oggi). Una casella pagata apre il documento; una vuota apre il caricamento.</p>`;
+};
+// linguette che cambiano la rotta (così si può tornare indietro e mandare il collegamento)
+function linguetteRotta(sez,voci,attiva){return html`<div class="linguette" role="tablist">${voci.map(v=>html`<a role="tab" class="${v.id===attiva?'attiva':''}" href="#/${sez}${v.id===voci[0].id?'':'/'+v.id}" aria-selected="${v.id===attiva}">${v.testo}${v.contatore!=null?html`<span class="contatore ${v.critico?'critico':''}">${v.contatore}</span>`:''}</a>`)}</div>`}
+AZIONI['versamenti-anno']=(d,t)=>{ui.filtri.versamentiAnno=t.value;render()};
+function elencoVersamenti(tipo){
+  const vv=stato.versamenti.filter(v=>v.tipo===tipo).sort((a,b)=>(b.anno*100+b.mese)-(a.anno*100+a.mese));
+  if(!vv.length) return vuoto({icona:'bonifici',titolo:tipo==='f24'?'Nessun F24 caricato':'Nessuna distinta della Cassa Edile',testo:'Trascina qui i PDF: li riconosco da solo e li metto al loro mese. Finiscono anche nei pacchetti dei cantieri.',azione:{testo:'Carica',azione:'versamenti-carica'}});
+  return tabella({id:'vers-'+tipo,righe:vv,onRiga:v=>apriVersamento(v.id),colonne:tipo==='f24'?[
+    {chiave:'m',titolo:'Mese',principale:true,valore:v=>v.anno*100+v.mese,formatta:v=>html`<b>${fMeseAnno(v.anno,v.mese)}</b>`},
+    {chiave:'p',titolo:'Pagato il',valore:v=>v.dataPagamento||'',formatta:v=>v.dataPagamento?fData(v.dataPagamento):html`<span class="silenzioso">—</span>`},
+    {chiave:'inps',titolo:'INPS',num:true,valore:v=>(v.voci||{}).inps||0,formatta:v=>v.voci&&v.voci.inps!=null?fEuro(v.voci.inps):''},
+    {chiave:'er',titolo:'Erario',num:true,valore:v=>(v.voci||{}).erario||0,formatta:v=>v.voci&&v.voci.erario!=null?fEuro(v.voci.erario):''},
+    {chiave:'al',titolo:'Altro',num:true,valore:v=>(v.voci||{}).altro||0,formatta:v=>v.voci&&v.voci.altro?fEuro(v.voci.altro):''},
+    {chiave:'tot',titolo:'Saldo',num:true,valore:v=>+v.importo||0,formatta:v=>html`<b>${fEuro(v.importo)}</b>${v.voci&&v.voci.credito?html`<br><span class="piccolo silenzioso">${fEuro(v.voci.credito)} compensati</span>`:''}`},
+    {chiave:'f',titolo:'',formatta:v=>v.fileId?icona('pdf','piccola'):''}]:[
+    {chiave:'m',titolo:'Mese di riferimento',principale:true,valore:v=>v.anno*100+v.mese,formatta:v=>html`<b>${fMeseAnno(v.anno,v.mese)}</b>`},
+    {chiave:'s',titolo:'Scadenza',formatta:v=>fData(scadenzaVersamento(v))},
+    {chiave:'p',titolo:'Pagato il',valore:v=>v.dataPagamento||'',formatta:v=>v.dataPagamento?fData(v.dataPagamento):html`<span class="silenzioso">—</span>`},
+    {chiave:'tot',titolo:'Importo',num:true,valore:v=>+v.importo||0,formatta:v=>html`<b>${fEuro(v.importo)}</b>`},
+    {chiave:'f',titolo:'',formatta:v=>v.fileId?icona('pdf','piccola'):''}]});
+}
+// ---- lettura dei PDF ----
+// F24: la pagina «Quietanza di versamento» elenca le righe come «SEZIONE codice … a debito a credito».
+async function leggiVersamento(file){
+  const out={file,tipo:null,anno:null,mese:null,dataPagamento:null,importo:null,voci:null,trovato:[]};
+  let testo='';try{if(ePdf(file.type,file.name))testo=(await estraiTestoPdf(file)).testo||''}catch(e){}
+  const T=testo.toUpperCase();
+  if(/DELEGA IRREVOCABILE|MODELLO DI PAGAMENTO|QUIETANZA DI VERSAMENTO|SALDO FINALE/.test(T)){out.tipo='f24';out.trovato.push('è un F24')}
+  else if(/CASSA EDILE|EDILCASSA|F\.?\s?A\.?\s?L\.?\s?E\.?\s?A/.test(T)){out.tipo='cassaEdile';out.trovato.push('è una distinta della Cassa Edile')}
+  else if(/f\s?24/i.test(file.name)) out.tipo='f24'; else if(/cassa|falea|edil/i.test(file.name)) out.tipo='cassaEdile';
+  // data di pagamento dal nome del file: «0716» = 16 luglio (l'anno è quello corrente, o il precedente se il mese è nel futuro)
+  const mm=/^(\d{2})(\d{2})(?!\d)/.exec(file.name);
+  // l'anno: scritto nel nome o nel percorso (cartella «2025»), oppure la data stampata dalla banca, oppure l'anno in corso
+  const annoDa=(/(20\d{2})/.exec(file.name)||/(?:^|\/)(20\d{2})(?:\/|$)/.exec(file.percorso||'')||/\d{2}\/\d{2}\/(20\d{2})/.exec(testo)||[])[1];
+  if(mm&&+mm[1]>=1&&+mm[1]<=12&&+mm[2]>=1&&+mm[2]<=31){const d=new Date();let a=d.getFullYear();if(+mm[1]>d.getMonth()+1)a--;if(annoDa)a=+annoDa;out.dataPagamento=a+'-'+mm[1]+'-'+mm[2];out.trovato.push('pagato il '+fData(out.dataPagamento)+' (dal nome del file)')}
+  if(out.tipo==='f24'){
+    if(out.dataPagamento){out.anno=+out.dataPagamento.slice(0,4);out.mese=+out.dataPagamento.slice(5,7)}
+    const sez={erario:'erario',inps:'inps',regioni:'altro',imu:'altro',inail:'altro',altri:'altro'};const voci={inps:0,erario:0,altro:0};let righe=0,debito=0,credito=0;
+    for(const r of testo.split(/\r?\n/)){const x=/^\s*(ERARIO|INPS|REGIONI|IMU|INAIL|ALTRI)\b.*?(-?[\d.]+,\d{2})\s+(-?[\d.]+,\d{2})\s*$/i.exec(r);if(!x)continue;righe++;const de=leggiNumero(x[2])||0,cr=leggiNumero(x[3])||0;debito+=de;credito+=cr;voci[sez[x[1].toLowerCase()]]+=de-cr}
+    // saldo = a debito − compensato con i crediti (può essere zero: tutto compensato)
+    if(righe){out.voci={inps:arrotonda2(voci.inps),erario:arrotonda2(voci.erario),altro:arrotonda2(voci.altro),debito:arrotonda2(debito),credito:arrotonda2(credito)};out.importo=arrotonda2(debito-credito);out.trovato.push(`saldo ${fEuro(out.importo)}`+(credito?` (${fEuro(debito)} a debito, ${fEuro(credito)} compensati)`:'')+` da ${plurale(righe,'riga','righe')} della quietanza`)}
+  }
+  if(out.tipo==='cassaEdile'&&testo){
+    const imp=/IMPORTO DEL VERSAMENTO[\s\S]{0,200}?(\d{1,3}(?:\.?\d{3})*,\d{2})/i.exec(testo)||/(\d{1,3}(?:\.?\d{3})*,\d{2})/.exec(testo);
+    if(imp){out.importo=leggiNumero(imp[1]);out.trovato.push('importo '+fEuro(out.importo))}
+    const per=/\b(0[1-9]|1[0-2])\s?(20\d{2})/.exec(testo.replace(/IT\d{2}[\sA-Z0-9]+/g,''));
+    if(per){out.mese=+per[1];out.anno=+per[2];out.trovato.push('riferito a '+fMeseAnno(out.anno,out.mese))}
+  }
+  return out;
+}
+function arrotonda2(n){return Math.round(n*100)/100}
+AZIONI['versamenti-carica']=async()=>{const fs=await scegliFile({accetta:'.pdf,image/*'});if(fs.length)caricaVersamenti(fs)};
+// uno o tanti file: si leggono tutti, poi una tabella da controllare e si archiviano insieme
+async function caricaVersamenti(files){
+  const prog=dialogoAvanzamento('Lettura dei versamenti',{testo:'Leggo i PDF…'});
+  const letti=[];
+  for(let i=0;i<files.length;i++){await prog.aggiorna(i,files.length,files[i].name);letti.push(await leggiVersamento(files[i]))}
+  prog.chiudi();
+  const anni=unici([new Date().getFullYear()-1,new Date().getFullYear(),...letti.map(x=>x.anno).filter(Boolean)]).sort();
+  const corpo=html`<p class="secondario piccolo">Controlla tipo, mese e importo: quello che ho trovato è già scritto. ${letti.some(x=>x.importo==null)?'Le scansioni senza testo vanno completate a mano.':''}</p>
+  <div class="tabella-scorri"><table class="tabella densa"><thead><tr><th>File</th><th>Tipo</th><th>Mese</th><th>Anno</th><th>Pagato il</th><th class="num">Importo</th></tr></thead><tbody>${letti.map((x,i)=>html`<tr data-i="${i}"><td><b class="taglia" style="display:block;max-width:180px" title="${x.file.name}">${x.file.name}</b><span class="piccolo silenzioso">${x.trovato.join(' · ')||'niente di leggibile: completa tu'}</span></td>
+    <td><select data-c="tipo">${Object.entries(TIPI_VERSAMENTO).map(([v,t])=>html`<option value="${v}" ${x.tipo===v?'selected':''}>${t}</option>`)}</select></td>
+    <td><select data-c="mese">${NOMI_MESI.map((n,k)=>html`<option value="${k+1}" ${x.mese===k+1?'selected':''}>${capitalizza(n)}</option>`)}</select></td>
+    <td><select data-c="anno">${anni.map(a=>html`<option value="${a}" ${(x.anno||new Date().getFullYear())===a?'selected':''}>${a}</option>`)}</select></td>
+    <td><input type="date" data-c="dataPagamento" value="${x.dataPagamento||''}"></td>
+    <td><input type="text" inputmode="decimal" data-c="importo" class="num-input" style="width:110px" value="${x.importo!=null?fNum(x.importo,2):''}" placeholder="da scrivere"></td></tr>`)}</tbody></table></div>
+  <p class="piccolo silenzioso mt-s">F24: il mese è quello della scadenza (il 16). Cassa Edile: il mese a cui si riferisce la distinta.</p>`;
+  const v=await dialogo({titolo:plurale(letti.length,'versamento da archiviare','versamenti da archiviare'),largo:true,corpo,pulsanti:[{testo:'Annulla',valore:null},{testo:'Archivia',classe:'primario',primario:true,fn:vel=>tutti('tbody tr',vel).map(tr=>{const g=c=>tr.querySelector(`[data-c="${c}"]`).value;return {i:+tr.dataset.i,tipo:g('tipo'),mese:+g('mese'),anno:+g('anno'),dataPagamento:g('dataPagamento')||null,importo:leggiNumero(g('importo'))}})}]});
+  if(!v) return;
+  const doppi=v.filter(x=>versamentoDi(x.tipo,x.anno,x.mese));
+  if(doppi.length&&!(await conferma(`${doppi.map(x=>TIPI_VERSAMENTO[x.tipo]+' di '+fMeseAnno(x.anno,x.mese)).join(', ')}: c'è già un versamento per quel mese. Lo sostituisco con quello nuovo? (il vecchio file resta nel cestino 30 giorni)`,{ok:'Sostituisci'})))return;
+  const esiti=await acquisisciConAnteprima(v.map(x=>letti[x.i].file));if(!esiti)return;
+  esegui(plurale(v.length,'versamento archiviato','versamenti archiviati'),s=>{
+    v.forEach((x,k)=>{s.versamenti=s.versamenti.filter(y=>!(y.tipo===x.tipo&&y.anno===x.anno&&y.mese===x.mese));s.versamenti.push({id:nuovoId('ve'),tipo:x.tipo,anno:x.anno,mese:x.mese,dataPagamento:x.dataPagamento,importo:x.importo,voci:letti[x.i].voci||null,fileId:esiti[k].rec.id,creato:new Date().toISOString()})});
+    cestinaFileOrfani(s);
+  });
+}
+async function apriVersamento(id){
+  const v=perId('versamenti',id);if(!v)return;const m=v.fileId&&fileMeta(v.fileId);
+  const corpo=html`<dl class="dati-doc"><dt>Tipo</dt><dd>${TIPI_VERSAMENTO[v.tipo]}</dd><dt>${v.tipo==='f24'?'Mese':'Riferito a'}</dt><dd>${fMeseAnno(v.anno,v.mese)}</dd><dt>Scadenza</dt><dd>${fData(scadenzaVersamento(v))}</dd><dt>Pagato il</dt><dd>${v.dataPagamento?fData(v.dataPagamento):daCompilare()}</dd><dt>Importo</dt><dd><b>${v.importo!=null?fEuro(v.importo):daCompilare()}</b></dd>
+    ${v.voci?html`${v.voci.credito?html`<dt>A debito</dt><dd>${fEuro(v.voci.debito)}</dd><dt>Compensato</dt><dd>${fEuro(v.voci.credito)}</dd>`:''}<dt>INPS</dt><dd>${fEuro(v.voci.inps)}</dd><dt>Erario</dt><dd>${fEuro(v.voci.erario)}</dd>${v.voci.altro?html`<dt>Altro</dt><dd>${fEuro(v.voci.altro)}</dd>`:''}`:''}${v.note?html`<dt>Note</dt><dd>${v.note}</dd>`:''}</dl>
+    ${m?html`<div class="sezione-titolo">File</div><ul class="file-doc"><li>${icona('pdf','piccola')}<span class="nome-file">${m.nome}</span><span class="piccolo silenzioso">${fPeso(m.dimensione)}</span><button class="pulsante discreto icona piccolo" data-azione="file-scarica" data-id="${m.id}" title="Scarica">${icona('scarica','piccola')}</button><button class="pulsante discreto icona piccolo" data-azione="file-condividi" data-id="${m.id}" title="Condividi">${icona('condividi','piccola')}</button></li></ul>`:''}`;
+  apriPannello({titolo:TIPI_VERSAMENTO[v.tipo]+' · '+fMeseAnno(v.anno,v.mese),largo:!!m,affiancato:!!m,corpo,anteprima:m?'anteprima-doc':null,piede:html`<button class="pulsante primario" data-azione="versamento-modifica" data-id="${v.id}">${icona('modifica','piccola')}Modifica</button><span class="spazio"></span><button class="pulsante discreto pericolo" data-azione="versamento-elimina" data-id="${v.id}">${icona('elimina','piccola')}Elimina</button>`});
+  if(m){const a=await htmlAnteprimaFile(m.id);const c=el('#anteprima-doc');if(c)c.innerHTML=a}
+}
+AZIONI['versamento-apri']=d=>apriVersamento(d.id);
+AZIONI['versamento-modifica']=async d=>{const v=perId('versamenti',d.id);const r=await dialogoModulo('Modifica versamento',[{nome:'tipo',etichetta:'Tipo',tipo:'select',vuoto:false,opzioni:Object.entries(TIPI_VERSAMENTO).map(([v,t])=>({v,t}))},{nome:'mese',etichetta:'Mese',tipo:'select',vuoto:false,opzioni:NOMI_MESI.map((n,i)=>({v:i+1,t:capitalizza(n)}))},{nome:'anno',etichetta:'Anno',tipo:'numero',decimali:0,obbligatorio:true},{nome:'dataPagamento',etichetta:'Pagato il',tipo:'data'},{nome:'importo',etichetta:'Importo',tipo:'euro'},{nome:'note',etichetta:'Note',tipo:'textarea',largo:true}],v);if(!r)return;esegui('Modificato versamento',s=>{const x=s.versamenti.find(y=>y.id===d.id);Object.assign(x,r,{mese:+r.mese})});apriVersamento(d.id)};
+AZIONI['versamento-elimina']=async d=>{const v=perId('versamenti',d.id);if(!(await conferma(`Eliminare ${TIPI_VERSAMENTO[v.tipo]} di ${fMeseAnno(v.anno,v.mese)}? Il file resta nel cestino 30 giorni.`,{pericolo:true,ok:'Elimina'})))return;chiudiPannello();esegui('Eliminato versamento',s=>{s.versamenti=s.versamenti.filter(x=>x.id!==d.id);cestinaFileOrfani(s)})};
+
+
+/* ═══════════════════════════════════════════════════════════════════
    SEZIONE JS · DATI
    ═══════════════════════════════════════════════════════════════════ */
 // ---------------------------------------------------------------------
@@ -8203,7 +8378,7 @@ function datiIniziali(soloStruttura){
     persone:[],tipiDocumento:[],documenti:[],file:[],clienti:[],professionisti:[],lavorazioni:[],cantieri:[],pos:[],
     modelli:{dichiarazioni:[],posTesto:null,posMacchine:null,posDpiDotazione:null},
     presenze:{},bustePaga:[],regoleBuste:[],listino:[],preventivi:[],movimenti:[],generati:[],cestino:[],
-    mezzi:[],fornitori:[],bonifici:[],rimanenze:{},
+    mezzi:[],fornitori:[],bonifici:[],versamenti:[],rimanenze:{},
     impostazioni:{nomeUtente:'',dispositivo:'',tema:'sistema',ultimoBackup:null,modificheDopoBackup:0,ultimaModifica:null,soglie:Object.assign({},SOGLIE_PREDEFINITE),densita:'normale',festivitaLocali:[],arrotondamento:'aziendale',compressioneImmagini:true,obiettivoKb:300,avvisaPdfMb:2,creato:new Date().toISOString()},
   };
   s.lavorazioni=LAVORAZIONI_INIZIALI.map(l=>Object.assign({},l));

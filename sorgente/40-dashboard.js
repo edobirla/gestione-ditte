@@ -130,6 +130,7 @@ function azioniConsigliate(){
   const nonAss=stato.movimenti.filter(m=>m.categoria!=='spese_generali'&&!quoteMovimentoPerCantiere(m).length);
   if(nonAss.length) out.push({p:3,livello:'pianificare',testo:`${nonAss.length} fatture non assegnate a un cantiere`,href:'budget?filtro=nonassegnate'});
   const dv=stato.movimenti.filter(m=>m.daVerificare);if(dv.length) out.push({p:3,livello:'pianificare',testo:`${dv.length} movimenti da verificare`,href:'budget?filtro=daverificare'});
+  try{out.push(...scadenzeVersamenti())}catch(e){}
   const imp=stato.impostazioni;
   if(!imp.ultimoBackup||giorniTra(imp.ultimoBackup.slice(0,10),oggiIso)>3) if((imp.modificheDopoBackup||0)>0||!imp.ultimoBackup) out.push({p:imp.ultimoBackup?3:1,livello:imp.ultimoBackup?'pianificare':'scadenza',testo:imp.ultimoBackup?`Backup non fatto da ${giorniTra(imp.ultimoBackup.slice(0,10),oggiIso)} giorni`:'Nessun backup ancora eseguito',href:'impostazioni?backup=1'});
   return out.sort((a,b)=>a.p-b.p);

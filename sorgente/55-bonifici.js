@@ -1,18 +1,17 @@
 // ---------------------------------------------------------------------
 // BONIFICI: archivio delle conferme di bonifico, ricercabile e filtrabile.
 // ---------------------------------------------------------------------
-VISTE.bonifici=function(r){
-  if(r.query.nuovo){setTimeout(()=>dialogoBonifico(null),0);history.replaceState(null,'','#/bonifici')}
-  if(r.query.bonifico){setTimeout(()=>dialogoBonifico(perId('bonifici',r.query.bonifico)),0);history.replaceState(null,'','#/bonifici')}
+VISTE.bonifici=r=>VISTE.versamenti(Object.assign({},r,{id:'bonifici'}));
+function contenutoBonifici(r){
+  if(r.query.nuovo){setTimeout(()=>dialogoBonifico(null),0);history.replaceState(null,'','#/versamenti/bonifici')}
+  if(r.query.bonifico){setTimeout(()=>dialogoBonifico(perId('bonifici',r.query.bonifico)),0);history.replaceState(null,'','#/versamenti/bonifici')}
   const f=ui.filtri.bonifici||{};
   let righe=stato.bonifici.slice();
   if(f.cerca){const q=normalizzaTesto(f.cerca);righe=righe.filter(b=>normalizzaTesto([b.controparte,b.causale,b.note].join(' ')).includes(q))}
   if(f.anno) righe=righe.filter(b=>(b.data||'').startsWith(f.anno));
   righe.sort((a,b)=>(b.data||'')<(a.data||'')?-1:1);
   const anni=unici(stato.bonifici.map(b=>(b.data||'').slice(0,4)).filter(Boolean)).sort().reverse();
-  return html`<div class="testata"><div><h1>Bonifici</h1><div class="sotto">${plurale(stato.bonifici.length,'conferma di bonifico','conferme di bonifico')}</div></div>
-    <div class="azioni"><button class="pulsante primario" data-azione="bonifico-nuovo">${icona('piu')}Nuovo bonifico</button></div></div>
-  <div class="strumenti-tabella"><input type="search" placeholder="Cerca per controparte, causale, note" value="${f.cerca||''}" data-cambio="filtro-bonifici" data-campo="cerca" aria-label="Cerca bonifici"><select data-cambio="filtro-bonifici" data-campo="anno"><option value="">Tutti gli anni</option>${anni.map(a=>html`<option value="${a}" ${f.anno===a?'selected':''}>${a}</option>`)}</select>${pulsanteCancellaFiltri(!!(f.cerca||f.anno),'filtro-bonifici-reset')}<span class="conteggio">${righe.length} bonifici · ${fEuro(somma(righe,b=>+b.importo||0),0)}</span></div>
+  return html`<div class="strumenti-tabella"><input type="search" placeholder="Cerca per controparte, causale, note" value="${f.cerca||''}" data-cambio="filtro-bonifici" data-campo="cerca" aria-label="Cerca bonifici"><select data-cambio="filtro-bonifici" data-campo="anno"><option value="">Tutti gli anni</option>${anni.map(a=>html`<option value="${a}" ${f.anno===a?'selected':''}>${a}</option>`)}</select>${pulsanteCancellaFiltri(!!(f.cerca||f.anno),'filtro-bonifici-reset')}<span class="conteggio">${righe.length} bonifici · ${fEuro(somma(righe,b=>+b.importo||0),0)}</span></div>
   ${tabella({id:'bonifici',righe,onRiga:b=>apriBonifico(b.id),colonne:[
     {chiave:'data',titolo:'Data',principale:true,formatta:b=>fData(b.data)},
     {chiave:'controparte',titolo:'Controparte',valore:b=>b.controparte||''},

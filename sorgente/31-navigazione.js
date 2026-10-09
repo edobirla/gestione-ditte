@@ -11,7 +11,7 @@ const MENU=[
   {id:'preventivi',testo:'Preventivi',icona:'preventivi',gruppo:'Lavori'},
   {id:'documenti',testo:'Documenti',icona:'documenti',gruppo:'Amministrazione'},
   {id:'budget',testo:'Budget',icona:'budget',gruppo:'Amministrazione'},
-  {id:'bonifici',testo:'Bonifici',icona:'bonifici',gruppo:'Amministrazione'},
+  {id:'versamenti',testo:'Versamenti',icona:'bonifici',gruppo:'Amministrazione',alias:['bonifici']},
   {id:'fornitori',testo:'Fornitori',icona:'fornitori',gruppo:'Amministrazione'},
   {id:'rimanenze',testo:'Rimanenze',icona:'pacchetto',gruppo:'Amministrazione'},
   {id:'impostazioni',testo:'Impostazioni',icona:'impostazioni',gruppo:'Sistema'},
@@ -29,12 +29,15 @@ function disegnaMenu(){
   const n=contatoriMenu();
   const mn=el('#marchio-nome');if(mn)mn.textContent=nomeImpresa(true)||'Gestionale';
   let gruppo=null;
-  el('#menu').innerHTML=MENU.map(m=>{const t=m.gruppo&&m.gruppo!==gruppo?html`<h6>${m.gruppo}</h6>`:'';gruppo=m.gruppo||gruppo;const c=n[m.id];return t+html`<a href="#/${m.id}" class="${r.sezione===m.id?'attivo':''}" aria-current="${r.sezione===m.id?'page':'false'}">${icona(m.icona)}<span class="testo">${m.testo}</span>${c?html`<span class="contatore ${c.classe||''}" title="${c.titolo||''}">${c.n}</span>`:''}</a>`}).join('');
+  const sez=sezioneMenu(r.sezione);
+  el('#menu').innerHTML=MENU.map(m=>{const t=m.gruppo&&m.gruppo!==gruppo?html`<h6>${m.gruppo}</h6>`:'';gruppo=m.gruppo||gruppo;const c=n[m.id];return t+html`<a href="#/${m.id}" class="${sez===m.id?'attivo':''}" aria-current="${sez===m.id?'page':'false'}">${icona(m.icona)}<span class="testo">${m.testo}</span>${c?html`<span class="contatore ${c.classe||''}" title="${c.titolo||''}">${c.n}</span>`:''}</a>`}).join('');
 }
 // percorso nella barra in alto: gruppo › sezione › pagina (il titolo della pagina lo prende dalla pagina stessa)
+// alcune sezioni vecchie vivono ora dentro un'altra (i bonifici dentro Versamenti)
+function sezioneMenu(sezione){const m=MENU.find(x=>x.id===sezione||(x.alias||[]).includes(sezione));return m?m.id:sezione}
 function disegnaBriciole(r){
   const b=el('#briciole-barra');if(!b)return;
-  const m=MENU.find(x=>x.id===r.sezione);if(!m){b.innerHTML='';return}
+  const m=MENU.find(x=>x.id===sezioneMenu(r.sezione));if(!m){b.innerHTML='';return}
   const t=el('#contenuto h1');const pagina=r.id&&t?t.textContent.trim():'';
   const freccia=icona('destra','piccola');
   b.innerHTML=html`${m.gruppo&&m.gruppo!=='Sistema'?html`<a>${m.gruppo}</a>${freccia}`:''}${pagina?html`<a href="#/${m.id}">${m.testo}</a>${freccia}<b>${pagina}</b>`:html`<b>${m.testo}</b>`}`;
@@ -42,6 +45,7 @@ function disegnaBriciole(r){
 function contatoriMenu(){
   const out={};
   try{ const sc=riepilogoScadenze(); const k=(sc.scaduti.length+sc.mancanti.length)||0; if(k) out.operai={n:k,titolo:k+' documenti scaduti o mancanti'}; }catch(e){}
+  try{ const v=scadenzeVersamenti(); if(v.length) out.versamenti={n:v.length,classe:v.some(x=>x.livello==='scaduto')?'':'giallo',titolo:v.map(x=>x.testo).join('\n')}; }catch(e){}
   return out;
 }
 // ---- render principale ----
@@ -70,7 +74,7 @@ function render(){
   document.title=titoloPagina(r);
 }
 function dopoRender(fn){(ui.montaggi=ui.montaggi||[]).push(fn)}
-function titoloPagina(r){const m=MENU.find(x=>x.id===r.sezione);return (m?m.testo+' · ':'')+('Gestionale'+(nomeImpresa()?' '+nomeImpresa():''))}
+function titoloPagina(r){const m=MENU.find(x=>x.id===sezioneMenu(r.sezione));return (m?m.testo+' · ':'')+('Gestionale'+(nomeImpresa()?' '+nomeImpresa():''))}
 window.addEventListener('hashchange',()=>{ui.storicoProfondita=(ui.storicoProfondita||0)+1;chiudiPannello();chiudiRicerca();document.body.classList.remove('menu-aperto');render();el('#contenuto').scrollTop=0;window.scrollTo(0,0)});
 
 // ---- tema: sistema / chiaro / scuro, ricordato ----
@@ -98,9 +102,10 @@ function indiceRicerca(){
   for(const m of stato.mezzi) voci.push({gruppo:'Mezzi',testo:'Mezzo '+nomeMezzo(m),sotto:m.tipo||'',href:'mezzi/'+m.id,chiavi:[m.targa,m.marca,m.modello]});
   for(const f of stato.fornitori) voci.push({gruppo:'Fornitori',testo:f.ragioneSociale,sotto:f.cosaFornisce||'',href:'fornitori/'+f.id});
   for(const b of stato.bonifici) voci.push({gruppo:'Bonifici',testo:'Bonifico '+(b.controparte||''),sotto:fData(b.data)+' · '+fEuro(b.importo),href:'bonifici?bonifico='+b.id});
+  for(const v of stato.versamenti) voci.push({gruppo:'Versamenti',testo:(v.tipo==='f24'?'F24 ':'Cassa Edile ')+fMeseAnno(v.anno,v.mese),sotto:fEuro(v.importo),href:'versamenti/'+(v.tipo==='f24'?'f24':'cassa')});
   const azioni=[
     {testo:'Nuovo operaio',href:'operai?nuovo=1'},{testo:'Nuovo cantiere',href:'cantieri?nuovo=1'},{testo:'Nuovo cliente',href:'clienti?nuovo=1'},{testo:'Nuovo preventivo',href:'preventivi?nuovo=1'},{testo:'Nuovo movimento',href:'budget?nuovo=1'},{testo:'Nuovo mezzo',href:'mezzi?nuovo=1'},{testo:'Nuovo fornitore',href:'fornitori?nuovo=1'},
-    {testo:'Scadenzario',href:'operai/scadenzario'},{testo:'Presenze del mese',href:'presenze'},{testo:'Fai il backup',href:'impostazioni?backup=1'},{testo:'Caricamento iniziale documenti',href:'documenti/caricamento'},{testo:'Buste paga',href:'documenti/buste'},{testo:'Peso dell\'archivio',href:'impostazioni/peso'},{testo:'Cambia tema',azione:'tema'},{testo:'Diagramma temporale cantieri',href:'cantieri?vista=tempo'},{testo:'Confronto clienti',href:'clienti?vista=confronto'},
+    {testo:'Scadenzario',href:'operai/scadenzario'},{testo:'Presenze del mese',href:'presenze'},{testo:'Fai il backup',href:'impostazioni?backup=1'},{testo:'Carica F24 o Cassa Edile',href:'versamenti'},{testo:'Versamenti mese per mese',href:'versamenti'},{testo:'Caricamento iniziale documenti',href:'documenti/caricamento'},{testo:'Buste paga',href:'documenti/buste'},{testo:'Peso dell\'archivio',href:'impostazioni/peso'},{testo:'Cambia tema',azione:'tema'},{testo:'Diagramma temporale cantieri',href:'cantieri?vista=tempo'},{testo:'Confronto clienti',href:'clienti?vista=confronto'},
   ];
   for(const a of azioni) voci.push({gruppo:'Azioni',testo:a.testo,href:a.href,azione:a.azione,sotto:''});
   return voci;
@@ -183,7 +188,7 @@ AZIONI['copia']=d=>copiaNegliAppunti(d.testo).then(()=>avviso('Copiato negli app
 // dragenter/dragleave da tenere in sincronia, che su Chrome si disallineava facilmente e lasciava
 // il drop "morto" nonostante il cursore mostrasse la copia.
 let zonaDropAttiva=null;
-function trovaZonaDrop(target){return target&&target.closest&&(target.closest('[data-drop-bonifico]')||target.closest('[data-drop-doc]')||target.closest('[data-drop-soggetto]')||target.closest('[data-drop-caricamento]')||target.closest('[data-drop-buste]')||target.closest('.zona-drop'))}
+function trovaZonaDrop(target){return target&&target.closest&&(target.closest('[data-drop-bonifico]')||target.closest('[data-drop-doc]')||target.closest('[data-drop-soggetto]')||target.closest('[data-drop-caricamento]')||target.closest('[data-drop-buste]')||target.closest('[data-drop-versamenti]')||target.closest('.zona-drop'))}
 function evidenziaZona(z){if(z===zonaDropAttiva)return;if(zonaDropAttiva)zonaDropAttiva.classList.remove('sopra');if(z)z.classList.add('sopra');zonaDropAttiva=z}
 // Mentre si trascina un file, le anteprime dei PDF (iframe) devono farsi da parte: un iframe è un
 // documento a sé, gli eventi di trascinamento sopra di lui non arrivano mai a questa pagina e il
@@ -215,6 +220,7 @@ window.addEventListener('drop',async e=>{
     if(z.dataset.dropSoggetto){const [tipo,id]=z.dataset.dropSoggetto.split(':');return dialogoDocumento({soggettoTipo:tipo,soggettoId:id},files)}
     if(z.hasAttribute('data-drop-caricamento')){ui.caricamentoFiles=files;ui.caricamentoRighe=null;return render()}
     if(z.hasAttribute('data-drop-buste')) return accodaBuste(files);
+    if(z.hasAttribute('data-drop-versamenti')) return caricaVersamenti(files);
   }
   if(typeof acquisizioneRapida==='function') acquisizioneRapida(files);
 });
