@@ -2,19 +2,19 @@
 // Navigazione: rotte #/sezione/id, menu, tema, ricerca globale, scorciatoie, trascinamento file.
 // ---------------------------------------------------------------------
 const MENU=[
-  {id:'dashboard',testo:'Dashboard',icona:'dashboard'},
-  {id:'operai',testo:'Operai',icona:'operai'},
-  {id:'cantieri',testo:'Cantieri',icona:'cantieri'},
-  {id:'clienti',testo:'Clienti',icona:'clienti'},
-  {id:'fornitori',testo:'Fornitori',icona:'fornitori',soloDesktop:true},
-  {id:'presenze',testo:'Presenze',icona:'presenze'},
-  {id:'documenti',testo:'Documenti',icona:'documenti',soloDesktop:true},
-  {id:'preventivi',testo:'Preventivi',icona:'preventivi',soloDesktop:true},
-  {id:'budget',testo:'Budget',icona:'budget',soloDesktop:true},
-  {id:'rimanenze',testo:'Rimanenze',icona:'pacchetto',soloDesktop:true},
-  {id:'mezzi',testo:'Mezzi',icona:'mezzo',soloDesktop:true},
-  {id:'bonifici',testo:'Bonifici',icona:'bonifici',soloDesktop:true},
-  {id:'impostazioni',testo:'Impostazioni',icona:'impostazioni',soloDesktop:true},
+  {id:'dashboard',testo:'Oggi',icona:'dashboard'},
+  {id:'operai',testo:'Operai',icona:'operai',gruppo:'Squadra'},
+  {id:'presenze',testo:'Presenze',icona:'presenze',gruppo:'Squadra'},
+  {id:'mezzi',testo:'Mezzi',icona:'mezzo',gruppo:'Squadra'},
+  {id:'cantieri',testo:'Cantieri',icona:'cantieri',gruppo:'Lavori'},
+  {id:'clienti',testo:'Clienti',icona:'clienti',gruppo:'Lavori'},
+  {id:'preventivi',testo:'Preventivi',icona:'preventivi',gruppo:'Lavori'},
+  {id:'documenti',testo:'Documenti',icona:'documenti',gruppo:'Amministrazione'},
+  {id:'budget',testo:'Budget',icona:'budget',gruppo:'Amministrazione'},
+  {id:'bonifici',testo:'Bonifici',icona:'bonifici',gruppo:'Amministrazione'},
+  {id:'fornitori',testo:'Fornitori',icona:'fornitori',gruppo:'Amministrazione'},
+  {id:'rimanenze',testo:'Rimanenze',icona:'pacchetto',gruppo:'Amministrazione'},
+  {id:'impostazioni',testo:'Impostazioni',icona:'impostazioni',gruppo:'Sistema'},
 ];
 function leggiRotta(){
   const hash=location.hash.replace(/^#\/?/,'');
@@ -27,12 +27,21 @@ function vai(percorso){location.hash='#/'+percorso.replace(/^#?\/?/,'')}
 function disegnaMenu(){
   const r=leggiRotta();
   const n=contatoriMenu();
-  const mn=el('#marchio-nome');if(mn)mn.textContent='Gestionale'+(nomeImpresa(true)?' '+nomeImpresa(true):'');
-  el('#menu').innerHTML=html`${MENU.map(m=>html`<a href="#/${m.id}" class="${r.sezione===m.id?'attivo':''} ${m.soloDesktop?'solo-desktop':''}" aria-current="${r.sezione===m.id?'page':'false'}">${icona(m.icona)}<span class="testo">${m.testo}</span>${n[m.id]?html`<span class="contatore" title="${n[m.id]} elementi da vedere">${n[m.id]}</span>`:''}</a>`)}<a href="#" class="altro" data-azione="menu-altro">${icona('altro')}<span class="testo">Altro</span></a><div class="fondo">${nomeImpresa()||'Gestionale'}<br>v${VERSIONE_SCHEMA} · ${stato.impostazioni.dispositivo||''}</div>`;
+  const mn=el('#marchio-nome');if(mn)mn.textContent=nomeImpresa(true)||'Gestionale';
+  let gruppo=null;
+  el('#menu').innerHTML=MENU.map(m=>{const t=m.gruppo&&m.gruppo!==gruppo?html`<h6>${m.gruppo}</h6>`:'';gruppo=m.gruppo||gruppo;const c=n[m.id];return t+html`<a href="#/${m.id}" class="${r.sezione===m.id?'attivo':''}" aria-current="${r.sezione===m.id?'page':'false'}">${icona(m.icona)}<span class="testo">${m.testo}</span>${c?html`<span class="contatore ${c.classe||''}" title="${c.titolo||''}">${c.n}</span>`:''}</a>`}).join('');
+}
+// percorso nella barra in alto: gruppo › sezione › pagina (il titolo della pagina lo prende dalla pagina stessa)
+function disegnaBriciole(r){
+  const b=el('#briciole-barra');if(!b)return;
+  const m=MENU.find(x=>x.id===r.sezione);if(!m){b.innerHTML='';return}
+  const t=el('#contenuto h1');const pagina=r.id&&t?t.textContent.trim():'';
+  const freccia=icona('destra','piccola');
+  b.innerHTML=html`${m.gruppo&&m.gruppo!=='Sistema'?html`<a>${m.gruppo}</a>${freccia}`:''}${pagina?html`<a href="#/${m.id}">${m.testo}</a>${freccia}<b>${pagina}</b>`:html`<b>${m.testo}</b>`}`;
 }
 function contatoriMenu(){
   const out={};
-  try{ const sc=riepilogoScadenze(); out.operai=(sc.scaduti.length+sc.mancanti.length)||0; }catch(e){}
+  try{ const sc=riepilogoScadenze(); const k=(sc.scaduti.length+sc.mancanti.length)||0; if(k) out.operai={n:k,titolo:k+' documenti scaduti o mancanti'}; }catch(e){}
   return out;
 }
 // ---- render principale ----
@@ -42,6 +51,8 @@ function render(){
   const r=leggiRotta(); ui.rotta=r;
   disegnaMenu();
   el('#marchio-logo').src=immagineAzienda('logo'); // il logo dell'azienda, non quello generico dell'app
+  // la stessa pagina ridisegnata (dopo una modifica) non rifà l'animazione d'entrata
+  const chiaveRotta=location.hash;el('#contenuto').classList.toggle('fermo',ui.ultimaRotta===chiaveRotta);ui.ultimaRotta=chiaveRotta;
   const bi=el('#btn-indietro'); if(bi){ if(r.id){bi.classList.remove('nascosto');bi.dataset.genitore=r.sezione}else bi.classList.add('nascosto') }
   const cont=el('#contenuto');
   const fn=VISTE[r.sezione];
@@ -55,11 +66,12 @@ function render(){
   }
   if(ui.montaggi){for(const f of ui.montaggi)try{f(cont)}catch(e){console.error(e)}ui.montaggi=null}
   aggiornaSpie();
+  disegnaBriciole(r);
   document.title=titoloPagina(r);
 }
 function dopoRender(fn){(ui.montaggi=ui.montaggi||[]).push(fn)}
 function titoloPagina(r){const m=MENU.find(x=>x.id===r.sezione);return (m?m.testo+' · ':'')+('Gestionale'+(nomeImpresa()?' '+nomeImpresa():''))}
-window.addEventListener('hashchange',()=>{ui.storicoProfondita=(ui.storicoProfondita||0)+1;chiudiPannello();chiudiRicerca();render();el('#contenuto').scrollTop=0;window.scrollTo(0,0)});
+window.addEventListener('hashchange',()=>{ui.storicoProfondita=(ui.storicoProfondita||0)+1;chiudiPannello();chiudiRicerca();document.body.classList.remove('menu-aperto');render();el('#contenuto').scrollTop=0;window.scrollTo(0,0)});
 
 // ---- tema: sistema / chiaro / scuro, ricordato ----
 function applicaTema(t){
@@ -106,19 +118,17 @@ function cercaGlobale(q){
 }
 function disegnaRicerca(){
   const box=el('#ricerca-risultati');const q=el('#ricerca').value;
-  ricercaVoci=cercaGlobale(q);
-  if(!q.trim()){box.classList.add('nascosto');return}
-  if(!ricercaVoci.length){box.innerHTML=html`<div class="voce silenzioso">Nessun risultato per «${q}»</div>`;box.classList.remove('nascosto');return}
+  ricercaVoci=q.trim()?cercaGlobale(q):indiceRicerca().filter(v=>v.gruppo==='Azioni').slice(0,10);
+  if(!ricercaVoci.length){box.innerHTML=html`<div class="voce silenzioso">Niente con «${q}». Prova con un nome, un cantiere o un tipo di documento.</div>`;return}
   let ultimo='';let i=0;
   box.innerHTML=ricercaVoci.map(v=>{const g=v.gruppo!==ultimo?html`<div class="gruppo">${v.gruppo}</div>`:'';ultimo=v.gruppo;return html`${g}<div class="voce ${i===ricercaIdx?'attiva':''}" data-i="${i++}" role="option">${v.testo}<span class="sotto">${v.sotto||''}</span></div>`}).join('');
-  box.classList.remove('nascosto');
 }
+function apriRicerca(){const p=el('#palette');p.classList.add('aperta');const i=el('#ricerca');i.value='';ricercaIdx=-1;disegnaRicerca();setTimeout(()=>i.focus(),20)}
 function scegliRicerca(i){const v=ricercaVoci[i];if(!v)return;chiudiRicerca();el('#ricerca').value='';if(v.azione==='tema')return cicloTema();vai(v.href)}
-function chiudiRicerca(){el('#ricerca-risultati').classList.add('nascosto');ricercaIdx=-1}
+function chiudiRicerca(){el('#palette').classList.remove('aperta');ricercaIdx=-1}
 function attivaRicerca(){
   const inp=el('#ricerca');
   inp.addEventListener('input',()=>{ricercaIdx=-1;disegnaRicerca()});
-  inp.addEventListener('focus',()=>{if(inp.value)disegnaRicerca()});
   inp.addEventListener('keydown',e=>{
     if(e.key==='ArrowDown'){e.preventDefault();ricercaIdx=Math.min(ricercaVoci.length-1,ricercaIdx+1);disegnaRicerca()}
     else if(e.key==='ArrowUp'){e.preventDefault();ricercaIdx=Math.max(0,ricercaIdx-1);disegnaRicerca()}
@@ -126,14 +136,14 @@ function attivaRicerca(){
     else if(e.key==='Escape'){chiudiRicerca();inp.blur()}
   });
   el('#ricerca-risultati').addEventListener('mousedown',e=>{const v=e.target.closest('.voce[data-i]');if(v){e.preventDefault();scegliRicerca(+v.dataset.i)}});
-  document.addEventListener('click',e=>{if(!e.target.closest('.cerca-globale'))chiudiRicerca()});
+  el('#palette').addEventListener('mousedown',e=>{if(e.target.id==='palette')chiudiRicerca()});
   el('#ricerca-kbd').textContent=eMac()?'⌘K':'Ctrl K';
 }
 // ---- scorciatoie ----
 document.addEventListener('keydown',e=>{
   const inCampo=/INPUT|TEXTAREA|SELECT/.test(document.activeElement&&document.activeElement.tagName)||document.activeElement&&document.activeElement.isContentEditable;
   const mod=e.metaKey||e.ctrlKey;
-  if(mod&&e.key.toLowerCase()==='k'){e.preventDefault();el('#ricerca').focus();el('#ricerca').select();return}
+  if(mod&&e.key.toLowerCase()==='k'){e.preventDefault();apriRicerca();return}
   if(mod&&e.key.toLowerCase()==='z'&&!inCampo){e.preventDefault();if(e.shiftKey)ripristina();else annulla();return}
   if(mod&&e.key.toLowerCase()==='p'&&ui.anteprimaAperta){e.preventDefault();window.print();return}
   if(e.key==='Escape'&&ui.pannello&&!el('#dialoghi').children.length){chiudiPannello()}
@@ -157,11 +167,10 @@ document.addEventListener('change',e=>{
 });
 AZIONI['dettaglio-errore']=d=>dialogoErrore(d.dettaglio);
 AZIONI['tema']=()=>cicloTema();
-AZIONI['menu-altro']=()=>{
-  const r=leggiRotta();
-  const velo=creaEl(html`<div class="velo" style="align-items:flex-end;padding:0"><div class="foglio-altro">${MENU.map(m=>html`<a href="#/${m.id}" class="${r.sezione===m.id?'attivo':''}">${icona(m.icona)}${m.testo}</a>`)}</div></div>`);
-  velo.addEventListener('click',()=>velo.remove());el('#dialoghi').appendChild(velo);
-};
+AZIONI['apri-ricerca']=()=>apriRicerca();
+AZIONI['tendina']=(d,t)=>{const box=t.closest('.tendina-box');const aperta=box.classList.contains('aperta');tutti('.tendina-box.aperta').forEach(x=>x.classList.remove('aperta'));if(!aperta)box.classList.add('aperta')};
+AZIONI['apri-menu']=()=>document.body.classList.add('menu-aperto');
+AZIONI['chiudi-menu']=()=>document.body.classList.remove('menu-aperto');
 AZIONI['vai']=d=>vai(d.href);
 AZIONI['indietro']=()=>history.back();
 AZIONI['pagina-indietro']=d=>{if(ui.storicoProfondita>0)history.back();else vai(d.genitore||'dashboard')};

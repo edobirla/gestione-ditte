@@ -4,77 +4,106 @@
 // ---------------------------------------------------------------------
 VISTE.dashboard=function(){
   const riquadro=(fn)=>{try{return fn()}catch(e){console.error(e);return html`<div class="avviso-inline critico">${icona('errore')}<div class="corpo">Riquadro non disponibile: ${e.message}</div></div>`}};
-  return html`<div class="testata"><div><h1>Buongiorno</h1><div class="sotto">${capitalizza(NOMI_GIORNI[new Date().getDay()])} ${fDataLunga(oggi())}</div></div></div>
-  ${riquadro(riquadroSemaforo)}
-  <div class="mt">${riquadro(riquadroAzioni)}</div>
-  <div class="mt">${riquadro(riquadroIdoneita)}</div>
-  <div class="mt">${riquadro(riquadroCantieri)}</div>
-  <div class="griglia due mt">${riquadro(riquadroMese)}${riquadro(riquadroClienti)}</div>
-  <div class="griglia due mt">${riquadro(riquadroMargini)}${riquadro(riquadroOreCantiere)}</div>`;
-};
-function riquadroSemaforo(){
-  const sc=riepilogoScadenze();
-  const entro30=sc.righe.filter(r=>r.info.data&&r.info.giorni!=null&&r.info.giorni>=0&&r.info.giorni<=30);
-  return html`${entro30.length?html`<div class="avviso-inline attenzione mb-s" data-azione="vai" data-href="operai/scadenzario" style="cursor:pointer">${icona('attenzione')}<div class="corpo"><b>${plurale(entro30.length,'documento scade','documenti scadono')} entro 30 giorni:</b> ${tronca(entro30[0].soggetto+': '+(entro30[0].tipo||{}).nome,50)}${entro30.length>1?' e altri '+(entro30.length-1):''}</div></div>`:''}
-  <div class="griglia quattro">
-    <a class="indicatore critico" href="#/operai/scadenzario"><span class="etichetta">${icona('errore')}Scaduti</span><span class="valore">${sc.scaduti.length}</span><span class="nota">${sc.mancanti.filter(m=>m.bloccante).length} mancanti bloccanti</span></a>
-    <a class="indicatore attenzione" href="#/operai/scadenzario"><span class="etichetta">${icona('attenzione')}Entro ${sc.soglie.scadenza} giorni</span><span class="valore">${sc.entro60.length}</span><span class="nota">${sc.entro60[0]?tronca(sc.entro60[0].soggetto+': '+(sc.entro60[0].tipo||{}).nome,36):''}</span></a>
-    <a class="indicatore" href="#/operai/scadenzario"><span class="etichetta">${icona('calendario')}Entro ${sc.soglie.pianificare} giorni</span><span class="valore">${sc.entro90.length}</span><span class="nota">da pianificare</span></a>
-    <a class="indicatore ok" href="#/operai"><span class="etichetta">${icona('ok')}Validi</span><span class="valore">${sc.validi.length}</span><span class="nota">su ${sc.righe.length} documenti</span></a>
-  </div>`;
-}
-function riquadroIdoneita(){
-  const persone=stato.persone.filter(p=>p.attivo&&p.inCantiere!==false);
-  return html`<div class="scheda"><h3>${icona('elmetto')}Idoneità al cantiere oggi</h3><ul class="elenco-piatto">${persone.map(p=>{const i=idoneita(p);return html`<li class="link" data-azione="vai" data-href="operai/${p.id}">${avatar(p)}<span class="spazio"><b>${nomePersona(p)}</b><br><span class="piccolo ${i.idonea?'secondario':'da-compilare'}">${i.idonea?(i.avvisi.length?'Idoneo · manca: '+i.avvisi.map(x=>x.split(':')[0]).join(', '):'Idoneo, documenti in regola'):i.motivi.join('; ')}</span></span>${i.idonea?html`<span class="pillola valido">${icona('ok')}Sì</span>`:html`<span class="pillola scaduto">${icona('blocco')}No</span>`}</li>`})}</ul></div>`;
-}
-function riquadroCantieri(){
+  const az=azioniConsigliate();const urgenti=az.filter(a=>a.livello!=='pianificare').length;
   const attivi=stato.cantieri.filter(c=>c.stato==='attivo'||c.stato==='sospeso');
-  if(!attivi.length) return html`<div class="scheda"><h3>${icona('cantieri')}Cantieri attivi</h3><p class="secondario">Nessun cantiere attivo. <a href="#/cantieri">Vai ai cantieri</a>.</p></div>`;
-  const righe=attivi.map(c=>{const ck=checklistCantiere(c);const eco=economiaCantiere(c.id,stato.movimenti);const fine=c.dataFine?giorniTra(oggi(),c.dataFine):null;return {c,ck,eco,fine}});
-  return html`<div class="scheda"><h3>${icona('cantieri')}Cantieri attivi <span class="azioni"><a class="pulsante piccolo" href="#/cantieri?vista=tempo">${icona('tempo','piccola')}Diagramma</a></span></h3>${tabella({righe,href:r=>'#/cantieri/'+r.c.id,colonne:[
-    {chiave:'nome',titolo:'Cantiere',principale:true,formatta:r=>html`<b>${r.c.nome}</b><br><span class="piccolo secondario">${nomeCliente(r.c.affidatariaId)||nomeCliente(r.c.committenteId)||''}${r.c.stato==='sospeso'?' · sospeso':''}</span>`},
-    {chiave:'tempo',titolo:'Avanzamento',formatta:r=>r.c.dataFine?(r.fine>=0?html`${r.fine} giorni alla fine`:html`<span class="da-compilare">in ritardo di ${-r.fine} giorni</span>`):r.c.dataInizio?html`iniziato il ${fData(r.c.dataInizio)}`:html`<span class="secondario">${r.c.periodoTesto||'date da compilare'}</span>`},
-    {chiave:'operai',titolo:'Operai',formatta:r=>(r.c.operai||[]).length?r.c.operai.map(id=>nomePersona(persona(id)).split(' ')[0]).join(', '):html`<span class="silenzioso">nessuno</span>`},
-    {chiave:'doc',titolo:'Documenti pronti',formatta:r=>html`<b>${r.ck.pronti}</b>/${r.ck.totale}${r.ck.urgenti.length?html` <span class="pillola scaduto">${icona('attenzione','piccola')}${r.ck.urgenti.length}</span>`:''}`},
-    {chiave:'margine',titolo:'Margine',num:true,formatta:r=>r.eco.entrate||r.eco.uscite?html`<span class="${r.eco.margine<0?'da-compilare':''}">${fEuro(r.eco.margine,0)}</span>`:html`<span class="silenzioso">nessun movimento</span>`},
-  ]})}</div>`;
+  const squadra=stato.persone.filter(p=>p.attivo&&p.inCantiere!==false);const idonei=squadra.filter(p=>idoneita(p).idonea).length;
+  const d=new Date();const rm=riepilogoMese(d.getFullYear(),d.getMonth()+1);const lav=giorniLavorativiMese(d.getFullYear(),d.getMonth()+1,stato.impostazioni.festivitaLocali).filter(g=>g<=d.getDate());
+  const compilato=lav.length&&squadra.length?Math.round(Math.max(0,1-rm.giorniDaCompilare/(lav.length*Math.max(1,personePresenze(d.getFullYear(),d.getMonth()+1).length)))*100):null;
+  const ora=d.getHours();const saluto=ora<13?'Buongiorno.':ora<18?'Buon pomeriggio.':'Buonasera.';
+  const titolo=urgenti?html`${saluto} <em>${urgenti===1?'Una cosa':numeroInLettere(urgenti)+' cose'}<br>da sistemare.</em>`:html`${saluto} <em>Tutto in ordine.</em>`;
+  const sotto=[attivi.length?html`<b>${plurale(attivi.length,'cantiere aperto','cantieri aperti')}</b>`:'nessun cantiere aperto',squadra.length?html`<b>${idonei} su ${squadra.length}</b> idonei al cantiere`:'',compilato!=null?html`${nomeMese(d.getMonth()+1)} compilato al <b>${compilato}%</b>`:''].filter(x=>x&&String(x));
+  return html`<div class="testata"><div><div class="occhiello">${capitalizza(NOMI_GIORNI[d.getDay()])} ${fDataLunga(oggi())}</div><h1 class="titolo-oggi">${titolo}</h1><p class="sotto">${grezzo(sotto.map(String).join(', '))}.</p></div>
+    <div class="azioni"><button class="pulsante" data-azione="carica-documento-globale">${icona('carica','piccola')}Carica documento</button>
+    <div class="tendina-box"><button class="pulsante primario" data-azione="tendina">Nuovo<span class="manopola">${icona('piu','piccola')}</span></button><div class="tendina">
+      <a class="voce-t" href="#/operai?nuovo=1"><span class="ic-t">${icona('persona','piccola')}</span><span><b>Persona</b><span>Anche partendo da un UNILAV</span></span></a>
+      <a class="voce-t" href="#/cantieri?nuovo=1"><span class="ic-t">${icona('cantieri','piccola')}</span><span><b>Cantiere</b><span>Con committente e date</span></span></a>
+      <a class="voce-t" href="#/preventivi?nuovo=1"><span class="ic-t">${icona('preventivi','piccola')}</span><span><b>Preventivo</b><span>Dal listino o dall’Excel del cliente</span></span></a>
+      <a class="voce-t" href="#/budget?nuovo=1"><span class="ic-t">${icona('budget','piccola')}</span><span><b>Movimento</b><span>Fattura o spesa</span></span></a>
+      <button class="voce-t" data-azione="carica-documento-globale"><span class="ic-t">${icona('documenti','piccola')}</span><span><b>Documento</b><span>Lo riconosco e lo archivio io</span></span></button>
+    </div></div></div></div>
+  <div class="bento">
+    <div class="guscio c-8">${riquadro(()=>riquadroDaFare(az))}</div>
+    <div class="guscio c-4">${riquadro(riquadroDocumenti)}</div>
+    <div class="guscio c-4">${riquadro(riquadroMese)}</div>
+    <div class="guscio c-8">${riquadro(riquadroCantieri)}</div>
+    <div class="guscio c-7">${riquadro(riquadroIdoneita)}</div>
+    <div class="guscio c-5">${riquadro(riquadroMargini)}</div>
+    <div class="guscio c-6">${riquadro(riquadroClienti)}</div>
+    <div class="guscio c-6">${riquadro(riquadroOreCantiere)}</div>
+  </div>`;
+};
+function numeroInLettere(n){return ['zero','una','due','tre','quattro','cinque','sei','sette','otto','nove','dieci'][n]?capitalizza(['zero','una','due','tre','quattro','cinque','sei','sette','otto','nove','dieci'][n]):String(n)}
+function riquadroDaFare(az){
+  const tutte=ui.filtri.oggiTutte;const vis=tutte?az:az.slice(0,7);
+  return html`<div class="scheda"><div class="intesta"><h2>Da fare</h2><span class="pillola neutro">${az.length}</span><a class="vai" href="#/operai/scadenzario">Scadenzario ${icona('destra','piccola')}</a></div>
+  ${az.length?html`<ul class="da-fare">${vis.map(a=>html`<li class="${a.livello}" data-azione="vai" data-href="${a.href}"><span class="ck">${a.livello==='scaduto'?icona('attenzione'):a.livello==='scadenza'?icona('orologio'):''}</span><div><div class="t">${a.testo}</div>${a.sotto?html`<div class="s">${a.sotto}</div>`:''}</div>${icona('freccia-destra','piccola va')}</li>`)}</ul>
+  ${az.length>7?html`<button class="pulsante discreto piccolo mt-s" data-azione="oggi-tutte">${tutte?'Mostra meno':'Mostra tutte ('+az.length+')'}</button>`:''}`:html`<div class="vuoto">${icona('ok')}<h3>Niente da sistemare</h3><p>Documenti, presenze e backup sono in regola.</p></div>`}</div>`;
+}
+AZIONI['oggi-tutte']=()=>{ui.filtri.oggiTutte=!ui.filtri.oggiTutte;render()};
+function riquadroDocumenti(){
+  const sc=riepilogoScadenze();
+  const v=[['Validi',sc.validi.length,'var(--ok)'],['Entro '+sc.soglie.scadenza+' gg',sc.entro60.length,'var(--warn)'],['Scaduti',sc.scaduti.length,'var(--bad)'],['Mancanti',sc.mancanti.length,'var(--sunk-3)']];
+  const tot=somma(v,x=>x[1])||1;let off=0;
+  const archi=v.slice(0,3).map(x=>{const len=x[1]/tot*100;const a=len?html`<circle cx="21" cy="21" r="16" fill="none" stroke="${x[2]}" stroke-width="5" stroke-dasharray="${Math.max(len-1.5,.5)} 100" stroke-dashoffset="${-off}" pathLength="100" stroke-linecap="round"/>`:'';off+=len;return a});
+  return html`<div class="scheda"><div class="intesta"><h2>Documenti</h2><a class="vai" href="#/operai/scadenzario">Tutti ${icona('destra','piccola')}</a></div>
+  <div class="anello-box"><div class="anello"><svg viewBox="0 0 42 42"><circle cx="21" cy="21" r="16" fill="none" stroke="var(--sunk-2)" stroke-width="5"/>${archi}</svg><div class="centro-anello"><div><b>${sc.righe.length+sc.mancanti.length}</b><span>documenti</span></div></div></div>
+  <ul class="legenda-anello">${v.map(x=>html`<li><i style="background:${x[2]}"></i>${x[0]}<b>${x[1]}</b></li>`)}</ul></div></div>`;
 }
 function riquadroMese(){
   const d=new Date();const anno=d.getFullYear(),mese=d.getMonth()+1;
-  const r=riepilogoMese(anno,mese);
-  const lav=giorniLavorativiMese(anno,mese,stato.impostazioni.festivitaLocali);
-  const passati=lav.filter(g=>g<=d.getDate());
-  return html`<div class="scheda"><h3>${icona('presenze')}${fMeseAnno(anno,mese)} <span class="azioni"><a class="pulsante piccolo" href="#/presenze/${chiaveMese(anno,mese)}">Apri</a></span></h3>
-  <div class="griglia tre"><div class="indicatore" data-azione="vai" data-href="presenze/${chiaveMese(anno,mese)}"><span class="etichetta">Ore inserite</span><span class="valore md">${fOre(r.oreTotali)}</span></div><div class="indicatore" data-azione="vai" data-href="presenze/${chiaveMese(anno,mese)}"><span class="etichetta">Importo stimato</span><span class="valore md">${fEuro(r.importoTotale,0)}</span></div><div class="indicatore ${r.giorniDaCompilare>0?'attenzione':''}" data-azione="vai" data-href="presenze/${chiaveMese(anno,mese)}"><span class="etichetta">Giorni da compilare</span><span class="valore md">${r.giorniDaCompilare}</span><span class="nota">su ${passati.length} lavorativi passati</span></div></div></div>`;
+  const r=riepilogoMese(anno,mese);const n=giorniNelMese(anno,mese);
+  const perGiorno=new Array(n).fill(0);const mm=meseP(anno,mese);
+  if(mm)for(const pid of Object.keys(mm.persone))for(const [g,c] of Object.entries(mm.persone[pid].giorni||{})){const v=valoreCella(c);if(typeof v==='number')perGiorno[+g-1]+=v}
+  const mx=Math.max(...perGiorno,1);
+  const barre=perGiorno.map((v,i)=>{const gs=giornoSettimana(anno,mese,i+1);const we=gs===0||gs===6;return html`<i class="${we?'we':v?'pieno':''}" style="height:${we?8:v?Math.max(12,v/mx*100):10}%" title="${i+1} ${nomeMese(mese)}: ${fOre(v)} ore"></i>`});
+  return html`<div class="scheda"><div class="intesta"><h2>${capitalizza(nomeMese(mese))}</h2><a class="vai" href="#/presenze/${chiaveMese(anno,mese)}">Presenze ${icona('destra','piccola')}</a></div>
+  <div class="grande-numero">${fOre(r.oreTotali)||0}<small>ore</small></div><div class="barrette">${barre}</div><div class="barrette-asse"><span>1</span><span>${Math.round(n/2)}</span><span>${n}</span></div>
+  <div class="coppia"><div><div class="k">Importo stimato</div><div class="v">${fEuro(r.importoTotale,0)}</div></div><div><div class="k">Da compilare</div><div class="v ${r.giorniDaCompilare?'warn-t':''}">${r.giorniDaCompilare?plurale(r.giorniDaCompilare,'giorno','giorni'):'niente'}</div></div></div></div>`;
+}
+function avanzamentoCantiere(c){
+  if(!c.dataInizio||!c.dataFine) return null;
+  const tot=giorniTra(c.dataInizio,c.dataFine),pass=giorniTra(c.dataInizio,oggi());
+  return tot>0?{fr:pass/tot,ritardo:pass>tot?pass-tot:0,mancano:Math.max(0,tot-pass)}:null;
+}
+function riquadroCantieri(){
+  const attivi=stato.cantieri.filter(c=>c.stato==='attivo'||c.stato==='sospeso');
+  if(!attivi.length) return html`<div class="scheda"><div class="intesta"><h2>Cantieri aperti</h2></div><div class="vuoto">${icona('cantieri')}<h3>Nessun cantiere aperto</h3><p>Quando ne apri uno lo vedi qui con avanzamento, squadra e documenti pronti.</p><a class="pulsante" href="#/cantieri?nuovo=1">Nuovo cantiere</a></div></div>`;
+  return html`<div class="scheda"><div class="intesta"><h2>Cantieri aperti</h2><a class="vai" href="#/cantieri?vista=tempo">Diagramma ${icona('destra','piccola')}</a></div>
+  ${attivi.map(c=>{const ck=checklistCantiere(c);const av=avanzamentoCantiere(c);return html`<div class="riga-cantiere ${coloreCantiere(c)}" data-azione="vai" data-href="cantieri/${c.id}"><div style="min-width:0"><div class="n"><span class="puntino"></span><span class="taglia">${c.nome}</span>${c.stato==='sospeso'?html`<span class="pillola scadenza">sospeso</span>`:''}</div><div class="w taglia">${nomeCliente(c.affidatariaId)||nomeCliente(c.committenteId)||''}${c.indirizzo&&c.indirizzo.comune?' · '+c.indirizzo.comune:''}</div></div>
+    <div class="tr">${av?html`<div class="traccia"><i class="${av.ritardo?'tardi':''}" style="width:${Math.min(100,Math.max(3,av.fr*100))}%"></i></div><div class="traccia-nota"><span class="${av.ritardo?'bad-t':''}">${av.ritardo?'in ritardo di '+plurale(av.ritardo,'giorno','giorni'):Math.round(av.fr*100)+'% del tempo'}</span><span>fine ${fDataBreve(c.dataFine)}</span></div>`:html`<span class="piccolo silenzioso">${c.periodoTesto||'date da scrivere'}</span>`}</div>
+    <div class="pila">${(c.operai||[]).slice(0,5).map(id=>persona(id)?avatar(persona(id),'mini'):'')}</div>
+    <div class="docs num" title="Documenti pronti per la committenza"><b>${ck.pronti}</b><span class="silenzioso">/${ck.totale}</span></div></div>`})}</div>`;
+}
+function riquadroIdoneita(){
+  const persone=stato.persone.filter(p=>p.attivo&&p.inCantiere!==false);
+  const st=persone.map(p=>({p,i:idoneita(p)}));const no=st.filter(x=>!x.i.idonea).length;
+  return html`<div class="scheda"><div class="intesta"><h2>Squadra oggi</h2>${st.length-no?html`<span class="pillola valido">${st.length-no} idonei</span>`:''}${no?html`<span class="pillola scaduto">${no} ${no===1?'bloccato':'bloccati'}</span>`:''}<a class="vai" href="#/operai">Operai ${icona('destra','piccola')}</a></div>
+  ${st.length?html`<div class="squadra">${st.map(({p,i})=>html`<a class="compagno ${!i.idonea?'no':i.avvisi.length?'mezzo':''}" href="#/operai/${p.id}" title="${i.idonea?(i.avvisi.length?'Idoneo · '+i.avvisi.join('; '):'Idoneo, documenti in regola'):i.motivi.join('; ')}">${avatar(p)}<span style="min-width:0"><b>${nomePersona(p)}</b><span>${i.idonea?(i.avvisi.length?'manca: '+i.avvisi.map(x=>x.split(':')[0]).join(', '):p.mansione||'idoneo'):i.motivi[0]||'non idoneo'}</span></span></a>`)}</div>`:html`<p class="secondario">Nessuna persona attiva che va in cantiere.</p>`}</div>`;
+}
+function riquadroMargini(){
+  const con=stato.cantieri.map(c=>({c,eco:economiaCantiere(c.id,stato.movimenti)})).filter(x=>x.eco.entrate||x.eco.uscite);
+  if(!con.length) return html`<div class="scheda"><div class="intesta"><h2>Margine per cantiere</h2></div><p class="secondario piccolo">Ancora nessun movimento assegnato ai cantieri. Registra le fatture in <a href="#/budget">Budget</a> e assegnale: qui vedi chi guadagna e chi è in perdita.</p></div>`;
+  const ord=con.slice().sort((a,b)=>b.eco.margine-a.eco.margine).slice(0,7);const mx=Math.max(...ord.map(x=>Math.abs(x.eco.margine)),1);
+  return html`<div class="scheda"><div class="intesta"><h2>Margine per cantiere</h2><span class="piccolo silenzioso">imponibile</span><a class="vai" href="#/budget">Budget ${icona('destra','piccola')}</a></div>
+  ${ord.map(x=>html`<a class="barra-o" href="#/cantieri/${x.c.id}" style="color:inherit;text-decoration:none"><span>${x.c.nome}</span><span class="b"><i class="${x.eco.margine<0?'neg':''}" style="width:${Math.abs(x.eco.margine)/mx*100}%"></i></span><span class="v ${x.eco.margine<0?'bad-t':''}">${fEuro(x.eco.margine,0)}</span></a>`)}</div>`;
 }
 function riquadroClienti(){
   const anno=new Date().getFullYear();
   const perCliente=fatturatoPerCliente(anno);
-  const top=perCliente.slice(0,3);
+  const top=perCliente.slice(0,4);
   const fermi=stato.clienti.filter(c=>{const u=ultimoLavoroCliente(c.id);return c.stato!=='chiuso'&&(!u||giorniTra(u,oggi())>180)});
-  return html`<div class="scheda"><h3>${icona('clienti')}Clienti <span class="azioni"><a class="pulsante piccolo" href="#/clienti?vista=confronto">Confronto</a></span></h3>
-  <div class="riga mb-s"><span class="secondario">Fatturato ${anno} (imponibile)</span><span class="spazio"></span><b>${fEuro(somma(perCliente,x=>x.fatturato),0)}</b></div>
-  ${top.length?html`<div class="sezione-titolo">I primi tre</div><ul class="elenco-piatto">${top.map(x=>html`<li class="link" data-azione="vai" data-href="clienti/${x.cliente.id}"><span class="spazio">${x.cliente.ragioneSociale}</span><b class="num">${fEuro(x.fatturato,0)}</b></li>`)}</ul>`:html`<p class="secondario piccolo">Nessuna fattura registrata per il ${anno}: il fatturato si calcola dai movimenti in Budget.</p>`}
+  return html`<div class="scheda"><div class="intesta"><h2>Clienti</h2><a class="vai" href="#/clienti?vista=confronto">Confronto ${icona('destra','piccola')}</a></div>
+  <div class="grande-numero">${fEuro(somma(perCliente,x=>x.fatturato),0).replace(' €','')}<small>€ fatturati nel ${anno}</small></div>
+  ${top.length?html`<ul class="elenco-piatto mt">${top.map(x=>html`<li class="link" data-azione="vai" data-href="clienti/${x.cliente.id}"><span class="spazio taglia">${x.cliente.ragioneSociale}</span><b class="num">${fEuro(x.fatturato,0)}</b></li>`)}</ul>`:html`<p class="secondario piccolo mt">Nessuna fattura registrata per il ${anno}: il fatturato si calcola dai movimenti in Budget.</p>`}
   ${fermi.length?html`<div class="sezione-titolo">Fermi da più di sei mesi</div><div class="chip-lista">${fermi.slice(0,8).map(c=>html`<a class="chip" href="#/clienti/${c.id}">${c.ragioneSociale}</a>`)}</div>`:''}</div>`;
-}
-function riquadroMargini(){
-  const con=stato.cantieri.map(c=>({c,eco:economiaCantiere(c.id,stato.movimenti)})).filter(x=>x.eco.entrate||x.eco.uscite);
-  if(!con.length) return html`<div class="scheda"><h3>${icona('bilancia')}Margine cantieri</h3><p class="secondario">Nessun movimento economico assegnato ai cantieri. Registra le fatture in <a href="#/budget">Budget</a> e assegnale ai cantieri: qui compariranno i tre migliori e quelli in perdita.</p></div>`;
-  const ord=con.slice().sort((a,b)=>b.eco.margine-a.eco.margine);
-  const migliori=ord.slice(0,3),perdita=ord.filter(x=>x.eco.margine<0).slice(-3).reverse();
-  return html`<div class="scheda"><h3>${icona('bilancia')}Margine cantieri</h3>${perdita.length?html`<div class="avviso-inline critico">${icona('errore')}<div class="corpo"><b>In perdita:</b> ${perdita.map(x=>html`<a href="#/cantieri/${x.c.id}">${x.c.nome}</a> (${fEuro(x.eco.margine,0)})`).reduce((a,b)=>html`${a} · ${b}`)}</div></div>`:''}${graficoBarreOrizzontali(ord.slice(0,8).map(x=>({etichetta:x.c.nome,valore:Math.round(x.eco.margine),href:'#/cantieri/'+x.c.id})),{formatta:v=>fEuro(v,0)})}</div>`;
 }
 function riquadroOreCantiere(){
   const d=new Date();const mesi=[];for(let i=5;i>=0;i--){const x=new Date(d.getFullYear(),d.getMonth()-i,1);mesi.push({anno:x.getFullYear(),mese:x.getMonth()+1})}
   const perCant=new Map();
-  for(const m of mesi){const mm=meseP(m.anno,m.mese);if(!mm)continue;for(const pid of Object.keys(mm.persone)){for(const g of Object.keys(mm.persone[pid].giorni||{})){const c=mm.persone[pid].giorni[g];const v=valoreCella(c);if(typeof v!=='number'||!v)continue;const k=(c.cantiere||'senza cantiere').toLowerCase();if(!perCant.has(k))perCant.set(k,new Array(mesi.length).fill(0));perCant.get(k)[mesi.indexOf(m)]+=v}}}
+  for(const m of mesi){const mm=meseP(m.anno,m.mese);if(!mm)continue;for(const pid of Object.keys(mm.persone)){for(const g of Object.keys(mm.persone[pid].giorni||{})){const c=mm.persone[pid].giorni[g];const v=valoreCella(c);if(typeof v!=='number'||!v)continue;const cc=cantiereDaCella(c,chiaveMese(m.anno,m.mese)+'-'+pad2(+g));const k=cc?cc.nome:(c.cantiere||'senza cantiere');if(!perCant.has(k))perCant.set(k,new Array(mesi.length).fill(0));perCant.get(k)[mesi.indexOf(m)]+=v}}}
   const serie=Array.from(perCant.entries()).map(([k,v])=>({nome:k,tot:somma(v),v})).sort((a,b)=>b.tot-a.tot).slice(0,6);
-  if(!serie.length) return html`<div class="scheda"><h3>${icona('avanzamento')}Ore per cantiere, ultimi sei mesi</h3><p class="secondario">Nessuna ora registrata negli ultimi sei mesi.</p></div>`;
-  return html`<div class="scheda"><h3>${icona('avanzamento')}Ore per cantiere, ultimi sei mesi</h3>${graficoImpilato(mesi.map((m,i)=>({etichetta:NOMI_MESI_BREVI[m.mese-1]+' '+String(m.anno).slice(2),valori:serie.map(s=>s.v[i])})),serie.map(s=>({nome:capitalizza(s.nome)})),{altezza:220,formatta:v=>fNum(v,0)})}</div>`;
-}
-function riquadroAzioni(){
-  const az=azioniConsigliate();
-  return html`<div class="scheda"><h3>${icona('magia')}Azioni consigliate</h3>${az.length?html`<ul class="elenco-piatto">${az.slice(0,12).map(a=>html`<li class="link" data-azione="vai" data-href="${a.href}"><span class="pillola ${a.livello}">${icona(a.livello==='scaduto'?'errore':a.livello==='scadenza'?'attenzione':'info','piccola')}${a.livello==='scaduto'?'urgente':a.livello==='scadenza'?'presto':'da fare'}</span><span class="spazio">${a.testo}</span>${icona('destra','piccola')}</li>`)}</ul>${az.length>12?html`<p class="piccolo secondario mt-s">e altre ${az.length-12}…</p>`:''}`:html`<p class="secondario">${icona('ok')} Niente di urgente: tutto in ordine.</p>`}</div>`;
+  if(!serie.length) return html`<div class="scheda"><div class="intesta"><h2>Ore per cantiere</h2></div><p class="secondario">Nessuna ora registrata negli ultimi sei mesi.</p></div>`;
+  return html`<div class="scheda"><div class="intesta"><h2>Ore per cantiere</h2><span class="piccolo silenzioso">ultimi sei mesi</span></div>${graficoImpilato(mesi.map((m,i)=>({etichetta:NOMI_MESI_BREVI[m.mese-1]+' '+String(m.anno).slice(2),valori:serie.map(s=>s.v[i])})),serie.map(s=>({nome:capitalizza(s.nome)})),{altezza:200,formatta:v=>fNum(v,0)})}</div>`;
 }
 // Azioni consigliate generate dai dati, ordinate per urgenza (0 = più urgente)
 function azioniConsigliate(){

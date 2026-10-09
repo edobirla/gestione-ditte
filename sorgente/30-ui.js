@@ -201,6 +201,8 @@ function apriPannello(opz){
 function chiudiPannello(){const p=el('#pannello');p.classList.remove('aperto');p.setAttribute('aria-hidden','true');el('#velo-pannello').classList.remove('aperto');document.body.classList.remove('con-pannello','pannello-largo');ui.pannello=null;setTimeout(()=>{if(!ui.pannello)p.innerHTML=''},250)}
 document.addEventListener('click',e=>{if(e.target.closest('[data-chiudi-pannello]')||e.target.id==='velo-pannello')chiudiPannello()});
 
+// ---- tendine (menu che si aprono da un pulsante) ----
+document.addEventListener('click',e=>{if(!e.target.closest('.tendina-box')||e.target.closest('.tendina .voce-t'))tutti('.tendina-box.aperta').forEach(x=>x.classList.remove('aperta'))},true);
 // ---- stati vuoti ----
 function vuoto(opz){return html`<div class="vuoto">${icona(opz.icona||'info')}<h3>${opz.titolo}</h3><p>${opz.testo||''}</p>${opz.azione?html`<button class="pulsante primario" data-azione="${opz.azione.azione}" ${opz.azione.dati?grezzo(Object.entries(opz.azione.dati).map(([k,v])=>`data-${k}="${h(v)}"`).join(' ')):''}>${opz.azione.testo}</button>`:''}</div>`}
 function avvisoInline(tipo,testo,iconaNome){return html`<div class="avviso-inline ${tipo}">${icona(iconaNome||(tipo==='critico'?'errore':tipo==='attenzione'?'attenzione':'info'))}<div class="corpo">${grezzo(typeof testo==='string'?h(testo):testo)}</div></div>`}
@@ -208,7 +210,11 @@ function linguette(id,voci,attiva){return html`<div class="linguette" role="tabl
 document.addEventListener('click',e=>{const b=e.target.closest('[data-linguetta]');if(b){ui.filtri['ling:'+b.dataset.linguetta]=b.dataset.valore;render()}});
 function linguettaAttiva(id,predef){return ui.filtri['ling:'+id]||predef}
 // con la foto caricata l'avatar la mostra: negli elenchi si riconosce l'operaio senza leggere
-function avatar(p,grande){const nome=nomePersona(p);return p&&p.fotoImg?html`<img class="persona-avatar ${grande?'grande':''}" src="${p.fotoImg}" alt="${nome}" title="${nome}">`:html`<span class="persona-avatar ${grande?'grande':''}" data-avatar="${p.id}" title="${nome}">${iniziali(nome)}</span>`}
+// senza foto, ogni persona ha sempre lo stesso colore (scelto dal suo id): si riconosce a colpo d'occhio
+// colore di un cantiere: fisso, scelto dal suo id (o quello scelto a mano). Lo stesso in presenze, elenchi e grafici.
+function coloreCantiere(c){return (c&&c.colore)||coloreDa(c&&c.id)}
+function coloreDa(id){let x=0;for(const c of String(id||''))x=(x*31+c.charCodeAt(0))>>>0;return 'k'+(x%8+1)}
+function avatar(p,grande){const nome=nomePersona(p);const g=grande===true?'grande':grande||'';return p&&p.fotoImg?html`<img class="persona-avatar ${g}" src="${p.fotoImg}" alt="${nome}" title="${nome}">`:html`<span class="persona-avatar ${g} ${coloreDa(p&&p.id)}" data-avatar="${p&&p.id}" title="${nome}">${iniziali(nome)}</span>`}
 function riepilogoPersona(p){return html`<span class="riga stretta">${avatar(p)}<span><b>${nomePersona(p)}</b><br><span class="piccolo secondario">${p.mansione||''}</span></span></span>`}
 function contattoCliccabile(tipo,valore){if(!valore)return '';const href=tipo==='tel'?'tel:'+String(valore).replace(/\s+/g,''):tipo==='mail'?'mailto:'+valore:valore;return html`<a href="${href}" class="riga stretta" style="display:inline-flex">${icona(tipo==='tel'?'telefono':tipo==='mail'?'mail':'esterno','piccola')}${valore}</a>`}
 

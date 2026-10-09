@@ -13,7 +13,7 @@ inclusa mai, e si ottiene il file da dare a chiunque altro.
 Il file senza dati si chiama index.html perché è quello da pubblicare: aperto da un indirizzo web
 si installa come applicazione (ha dentro il manifesto e le icone, non servono altri file).
 """
-import os,re,sys,json
+import os,re,sys,json,base64
 from urllib.parse import quote
 sys.path.insert(0,os.path.dirname(os.path.abspath(__file__)))
 from icona import dataUrl
@@ -31,7 +31,10 @@ parti=pezzi('sorgente')+([] if vuoto else pezzi('azienda'))
 css=[];html=[];js=[]
 for cartella,p in parti:
     t=open(os.path.join(base,cartella,p),encoding='utf8').read()
-    if p.endswith('.css'): css.append(t)
+    if p.endswith('.css'):
+        # i font stanno in sorgente/font/ e finiscono dentro il file: l'app non chiede mai la rete
+        t=re.sub(r'/\*FONT:([\w.-]+)\*/',lambda m:'data:font/woff2;base64,'+base64.b64encode(open(os.path.join(base,'sorgente','font',m.group(1)),'rb').read()).decode(),t)
+        css.append(t)
     elif p.endswith('.html'): html.append(t)
     elif p.endswith('.js'):
         nome=re.sub(r'^\d+-','',p[:-3])

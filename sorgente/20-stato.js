@@ -104,14 +104,16 @@ function aggiornaSpie(){
 }
 function aggiornaSpiaBackup(){
   const sp=el('#spia-backup'); if(!sp||!stato) return;
-  const imp=stato.impostazioni; const t=sp.querySelector('.testo-spia');
+  const imp=stato.impostazioni; const t=sp.querySelector('.testo-spia'); const sotto=sp.querySelector('.sotto-spia');
   sp.classList.remove('attenzione','critica');
-  if(!imp.ultimoBackup){sp.classList.add('critica');t.textContent='Mai fatto il backup';sp.title='Nessun backup: fallo da Impostazioni';return}
+  const scrivi=(a,b)=>{t.textContent=a;if(sotto)sotto.textContent=b};
+  if(!imp.ultimoBackup){sp.classList.add('critica');scrivi('Mai fatto il backup','fallo ora: un clic');sp.title='Nessun backup: fallo da Impostazioni';return}
   const gg=giorniTra(imp.ultimoBackup.slice(0,10),oggi());
   const n=imp.modificheDopoBackup||0;
-  if(n===0){t.textContent='Backup '+fDataBreve(imp.ultimoBackup.slice(0,10));sp.title='Ultimo backup: '+fDataOra(imp.ultimoBackup)+'. Nessuna modifica da allora.';return}
+  const quando=gg===0?'di oggi':gg===1?'di ieri':'di '+gg+' giorni fa';
+  if(n===0){scrivi('Backup '+quando,'nessuna modifica dopo');sp.title='Ultimo backup: '+fDataOra(imp.ultimoBackup)+'. Nessuna modifica da allora.';return}
   if(gg>=3){sp.classList.add('critica')} else sp.classList.add('attenzione');
-  t.textContent=`${n} modifiche non salvate nel backup`;
+  scrivi('Backup '+quando,plurale(n,'modifica dopo','modifiche dopo')+' · fallo ora');
   sp.title=`Ultimo backup: ${fDataOra(imp.ultimoBackup)} (${gg} giorni fa). ${n} modifiche da allora.`;
 }
 
