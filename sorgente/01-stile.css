@@ -555,6 +555,15 @@ input[type=checkbox],input[type=radio]{width:17px;height:17px;accent-color:var(-
 #velo-menu{position:fixed;inset:0;z-index:125;background:rgba(14,14,18,.3);display:none}
 
 /* ═══════════ componenti del nuovo disegno ═══════════ */
+/* ---- buste paga ---- */
+tr.riga-segnata>td{background:color-mix(in srgb,var(--warn-soft) 55%,transparent)}
+.persone-chip{display:flex;gap:6px;flex-wrap:wrap}
+.persona-chip{display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 10px 0 4px;border-radius:10px;background:var(--sunk);font-size:13px;color:var(--ink);text-decoration:none!important;transition:background .2s}
+.persona-chip:hover{background:var(--sunk-2)}
+.persona-chip.attiva{background:var(--ink);color:var(--foglio)}
+.persona-chip small{color:var(--ink-3);font-size:11px} .persona-chip.attiva small{color:inherit;opacity:.6}
+.mesi-12.sei{grid-template-columns:repeat(6,minmax(0,1fr))}
+
 /* ---- documenti: archivio e modelli ---- */
 .icona-tipo{width:30px;height:30px;border-radius:9px;background:var(--sunk-2);display:grid;place-items:center;color:var(--ink-2);flex:none}
 .chi>span:last-child{min-width:0}
