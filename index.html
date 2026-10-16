@@ -207,6 +207,7 @@ svg.ic.piccola{width:15px;height:15px} svg.ic.grande{width:24px;height:24px}
 #contenuto{padding:34px 30px 90px;min-width:0;max-width:1360px;width:100%;margin:0 auto;padding-bottom:calc(90px + env(safe-area-inset-bottom))}
 #contenuto>*{animation:salita .6s var(--ease) both}
 #contenuto.fermo>*{animation:none}
+#contenuto.cambio-linguetta>.linguette~*{animation:apparire .2s var(--ease)}
 .testata{display:flex;align-items:flex-end;gap:var(--sp-3) var(--sp-2);flex-wrap:wrap;margin-bottom:28px}
 .testata>div:first-child{flex:1 1 320px;min-width:0}
 .testata h1{min-width:0}
@@ -2041,6 +2042,8 @@ function normalizzaStato(s){
 // ---- accesso comodo ----
 function perId(coll,id){return (stato[coll]||[]).find(x=>x.id===id)||null}
 function persona(id){return perId('persone',id)}
+// il Legale Rappresentante scelto nei Dati aziendali; se non è stato scelto, la persona segnata come tale fra gli operai
+function legaleRappresentante(){const a=stato.azienda;return persona(a.legaleRappresentanteId)||stato.persone.find(p=>p.tipo==='legale_rappresentante'&&p.attivo)||null}
 function cantiere(id){return perId('cantieri',id)}
 function cliente(id){return perId('clienti',id)}
 function professionista(id){return perId('professionisti',id)}
@@ -2138,6 +2141,7 @@ function riferimentiFile(fileId){
   for(const b of stato.bonifici) if(b.fileId===fileId) out.push({tipo:'bonifico',id:b.id});
   for(const v of stato.versamenti||[]) if(v.fileId===fileId) out.push({tipo:'versamento',id:v.id});
   for(const [a,v] of Object.entries(stato.isa||{})) if(v&&v.fileId===fileId) out.push({tipo:'isa',id:a});
+  for(const a of Object.keys(stato.bilanci||{})) if(fileBilancio(a).includes(fileId)) out.push({tipo:'bilancio',id:a});
   for(const c of stato.cantieri){ if(c.psc&&c.psc.fileId===fileId) out.push({tipo:'cantiere',id:c.id}); if(c.fotoId===fileId) out.push({tipo:'cantiere',id:c.id}); for(const dp of c.documentiProdotti||[]) if(dp.fileId===fileId) out.push({tipo:'cantiere',id:c.id}); }
   for(const k of Object.keys(stato.presenze||{})) for(const pid of Object.keys(stato.presenze[k].persone||{})) if(stato.presenze[k].persone[pid].foglioOreId===fileId) out.push({tipo:'presenze',id:k});
   for(const p of stato.persone){ if(p.fotoId===fileId||p.firmaId===fileId) out.push({tipo:'persona',id:p.id}); }
@@ -2285,6 +2289,7 @@ function pesoArchivio(){
       else if(r.tipo==='bonifico'){sogg='Bonifici';tipo='Conferma bonifico'}
       else if(r.tipo==='versamento'){sogg='Versamenti';tipo='F24 e Cassa Edile'}
       else if(r.tipo==='isa'){sogg='Azienda';tipo='Dichiarazione ISA'}
+      else if(r.tipo==='bilancio'){sogg='Azienda';tipo='Bilancio '+r.id}
       else if(r.tipo==='cantiere'){sogg='Cantiere '+nomeCantiere(r.id);tipo='Documento di cantiere'}
       else if(r.tipo==='presenze'){sogg='Presenze';tipo='Foglio ore'}
       else if(r.tipo==='persona'){sogg=nomePersona(persona(r.id));tipo='Foto/firma'}
@@ -2957,8 +2962,6 @@ function render(){
   const r=leggiRotta(); ui.rotta=r;
   disegnaMenu();
   el('#marchio-logo').src=immagineAzienda('logo'); // il logo dell'azienda, non quello generico dell'app
-  // la stessa pagina ridisegnata (dopo una modifica) non rifà l'animazione d'entrata
-  const chiaveRotta=location.hash;el('#contenuto').classList.toggle('fermo',ui.ultimaRotta===chiaveRotta);ui.ultimaRotta=chiaveRotta;
   const bi=el('#btn-indietro'); if(bi){ if(r.id){bi.classList.remove('nascosto');bi.dataset.genitore=r.sezione}else bi.classList.add('nascosto') }
   const cont=el('#contenuto');
   const fn=VISTE[r.sezione];
@@ -2970,6 +2973,12 @@ function render(){
     cont.innerHTML=html`<div class="avviso-inline critico">${icona('errore')}<div class="corpo"><b>Questa schermata ha avuto un errore</b> e non è stata disegnata. I dati sono al sicuro.<br><span class="mono">${(e&&e.message)||e}</span><div class="mt-s"><button class="pulsante piccolo" data-azione="dettaglio-errore" data-dettaglio="${(e&&e.stack)||''}">Dettagli</button> <a class="pulsante piccolo" href="#/dashboard">Dashboard</a></div></div></div>`;
     console.error(e);
   }
+  // la stessa pagina ridisegnata (dopo una modifica), o un'altra linguetta della stessa pagina
+  // (stessa sezione, stesso titolo), non rifà l'animazione d'entrata: cambia solo il contenuto
+  const titolo=(cont.querySelector('.testata h1')||{}).textContent||'';
+  const stessaPagina=ui.ultimaRotta===location.hash||(ui.ultimaSezione===r.sezione&&ui.ultimoTitolo===titolo);
+  cont.classList.toggle('fermo',stessaPagina);cont.classList.toggle('cambio-linguetta',stessaPagina&&ui.ultimaRotta!==location.hash);
+  ui.ultimaRotta=location.hash;ui.ultimaSezione=r.sezione;ui.ultimoTitolo=titolo;
   if(ui.montaggi){for(const f of ui.montaggi)try{f(cont)}catch(e){console.error(e)}ui.montaggi=null}
   aggiornaSpie();
   disegnaBriciole(r);
@@ -2977,7 +2986,7 @@ function render(){
 }
 function dopoRender(fn){(ui.montaggi=ui.montaggi||[]).push(fn)}
 function titoloPagina(r){const m=MENU.find(x=>x.id===sezioneMenu(r.sezione));return (m?m.testo+' · ':'')+('Gestionale'+(nomeImpresa()?' '+nomeImpresa():''))}
-window.addEventListener('hashchange',()=>{ui.storicoProfondita=(ui.storicoProfondita||0)+1;chiudiPannello();chiudiRicerca();document.body.classList.remove('menu-aperto');render();el('#contenuto').scrollTop=0;window.scrollTo(0,0)});
+window.addEventListener('hashchange',()=>{ui.storicoProfondita=(ui.storicoProfondita||0)+1;chiudiPannello();chiudiRicerca();document.body.classList.remove('menu-aperto');render();if(!el('#contenuto').classList.contains('cambio-linguetta')){el('#contenuto').scrollTop=0;window.scrollTo(0,0)}});
 
 // ---- tema: sistema / chiaro / scuro, ricordato ----
 function applicaTema(t){
@@ -3007,7 +3016,7 @@ function indiceRicerca(){
   for(const v of stato.versamenti) voci.push({gruppo:'Versamenti',testo:(v.tipo==='f24'?'F24 ':'Cassa Edile ')+fMeseAnno(v.anno,v.mese),sotto:fEuro(v.importo),href:'versamenti/'+(v.tipo==='f24'?'f24':'cassa')});
   const azioni=[
     {testo:'Nuovo operaio',href:'operai?nuovo=1'},{testo:'Nuovo cantiere',href:'cantieri?nuovo=1'},{testo:'Nuovo cliente',href:'clienti?nuovo=1'},{testo:'Nuovo preventivo',href:'preventivi?nuovo=1'},{testo:'Nuovo movimento',href:'budget?nuovo=1'},{testo:'Nuovo mezzo',href:'mezzi?nuovo=1'},{testo:'Nuovo fornitore',href:'fornitori?nuovo=1'},
-    {testo:'Scadenzario',href:'operai/scadenzario'},{testo:'Presenze del mese',href:'presenze'},{testo:'Fai il backup',href:'impostazioni?backup=1'},{testo:'Carica F24 o Cassa Edile',href:'versamenti'},{testo:'Versamenti mese per mese',href:'versamenti'},{testo:'Caricamento iniziale documenti',href:'documenti/caricamento'},{testo:'Buste paga',href:'documenti/buste'},{testo:'Peso dell\'archivio',href:'impostazioni/peso'},{testo:'Cambia tema',azione:'tema'},{testo:'Diagramma temporale cantieri',href:'cantieri?vista=tempo'},{testo:'Confronto clienti',href:'clienti?vista=confronto'},
+    {testo:'Scadenzario',href:'operai/scadenzario'},{testo:'Presenze del mese',href:'presenze'},{testo:'Fai il backup',href:'impostazioni?backup=1'},{testo:'Carica F24 o Cassa Edile',href:'versamenti'},{testo:'Bilanci e verbali di assemblea',href:'fineanno/bilanci'},{testo:'Versamenti mese per mese',href:'versamenti'},{testo:'Caricamento iniziale documenti',href:'documenti/caricamento'},{testo:'Buste paga',href:'documenti/buste'},{testo:'Peso dell\'archivio',href:'impostazioni/peso'},{testo:'Cambia tema',azione:'tema'},{testo:'Diagramma temporale cantieri',href:'cantieri?vista=tempo'},{testo:'Confronto clienti',href:'clienti?vista=confronto'},
   ];
   for(const a of azioni) voci.push({gruppo:'Azioni',testo:a.testo,href:a.href,azione:a.azione,sotto:''});
   return voci;
@@ -4820,10 +4829,18 @@ async function htmlAnteprimaFile(fileId,pagina){
 // anteprima con la sua barra: nome del file, ingrandisci, ruota, a tutto schermo; più file = miniature per passare dall'uno all'altro
 async function anteprimaConBarra(files,attivo){
   const m=fileMeta(attivo)||files[0];if(!m)return '';const img=eImmagine(m.mime,m.nome);
-  return html`<div class="barra-anteprima"><span class="nome-anteprima" title="${m.nome}">${m.nome} · ${fPeso(m.dimensione)}</span>${img?html`<button class="pulsante discreto icona piccolo" data-azione="anteprima-ingrandisci" title="Ingrandisci">${icona('zoom-piu','piccola')}</button><button class="pulsante discreto icona piccolo" data-azione="anteprima-ruota" title="Ruota">${icona('aggiorna','piccola')}</button>`:''}<button class="pulsante discreto icona piccolo" data-azione="file-apri" data-id="${m.id}" title="A tutto schermo">${icona('occhio','piccola')}</button></div>
+  return html`<div class="barra-anteprima"><span class="nome-anteprima" title="${m.nome}">${m.nome} · ${fPeso(m.dimensione)}</span>${img?html`<button class="pulsante discreto icona piccolo" data-azione="anteprima-ingrandisci" title="Ingrandisci">${icona('zoom-piu','piccola')}</button><button class="pulsante discreto icona piccolo" data-azione="anteprima-ruota" title="Ruota">${icona('aggiorna','piccola')}</button>`:''}${img||ePdf(m.mime,m.nome)?html`<button class="pulsante piccolo" data-azione="file-firma" data-id="${m.id}" title="Metti una firma o il timbro su questo file, e scrivi dove serve">${icona('firma','piccola')}Firma</button>`:''}<button class="pulsante discreto icona piccolo" data-azione="file-apri" data-id="${m.id}" title="A tutto schermo">${icona('occhio','piccola')}</button></div>
   <div class="foglio-anteprima">${await htmlAnteprimaFile(m.id)}</div>
   ${files.length>1?html`<div class="miniature">${files.map(f=>html`<button class="${f.id===m.id?'attiva':''}" data-azione="doc-anteprima-file" data-id="${f.id}" data-files="${files.map(x=>x.id).join(',')}" title="${f.nome}">${icona(ePdf(f.mime,f.nome)?'pdf':'immagine','piccola')}<span>${tronca(f.nome.replace(/\.[^.]+$/,''),14)}</span></button>`)}</div>`:''}`;
 }
+// Firmare un file già in archivio: si apre l'assistente (la firma si sceglie fra quelle dell'azienda e
+// delle persone) e alla fine la copia firmata si aggiunge allo stesso documento, accanto all'originale.
+AZIONI['file-firma']=async d=>{
+  const m=fileMeta(d.id);const b=m&&await leggiFile(m.hash);if(!b)return avviso('Contenuto non disponibile',{tipo:'errore'});
+  const file=new File([b],m.nome,{type:m.mime||b.type});
+  const doc=stato.documenti.find(x=>(x.file||[]).includes(m.id));if(doc)file.docId=doc.id;
+  chiudiPannello();await apriAssistenteDocumento(file);
+};
 AZIONI['anteprima-ingrandisci']=()=>{const i=el('#pannello .foglio-anteprima img');if(i)i.classList.toggle('grande')};
 AZIONI['anteprima-ruota']=()=>{const i=el('#pannello .foglio-anteprima img');if(i){const r=((+i.dataset.r||0)+90)%360;i.dataset.r=r;i.style.transform='rotate('+r+'deg)'}};
 AZIONI['immagine-zoom']=d=>{dialogo({titolo:'Immagine',enorme:true,corpo:html`<img src="${d.src}" style="max-height:calc(100dvh - 160px);margin:0 auto;object-fit:contain">`,pulsanti:[{testo:'Chiudi',valore:true}]})};
@@ -5120,7 +5137,7 @@ async function proponiDateDaFile(file){
 // posiziona a mano quello che serve (in percentuale, quindi indipendente dalla risoluzione), poi
 // stampa, condivide o archivia il risultato come un documento qualsiasi.
 function testoLegaleRappresentante(){
-  const a=stato.azienda;const leg=persona(a.legaleRappresentanteId);
+  const a=stato.azienda;const leg=legaleRappresentante();
   return [a.ragioneSociale,leg?'Il Legale Rappresentante: '+nomePersona(leg):'',leg&&leg.cf?'C.F. '+leg.cf:'',indirizzoTesto(a.indirizzo),a.piva?'P.IVA '+a.piva:''].filter(Boolean).join('\n');
 }
 // ---- caricamento iniziale ----
@@ -5238,7 +5255,7 @@ function vistaControlloBuste(){
       <td class="num">${c&&c.diffEuro!=null&&Math.abs(c.diffEuro)>=1?html`<b class="${c.diffEuro>0?'ok-t':'bad-t'}">${piuMeno(c.diffEuro,fEuro)}</b>`:vuota}</td>
       <td class="num nascondi-telefono">${c&&c.diff!=null?fOre(c.oreBusta)+' / '+fOre(c.oreGriglia)+' h':vuota}</td>
       <td class="num" style="white-space:nowrap">${!c?html`<span class="piccolo silenzioso">${b.netto==null&&b.oreRetribuite==null?'netto da scrivere':'presenze mancanti'}</span>`
-        :v?html`<span class="pillola ${v.stato==='revisione'?'scadenza':'valido'}">${v.stato==='revisione'?'Da rivedere':'Accettata'}</span> <button class="pulsante piccolo discreto" data-azione="busta-verifica-annulla" data-tabella="1" data-id="${b.id}">Cambia</button>`
+        :v?html`<span class="pillola ${v.stato==='revisione'?'scadenza':'valido'}" title="${v.nota||''}">${v.stato==='revisione'?'Da rivedere':'Accettata'}${v.nota?html` ${icona('modifica','piccola')}`:''}</span>${v.nota?html`<div class="piccolo silenzioso taglia" style="max-width:260px;white-space:normal">${v.nota}</div>`:''} <button class="pulsante piccolo discreto" data-azione="busta-verifica-annulla" data-tabella="1" data-id="${b.id}">Cambia</button>`
         :!c.scarto?html`<span class="pillola valido">${icona('ok','piccola')}Torna</span>`
         :html`<button class="pulsante piccolo" data-azione="busta-verifica" data-tabella="1" data-id="${b.id}" data-valore="accettata">${icona('spunta','piccola')}Va bene così</button> <button class="pulsante piccolo discreto pericolo" data-azione="busta-verifica" data-tabella="1" data-id="${b.id}" data-valore="revisione">Da rivedere</button>`}</td></tr>`})}
     </tbody></table></div></div>`;
@@ -5398,10 +5415,13 @@ function confrontoBusta(b){
   return {oreBusta:b.oreRetribuite,oreGriglia:calc.oreGriglia,diff,nettoBusta:b.netto,importoGriglia:calc.importo,diffEuro,scarto};
 }
 const piuMeno=(v,f)=>v==null?'':(v>0?'+':v<0?'−':'')+f(Math.abs(v));
-AZIONI['busta-verifica']=d=>{
+AZIONI['busta-verifica']=async d=>{
   const b=perId('bustePaga',d.id);const c=confrontoBusta(b);
+  // la nota è facoltativa: serve solo se c'è un motivo particolare (un anticipo, un'ora pagata a parte…)
+  const nota=await chiediTesto(d.valore==='accettata'?'Differenza accettata':'Busta da rivedere',{etichetta:'Nota (facoltativa)',multiriga:true,ok:d.valore==='accettata'?'Va bene così':'Da rivedere',aiuto:d.valore==='accettata'?'Perché va bene così, se c\'è qualcosa di particolare: un anticipo, ore pagate a parte, un conguaglio…':'Cosa c\'è da controllare o da chiedere al commercialista.'});
+  if(nota===null) return;
   esegui(d.valore==='accettata'?'Differenza accettata':'Busta segnata da rivedere',s=>{
-    s.bustePaga.find(x=>x.id===d.id).verifica={stato:d.valore,quando:oggi(),oreBusta:c?c.oreBusta:null,oreGriglia:c?c.oreGriglia:null,nettoBusta:c?c.nettoBusta:null,importoGriglia:c?c.importoGriglia:null};
+    s.bustePaga.find(x=>x.id===d.id).verifica={stato:d.valore,quando:oggi(),nota:nota.trim()||null,oreBusta:c?c.oreBusta:null,oreGriglia:c?c.oreGriglia:null,nettoBusta:c?c.nettoBusta:null,importoGriglia:c?c.importoGriglia:null};
   },{senzaRender:true});
   if(!d.tabella) AZIONI['busta-apri']({id:d.id});render();
 };
@@ -5412,7 +5432,7 @@ function bloccoConfrontoBusta(b){
   const righe=html`<table class="tabella densa mt-s"><thead><tr><th></th><th class="num">Busta</th><th class="num">Presenze</th><th class="num">Differenza</th></tr></thead><tbody>
     ${c.diffEuro!=null?html`<tr><td>Netto</td><td class="num">${fEuro(c.nettoBusta)}</td><td class="num">${fEuro(c.importoGriglia)}</td><td class="num"><b>${piuMeno(c.diffEuro,fEuro)}</b></td></tr>`:''}
     ${c.diff!=null?html`<tr><td>Ore</td><td class="num">${fOre(c.oreBusta)}</td><td class="num">${fOre(c.oreGriglia)}</td><td class="num"><b>${piuMeno(c.diff,fOre)}</b></td></tr>`:''}</tbody></table>`;
-  if(b.verifica) return html`<div class="avviso-inline ${b.verifica.stato==='revisione'?'attenzione':''} mt-s">${icona(b.verifica.stato==='revisione'?'attenzione':'ok')}<div class="corpo">${b.verifica.stato==='revisione'?'Segnata da rivedere':'Differenza accettata'} il ${fData(b.verifica.quando)}.${righe}<div class="mt-s"><button class="pulsante piccolo" data-azione="busta-verifica-annulla" data-id="${b.id}">Rivedi la verifica</button></div></div></div>`;
+  if(b.verifica) return html`<div class="avviso-inline ${b.verifica.stato==='revisione'?'attenzione':''} mt-s">${icona(b.verifica.stato==='revisione'?'attenzione':'ok')}<div class="corpo">${b.verifica.stato==='revisione'?'Segnata da rivedere':'Differenza accettata'} il ${fData(b.verifica.quando)}.${b.verifica.nota?html`<div class="mt-s"><b>Nota:</b> ${b.verifica.nota}</div>`:''}${righe}<div class="mt-s"><button class="pulsante piccolo" data-azione="busta-verifica-annulla" data-id="${b.id}">Rivedi la verifica</button></div></div></div>`;
   if(!c.scarto) return html`<div class="avviso-inline mt-s">${icona('ok')}<div class="corpo">La busta torna con le presenze.${righe}</div></div>`;
   return html`<div class="avviso-inline attenzione mt-s">${icona('attenzione')}<div class="corpo"><b>La busta non torna con le presenze.</b>${righe}
     <div class="mt-s"><button class="pulsante piccolo" data-azione="busta-verifica" data-id="${b.id}" data-valore="accettata">${icona('ok','piccola')}Va bene così</button> <button class="pulsante piccolo pericolo" data-azione="busta-verifica" data-id="${b.id}" data-valore="revisione">${icona('attenzione','piccola')}Da rivedere</button></div></div></div>`;
@@ -5437,7 +5457,8 @@ function vistaModelli(r){
   ${sotto==='pos'?vistaModelloPos():''}
   ${sotto==='carta'?html`<div class="griglia due"><div class="scheda"><h3>Carta intestata</h3><p class="secondario piccolo">Righe di testo accanto al logo, su ogni pagina dei documenti.</p><ol>${(stato.azienda.cartaIntestata.righe||[]).map(x=>html`<li>${x}</li>`)}</ol><button class="pulsante" data-azione="carta-modifica">${icona('modifica')}Modifica righe</button>
     <div class="mt"><div class="etichetta-campo">Logo</div><div class="mt-s"><img src="${immagineAzienda('logo')}" alt="Logo" style="height:60px"></div><div class="mt-s"><button class="pulsante piccolo" data-azione="immagine-sostituisci" data-chiave="logo">${icona('carica','piccola')}Sostituisci</button>${stato.azienda.img_logo?html` <button class="pulsante piccolo" data-azione="immagine-ripristina" data-chiave="logo">Originale</button>`:''}</div></div></div>
-    <div class="scheda"><h3>Firme e timbro</h3><div class="griglia tre">${[['firmaTimbro','Timbro e firma (documenti)'],['firmaLegale','Firma Legale Rappresentante'],['firmaRspp','Firma RSPP'],['firmaRls','Firma RLS']].map(([k,t])=>html`<div><div class="etichetta-campo">${t}</div><div class="riquadro-firma"><img src="${immagineAzienda(k)}" alt="${t}"></div><div class="mt-s"><button class="pulsante piccolo" data-azione="immagine-sostituisci" data-chiave="${k}">${icona('carica','piccola')}Sostituisci</button>${stato.azienda['img_'+k]?html` <button class="pulsante piccolo" data-azione="immagine-ripristina" data-chiave="${k}">Originale</button>`:''}</div></div>`)}</div><p class="piccolo secondario mt">La firma grafica non sostituisce la firma digitale: dove un documento la richiede, l'applicazione prepara il PDF e lo segnala.</p></div></div>`:''}`;
+    <div class="scheda"><h3>Firme e timbro</h3><div class="griglia tre">${[['firmaTimbro','Timbro e firma (documenti)'],['firmaLegale','Firma Legale Rappresentante'],['firmaRspp','Firma RSPP'],['firmaRls','Firma RLS']].map(([k,t])=>html`<div><div class="etichetta-campo">${t}</div><div class="riquadro-firma"><img src="${immagineAzienda(k)}" alt="${t}"></div><div class="mt-s"><button class="pulsante piccolo" data-azione="immagine-sostituisci" data-chiave="${k}">${icona('carica','piccola')}Sostituisci</button>${stato.azienda['img_'+k]?html` <button class="pulsante piccolo" data-azione="immagine-ripristina" data-chiave="${k}">Originale</button>`:''}</div></div>`)}</div><p class="piccolo secondario mt">La firma grafica non sostituisce la firma digitale: dove un documento la richiede, l'applicazione prepara il PDF e lo segnala.</p></div></div>
+    <div class="scheda mt"><h3>Firme delle persone</h3><p class="secondario piccolo">Fotografa la firma su un foglio bianco: l'app toglie lo sfondo. Si usa nelle nomine firmate per accettazione e quando firmi un documento.</p><div class="griglia tre">${stato.persone.filter(p=>p.attivo).map(p=>html`<div><div class="etichetta-campo"><a href="#/operai/${p.id}">${nomePersona(p)}</a></div><div class="riquadro-firma">${p.firmaImg?html`<img src="${p.firmaImg}" alt="Firma di ${nomePersona(p)}">`:html`<span class="piccolo silenzioso">nessuna firma</span>`}</div><div class="mt-s"><button class="pulsante piccolo" data-azione="persona-firma" data-id="${p.id}">${icona('fotocamera','piccola')}${p.firmaImg?'Sostituisci':'Carica'}</button>${p.firmaImg?html` <button class="pulsante piccolo discreto pericolo" data-azione="persona-firma-togli" data-id="${p.id}">Togli</button>`:''}</div></div>`)}</div></div>`:''}`;
 }
 document.addEventListener('click',e=>{const b=e.target.closest('[data-linguetta="modelli"]');if(b){e.stopImmediatePropagation();ui.filtri.modelli=b.dataset.valore;render()}},true);
 AZIONI['filtro-modelli-cerca']=(d,t)=>{ui.filtri.cercaModelli=t.value;render();setTimeout(()=>{const i=el('[data-cambio="filtro-modelli-cerca"]');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}},0)};
@@ -6027,7 +6048,7 @@ AZIONI['file-elimina-definitivo']=async d=>{if(!(await conferma('Eliminare defin
 AZIONI['cestino-svuota']=async()=>{if(!(await conferma('Svuotare il cestino? I file eliminati non si potranno recuperare.',{pericolo:true,ok:'Svuota'})))return;const n=await svuotaCestinoScaduto(0);avviso('Eliminati '+n+' file');render()};
 document.addEventListener('click',e=>{const b=e.target.closest('[data-linguetta="impostazioni"]');if(b){e.stopImmediatePropagation();vai('impostazioni/'+b.dataset.valore)}},true);
 function impAzienda(){
-  const a=stato.azienda;const leg=persona(a.legaleRappresentanteId);
+  const a=stato.azienda;const leg=legaleRappresentante();
   const campo=(et,v,fmt)=>html`<div class="campo"><span class="etichetta-campo">${et}</span><div>${valoreODaCompilare(v,fmt)}</div></div>`;
   const piva=validaPartitaIva(a.piva);
   return html`<div class="griglia due"><div class="scheda"><h3>Dati aziendali <span class="azioni"><button class="pulsante piccolo" data-azione="azienda-da-visura" title="Leggi denominazione, P.IVA, sede e gli altri dati dal PDF della visura camerale">${icona('magia','piccola')}Da Visura</button><button class="pulsante piccolo" data-azione="azienda-modifica">${icona('modifica','piccola')}Modifica</button></span></h3><div class="campi">
@@ -6503,7 +6524,7 @@ function bloccoFirma(opz){
 // Contesto dei segnaposto per le dichiarazioni di un cantiere
 function contestoDichiarazione(c,opz){
   opz=opz||{};
-  const a=stato.azienda;const leg=persona(a.legaleRappresentanteId);const comm=c?cliente(c.committenteId):null;const aff=c?cliente(c.affidatariaId):null;const cse=c?professionista(c.cseId):null;
+  const a=stato.azienda;const leg=legaleRappresentante();const comm=c?cliente(c.committenteId):null;const aff=c?cliente(c.affidatariaId):null;const cse=c?professionista(c.cseId):null;
   const operai=c?(c.operai||[]).map(id=>persona(id)).filter(Boolean):[];
   const prep=c&&c.prepostoId?persona(c.prepostoId):null;
   const rls=persona(a.rlsId),rspp=persona(a.rsppId);
@@ -7020,7 +7041,7 @@ function posPasso2(c,w){
   <div class="campo"><label>Numero di revisione</label><input type="text" inputmode="numeric" name="revisione" value="${d.revisione}"></div><div class="campo"><label>Data di emissione</label><input type="date" name="dataEmissione" value="${d.dataEmissione||''}"><div class="aiuto">Compare in copertina, nella riga 00 delle revisioni, nella testata e in fondo: sempre la stessa</div></div>${d.revisione>0?html`<div class="campo"><label>Data di questa revisione</label><input type="date" name="dataRevisione" value="${d.dataRevisione||''}"></div><div class="campo largo"><label>Descrizione della revisione</label><input type="text" name="descrizioneRevisione" value="${d.descrizioneRevisione||''}" placeholder="es. aggiunti orari di lavoro"></div>`:html`<input type="hidden" name="dataRevisione" value="${d.dataEmissione||''}"><input type="hidden" name="descrizioneRevisione" value="Emissione iniziale">`}</div>`;
 }
 function posPasso3(c,w){
-  const d=w.dati;const leg=stato.azienda.legaleRappresentanteId;
+  const d=w.dati;const leg=(legaleRappresentante()||{}).id;
   const persone=stato.persone.filter(p=>(p.attivo&&p.inCantiere!==false)||p.id===leg);
   return html`<h3>3. Operai in cantiere</h3><p class="secondario">Seleziona dall'elenco: mai nomi scritti a mano. Accanto a ciascuno lo stato dei documenti, così chi ha qualcosa di scaduto emerge prima di procedere.</p><div class="scelta-lista">${persone.map(p=>{const i=idoneita(p);const on=d.operai.includes(p.id);return html`<label class="${on?'attiva':''}"><input type="checkbox" name="operai" value="${p.id}" ${on?'checked':''}><span><b>${nomePersona(p)}</b> <span class="secondario">${p.id===leg?'Legale Rappresentante':p.mansione||''}${(p.qualifiche||[]).length?' · '+p.qualifiche.map(q=>QUALIFICHE[q]||q).join(', '):''}</span><div class="desc">${i.idonea?html`<span class="pillola valido">${icona('ok','piccola')}documenti in regola</span>`:html`<span class="pillola scaduto">${icona('blocco','piccola')}${i.motivi.join('; ')}</span>`}${i.avvisi.length?html` <span class="pillola pianificare">${icona('info','piccola')}manca: ${i.avvisi.map(x=>x.split(':')[0]).join(', ')}</span>`:''}</div></span></label>`})}</div>`;
 }
@@ -7065,7 +7086,7 @@ AZIONI['pos-nuova-revisione']=d=>{const p=perId('pos',d.id);ui.posWizard=null;va
 // ---------------------------------------------------------------------
 function docPos(pos,c){
   const T=posTestoCorrente();const a=stato.azienda;
-  const leg=persona(a.legaleRappresentanteId);const nomeLeg=leg?nomeNomeCognome(leg):'[DA COMPILARE: legale rappresentante]';
+  const leg=legaleRappresentante();const nomeLeg=leg?nomeNomeCognome(leg):'[DA COMPILARE: legale rappresentante]';
   const lav=pos.lavorazioni.map(id=>stato.lavorazioni.find(l=>l.id===id)).filter(Boolean);
   const operai=pos.operai.map(id=>persona(id)).filter(Boolean);
   const prep=persona(pos.prepostoId);const rls=persona(a.rlsId);const rspp=persona(a.rsppId);
@@ -7101,10 +7122,10 @@ function docPos(pos,c){
       case 'tabella_spp': return `<table><tbody><tr><td style="width:55mm"></td><th>NOMINATIVO</th></tr><tr><th>RESPONSABILE (R.S.P.P)</th><td>${rspp?h(nomeNomeCognome(rspp)):DC('RSPP')}</td></tr><tr><th rowspan="3">ADDETTI (A.S.P.P)</th><td></td></tr><tr><td></td></tr><tr><td></td></tr></tbody></table>`;
       case 'tabella_medico': return `<table><tbody><tr><th style="width:55mm">MEDICO COMPETENTE</th><td>${a.medicoCompetente&&a.medicoCompetente.nome?h(a.medicoCompetente.nome):DC('medico competente')}</td></tr></tbody></table>`;
       case 'tabella_rls': { const d=rls?migliorDocumento(documentiPersona(rls.id).filter(x=>x.tipoId==='corso_rls'),tipoDoc('corso_rls'),oggi(),soglie()):null; return `<table><tbody><tr><th rowspan="2" style="width:20mm">RLS</th><th style="width:60mm">NOMINATIVO</th><td>${rls?h(nomeNomeCognome(rls)):DC('RLS')}</td></tr><tr><th>CORSO DI FORMAZIONE (ENTE E DATA)</th><td>${d?(d.doc.ente?h(d.doc.ente)+'<br>':DC('ente formatore')+'<br>')+'Data ultimo aggiornamento: '+h(fData(d.doc.dataEmissione)):DC('corso RLS')}</td></tr><tr><td></td><th colspan="2">RLST</th></tr></tbody></table>`; }
-      case 'tabella_emergenze': { const riga=(p,tipo)=>{const d=migliorDocumento(documentiPersona(p.id).filter(x=>x.tipoId===tipo),tipoDoc(tipo),oggi(),soglie());return `<td>${h(nomeNomeCognome(p))}</td><td>${d?(d.doc.ente?h(d.doc.ente)+' il ':'')+h(fData(d.doc.dataEmissione))+(d.doc.ente?'':' '+DC('ente')):DC('attestato')}</td>`}; const ant=stato.persone.filter(p=>p.attivo&&(p.qualifiche||[]).includes('antincendio')&&(pos.operai.includes(p.id)||p.id===a.legaleRappresentanteId));const ps=stato.persone.filter(p=>p.attivo&&(p.qualifiche||[]).includes('primoSoccorso')&&(pos.operai.includes(p.id)||p.id===a.legaleRappresentanteId)); const n1=Math.max(ant.length,1),n2=Math.max(ps.length,1); return `<table><thead><tr><th style="width:50mm"></th><th>NOMINATIVO</th><th>CORSO DI FORMAZIONE (ENTE E DATA)</th></tr></thead><tbody>${(ant.length?ant:[null]).map((p,i)=>`<tr>${i===0?`<th rowspan="${n1}">PREVENZIONE INCENDI, LOTTA ANTINCENDIO E GESTIONE DELLE EMERGENZE</th>`:''}${p?riga(p,'antincendio_2'):`<td colspan="2">${DC('addetti antincendio fra gli operai in cantiere')}</td>`}</tr>`).join('')}${(ps.length?ps:[null]).map((p,i)=>`<tr>${i===0?`<th rowspan="${n2}">PRIMO SOCCORSO</th>`:''}${p?riga(p,'primo_soccorso'):`<td colspan="2">${DC('addetti primo soccorso fra gli operai in cantiere')}</td>`}</tr>`).join('')}</tbody></table>`; }
+      case 'tabella_emergenze': { const riga=(p,tipo)=>{const d=migliorDocumento(documentiPersona(p.id).filter(x=>x.tipoId===tipo),tipoDoc(tipo),oggi(),soglie());return `<td>${h(nomeNomeCognome(p))}</td><td>${d?(d.doc.ente?h(d.doc.ente)+' il ':'')+h(fData(d.doc.dataEmissione))+(d.doc.ente?'':' '+DC('ente')):DC('attestato')}</td>`}; const ant=stato.persone.filter(p=>p.attivo&&(p.qualifiche||[]).includes('antincendio')&&(pos.operai.includes(p.id)||p.id===(leg||{}).id));const ps=stato.persone.filter(p=>p.attivo&&(p.qualifiche||[]).includes('primoSoccorso')&&(pos.operai.includes(p.id)||p.id===(leg||{}).id)); const n1=Math.max(ant.length,1),n2=Math.max(ps.length,1); return `<table><thead><tr><th style="width:50mm"></th><th>NOMINATIVO</th><th>CORSO DI FORMAZIONE (ENTE E DATA)</th></tr></thead><tbody>${(ant.length?ant:[null]).map((p,i)=>`<tr>${i===0?`<th rowspan="${n1}">PREVENZIONE INCENDI, LOTTA ANTINCENDIO E GESTIONE DELLE EMERGENZE</th>`:''}${p?riga(p,'antincendio_2'):`<td colspan="2">${DC('addetti antincendio fra gli operai in cantiere')}</td>`}</tr>`).join('')}${(ps.length?ps:[null]).map((p,i)=>`<tr>${i===0?`<th rowspan="${n2}">PRIMO SOCCORSO</th>`:''}${p?riga(p,'primo_soccorso'):`<td colspan="2">${DC('addetti primo soccorso fra gli operai in cantiere')}</td>`}</tr>`).join('')}</tbody></table>`; }
       case 'tabella_fasi': return `<table><thead><tr><th>LAVORAZIONI</th><th style="width:36mm">DATA INIZIO PREVISTA</th><th style="width:36mm">DATA FINE PREVISTA</th></tr></thead><tbody>${lav.map(l=>`<tr><td>${h(l.breve)}</td><td>${c.dataInizio?h(fData(c.dataInizio)):DC('data')}</td><td>${c.dataFine?h(fData(c.dataFine)):DC('data')}</td></tr>`).join('')}</tbody></table>`;
       case 'tabella_tipo_appalto': return `<table><tbody><tr><td style="width:8mm;text-align:center">${pos.tipoAppalto==='diretto'?'X':''}</td><td>appalto diretto dal committente o responsabile dei lavori.</td><td style="width:8mm;text-align:center">${pos.tipoAppalto==='affidataria'?'X':''}</td><td>subappalto da impresa affidataria.</td></tr><tr><td style="text-align:center">${pos.tipoAppalto==='esecutrice'?'X':''}</td><td>subappalto da impresa esecutrice.</td><td></td><td></td></tr></tbody></table>`;
-      case 'tabella_lavoratori': return `<table><thead><tr><th>NOMINATIVO</th><th>QUALIFICA</th><th>MANSIONE</th></tr></thead><tbody>${operai.map(p=>`<tr><td>${h(nomeNomeCognome(p))}</td><td>${p.id===a.legaleRappresentanteId?'Legale Rappresentante':h(TIPI_PERSONA[p.tipo]||'Operaio')}</td><td>${p.id===a.legaleRappresentanteId?'Responsabile Lavori':h(p.mansione||'')}${p.id===pos.prepostoId?' (Preposto)':''}</td></tr>`).join('')}</tbody></table>`;
+      case 'tabella_lavoratori': return `<table><thead><tr><th>NOMINATIVO</th><th>QUALIFICA</th><th>MANSIONE</th></tr></thead><tbody>${operai.map(p=>`<tr><td>${h(nomeNomeCognome(p))}</td><td>${p.id===(leg||{}).id?'Legale Rappresentante':h(TIPI_PERSONA[p.tipo]||'Operaio')}</td><td>${p.id===(leg||{}).id?'Responsabile Lavori':h(p.mansione||'')}${p.id===pos.prepostoId?' (Preposto)':''}</td></tr>`).join('')}</tbody></table>`;
       case 'tabella_subappalto_imprese': return `<table><thead><tr><th>LAVORAZIONE</th><th>RAGIONE SOCIALE IMPRESA IN SUBAPPALTO</th></tr></thead><tbody><tr><td>Nessuna</td><td>—</td></tr></tbody></table>`;
       case 'tabella_subappalto_autonomi': return `<table><thead><tr><th>NOMINATIVO</th><th>INDIRIZZO</th><th>ATTIVITÀ</th></tr></thead><tbody><tr><td>Nessuno</td><td>—</td><td>—</td></tr></tbody></table>`;
       case 'tabella_formazione': { const ant=operai.filter(p=>(p.qualifiche||[]).includes('antincendio')).map(p=>nomeNomeCognome(p)).join(', ');const ps=operai.filter(p=>(p.qualifiche||[]).includes('primoSoccorso')).map(p=>nomeNomeCognome(p)).join(', '); return `<table><thead><tr><th>Qualifica Lavoratori</th><th>Attività di formazione</th><th>Nominativo</th><th>Svolta</th><th>Programmata</th></tr></thead><tbody><tr><td>RSPP</td><td>Corso per Responsabile del Servizio di Prevenzione e Protezione</td><td>${rspp?h(nomeNomeCognome(rspp)):DC('RSPP')}</td><td rowspan="4">La documentazione attestante le attività formative ed informative sono conservate presso l'archivio della impresa</td><td>Come da D.Lgs. 81/08</td></tr><tr><td rowspan="2">Addetti</td><td>Corso prevenzione incendi</td><td>${ant?h(ant):DC('addetti antincendio')}</td><td>Ogni tre anni</td></tr><tr><td>Corso primo soccorso</td><td>${ps?h(ps):DC('addetti primo soccorso')}</td><td>Ogni tre anni</td></tr><tr><td>RLS</td><td>Corso RLS</td><td>${rls?h(nomeNomeCognome(rls)):DC('RLS')}</td><td>Come da D.Lgs. 81/08</td></tr><tr><td rowspan="3">Lavoratori</td><td colspan="2">Informazione generale sul D. Lgs. 81/2008</td><td rowspan="2"></td><td rowspan="2">Ogni anno</td></tr><tr><td colspan="2">Formazione, informazione ed addestramento uso DPI</td></tr><tr><td colspan="2">Informazione specifica sui rischi di cantiere</td><td></td><td>Per ogni cantiere</td></tr></tbody></table>`; }
@@ -7994,12 +8015,12 @@ function sistemaParent(corpo,nPages){
 // Alla fine si stampa, si condivide o si archivia come un documento qualsiasi.
 // ---------------------------------------------------------------------
 function testoLegaleRappresentante(){
-  const a=stato.azienda;const leg=persona(a.legaleRappresentanteId);
+  const a=stato.azienda;const leg=legaleRappresentante();
   return [a.ragioneSociale,leg?'Il Legale Rappresentante: '+nomePersona(leg):'',leg&&leg.cf?'C.F. '+leg.cf:'',indirizzoTesto(a.indirizzo),a.piva?'P.IVA '+a.piva:''].filter(Boolean).join('\n');
 }
 // I dati che si inseriscono con un clic: nome in italiano, mai un codice da ricordare.
 function datiDaInserire(){
-  const a=stato.azienda,leg=persona(a.legaleRappresentanteId);
+  const a=stato.azienda,leg=legaleRappresentante();
   return [
     ['Azienda',[['Ragione sociale',a.ragioneSociale],['Sede',indirizzoTesto(a.indirizzo)],['Partita IVA',a.piva],['Codice fiscale',a.cf],['PEC',a.pec],['Telefono',a.telefono],['Email',a.email],['Codice INAIL',a.inail],['Matricola INPS',a.inps],['Cassa Edile',a.cassaEdile]]],
     ['Legale rappresentante',[['Nome e cognome',leg?nomePersona(leg):null],['Luogo di nascita',leg?leg.luogoNascita:null],['Data di nascita',leg&&leg.dataNascita?fData(leg.dataNascita):null],['Codice fiscale',leg?leg.cf:null],['Residenza',leg?leg.residenza:null]]],
@@ -8255,8 +8276,13 @@ async function immagineDelFoglio(r){
 }
 async function esitoAssistente(file,r){
   const nome=file.name.replace(/\.[a-z0-9]+$/i,'')+' - compilato';
-  anteprimaStampa({titolo:nome,pagineHtml:[paginaAssistenteHtml(r)],registra:false,
-    azioniExtra:`<button class="pulsante" data-ap-archivia>${icona('allega')}Archivia come documento</button>`});
+  const ant=anteprimaStampa({titolo:nome,pagineHtml:[paginaAssistenteHtml(r)],registra:false,
+    azioniExtra:`${file.docId?`<button class="pulsante primario" data-ap-allega>${icona('allega')}Aggiungi al documento</button>`:''}<button class="pulsante" data-ap-archivia>${icona('allega')}Archivia come documento nuovo</button>`});
+  const ba=el('[data-ap-allega]');
+  if(ba) ba.addEventListener('click',async()=>{
+    try{ const blob=await immagineDelFoglio(r); if(ant&&ant.chiudi)ant.chiudi(); await allegaFilesADocumento(file.docId,[new File([blob],nome.replace(' - compilato',' - firmato')+'.jpg',{type:'image/jpeg'})]); }
+    catch(e){ segnalaErrore(e,'Non sono riuscito a trasformare il foglio in immagine: usa "Stampa / Salva PDF" e poi allega il PDF'); }
+  });
   const b=el('[data-ap-archivia]');
   if(b) b.addEventListener('click',async()=>{
     try{
@@ -8446,6 +8472,47 @@ AZIONI['rim-stampa']=d=>{const doc=docRimanenze(d.anno,d.sez);anteprimaStampa({t
 
 
 /* ═══════════════════════════════════════════════════════════════════
+   SEZIONE JS · BILANCI
+   ═══════════════════════════════════════════════════════════════════ */
+// ---------------------------------------------------------------------
+// BILANCI: un anno per riga, come nelle cartelle dell'azienda. Per ogni esercizio il bilancio con la
+// nota integrativa, il verbale dell'assemblea che lo approva e la ricevuta del deposito in Camera di
+// Commercio; il resto (relazioni, prospetti) va in «Altri file».
+// stato.bilanci[anno] = {bilancio:fileId, verbale:fileId, ricevuta:fileId, altri:[fileId], note}
+// ---------------------------------------------------------------------
+const POSTI_BILANCIO=[['bilancio','Bilancio e nota integrativa'],['verbale','Verbale di assemblea'],['ricevuta','Ricevuta di deposito']];
+// dal nome del file: a quale posto va e di che esercizio è (2015, «31-12-2015», «20171231»…)
+function postoBilancioDaNome(nome){const n=nome.toLowerCase();return /verbale|assemblea/.test(n)?'verbale':/ricevut|rcv|deposito/.test(n)?'ricevuta':/bilancio|nota integrativa|b712/.test(n)?'bilancio':'altri'}
+function annoBilancioDaNome(nome){const m=nome.match(/(?:^|\D)(20[0-4]\d)(?:\D|$)/)||nome.match(/(20[0-4]\d)1231/);return m?+m[1]:null}
+function fileBilancio(anno){const b=(stato.bilanci||{})[anno]||{};return [...POSTI_BILANCIO.map(([k])=>b[k]),...(b.altri||[])].filter(Boolean)}
+function contenutoBilanci(){
+  const B=stato.bilanci||{};const ultimo=new Date().getFullYear()-1;
+  const anni=[...new Set([ultimo,...Object.keys(B).map(Number)])].sort((a,b)=>b-a);
+  const cella=(anno,k,id)=>{const m=id&&fileMeta(id);return m?html`<span class="riga stretta"><button class="pulsante piccolo" data-azione="file-apri" data-id="${m.id}" title="${m.nome}">${icona(ePdf(m.mime,m.nome)?'pdf':'file','piccola')}Apri</button><button class="pulsante piccolo discreto icona" data-azione="bilancio-togli" data-anno="${anno}" data-posto="${k}" data-id="${m.id}" title="Togli questo file">${icona('chiudi','piccola')}</button></span>`:html`<button class="pulsante piccolo discreto" data-azione="bilancio-carica" data-anno="${anno}" data-posto="${k}">${icona('carica','piccola')}Carica</button>`};
+  return html`<div class="strumenti-tabella"><span class="piccolo silenzioso">Trascina o scegli più file insieme: dal nome capisco l'anno e se è bilancio, verbale o ricevuta, poi controlli tu.</span><span class="spazio"></span><button class="pulsante primario" data-azione="bilanci-carica">${icona('carica','piccola')}Carica file</button></div>
+  <div class="guscio"><div class="scheda scheda-tabella"><table class="tabella"><thead><tr><th>Esercizio</th>${POSTI_BILANCIO.map(([,t])=>html`<th>${t}</th>`)}<th>Altri file</th></tr></thead><tbody>
+  ${anni.map(a=>{const b=B[a]||{};const manca=POSTI_BILANCIO.filter(([k])=>!b[k]).length;return html`<tr><td><b>${a}</b><br>${manca?html`<span class="piccolo ${a===ultimo?'warn-t':'silenzioso'}">${manca===3?'niente caricato':'mancano '+manca}</span>`:html`<span class="pillola valido">completo</span>`}${b.note?html`<div class="piccolo silenzioso">${b.note}</div>`:''}</td>
+    ${POSTI_BILANCIO.map(([k])=>html`<td>${cella(a,k,b[k])}</td>`)}
+    <td><span class="riga stretta" style="flex-wrap:wrap">${(b.altri||[]).map(id=>{const m=fileMeta(id);return m?html`<button class="pulsante piccolo discreto" data-azione="file-apri" data-id="${id}" title="${m.nome}">${tronca(m.nome.replace(/\.[^.]+$/,''),16)}</button>`:''})}<button class="pulsante piccolo discreto icona" data-azione="bilancio-carica" data-anno="${a}" data-posto="altri" title="Aggiungi un file">${icona('piu','piccola')}</button><button class="pulsante piccolo discreto icona" data-azione="bilancio-nota" data-anno="${a}" title="Nota">${icona('modifica','piccola')}</button></span></td></tr>`})}
+  </tbody></table></div></div>`;
+}
+function mettiFileBilancio(s,anno,posto,id){s.bilanci=s.bilanci||{};const b=s.bilanci[anno]=s.bilanci[anno]||{altri:[]};b.altri=b.altri||[];if(posto==='altri'){if(!b.altri.includes(id))b.altri.push(id)}else{if(b[posto]&&b[posto]!==id)b.altri.push(b[posto]);b[posto]=id}}
+AZIONI['bilancio-carica']=async d=>{const fs=await scegliFile({multipli:false,accetta:'.pdf,image/*,.doc,.docx'});if(!fs.length)return;const r=await acquisisciFile(fs[0],{});esegui('Bilancio '+d.anno,s=>mettiFileBilancio(s,d.anno,d.posto,r.rec.id))};
+AZIONI['bilancio-togli']=async d=>{if(!(await conferma('Togliere questo file dal bilancio '+d.anno+'? Finisce nel cestino per 30 giorni.',{pericolo:true,ok:'Togli'})))return;esegui('Tolto file dal bilancio '+d.anno,s=>{const b=s.bilanci[d.anno];if(d.posto==='altri')b.altri=b.altri.filter(x=>x!==d.id);else b[d.posto]=null;cestinaFileOrfani(s)})};
+AZIONI['bilancio-nota']=async d=>{const b=(stato.bilanci||{})[d.anno]||{};const t=await chiediTesto('Nota sul bilancio '+d.anno,{multiriga:true,valore:b.note||'',etichetta:'Per esempio: approvato il…, depositato il…, utile portato a nuovo'});if(t===null)return;esegui('Nota bilancio '+d.anno,s=>{s.bilanci=s.bilanci||{};const x=s.bilanci[d.anno]=s.bilanci[d.anno]||{altri:[]};x.note=t.trim()||null})};
+AZIONI['bilanci-carica']=async()=>{const fs=await scegliFile({accetta:'.pdf,image/*,.doc,.docx'});if(fs.length)await caricaBilanci(fs)};
+async function caricaBilanci(fs){
+  const ultimo=new Date().getFullYear()-1;
+  const righe=fs.map((f,i)=>({i,f,anno:annoBilancioDaNome((f.webkitRelativePath||'')+' '+f.name)||ultimo,posto:postoBilancioDaNome(f.name)}));
+  const ok=await dialogo({titolo:'Carica bilanci',largo:true,corpo:html`<p class="piccolo secondario">Controlla anno e posto di ogni file: li ho proposti dal nome.</p><table class="tabella densa"><thead><tr><th>File</th><th>Esercizio</th><th>Posto</th></tr></thead><tbody>${righe.map(r=>html`<tr><td class="taglia" style="max-width:260px" title="${r.f.name}">${r.f.name}</td><td><input type="number" data-bil-anno="${r.i}" value="${r.anno}" style="width:90px"></td><td><select data-bil-posto="${r.i}">${[...POSTI_BILANCIO,['altri','Altri file']].map(([k,t])=>html`<option value="${k}" ${k===r.posto?'selected':''}>${t}</option>`)}</select></td></tr>`)}</tbody></table>`,
+    pulsanti:[{testo:'Annulla',valore:false},{testo:'Carica',classe:'primario',primario:true,fn:v=>{for(const r of righe){r.anno=+v.querySelector(`[data-bil-anno="${r.i}"]`).value||ultimo;r.posto=v.querySelector(`[data-bil-posto="${r.i}"]`).value}return true}}]});
+  if(!ok) return;
+  const esiti=[];for(const r of righe){const e=await acquisisciFile(r.f,{});esiti.push([r,e.rec.id])}
+  esegui('Caricati '+plurale(esiti.length,'file','file')+' nei bilanci',s=>{for(const [r,id] of esiti)mettiFileBilancio(s,r.anno,r.posto,id)});
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════
    SEZIONE JS · ISA
    ═══════════════════════════════════════════════════════════════════ */
 // ---------------------------------------------------------------------
@@ -8570,9 +8637,9 @@ AZIONI['isa-dichiarazione']=async d=>{
 
 VISTE.fineanno=function(r){
   const t=r.id||'isa';
-  return html`<div class="testata"><div><div class="occhiello">Amministrazione · per il commercialista</div><h1>Fine anno</h1><p class="sotto">Quello che serve una volta l’anno: i dati ISA dalle fatture e le rimanenze al 31 dicembre.</p></div></div>
-  ${linguetteRotta('fineanno',[{id:'isa',testo:'ISA'},{id:'rimanenze',testo:'Rimanenze'}],t)}
-  ${t==='rimanenze'?contenutoRimanenze(r):contenutoIsa(r)}`;
+  return html`<div class="testata"><div><div class="occhiello">Amministrazione · per il commercialista</div><h1>Fine anno</h1><p class="sotto">Quello che serve una volta l’anno: i dati ISA dalle fatture, le rimanenze al 31 dicembre e i bilanci con i verbali di assemblea.</p></div></div>
+  ${linguetteRotta('fineanno',[{id:'isa',testo:'ISA'},{id:'rimanenze',testo:'Rimanenze'},{id:'bilanci',testo:'Bilanci e verbali'}],t)}
+  ${t==='rimanenze'?contenutoRimanenze(r):t==='bilanci'?contenutoBilanci():contenutoIsa(r)}`;
 };
 
 
@@ -8796,7 +8863,7 @@ function datiIniziali(soloStruttura){
     persone:[],tipiDocumento:[],documenti:[],file:[],clienti:[],professionisti:[],lavorazioni:[],cantieri:[],pos:[],
     modelli:{dichiarazioni:[],posTesto:null,posMacchine:null,posDpiDotazione:null},
     presenze:{},bustePaga:[],regoleBuste:[],listino:[],preventivi:[],movimenti:[],generati:[],cestino:[],
-    mezzi:[],fornitori:[],bonifici:[],versamenti:[],rimanenze:{},isa:{},
+    mezzi:[],fornitori:[],bonifici:[],versamenti:[],rimanenze:{},isa:{},bilanci:{},
     impostazioni:{nomeUtente:'',dispositivo:'',tema:'sistema',ultimoBackup:null,modificheDopoBackup:0,ultimaModifica:null,soglie:Object.assign({},SOGLIE_PREDEFINITE),densita:'normale',festivitaLocali:[],arrotondamento:'aziendale',compressioneImmagini:true,obiettivoKb:300,avvisaPdfMb:2,creato:new Date().toISOString()},
   };
   s.lavorazioni=LAVORAZIONI_INIZIALI.map(l=>Object.assign({},l));
@@ -8886,7 +8953,8 @@ const TIPI_DOCUMENTO_INIZIALI=[
   {id:'mezzo_revisione',nome:'Revisione',ambito:'mezzo',validitaMesi:null,obbligatorio:'si',bloccaIdoneita:false,categoria:'mezzo',sinonimi:['revisione','revisione periodica']},
   {id:'mezzo_bollo',nome:'Bollo',ambito:'mezzo',validitaMesi:12,obbligatorio:'si',bloccaIdoneita:false,categoria:'mezzo',sinonimi:['bollo','tassa automobilistica']},
   {id:'mezzo_libretto',nome:'Libretto di circolazione',ambito:'mezzo',validitaMesi:null,obbligatorio:'si',bloccaIdoneita:false,categoria:'mezzo',sinonimi:['libretto','carta di circolazione']},
-  {id:'altro_mezzo',nome:'Altro documento del mezzo',ambito:'mezzo',validitaMesi:null,obbligatorio:'no',bloccaIdoneita:false,categoria:'mezzo',sinonimi:[]},
+  {id:'mezzo_verbale',nome:'Verbale / multa',ambito:'mezzo',validitaMesi:null,obbligatorio:'no',bloccaIdoneita:false,categoria:'mezzo',sinonimi:['verbale','multa','contravvenzione','sanzione']},
+{id:'altro_mezzo',nome:'Altro documento del mezzo',ambito:'mezzo',validitaMesi:null,obbligatorio:'no',bloccaIdoneita:false,categoria:'mezzo',sinonimi:[]},
 ];
 
 // Modelli di dichiarazione. I segnaposto {{...}} si riempiono dai dati del cantiere selezionato.

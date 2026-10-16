@@ -142,6 +142,7 @@ svg.ic.piccola{width:15px;height:15px} svg.ic.grande{width:24px;height:24px}
 #contenuto{padding:34px 30px 90px;min-width:0;max-width:1360px;width:100%;margin:0 auto;padding-bottom:calc(90px + env(safe-area-inset-bottom))}
 #contenuto>*{animation:salita .6s var(--ease) both}
 #contenuto.fermo>*{animation:none}
+#contenuto.cambio-linguetta>.linguette~*{animation:apparire .2s var(--ease)}
 .testata{display:flex;align-items:flex-end;gap:var(--sp-3) var(--sp-2);flex-wrap:wrap;margin-bottom:28px}
 .testata>div:first-child{flex:1 1 320px;min-width:0}
 .testata h1{min-width:0}

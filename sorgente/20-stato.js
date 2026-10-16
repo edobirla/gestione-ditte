@@ -211,6 +211,8 @@ function normalizzaStato(s){
 // ---- accesso comodo ----
 function perId(coll,id){return (stato[coll]||[]).find(x=>x.id===id)||null}
 function persona(id){return perId('persone',id)}
+// il Legale Rappresentante scelto nei Dati aziendali; se non è stato scelto, la persona segnata come tale fra gli operai
+function legaleRappresentante(){const a=stato.azienda;return persona(a.legaleRappresentanteId)||stato.persone.find(p=>p.tipo==='legale_rappresentante'&&p.attivo)||null}
 function cantiere(id){return perId('cantieri',id)}
 function cliente(id){return perId('clienti',id)}
 function professionista(id){return perId('professionisti',id)}

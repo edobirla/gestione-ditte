@@ -55,8 +55,6 @@ function render(){
   const r=leggiRotta(); ui.rotta=r;
   disegnaMenu();
   el('#marchio-logo').src=immagineAzienda('logo'); // il logo dell'azienda, non quello generico dell'app
-  // la stessa pagina ridisegnata (dopo una modifica) non rifà l'animazione d'entrata
-  const chiaveRotta=location.hash;el('#contenuto').classList.toggle('fermo',ui.ultimaRotta===chiaveRotta);ui.ultimaRotta=chiaveRotta;
   const bi=el('#btn-indietro'); if(bi){ if(r.id){bi.classList.remove('nascosto');bi.dataset.genitore=r.sezione}else bi.classList.add('nascosto') }
   const cont=el('#contenuto');
   const fn=VISTE[r.sezione];
@@ -68,6 +66,12 @@ function render(){
     cont.innerHTML=html`<div class="avviso-inline critico">${icona('errore')}<div class="corpo"><b>Questa schermata ha avuto un errore</b> e non è stata disegnata. I dati sono al sicuro.<br><span class="mono">${(e&&e.message)||e}</span><div class="mt-s"><button class="pulsante piccolo" data-azione="dettaglio-errore" data-dettaglio="${(e&&e.stack)||''}">Dettagli</button> <a class="pulsante piccolo" href="#/dashboard">Dashboard</a></div></div></div>`;
     console.error(e);
   }
+  // la stessa pagina ridisegnata (dopo una modifica), o un'altra linguetta della stessa pagina
+  // (stessa sezione, stesso titolo), non rifà l'animazione d'entrata: cambia solo il contenuto
+  const titolo=(cont.querySelector('.testata h1')||{}).textContent||'';
+  const stessaPagina=ui.ultimaRotta===location.hash||(ui.ultimaSezione===r.sezione&&ui.ultimoTitolo===titolo);
+  cont.classList.toggle('fermo',stessaPagina);cont.classList.toggle('cambio-linguetta',stessaPagina&&ui.ultimaRotta!==location.hash);
+  ui.ultimaRotta=location.hash;ui.ultimaSezione=r.sezione;ui.ultimoTitolo=titolo;
   if(ui.montaggi){for(const f of ui.montaggi)try{f(cont)}catch(e){console.error(e)}ui.montaggi=null}
   aggiornaSpie();
   disegnaBriciole(r);
@@ -75,7 +79,7 @@ function render(){
 }
 function dopoRender(fn){(ui.montaggi=ui.montaggi||[]).push(fn)}
 function titoloPagina(r){const m=MENU.find(x=>x.id===sezioneMenu(r.sezione));return (m?m.testo+' · ':'')+('Gestionale'+(nomeImpresa()?' '+nomeImpresa():''))}
-window.addEventListener('hashchange',()=>{ui.storicoProfondita=(ui.storicoProfondita||0)+1;chiudiPannello();chiudiRicerca();document.body.classList.remove('menu-aperto');render();el('#contenuto').scrollTop=0;window.scrollTo(0,0)});
+window.addEventListener('hashchange',()=>{ui.storicoProfondita=(ui.storicoProfondita||0)+1;chiudiPannello();chiudiRicerca();document.body.classList.remove('menu-aperto');render();if(!el('#contenuto').classList.contains('cambio-linguetta')){el('#contenuto').scrollTop=0;window.scrollTo(0,0)}});
 
 // ---- tema: sistema / chiaro / scuro, ricordato ----
 function applicaTema(t){
@@ -105,7 +109,7 @@ function indiceRicerca(){
   for(const v of stato.versamenti) voci.push({gruppo:'Versamenti',testo:(v.tipo==='f24'?'F24 ':'Cassa Edile ')+fMeseAnno(v.anno,v.mese),sotto:fEuro(v.importo),href:'versamenti/'+(v.tipo==='f24'?'f24':'cassa')});
   const azioni=[
     {testo:'Nuovo operaio',href:'operai?nuovo=1'},{testo:'Nuovo cantiere',href:'cantieri?nuovo=1'},{testo:'Nuovo cliente',href:'clienti?nuovo=1'},{testo:'Nuovo preventivo',href:'preventivi?nuovo=1'},{testo:'Nuovo movimento',href:'budget?nuovo=1'},{testo:'Nuovo mezzo',href:'mezzi?nuovo=1'},{testo:'Nuovo fornitore',href:'fornitori?nuovo=1'},
-    {testo:'Scadenzario',href:'operai/scadenzario'},{testo:'Presenze del mese',href:'presenze'},{testo:'Fai il backup',href:'impostazioni?backup=1'},{testo:'Carica F24 o Cassa Edile',href:'versamenti'},{testo:'Versamenti mese per mese',href:'versamenti'},{testo:'Caricamento iniziale documenti',href:'documenti/caricamento'},{testo:'Buste paga',href:'documenti/buste'},{testo:'Peso dell\'archivio',href:'impostazioni/peso'},{testo:'Cambia tema',azione:'tema'},{testo:'Diagramma temporale cantieri',href:'cantieri?vista=tempo'},{testo:'Confronto clienti',href:'clienti?vista=confronto'},
+    {testo:'Scadenzario',href:'operai/scadenzario'},{testo:'Presenze del mese',href:'presenze'},{testo:'Fai il backup',href:'impostazioni?backup=1'},{testo:'Carica F24 o Cassa Edile',href:'versamenti'},{testo:'Bilanci e verbali di assemblea',href:'fineanno/bilanci'},{testo:'Versamenti mese per mese',href:'versamenti'},{testo:'Caricamento iniziale documenti',href:'documenti/caricamento'},{testo:'Buste paga',href:'documenti/buste'},{testo:'Peso dell\'archivio',href:'impostazioni/peso'},{testo:'Cambia tema',azione:'tema'},{testo:'Diagramma temporale cantieri',href:'cantieri?vista=tempo'},{testo:'Confronto clienti',href:'clienti?vista=confronto'},
   ];
   for(const a of azioni) voci.push({gruppo:'Azioni',testo:a.testo,href:a.href,azione:a.azione,sotto:''});
   return voci;

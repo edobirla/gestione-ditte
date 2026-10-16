@@ -50,7 +50,7 @@ AZIONI['file-elimina-definitivo']=async d=>{if(!(await conferma('Eliminare defin
 AZIONI['cestino-svuota']=async()=>{if(!(await conferma('Svuotare il cestino? I file eliminati non si potranno recuperare.',{pericolo:true,ok:'Svuota'})))return;const n=await svuotaCestinoScaduto(0);avviso('Eliminati '+n+' file');render()};
 document.addEventListener('click',e=>{const b=e.target.closest('[data-linguetta="impostazioni"]');if(b){e.stopImmediatePropagation();vai('impostazioni/'+b.dataset.valore)}},true);
 function impAzienda(){
-  const a=stato.azienda;const leg=persona(a.legaleRappresentanteId);
+  const a=stato.azienda;const leg=legaleRappresentante();
   const campo=(et,v,fmt)=>html`<div class="campo"><span class="etichetta-campo">${et}</span><div>${valoreODaCompilare(v,fmt)}</div></div>`;
   const piva=validaPartitaIva(a.piva);
   return html`<div class="griglia due"><div class="scheda"><h3>Dati aziendali <span class="azioni"><button class="pulsante piccolo" data-azione="azienda-da-visura" title="Leggi denominazione, P.IVA, sede e gli altri dati dal PDF della visura camerale">${icona('magia','piccola')}Da Visura</button><button class="pulsante piccolo" data-azione="azienda-modifica">${icona('modifica','piccola')}Modifica</button></span></h3><div class="campi">

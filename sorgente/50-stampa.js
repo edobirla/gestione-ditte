@@ -178,7 +178,7 @@ function bloccoFirma(opz){
 // Contesto dei segnaposto per le dichiarazioni di un cantiere
 function contestoDichiarazione(c,opz){
   opz=opz||{};
-  const a=stato.azienda;const leg=persona(a.legaleRappresentanteId);const comm=c?cliente(c.committenteId):null;const aff=c?cliente(c.affidatariaId):null;const cse=c?professionista(c.cseId):null;
+  const a=stato.azienda;const leg=legaleRappresentante();const comm=c?cliente(c.committenteId):null;const aff=c?cliente(c.affidatariaId):null;const cse=c?professionista(c.cseId):null;
   const operai=c?(c.operai||[]).map(id=>persona(id)).filter(Boolean):[];
   const prep=c&&c.prepostoId?persona(c.prepostoId):null;
   const rls=persona(a.rlsId),rspp=persona(a.rsppId);

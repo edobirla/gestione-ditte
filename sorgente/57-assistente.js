@@ -6,12 +6,12 @@
 // Alla fine si stampa, si condivide o si archivia come un documento qualsiasi.
 // ---------------------------------------------------------------------
 function testoLegaleRappresentante(){
-  const a=stato.azienda;const leg=persona(a.legaleRappresentanteId);
+  const a=stato.azienda;const leg=legaleRappresentante();
   return [a.ragioneSociale,leg?'Il Legale Rappresentante: '+nomePersona(leg):'',leg&&leg.cf?'C.F. '+leg.cf:'',indirizzoTesto(a.indirizzo),a.piva?'P.IVA '+a.piva:''].filter(Boolean).join('\n');
 }
 // I dati che si inseriscono con un clic: nome in italiano, mai un codice da ricordare.
 function datiDaInserire(){
-  const a=stato.azienda,leg=persona(a.legaleRappresentanteId);
+  const a=stato.azienda,leg=legaleRappresentante();
   return [
     ['Azienda',[['Ragione sociale',a.ragioneSociale],['Sede',indirizzoTesto(a.indirizzo)],['Partita IVA',a.piva],['Codice fiscale',a.cf],['PEC',a.pec],['Telefono',a.telefono],['Email',a.email],['Codice INAIL',a.inail],['Matricola INPS',a.inps],['Cassa Edile',a.cassaEdile]]],
     ['Legale rappresentante',[['Nome e cognome',leg?nomePersona(leg):null],['Luogo di nascita',leg?leg.luogoNascita:null],['Data di nascita',leg&&leg.dataNascita?fData(leg.dataNascita):null],['Codice fiscale',leg?leg.cf:null],['Residenza',leg?leg.residenza:null]]],
@@ -267,8 +267,13 @@ async function immagineDelFoglio(r){
 }
 async function esitoAssistente(file,r){
   const nome=file.name.replace(/\.[a-z0-9]+$/i,'')+' - compilato';
-  anteprimaStampa({titolo:nome,pagineHtml:[paginaAssistenteHtml(r)],registra:false,
-    azioniExtra:`<button class="pulsante" data-ap-archivia>${icona('allega')}Archivia come documento</button>`});
+  const ant=anteprimaStampa({titolo:nome,pagineHtml:[paginaAssistenteHtml(r)],registra:false,
+    azioniExtra:`${file.docId?`<button class="pulsante primario" data-ap-allega>${icona('allega')}Aggiungi al documento</button>`:''}<button class="pulsante" data-ap-archivia>${icona('allega')}Archivia come documento nuovo</button>`});
+  const ba=el('[data-ap-allega]');
+  if(ba) ba.addEventListener('click',async()=>{
+    try{ const blob=await immagineDelFoglio(r); if(ant&&ant.chiudi)ant.chiudi(); await allegaFilesADocumento(file.docId,[new File([blob],nome.replace(' - compilato',' - firmato')+'.jpg',{type:'image/jpeg'})]); }
+    catch(e){ segnalaErrore(e,'Non sono riuscito a trasformare il foglio in immagine: usa "Stampa / Salva PDF" e poi allega il PDF'); }
+  });
   const b=el('[data-ap-archivia]');
   if(b) b.addEventListener('click',async()=>{
     try{

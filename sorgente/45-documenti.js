@@ -75,10 +75,18 @@ async function htmlAnteprimaFile(fileId,pagina){
 // anteprima con la sua barra: nome del file, ingrandisci, ruota, a tutto schermo; più file = miniature per passare dall'uno all'altro
 async function anteprimaConBarra(files,attivo){
   const m=fileMeta(attivo)||files[0];if(!m)return '';const img=eImmagine(m.mime,m.nome);
-  return html`<div class="barra-anteprima"><span class="nome-anteprima" title="${m.nome}">${m.nome} · ${fPeso(m.dimensione)}</span>${img?html`<button class="pulsante discreto icona piccolo" data-azione="anteprima-ingrandisci" title="Ingrandisci">${icona('zoom-piu','piccola')}</button><button class="pulsante discreto icona piccolo" data-azione="anteprima-ruota" title="Ruota">${icona('aggiorna','piccola')}</button>`:''}<button class="pulsante discreto icona piccolo" data-azione="file-apri" data-id="${m.id}" title="A tutto schermo">${icona('occhio','piccola')}</button></div>
+  return html`<div class="barra-anteprima"><span class="nome-anteprima" title="${m.nome}">${m.nome} · ${fPeso(m.dimensione)}</span>${img?html`<button class="pulsante discreto icona piccolo" data-azione="anteprima-ingrandisci" title="Ingrandisci">${icona('zoom-piu','piccola')}</button><button class="pulsante discreto icona piccolo" data-azione="anteprima-ruota" title="Ruota">${icona('aggiorna','piccola')}</button>`:''}${img||ePdf(m.mime,m.nome)?html`<button class="pulsante piccolo" data-azione="file-firma" data-id="${m.id}" title="Metti una firma o il timbro su questo file, e scrivi dove serve">${icona('firma','piccola')}Firma</button>`:''}<button class="pulsante discreto icona piccolo" data-azione="file-apri" data-id="${m.id}" title="A tutto schermo">${icona('occhio','piccola')}</button></div>
   <div class="foglio-anteprima">${await htmlAnteprimaFile(m.id)}</div>
   ${files.length>1?html`<div class="miniature">${files.map(f=>html`<button class="${f.id===m.id?'attiva':''}" data-azione="doc-anteprima-file" data-id="${f.id}" data-files="${files.map(x=>x.id).join(',')}" title="${f.nome}">${icona(ePdf(f.mime,f.nome)?'pdf':'immagine','piccola')}<span>${tronca(f.nome.replace(/\.[^.]+$/,''),14)}</span></button>`)}</div>`:''}`;
 }
+// Firmare un file già in archivio: si apre l'assistente (la firma si sceglie fra quelle dell'azienda e
+// delle persone) e alla fine la copia firmata si aggiunge allo stesso documento, accanto all'originale.
+AZIONI['file-firma']=async d=>{
+  const m=fileMeta(d.id);const b=m&&await leggiFile(m.hash);if(!b)return avviso('Contenuto non disponibile',{tipo:'errore'});
+  const file=new File([b],m.nome,{type:m.mime||b.type});
+  const doc=stato.documenti.find(x=>(x.file||[]).includes(m.id));if(doc)file.docId=doc.id;
+  chiudiPannello();await apriAssistenteDocumento(file);
+};
 AZIONI['anteprima-ingrandisci']=()=>{const i=el('#pannello .foglio-anteprima img');if(i)i.classList.toggle('grande')};
 AZIONI['anteprima-ruota']=()=>{const i=el('#pannello .foglio-anteprima img');if(i){const r=((+i.dataset.r||0)+90)%360;i.dataset.r=r;i.style.transform='rotate('+r+'deg)'}};
 AZIONI['immagine-zoom']=d=>{dialogo({titolo:'Immagine',enorme:true,corpo:html`<img src="${d.src}" style="max-height:calc(100dvh - 160px);margin:0 auto;object-fit:contain">`,pulsanti:[{testo:'Chiudi',valore:true}]})};
@@ -375,7 +383,7 @@ async function proponiDateDaFile(file){
 // posiziona a mano quello che serve (in percentuale, quindi indipendente dalla risoluzione), poi
 // stampa, condivide o archivia il risultato come un documento qualsiasi.
 function testoLegaleRappresentante(){
-  const a=stato.azienda;const leg=persona(a.legaleRappresentanteId);
+  const a=stato.azienda;const leg=legaleRappresentante();
   return [a.ragioneSociale,leg?'Il Legale Rappresentante: '+nomePersona(leg):'',leg&&leg.cf?'C.F. '+leg.cf:'',indirizzoTesto(a.indirizzo),a.piva?'P.IVA '+a.piva:''].filter(Boolean).join('\n');
 }
 // ---- caricamento iniziale ----
@@ -493,7 +501,7 @@ function vistaControlloBuste(){
       <td class="num">${c&&c.diffEuro!=null&&Math.abs(c.diffEuro)>=1?html`<b class="${c.diffEuro>0?'ok-t':'bad-t'}">${piuMeno(c.diffEuro,fEuro)}</b>`:vuota}</td>
       <td class="num nascondi-telefono">${c&&c.diff!=null?fOre(c.oreBusta)+' / '+fOre(c.oreGriglia)+' h':vuota}</td>
       <td class="num" style="white-space:nowrap">${!c?html`<span class="piccolo silenzioso">${b.netto==null&&b.oreRetribuite==null?'netto da scrivere':'presenze mancanti'}</span>`
-        :v?html`<span class="pillola ${v.stato==='revisione'?'scadenza':'valido'}">${v.stato==='revisione'?'Da rivedere':'Accettata'}</span> <button class="pulsante piccolo discreto" data-azione="busta-verifica-annulla" data-tabella="1" data-id="${b.id}">Cambia</button>`
+        :v?html`<span class="pillola ${v.stato==='revisione'?'scadenza':'valido'}" title="${v.nota||''}">${v.stato==='revisione'?'Da rivedere':'Accettata'}${v.nota?html` ${icona('modifica','piccola')}`:''}</span>${v.nota?html`<div class="piccolo silenzioso taglia" style="max-width:260px;white-space:normal">${v.nota}</div>`:''} <button class="pulsante piccolo discreto" data-azione="busta-verifica-annulla" data-tabella="1" data-id="${b.id}">Cambia</button>`
         :!c.scarto?html`<span class="pillola valido">${icona('ok','piccola')}Torna</span>`
         :html`<button class="pulsante piccolo" data-azione="busta-verifica" data-tabella="1" data-id="${b.id}" data-valore="accettata">${icona('spunta','piccola')}Va bene così</button> <button class="pulsante piccolo discreto pericolo" data-azione="busta-verifica" data-tabella="1" data-id="${b.id}" data-valore="revisione">Da rivedere</button>`}</td></tr>`})}
     </tbody></table></div></div>`;
@@ -653,10 +661,13 @@ function confrontoBusta(b){
   return {oreBusta:b.oreRetribuite,oreGriglia:calc.oreGriglia,diff,nettoBusta:b.netto,importoGriglia:calc.importo,diffEuro,scarto};
 }
 const piuMeno=(v,f)=>v==null?'':(v>0?'+':v<0?'−':'')+f(Math.abs(v));
-AZIONI['busta-verifica']=d=>{
+AZIONI['busta-verifica']=async d=>{
   const b=perId('bustePaga',d.id);const c=confrontoBusta(b);
+  // la nota è facoltativa: serve solo se c'è un motivo particolare (un anticipo, un'ora pagata a parte…)
+  const nota=await chiediTesto(d.valore==='accettata'?'Differenza accettata':'Busta da rivedere',{etichetta:'Nota (facoltativa)',multiriga:true,ok:d.valore==='accettata'?'Va bene così':'Da rivedere',aiuto:d.valore==='accettata'?'Perché va bene così, se c\'è qualcosa di particolare: un anticipo, ore pagate a parte, un conguaglio…':'Cosa c\'è da controllare o da chiedere al commercialista.'});
+  if(nota===null) return;
   esegui(d.valore==='accettata'?'Differenza accettata':'Busta segnata da rivedere',s=>{
-    s.bustePaga.find(x=>x.id===d.id).verifica={stato:d.valore,quando:oggi(),oreBusta:c?c.oreBusta:null,oreGriglia:c?c.oreGriglia:null,nettoBusta:c?c.nettoBusta:null,importoGriglia:c?c.importoGriglia:null};
+    s.bustePaga.find(x=>x.id===d.id).verifica={stato:d.valore,quando:oggi(),nota:nota.trim()||null,oreBusta:c?c.oreBusta:null,oreGriglia:c?c.oreGriglia:null,nettoBusta:c?c.nettoBusta:null,importoGriglia:c?c.importoGriglia:null};
   },{senzaRender:true});
   if(!d.tabella) AZIONI['busta-apri']({id:d.id});render();
 };
@@ -667,7 +678,7 @@ function bloccoConfrontoBusta(b){
   const righe=html`<table class="tabella densa mt-s"><thead><tr><th></th><th class="num">Busta</th><th class="num">Presenze</th><th class="num">Differenza</th></tr></thead><tbody>
     ${c.diffEuro!=null?html`<tr><td>Netto</td><td class="num">${fEuro(c.nettoBusta)}</td><td class="num">${fEuro(c.importoGriglia)}</td><td class="num"><b>${piuMeno(c.diffEuro,fEuro)}</b></td></tr>`:''}
     ${c.diff!=null?html`<tr><td>Ore</td><td class="num">${fOre(c.oreBusta)}</td><td class="num">${fOre(c.oreGriglia)}</td><td class="num"><b>${piuMeno(c.diff,fOre)}</b></td></tr>`:''}</tbody></table>`;
-  if(b.verifica) return html`<div class="avviso-inline ${b.verifica.stato==='revisione'?'attenzione':''} mt-s">${icona(b.verifica.stato==='revisione'?'attenzione':'ok')}<div class="corpo">${b.verifica.stato==='revisione'?'Segnata da rivedere':'Differenza accettata'} il ${fData(b.verifica.quando)}.${righe}<div class="mt-s"><button class="pulsante piccolo" data-azione="busta-verifica-annulla" data-id="${b.id}">Rivedi la verifica</button></div></div></div>`;
+  if(b.verifica) return html`<div class="avviso-inline ${b.verifica.stato==='revisione'?'attenzione':''} mt-s">${icona(b.verifica.stato==='revisione'?'attenzione':'ok')}<div class="corpo">${b.verifica.stato==='revisione'?'Segnata da rivedere':'Differenza accettata'} il ${fData(b.verifica.quando)}.${b.verifica.nota?html`<div class="mt-s"><b>Nota:</b> ${b.verifica.nota}</div>`:''}${righe}<div class="mt-s"><button class="pulsante piccolo" data-azione="busta-verifica-annulla" data-id="${b.id}">Rivedi la verifica</button></div></div></div>`;
   if(!c.scarto) return html`<div class="avviso-inline mt-s">${icona('ok')}<div class="corpo">La busta torna con le presenze.${righe}</div></div>`;
   return html`<div class="avviso-inline attenzione mt-s">${icona('attenzione')}<div class="corpo"><b>La busta non torna con le presenze.</b>${righe}
     <div class="mt-s"><button class="pulsante piccolo" data-azione="busta-verifica" data-id="${b.id}" data-valore="accettata">${icona('ok','piccola')}Va bene così</button> <button class="pulsante piccolo pericolo" data-azione="busta-verifica" data-id="${b.id}" data-valore="revisione">${icona('attenzione','piccola')}Da rivedere</button></div></div></div>`;
@@ -692,7 +703,8 @@ function vistaModelli(r){
   ${sotto==='pos'?vistaModelloPos():''}
   ${sotto==='carta'?html`<div class="griglia due"><div class="scheda"><h3>Carta intestata</h3><p class="secondario piccolo">Righe di testo accanto al logo, su ogni pagina dei documenti.</p><ol>${(stato.azienda.cartaIntestata.righe||[]).map(x=>html`<li>${x}</li>`)}</ol><button class="pulsante" data-azione="carta-modifica">${icona('modifica')}Modifica righe</button>
     <div class="mt"><div class="etichetta-campo">Logo</div><div class="mt-s"><img src="${immagineAzienda('logo')}" alt="Logo" style="height:60px"></div><div class="mt-s"><button class="pulsante piccolo" data-azione="immagine-sostituisci" data-chiave="logo">${icona('carica','piccola')}Sostituisci</button>${stato.azienda.img_logo?html` <button class="pulsante piccolo" data-azione="immagine-ripristina" data-chiave="logo">Originale</button>`:''}</div></div></div>
-    <div class="scheda"><h3>Firme e timbro</h3><div class="griglia tre">${[['firmaTimbro','Timbro e firma (documenti)'],['firmaLegale','Firma Legale Rappresentante'],['firmaRspp','Firma RSPP'],['firmaRls','Firma RLS']].map(([k,t])=>html`<div><div class="etichetta-campo">${t}</div><div class="riquadro-firma"><img src="${immagineAzienda(k)}" alt="${t}"></div><div class="mt-s"><button class="pulsante piccolo" data-azione="immagine-sostituisci" data-chiave="${k}">${icona('carica','piccola')}Sostituisci</button>${stato.azienda['img_'+k]?html` <button class="pulsante piccolo" data-azione="immagine-ripristina" data-chiave="${k}">Originale</button>`:''}</div></div>`)}</div><p class="piccolo secondario mt">La firma grafica non sostituisce la firma digitale: dove un documento la richiede, l'applicazione prepara il PDF e lo segnala.</p></div></div>`:''}`;
+    <div class="scheda"><h3>Firme e timbro</h3><div class="griglia tre">${[['firmaTimbro','Timbro e firma (documenti)'],['firmaLegale','Firma Legale Rappresentante'],['firmaRspp','Firma RSPP'],['firmaRls','Firma RLS']].map(([k,t])=>html`<div><div class="etichetta-campo">${t}</div><div class="riquadro-firma"><img src="${immagineAzienda(k)}" alt="${t}"></div><div class="mt-s"><button class="pulsante piccolo" data-azione="immagine-sostituisci" data-chiave="${k}">${icona('carica','piccola')}Sostituisci</button>${stato.azienda['img_'+k]?html` <button class="pulsante piccolo" data-azione="immagine-ripristina" data-chiave="${k}">Originale</button>`:''}</div></div>`)}</div><p class="piccolo secondario mt">La firma grafica non sostituisce la firma digitale: dove un documento la richiede, l'applicazione prepara il PDF e lo segnala.</p></div></div>
+    <div class="scheda mt"><h3>Firme delle persone</h3><p class="secondario piccolo">Fotografa la firma su un foglio bianco: l'app toglie lo sfondo. Si usa nelle nomine firmate per accettazione e quando firmi un documento.</p><div class="griglia tre">${stato.persone.filter(p=>p.attivo).map(p=>html`<div><div class="etichetta-campo"><a href="#/operai/${p.id}">${nomePersona(p)}</a></div><div class="riquadro-firma">${p.firmaImg?html`<img src="${p.firmaImg}" alt="Firma di ${nomePersona(p)}">`:html`<span class="piccolo silenzioso">nessuna firma</span>`}</div><div class="mt-s"><button class="pulsante piccolo" data-azione="persona-firma" data-id="${p.id}">${icona('fotocamera','piccola')}${p.firmaImg?'Sostituisci':'Carica'}</button>${p.firmaImg?html` <button class="pulsante piccolo discreto pericolo" data-azione="persona-firma-togli" data-id="${p.id}">Togli</button>`:''}</div></div>`)}</div></div>`:''}`;
 }
 document.addEventListener('click',e=>{const b=e.target.closest('[data-linguetta="modelli"]');if(b){e.stopImmediatePropagation();ui.filtri.modelli=b.dataset.valore;render()}},true);
 AZIONI['filtro-modelli-cerca']=(d,t)=>{ui.filtri.cercaModelli=t.value;render();setTimeout(()=>{const i=el('[data-cambio="filtro-modelli-cerca"]');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}},0)};

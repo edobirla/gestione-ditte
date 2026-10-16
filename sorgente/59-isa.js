@@ -120,7 +120,7 @@ AZIONI['isa-dichiarazione']=async d=>{
 
 VISTE.fineanno=function(r){
   const t=r.id||'isa';
-  return html`<div class="testata"><div><div class="occhiello">Amministrazione · per il commercialista</div><h1>Fine anno</h1><p class="sotto">Quello che serve una volta l’anno: i dati ISA dalle fatture e le rimanenze al 31 dicembre.</p></div></div>
-  ${linguetteRotta('fineanno',[{id:'isa',testo:'ISA'},{id:'rimanenze',testo:'Rimanenze'}],t)}
-  ${t==='rimanenze'?contenutoRimanenze(r):contenutoIsa(r)}`;
+  return html`<div class="testata"><div><div class="occhiello">Amministrazione · per il commercialista</div><h1>Fine anno</h1><p class="sotto">Quello che serve una volta l’anno: i dati ISA dalle fatture, le rimanenze al 31 dicembre e i bilanci con i verbali di assemblea.</p></div></div>
+  ${linguetteRotta('fineanno',[{id:'isa',testo:'ISA'},{id:'rimanenze',testo:'Rimanenze'},{id:'bilanci',testo:'Bilanci e verbali'}],t)}
+  ${t==='rimanenze'?contenutoRimanenze(r):t==='bilanci'?contenutoBilanci():contenutoIsa(r)}`;
 };

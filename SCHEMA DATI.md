@@ -33,6 +33,7 @@ Un backup con versione precedente viene migrato all'apertura (`migrazioni` nel c
 | `generati[]` | storico dei documenti generati (HTML congelato) | |
 | `versamenti[]` | F24 e Cassa Edile: `{id, tipo:'f24'|'cassaEdile', anno, mese, dataPagamento, importo, voci:{inps,erario,altro,debito,credito}, fileId, note}`. F24: anno/mese = mese della scadenza (il 16). Cassa Edile: anno/mese = mese di riferimento (si paga entro la fine del mese dopo) | |
 | `isa` | `{"AAAA": {fatture:{[movimentoId]:{spec:[chiavi], comune, provincia, ambito}}, punteggio, fileId}}`: solo le classificazioni scelte a mano; il resto si calcola dai cantieri | |
+| `bilanci` | `{"AAAA": {bilancio, verbale, ricevuta: fileId, altri:[fileId], note}}`: per esercizio, bilancio con nota integrativa, verbale di assemblea e ricevuta di deposito | |
 | `impostazioni` | preferenze, soglie, backup, chiave API (solo locale) | |
 | `cestino[]` | elementi eliminati recuperabili | |
 

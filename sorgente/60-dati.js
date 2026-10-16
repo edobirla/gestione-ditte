@@ -25,7 +25,7 @@ function datiIniziali(soloStruttura){
     persone:[],tipiDocumento:[],documenti:[],file:[],clienti:[],professionisti:[],lavorazioni:[],cantieri:[],pos:[],
     modelli:{dichiarazioni:[],posTesto:null,posMacchine:null,posDpiDotazione:null},
     presenze:{},bustePaga:[],regoleBuste:[],listino:[],preventivi:[],movimenti:[],generati:[],cestino:[],
-    mezzi:[],fornitori:[],bonifici:[],versamenti:[],rimanenze:{},isa:{},
+    mezzi:[],fornitori:[],bonifici:[],versamenti:[],rimanenze:{},isa:{},bilanci:{},
     impostazioni:{nomeUtente:'',dispositivo:'',tema:'sistema',ultimoBackup:null,modificheDopoBackup:0,ultimaModifica:null,soglie:Object.assign({},SOGLIE_PREDEFINITE),densita:'normale',festivitaLocali:[],arrotondamento:'aziendale',compressioneImmagini:true,obiettivoKb:300,avvisaPdfMb:2,creato:new Date().toISOString()},
   };
   s.lavorazioni=LAVORAZIONI_INIZIALI.map(l=>Object.assign({},l));
@@ -115,7 +115,8 @@ const TIPI_DOCUMENTO_INIZIALI=[
   {id:'mezzo_revisione',nome:'Revisione',ambito:'mezzo',validitaMesi:null,obbligatorio:'si',bloccaIdoneita:false,categoria:'mezzo',sinonimi:['revisione','revisione periodica']},
   {id:'mezzo_bollo',nome:'Bollo',ambito:'mezzo',validitaMesi:12,obbligatorio:'si',bloccaIdoneita:false,categoria:'mezzo',sinonimi:['bollo','tassa automobilistica']},
   {id:'mezzo_libretto',nome:'Libretto di circolazione',ambito:'mezzo',validitaMesi:null,obbligatorio:'si',bloccaIdoneita:false,categoria:'mezzo',sinonimi:['libretto','carta di circolazione']},
-  {id:'altro_mezzo',nome:'Altro documento del mezzo',ambito:'mezzo',validitaMesi:null,obbligatorio:'no',bloccaIdoneita:false,categoria:'mezzo',sinonimi:[]},
+  {id:'mezzo_verbale',nome:'Verbale / multa',ambito:'mezzo',validitaMesi:null,obbligatorio:'no',bloccaIdoneita:false,categoria:'mezzo',sinonimi:['verbale','multa','contravvenzione','sanzione']},
+{id:'altro_mezzo',nome:'Altro documento del mezzo',ambito:'mezzo',validitaMesi:null,obbligatorio:'no',bloccaIdoneita:false,categoria:'mezzo',sinonimi:[]},
 ];
 
 // Modelli di dichiarazione. I segnaposto {{...}} si riempiono dai dati del cantiere selezionato.
