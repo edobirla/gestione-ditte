@@ -526,7 +526,7 @@ function vistaBustePaga(r){
       ${daAssegnare.length?html`<div class="sezione-titolo">Da assegnare (${daAssegnare.length})</div><ul class="elenco-piatto">${daAssegnare.map(b=>{const m=fileMeta(b.fileId);return html`<li>${icona('attenzione','piccola')}<span class="spazio taglia">${m?m.nome:'file?'}</span><button class="pulsante piccolo" data-azione="busta-apri" data-id="${b.id}">Assegna</button></li>`})}</ul>`:''}
       ${(stato.regoleBuste||[]).length?html`<details class="mt"><summary class="piccolo secondario" style="cursor:pointer">Regole imparate dai nomi dei file (${stato.regoleBuste.length})</summary><ul class="elenco-piatto piccolo">${stato.regoleBuste.map((rg,i)=>html`<li><span class="mono">${rg.segno}</span> → ${nomePersona(persona(rg.personaId))}<span class="spazio"></span><button class="pulsante piccolo icona discreto" data-azione="busta-regola-elimina" data-i="${i}" aria-label="Elimina regola">${icona('chiudi','piccola')}</button></li>`)}</ul></details>`:''}
     </div></div>
-    <div class="guscio ${coda.length?'c-6':'c-7'}"><div class="scheda"><div class="intesta"><h2>Per operaio</h2></div>
+    <div class="guscio ${coda.length?'c-6':'c-7'}"><div class="scheda"><div class="intesta"><h2>Per operaio</h2>${p&&buste.length?html`<button class="pulsante piccolo" data-azione="buste-condividi" data-id="${p.id}">${icona('condividi','piccola')}Condividi buste</button>`:''}</div>
       <div class="persone-chip mb">${persone.map(pp=>html`<a class="persona-chip ${pid===pp.id?'attiva':''}" href="#/documenti/buste?persona=${pp.id}">${avatar(pp,'mini')}${pp.nome||nomePersona(pp)}<small>${stato.bustePaga.filter(b=>b.personaId===pp.id).length}</small></a>`)}</div>
       ${p?anni.map(anno=>html`<div class="sezione-titolo">${anno}</div><div class="mesi-12 sei">${Array.from({length:12},(_,i)=>i+1).map(mm=>{const b=buste.find(x=>x.anno===anno&&x.mese===mm);const futuro=anno>oggiD.getFullYear()||(anno===oggiD.getFullYear()&&mm>oggiD.getMonth());const lavorato=!!(meseP(anno,mm)&&meseP(anno,mm).persone[p.id]);const c=b?confrontoBusta(b):null;const scarto=c&&c.scarto&&(!b.verifica||b.verifica.stato==='revisione');return html`<div class="mese-cella ${b?'presente':futuro?'futuro':lavorato?'mancante':'vuota'}" ${b?html`data-azione="busta-apri" data-id="${b.id}"`:''} title="${b?'Busta presente':lavorato&&!futuro?'Mese lavorato senza busta':''}"><b>${NOMI_MESI_BREVI[mm-1]}</b><span>${b?(b.netto!=null?fEuro(b.netto,0):'busta'):lavorato&&!futuro?'manca':''}</span>${scarto?html`<i class="segno-scarto"></i>`:''}</div>`})}</div>`):html`<p class="secondario piccolo">Scegli una persona per vedere le buste per anno e mese, con i mesi mancanti in rosso.</p>`}
       ${pdfMese.size?html`<div class="sezione-titolo">PDF interi del commercialista</div><div class="riga">${Array.from(pdfMese.entries()).sort((a,b)=>{const [x,y]=[a[0],b[0]].map(k=>k.split('-').map(Number));return (y[0]*100+y[1])-(x[0]*100+x[1])}).slice(0,12).flatMap(([k,ids])=>{const [an,me]=k.split('-').map(Number);return Array.from(ids).map(id=>html`<button class="pulsante piccolo" data-azione="file-apri" data-id="${id}">${icona('pdf','piccola')}${NOMI_MESI_BREVI[me-1]} ${an}</button>`)})}</div>`:''}
@@ -683,6 +683,25 @@ function bloccoConfrontoBusta(b){
   return html`<div class="avviso-inline attenzione mt-s">${icona('attenzione')}<div class="corpo"><b>La busta non torna con le presenze.</b>${righe}
     <div class="mt-s"><button class="pulsante piccolo" data-azione="busta-verifica" data-id="${b.id}" data-valore="accettata">${icona('ok','piccola')}Va bene così</button> <button class="pulsante piccolo pericolo" data-azione="busta-verifica" data-id="${b.id}" data-valore="revisione">${icona('attenzione','piccola')}Da rivedere</button></div></div></div>`;
 }
+// Condividere le buste di un operaio: se ce n'è una sola parte subito, altrimenti si scelgono i mesi
+// (con «Tutte» e «Nessuna»), dal più recente.
+AZIONI['buste-condividi']=async d=>{
+  const p=persona(d.id);const buste=stato.bustePaga.filter(b=>b.personaId===p.id&&b.fileId&&fileMeta(b.fileId)).sort((a,b)=>(b.anno*100+b.mese)-(a.anno*100+a.mese));
+  if(!buste.length) return avviso('Nessuna busta paga di '+nomePersona(p)+' da condividere');
+  const nomeBusta=b=>'Busta paga '+nomePersona(p)+' '+(b.anno&&b.mese?capitalizza(nomeMese(b.mese))+' '+b.anno:'')+'.pdf';
+  let scelte=buste;
+  if(buste.length>1){
+    const anni=unici(buste.map(b=>b.anno)).sort((a,b)=>b-a);
+    scelte=await dialogo({titolo:'Condividi le buste di '+nomePersona(p),corpo:html`<div class="riga mb-s"><button type="button" class="pulsante piccolo" data-sel-buste="tutte">Tutte</button><button type="button" class="pulsante piccolo discreto" data-sel-buste="nessuna">Nessuna</button>${anni.length>1?anni.map(a=>html`<button type="button" class="pulsante piccolo discreto" data-sel-buste="${a}">${a}</button>`):''}</div>
+      ${anni.map(a=>html`<div class="sezione-titolo">${a}</div><div class="griglia tre">${buste.filter(b=>b.anno===a).map(b=>html`<label class="riga stretta"><input type="checkbox" data-busta="${b.id}" data-anno="${b.anno}" ${b===buste[0]?'checked':''}>${b.mese?capitalizza(nomeMese(b.mese)):'senza mese'}${b.netto!=null?html` <span class="piccolo silenzioso">${fEuro(b.netto,0)}</span>`:''}</label>`)}</div>`)}`,
+      pulsanti:[{testo:'Annulla',valore:null},{testo:'Condividi tutte',valore:buste},{testo:'Condividi le scelte',classe:'primario',primario:true,fn:v=>{const ids=[...v.querySelectorAll('[data-busta]:checked')].map(x=>x.dataset.busta);if(!ids.length){avviso('Scegli almeno una busta');return false}return buste.filter(b=>ids.includes(b.id))}}],
+      alMontaggio:v=>v.querySelectorAll('[data-sel-buste]').forEach(b=>b.addEventListener('click',()=>{const k=b.dataset.selBuste;v.querySelectorAll('[data-busta]').forEach(c=>{c.checked=k==='tutte'||(k!=='nessuna'&&c.dataset.anno===k)})}))});
+    if(!scelte) return;
+  }
+  const files=[];for(const b of scelte){const m=fileMeta(b.fileId);const blob=await leggiFile(m.hash);if(blob)files.push(new File([blob],nomeBusta(b),{type:m.mime||'application/pdf'}))}
+  if(!files.length) return avviso('Contenuto delle buste non disponibile',{tipo:'errore'});
+  await condividiFile(files,{titolo:'Buste paga '+nomePersona(p)});
+};
 AZIONI['busta-apri']=async d=>{
   const b=perId('bustePaga',d.id); if(!b) return;
   const m=fileMeta(b.fileId);

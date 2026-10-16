@@ -16,6 +16,18 @@ async function condividiOScarica(blob,nome,opz){
   if(eIos()) avviso('Il foglio di condivisione non è disponibile qui: il file è stato scaricato in File → Download.',{durata:6000});
   return 'scaricato';
 }
+// Più file insieme: un solo foglio di condivisione se il dispositivo lo permette, altrimenti si scaricano uno per uno.
+async function condividiFile(files,opz){
+  opz=opz||{};
+  if(files.length===1) return condividiOScarica(files[0],files[0].name,opz);
+  if(navigator.share&&navigator.canShare&&navigator.canShare({files})){
+    try{ await navigator.share({files,title:opz.titolo||'',text:opz.testo||''}); return 'condiviso'; }
+    catch(e){ if(e&&e.name==='AbortError') return 'annullato'; }
+  }
+  for(const f of files){ scaricaBlob(f,f.name); await new Promise(r=>setTimeout(r,300)); }
+  if(eIos()) avviso('Il foglio di condivisione non è disponibile qui: i file sono stati scaricati in File → Download.',{durata:6000});
+  return 'scaricato';
+}
 function scaricaTesto(testo,nome,mime){const b=new Blob(['﻿'+testo],{type:(mime||'text/plain')+';charset=utf-8'});return condividiOScarica(b,nome)}
 function csvDaRighe(righe){return righe.map(r=>r.map(v=>{if(v===null||v===undefined)return '';let s=typeof v==='number'?fNum(v,Number.isInteger(v)?0:2):String(v);if(/[;"\n]/.test(s))s='"'+s.replace(/"/g,'""')+'"';return s}).join(';')).join('\r\n')}
 function scaricaCsv(righe,nome){return scaricaTesto(csvDaRighe(righe),nome,'text/csv')}
