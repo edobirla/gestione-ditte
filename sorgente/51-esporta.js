@@ -6,26 +6,27 @@ function scaricaBlob(blob,nome){
   const u=URL.createObjectURL(blob);const a=document.createElement('a');a.href=u;a.download=nome;a.rel='noopener';document.body.appendChild(a);a.click();setTimeout(()=>{a.remove();URL.revokeObjectURL(u)},4000);
 }
 async function condividiOScarica(blob,nome,opz){
-  opz=opz||{};
-  const file=new File([blob],nome,{type:blob.type||'application/octet-stream'});
-  if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){
-    try{ await navigator.share({files:[file],title:nome,text:opz.testo||''}); return 'condiviso'; }
-    catch(e){ if(e&&e.name==='AbortError') return 'annullato'; }
-  }
-  scaricaBlob(blob,nome);
-  if(eIos()) avviso('Il foglio di condivisione non è disponibile qui: il file è stato scaricato in File → Download.',{durata:6000});
-  return 'scaricato';
+  return condividiFile([new File([blob],nome,{type:blob.type||'application/octet-stream'})],Object.assign({titolo:nome},opz||{}));
 }
-// Più file insieme: un solo foglio di condivisione se il dispositivo lo permette, altrimenti si scaricano uno per uno.
+// Il foglio di condivisione si apre solo subito dopo un tocco: se intanto l'app ha letto i file
+// dall'archivio, il browser lo rifiuta (NotAllowedError). Allora i file sono già pronti e si chiede
+// un secondo tocco su «Condividi», che lo apre davvero. Senza condivisione: un file si scarica,
+// più file vanno in un solo .zip (i download multipli i browser li bloccano).
 async function condividiFile(files,opz){
   opz=opz||{};
-  if(files.length===1) return condividiOScarica(files[0],files[0].name,opz);
+  const dati={files,title:opz.titolo||'',text:opz.testo||''};
   if(navigator.share&&navigator.canShare&&navigator.canShare({files})){
-    try{ await navigator.share({files,title:opz.titolo||'',text:opz.testo||''}); return 'condiviso'; }
-    catch(e){ if(e&&e.name==='AbortError') return 'annullato'; }
+    try{ await navigator.share(dati); return 'condiviso'; }
+    catch(e){
+      if(e&&e.name==='AbortError') return 'annullato';
+      const esito=await dialogo({titolo:'Pronto da condividere',corpo:html`<p>${files.length===1?html`<b>${files[0].name}</b>`:html`${files.length} file: ${files.map(f=>f.name).join(', ')}`}</p>`,
+        pulsanti:[{testo:'Annulla',valore:'annullato'},{testo:'Scarica',valore:'scarica'},{testo:'Condividi',classe:'primario',primario:true,fn:()=>{navigator.share(dati).catch(err=>{if(!err||err.name!=='AbortError')segnalaErrore(err,'Condivisione non riuscita')});return 'condiviso'}}]});
+      if(esito!=='scarica') return esito||'annullato';
+    }
   }
-  for(const f of files){ scaricaBlob(f,f.name); await new Promise(r=>setTimeout(r,300)); }
-  if(eIos()) avviso('Il foglio di condivisione non è disponibile qui: i file sono stati scaricati in File → Download.',{durata:6000});
+  if(files.length===1) scaricaBlob(files[0],files[0].name);
+  else scaricaBlob(await creaZip(files.map(f=>({nome:f.name,dati:f}))),nomeFileData(opz.titolo||'File','zip'));
+  if(eIos()) avviso('Il foglio di condivisione non è disponibile qui: il file è stato scaricato in File → Download.',{durata:6000});
   return 'scaricato';
 }
 function scaricaTesto(testo,nome,mime){const b=new Blob(['﻿'+testo],{type:(mime||'text/plain')+';charset=utf-8'});return condividiOScarica(b,nome)}
