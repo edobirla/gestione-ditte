@@ -621,6 +621,9 @@ input[type=checkbox],input[type=radio]{width:17px;height:17px;accent-color:var(-
 #velo-menu{position:fixed;inset:0;z-index:125;background:rgba(14,14,18,.3);display:none}
 
 /* ═══════════ componenti del nuovo disegno ═══════════ */
+.file-trascinabile{display:flex;align-items:center;gap:8px;width:100%;padding:8px 10px;border-radius:10px;background:var(--sunk);color:var(--ink);cursor:grab;text-decoration:none}
+.file-trascinabile:hover{background:var(--sunk-2)}
+
 .intesta>.pulsante:last-child{margin-left:auto}
 .campo>.gruppo-pulsanti{width:max-content}
 
@@ -3745,7 +3748,7 @@ function schedaBustePersona(p){
   const buste=stato.bustePaga.filter(b=>b.personaId===p.id);
   const anni=unici([...buste.map(b=>b.anno),new Date().getFullYear()]).sort((a,b)=>b-a);
   const oggiD=new Date();
-  return html`<div class="strumenti-tabella"><span class="secondario piccolo">Clicca un mese per vedere la busta. Un mese rosso ha ore in presenze ma nessuna busta.</span><span class="spazio"></span><a class="pulsante" href="#/documenti/buste?persona=${p.id}">${icona('busta-paga','piccola')}Smistamento buste</a></div>
+  return html`<div class="strumenti-tabella"><span class="secondario piccolo">Clicca un mese per vedere la busta. Un mese rosso ha ore in presenze ma nessuna busta.</span><span class="spazio"></span>${buste.length?html`<button class="pulsante" data-azione="buste-condividi" data-id="${p.id}">${icona('condividi','piccola')}Condividi buste</button>`:''}<a class="pulsante" href="#/documenti/buste?persona=${p.id}">${icona('busta-paga','piccola')}Smistamento buste</a></div>
   ${anni.map(anno=>html`<div class="guscio mb"><div class="scheda"><div class="intesta"><h2>${anno}</h2><span class="piccolo silenzioso">${plurale(buste.filter(b=>b.anno===anno).length,'busta','buste')}</span></div><div class="mesi-12">${Array.from({length:12},(_,i)=>i+1).map(m=>{const b=buste.find(x=>x.anno===anno&&x.mese===m);const futuro=anno>oggiD.getFullYear()||(anno===oggiD.getFullYear()&&m>oggiD.getMonth());const lavorato=!!(meseP(anno,m)&&meseP(anno,m).persone[p.id]);const c=b?confrontoBusta(b):null;return html`<div class="mese-cella ${b?'presente':futuro?'futuro':lavorato?'mancante':'vuota'}" ${b?html`data-azione="busta-apri" data-id="${b.id}"`:''} title="${b?'Busta paga':futuro?'':lavorato?'Mese lavorato senza busta paga':'Nessuna busta'}"><b>${NOMI_MESI_BREVI[m-1]}</b><span>${b?(b.netto!=null?fEuro(b.netto,0):'busta'):lavorato&&!futuro?'manca':''}</span>${c&&c.scarto&&!(b.verifica&&b.verifica.stato==='accettata')?html`<i class="segno-scarto" title="Il netto non torna con le presenze"></i>`:''}</div>`})}</div></div></div>`)}`;
 }
 function schedaOrePersona(p){
@@ -5280,7 +5283,7 @@ function vistaBustePaga(r){
       ${daAssegnare.length?html`<div class="sezione-titolo">Da assegnare (${daAssegnare.length})</div><ul class="elenco-piatto">${daAssegnare.map(b=>{const m=fileMeta(b.fileId);return html`<li>${icona('attenzione','piccola')}<span class="spazio taglia">${m?m.nome:'file?'}</span><button class="pulsante piccolo" data-azione="busta-apri" data-id="${b.id}">Assegna</button></li>`})}</ul>`:''}
       ${(stato.regoleBuste||[]).length?html`<details class="mt"><summary class="piccolo secondario" style="cursor:pointer">Regole imparate dai nomi dei file (${stato.regoleBuste.length})</summary><ul class="elenco-piatto piccolo">${stato.regoleBuste.map((rg,i)=>html`<li><span class="mono">${rg.segno}</span> → ${nomePersona(persona(rg.personaId))}<span class="spazio"></span><button class="pulsante piccolo icona discreto" data-azione="busta-regola-elimina" data-i="${i}" aria-label="Elimina regola">${icona('chiudi','piccola')}</button></li>`)}</ul></details>`:''}
     </div></div>
-    <div class="guscio ${coda.length?'c-6':'c-7'}"><div class="scheda"><div class="intesta"><h2>Per operaio</h2></div>
+    <div class="guscio ${coda.length?'c-6':'c-7'}"><div class="scheda"><div class="intesta"><h2>Per operaio</h2>${p&&buste.length?html`<button class="pulsante piccolo" data-azione="buste-condividi" data-id="${p.id}">${icona('condividi','piccola')}Condividi buste</button>`:''}</div>
       <div class="persone-chip mb">${persone.map(pp=>html`<a class="persona-chip ${pid===pp.id?'attiva':''}" href="#/documenti/buste?persona=${pp.id}">${avatar(pp,'mini')}${pp.nome||nomePersona(pp)}<small>${stato.bustePaga.filter(b=>b.personaId===pp.id).length}</small></a>`)}</div>
       ${p?anni.map(anno=>html`<div class="sezione-titolo">${anno}</div><div class="mesi-12 sei">${Array.from({length:12},(_,i)=>i+1).map(mm=>{const b=buste.find(x=>x.anno===anno&&x.mese===mm);const futuro=anno>oggiD.getFullYear()||(anno===oggiD.getFullYear()&&mm>oggiD.getMonth());const lavorato=!!(meseP(anno,mm)&&meseP(anno,mm).persone[p.id]);const c=b?confrontoBusta(b):null;const scarto=c&&c.scarto&&(!b.verifica||b.verifica.stato==='revisione');return html`<div class="mese-cella ${b?'presente':futuro?'futuro':lavorato?'mancante':'vuota'}" ${b?html`data-azione="busta-apri" data-id="${b.id}"`:''} title="${b?'Busta presente':lavorato&&!futuro?'Mese lavorato senza busta':''}"><b>${NOMI_MESI_BREVI[mm-1]}</b><span>${b?(b.netto!=null?fEuro(b.netto,0):'busta'):lavorato&&!futuro?'manca':''}</span>${scarto?html`<i class="segno-scarto"></i>`:''}</div>`})}</div>`):html`<p class="secondario piccolo">Scegli una persona per vedere le buste per anno e mese, con i mesi mancanti in rosso.</p>`}
       ${pdfMese.size?html`<div class="sezione-titolo">PDF interi del commercialista</div><div class="riga">${Array.from(pdfMese.entries()).sort((a,b)=>{const [x,y]=[a[0],b[0]].map(k=>k.split('-').map(Number));return (y[0]*100+y[1])-(x[0]*100+x[1])}).slice(0,12).flatMap(([k,ids])=>{const [an,me]=k.split('-').map(Number);return Array.from(ids).map(id=>html`<button class="pulsante piccolo" data-azione="file-apri" data-id="${id}">${icona('pdf','piccola')}${NOMI_MESI_BREVI[me-1]} ${an}</button>`)})}</div>`:''}
@@ -5437,6 +5440,25 @@ function bloccoConfrontoBusta(b){
   return html`<div class="avviso-inline attenzione mt-s">${icona('attenzione')}<div class="corpo"><b>La busta non torna con le presenze.</b>${righe}
     <div class="mt-s"><button class="pulsante piccolo" data-azione="busta-verifica" data-id="${b.id}" data-valore="accettata">${icona('ok','piccola')}Va bene così</button> <button class="pulsante piccolo pericolo" data-azione="busta-verifica" data-id="${b.id}" data-valore="revisione">${icona('attenzione','piccola')}Da rivedere</button></div></div></div>`;
 }
+// Condividere le buste di un operaio: se ce n'è una sola parte subito, altrimenti si scelgono i mesi
+// (con «Tutte» e «Nessuna»), dal più recente.
+AZIONI['buste-condividi']=async d=>{
+  const p=persona(d.id);const buste=stato.bustePaga.filter(b=>b.personaId===p.id&&b.fileId&&fileMeta(b.fileId)).sort((a,b)=>(b.anno*100+b.mese)-(a.anno*100+a.mese));
+  if(!buste.length) return avviso('Nessuna busta paga di '+nomePersona(p)+' da condividere');
+  const nomeBusta=b=>'Busta paga '+nomePersona(p)+' '+(b.anno&&b.mese?capitalizza(nomeMese(b.mese))+' '+b.anno:'')+'.pdf';
+  let scelte=buste;
+  if(buste.length>1){
+    const anni=unici(buste.map(b=>b.anno)).sort((a,b)=>b-a);
+    scelte=await dialogo({titolo:'Condividi le buste di '+nomePersona(p),corpo:html`<div class="riga mb-s"><button type="button" class="pulsante piccolo" data-sel-buste="tutte">Tutte</button><button type="button" class="pulsante piccolo discreto" data-sel-buste="nessuna">Nessuna</button>${anni.length>1?anni.map(a=>html`<button type="button" class="pulsante piccolo discreto" data-sel-buste="${a}">${a}</button>`):''}</div>
+      ${anni.map(a=>html`<div class="sezione-titolo">${a}</div><div class="griglia tre">${buste.filter(b=>b.anno===a).map(b=>html`<label class="riga stretta"><input type="checkbox" data-busta="${b.id}" data-anno="${b.anno}" ${b===buste[0]?'checked':''}>${b.mese?capitalizza(nomeMese(b.mese)):'senza mese'}${b.netto!=null?html` <span class="piccolo silenzioso">${fEuro(b.netto,0)}</span>`:''}</label>`)}</div>`)}`,
+      pulsanti:[{testo:'Annulla',valore:null},{testo:'Condividi tutte',valore:buste},{testo:'Condividi le scelte',classe:'primario',primario:true,fn:v=>{const ids=[...v.querySelectorAll('[data-busta]:checked')].map(x=>x.dataset.busta);if(!ids.length){avviso('Scegli almeno una busta');return false}return buste.filter(b=>ids.includes(b.id))}}],
+      alMontaggio:v=>v.querySelectorAll('[data-sel-buste]').forEach(b=>b.addEventListener('click',()=>{const k=b.dataset.selBuste;v.querySelectorAll('[data-busta]').forEach(c=>{c.checked=k==='tutte'||(k!=='nessuna'&&c.dataset.anno===k)})}))});
+    if(!scelte) return;
+  }
+  const files=[];for(const b of scelte){const m=fileMeta(b.fileId);const blob=await leggiFile(m.hash);if(blob)files.push(new File([blob],nomeBusta(b),{type:m.mime||'application/pdf'}))}
+  if(!files.length) return avviso('Contenuto delle buste non disponibile',{tipo:'errore'});
+  await condividiFile(files,{titolo:'Buste paga '+nomePersona(p)});
+};
 AZIONI['busta-apri']=async d=>{
   const b=perId('bustePaga',d.id); if(!b) return;
   const m=fileMeta(b.fileId);
@@ -6744,13 +6766,42 @@ function scaricaBlob(blob,nome){
   const u=URL.createObjectURL(blob);const a=document.createElement('a');a.href=u;a.download=nome;a.rel='noopener';document.body.appendChild(a);a.click();setTimeout(()=>{a.remove();URL.revokeObjectURL(u)},4000);
 }
 async function condividiOScarica(blob,nome,opz){
+  return condividiFile([new File([blob],nome,{type:blob.type||'application/octet-stream'})],Object.assign({titolo:nome},opz||{}));
+}
+// Il foglio di condivisione si apre solo subito dopo un tocco: se intanto l'app ha letto i file
+// dall'archivio, il browser lo rifiuta (NotAllowedError). Allora i file sono già pronti e si chiede
+// un secondo tocco su «Condividi», che lo apre davvero. Senza condivisione: un file si scarica,
+// più file vanno in un solo .zip (i download multipli i browser li bloccano).
+// Chrome (ed Edge) sul Mac non passano il file alle altre app ma il suo percorso su disco, e nel loro
+// menu non c'è WhatsApp: lì la condivisione di sistema non si usa.
+function chromeSuMac(){const ua=navigator.userAgent;return /Macintosh/.test(ua)&&!eIos()&&/Chrome|Chromium|Edg\//.test(ua)}
+// Finestra per il computer: ogni file si trascina direttamente nella chat di WhatsApp (o in Mail, nel
+// Finder…), oppure si scarica; un pulsante apre WhatsApp.
+async function finestraFileDaPortare(files,opz){
+  const url=files.map(f=>URL.createObjectURL(f));
+  await dialogo({titolo:opz.titolo||'Condividi',corpo:html`<p class="piccolo secondario">Trascina il file nella chat di WhatsApp, in una mail o sulla Scrivania. Oppure scaricalo e allegalo dalla cartella Download.</p>
+    <ul class="elenco-piatto">${files.map((f,i)=>html`<li><a class="file-trascinabile" draggable="true" href="${url[i]}" download="${f.name}" data-i="${i}">${icona('pdf','piccola')}<span class="spazio taglia">${f.name}</span><span class="piccolo silenzioso">${fPeso(f.size)}</span></a></li>`)}</ul>
+    <p class="piccolo silenzioso mt-s">Con Safari, invece, «Condividi» apre il menu del Mac con il file vero, WhatsApp compreso.</p>`,
+    pulsanti:[{testo:'Chiudi',valore:null},{testo:'Apri WhatsApp',fn:()=>{location.href='whatsapp://';return false}},{testo:files.length>1?'Scarica tutti':'Scarica',classe:'primario',primario:true,fn:()=>{files.forEach((f,i)=>setTimeout(()=>scaricaBlob(f,f.name),i*350));return false}}],
+    alMontaggio:v=>v.querySelectorAll('.file-trascinabile').forEach(a=>a.addEventListener('dragstart',e=>{const f=files[+a.dataset.i];e.dataTransfer.setData('DownloadURL',(f.type||'application/pdf')+':'+f.name+':'+url[+a.dataset.i])}))});
+  setTimeout(()=>url.forEach(u=>URL.revokeObjectURL(u)),60000);
+  return 'scaricato';
+}
+async function condividiFile(files,opz){
   opz=opz||{};
-  const file=new File([blob],nome,{type:blob.type||'application/octet-stream'});
-  if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){
-    try{ await navigator.share({files:[file],title:nome,text:opz.testo||''}); return 'condiviso'; }
-    catch(e){ if(e&&e.name==='AbortError') return 'annullato'; }
+  const dati={files,title:opz.titolo||'',text:opz.testo||''};
+  if(chromeSuMac()||(!navigator.share&&!eIos())) return finestraFileDaPortare(files,opz);
+  if(navigator.share&&navigator.canShare&&navigator.canShare({files})){
+    try{ await navigator.share(dati); return 'condiviso'; }
+    catch(e){
+      if(e&&e.name==='AbortError') return 'annullato';
+      const esito=await dialogo({titolo:'Pronto da condividere',corpo:html`<p>${files.length===1?html`<b>${files[0].name}</b>`:html`${files.length} file: ${files.map(f=>f.name).join(', ')}`}</p>`,
+        pulsanti:[{testo:'Annulla',valore:'annullato'},{testo:'Scarica',valore:'scarica'},{testo:'Condividi',classe:'primario',primario:true,fn:()=>{navigator.share(dati).catch(err=>{if(!err||err.name!=='AbortError')segnalaErrore(err,'Condivisione non riuscita')});return 'condiviso'}}]});
+      if(esito!=='scarica') return esito||'annullato';
+    }
   }
-  scaricaBlob(blob,nome);
+  if(files.length===1) scaricaBlob(files[0],files[0].name);
+  else scaricaBlob(await creaZip(files.map(f=>({nome:f.name,dati:f}))),nomeFileData(opz.titolo||'File','zip'));
   if(eIos()) avviso('Il foglio di condivisione non è disponibile qui: il file è stato scaricato in File → Download.',{durata:6000});
   return 'scaricato';
 }
