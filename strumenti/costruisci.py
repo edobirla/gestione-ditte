@@ -43,12 +43,12 @@ for cartella,p in parti:
 def testaApp():
     i192,i512=dataUrl(192),dataUrl(512)
     manifesto={"name":"Gestionale","short_name":"Gestionale","start_url":".","scope":".","display":"standalone",
-               "background_color":"#EFEEEA","theme_color":"#EFEEEA","lang":"it",
+               "background_color":"#EFEEEA","lang":"it",
                "icons":[{"src":i192,"sizes":"192x192","type":"image/png","purpose":"any maskable"},
                         {"src":i512,"sizes":"512x512","type":"image/png","purpose":"any maskable"}]}
     m='data:application/manifest+json,'+quote(json.dumps(manifesto,ensure_ascii=False),safe='')
     return ('<link rel="manifest" href="%s">\n<link rel="apple-touch-icon" href="%s">\n'
-            '<link rel="icon" type="image/png" href="%s">\n<meta name="theme-color" content="#EFEEEA" media="(prefers-color-scheme: light)">\n<meta name="theme-color" content="#0B0B0D" media="(prefers-color-scheme: dark)">'%(m,i192,i192))
+            '<link rel="icon" type="image/png" href="%s">'%(m,i192,i192))
 
 mappa=open(os.path.join(base,'sorgente','00-mappa.txt'),encoding='utf8').read() if os.path.exists(os.path.join(base,'sorgente','00-mappa.txt')) else ''
 out='<!DOCTYPE html>\n<html lang="it">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n<meta name="color-scheme" content="light dark">\n<meta name="apple-mobile-web-app-capable" content="yes">\n<meta name="apple-mobile-web-app-status-bar-style" content="default">\n<title>Gestionale</title>\n%s\n<!--\n%s-->\n<style>\n%s\n</style>\n</head>\n<body>\n%s\n<script>\n"use strict";\n%s\n</script>\n</body>\n</html>\n'%(testaApp(),mappa,'\n'.join(css),'\n'.join(html),'\n'.join(js))

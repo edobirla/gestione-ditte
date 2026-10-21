@@ -88,8 +88,6 @@ function applicaTema(t){
   document.documentElement.removeAttribute('data-tema');
   if(ui.tema==='chiaro'||ui.tema==='scuro') document.documentElement.setAttribute('data-tema',ui.tema);
   const b=el('#btn-tema');if(b){b.innerHTML=icona(ui.tema==='scuro'?'luna':ui.tema==='chiaro'?'sole':'monitor');b.title='Tema: '+({sistema:'come il sistema',chiaro:'chiaro',scuro:'scuro'}[ui.tema])+' (clic per cambiare)'}
-  // la barra del titolo dell'app nel Dock (e su iPhone) prende il colore dello sfondo, anche col tema scelto a mano
-  for(const m of tutti('meta[name="theme-color"]')){m.dataset.media=m.dataset.media||m.media;m.media=ui.tema==='sistema'?m.dataset.media:'';m.content=ui.tema==='scuro'?'#0B0B0D':ui.tema==='chiaro'?'#EFEEEA':(m.dataset.media.includes('dark')?'#0B0B0D':'#EFEEEA')}
   try{localStorage.setItem('pavimass-tema',ui.tema)}catch(e){}
 }
 function cicloTema(){const ord=['sistema','chiaro','scuro'];const i=ord.indexOf(ui.tema);applicaTema(ord[(i+1)%3]);if(stato){stato.impostazioni.tema=ui.tema;salvaStato()}avviso('Tema: '+({sistema:'come il sistema',chiaro:'chiaro',scuro:'scuro'}[ui.tema]),{silenzioso:true,durata:1500})}
