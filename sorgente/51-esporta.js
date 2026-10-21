@@ -17,12 +17,19 @@ async function condividiOScarica(blob,nome,opz){
 function chromeSuMac(){const ua=navigator.userAgent;return /Macintosh/.test(ua)&&!eIos()&&/Chrome|Chromium|Edg\//.test(ua)}
 // Finestra per il computer: ogni file si trascina direttamente nella chat di WhatsApp (o in Mail, nel
 // Finder…), oppure si scarica; un pulsante apre WhatsApp.
+// Chrome ed Edge: i file si scrivono direttamente nella cartella scelta (al posto del copia e incolla,
+// che dal browser non si può fare). La scelta della cartella va aperta subito al clic.
+async function salvaInCartella(files){
+  let dir;try{dir=await window.showDirectoryPicker({mode:'readwrite',id:'condividi'})}catch(e){if(e&&e.name==='AbortError')return;return segnalaErrore(e,'Non riesco ad aprire la cartella')}
+  try{for(const f of files){const fh=await dir.getFileHandle(f.name,{create:true});const w=await fh.createWritable();await w.write(f);await w.close()}avviso(plurale(files.length,'file salvato','file salvati')+' nella cartella «'+dir.name+'»')}
+  catch(e){segnalaErrore(e,'Non sono riuscito a salvare nella cartella')}
+}
 async function finestraFileDaPortare(files,opz){
   const url=files.map(f=>URL.createObjectURL(f));
-  await dialogo({titolo:opz.titolo||'Condividi',corpo:html`<p class="piccolo secondario">Trascina il file nella chat di WhatsApp, in una mail o sulla Scrivania. Oppure scaricalo e allegalo dalla cartella Download.</p>
+  await dialogo({titolo:opz.titolo||'Condividi',corpo:html`<p class="piccolo secondario">Trascina il file nella chat di WhatsApp, in una mail o in una cartella del Finder. Oppure salvalo in una cartella o scaricalo.</p>
     <ul class="elenco-piatto">${files.map((f,i)=>html`<li><a class="file-trascinabile" draggable="true" href="${url[i]}" download="${f.name}" data-i="${i}">${icona('pdf','piccola')}<span class="spazio taglia">${f.name}</span><span class="piccolo silenzioso">${fPeso(f.size)}</span></a></li>`)}</ul>
     <p class="piccolo silenzioso mt-s">Con Safari, invece, «Condividi» apre il menu del Mac con il file vero, WhatsApp compreso.</p>`,
-    pulsanti:[{testo:'Chiudi',valore:null},{testo:'Apri WhatsApp',fn:()=>{location.href='whatsapp://';return false}},{testo:files.length>1?'Scarica tutti':'Scarica',classe:'primario',primario:true,fn:()=>{files.forEach((f,i)=>setTimeout(()=>scaricaBlob(f,f.name),i*350));return false}}],
+    pulsanti:[{testo:'Chiudi',valore:null},...('showDirectoryPicker' in window?[{testo:'Salva in una cartella…',fn:()=>{salvaInCartella(files);return false}}]:[]),{testo:'Apri WhatsApp',fn:()=>{location.href='whatsapp://';return false}},{testo:files.length>1?'Scarica tutti':'Scarica',classe:'primario',primario:true,fn:()=>{files.forEach((f,i)=>setTimeout(()=>scaricaBlob(f,f.name),i*350));return false}}],
     alMontaggio:v=>v.querySelectorAll('.file-trascinabile').forEach(a=>a.addEventListener('dragstart',e=>{const f=files[+a.dataset.i];e.dataTransfer.setData('DownloadURL',(f.type||'application/pdf')+':'+f.name+':'+url[+a.dataset.i])}))});
   setTimeout(()=>url.forEach(u=>URL.revokeObjectURL(u)),60000);
   return 'scaricato';

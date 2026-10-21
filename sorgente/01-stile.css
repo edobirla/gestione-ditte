@@ -559,7 +559,7 @@ input[type=checkbox],input[type=radio]{width:17px;height:17px;accent-color:var(-
 .file-trascinabile{display:flex;align-items:center;gap:8px;width:100%;padding:8px 10px;border-radius:10px;background:var(--sunk);color:var(--ink);cursor:grab;text-decoration:none}
 .file-trascinabile:hover{background:var(--sunk-2)}
 
-.intesta>.pulsante:last-child{margin-left:auto}
+.intesta>.pulsante:last-child,.intesta>.riga:last-child{margin-left:auto}
 .campo>.gruppo-pulsanti{width:max-content}
 
 .targa{font-family:var(--mono);font-size:12px;font-weight:600;padding:3px 8px;border-radius:6px;box-shadow:0 0 0 1.5px var(--line-3) inset;white-space:nowrap}
