@@ -1,3 +1,19 @@
 [
- {"versione": "1.0", "data": "2026-10-21T10:49:51+02:00", "commit": "76c1212", "novita": ["Prima versione numerata: controllo degli aggiornamenti in Impostazioni"]}
+ {
+  "versione": "1.1",
+  "data": "2026-10-21T11:07:14+02:00",
+  "commit": "a61dbb8",
+  "novita": [
+   "Barra del titolo dell'app nel Dock dello stesso colore dello sfondo, non più viola",
+   "Versioni numerate (1.0, 1.1…): il numero sale a ogni pubblicazione e Aggiornamenti mostra le novità di ogni versione"
+  ]
+ },
+ {
+  "versione": "1.0",
+  "data": "2026-10-21T10:49:51+02:00",
+  "commit": "76c1212",
+  "novita": [
+   "Prima versione numerata: controllo degli aggiornamenti in Impostazioni"
+  ]
+ }
 ]
