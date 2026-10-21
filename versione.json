@@ -1,8 +1,15 @@
 {
- "versione": "1.1",
- "impronta": "d2ac4ac358",
- "data": "2026-10-21T11:07:14+02:00",
+ "versione": "1.2",
+ "impronta": "9dc125a8b2",
+ "data": "2026-10-21T11:39:10+02:00",
  "storico": [
+  {
+   "versione": "1.2",
+   "data": "2026-10-21T11:39:10+02:00",
+   "novita": [
+    "Barra del titolo nativa del Mac: tolto il colore dell'app (theme-color)"
+   ]
+  },
   {
    "versione": "1.1",
    "data": "2026-10-21T11:07:14+02:00",
