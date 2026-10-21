@@ -36,7 +36,8 @@ async function finestraFileDaPortare(files,opz){
 }
 async function condividiFile(files,opz){
   opz=opz||{};
-  const dati={files,title:opz.titolo||'',text:opz.testo||''};
+  // solo i file: con titolo o testo Safari aggiunge un secondo elemento (il testo) a quello che si incolla o si manda
+  const dati={files};
   if(chromeSuMac()||(!navigator.share&&!eIos())) return finestraFileDaPortare(files,opz);
   if(navigator.share&&navigator.canShare&&navigator.canShare({files})){
     try{ await navigator.share(dati); return 'condiviso'; }
