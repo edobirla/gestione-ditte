@@ -1,5 +1,13 @@
 [
  {
+  "versione": "1.2",
+  "data": "2026-10-21T11:39:10+02:00",
+  "commit": "18aa10a",
+  "novita": [
+   "Barra del titolo nativa del Mac: tolto il colore dell'app (theme-color)"
+  ]
+ },
+ {
   "versione": "1.1",
   "data": "2026-10-21T11:07:14+02:00",
   "commit": "a61dbb8",
