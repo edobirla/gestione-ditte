@@ -12,9 +12,25 @@ async function condividiOScarica(blob,nome,opz){
 // dall'archivio, il browser lo rifiuta (NotAllowedError). Allora i file sono già pronti e si chiede
 // un secondo tocco su «Condividi», che lo apre davvero. Senza condivisione: un file si scarica,
 // più file vanno in un solo .zip (i download multipli i browser li bloccano).
+// Chrome (ed Edge) sul Mac non passano il file alle altre app ma il suo percorso su disco, e nel loro
+// menu non c'è WhatsApp: lì la condivisione di sistema non si usa.
+function chromeSuMac(){const ua=navigator.userAgent;return /Macintosh/.test(ua)&&!eIos()&&/Chrome|Chromium|Edg\//.test(ua)}
+// Finestra per il computer: ogni file si trascina direttamente nella chat di WhatsApp (o in Mail, nel
+// Finder…), oppure si scarica; un pulsante apre WhatsApp.
+async function finestraFileDaPortare(files,opz){
+  const url=files.map(f=>URL.createObjectURL(f));
+  await dialogo({titolo:opz.titolo||'Condividi',corpo:html`<p class="piccolo secondario">Trascina il file nella chat di WhatsApp, in una mail o sulla Scrivania. Oppure scaricalo e allegalo dalla cartella Download.</p>
+    <ul class="elenco-piatto">${files.map((f,i)=>html`<li><a class="file-trascinabile" draggable="true" href="${url[i]}" download="${f.name}" data-i="${i}">${icona('pdf','piccola')}<span class="spazio taglia">${f.name}</span><span class="piccolo silenzioso">${fPeso(f.size)}</span></a></li>`)}</ul>
+    <p class="piccolo silenzioso mt-s">Con Safari, invece, «Condividi» apre il menu del Mac con il file vero, WhatsApp compreso.</p>`,
+    pulsanti:[{testo:'Chiudi',valore:null},{testo:'Apri WhatsApp',fn:()=>{location.href='whatsapp://';return false}},{testo:files.length>1?'Scarica tutti':'Scarica',classe:'primario',primario:true,fn:()=>{files.forEach((f,i)=>setTimeout(()=>scaricaBlob(f,f.name),i*350));return false}}],
+    alMontaggio:v=>v.querySelectorAll('.file-trascinabile').forEach(a=>a.addEventListener('dragstart',e=>{const f=files[+a.dataset.i];e.dataTransfer.setData('DownloadURL',(f.type||'application/pdf')+':'+f.name+':'+url[+a.dataset.i])}))});
+  setTimeout(()=>url.forEach(u=>URL.revokeObjectURL(u)),60000);
+  return 'scaricato';
+}
 async function condividiFile(files,opz){
   opz=opz||{};
   const dati={files,title:opz.titolo||'',text:opz.testo||''};
+  if(chromeSuMac()||(!navigator.share&&!eIos())) return finestraFileDaPortare(files,opz);
   if(navigator.share&&navigator.canShare&&navigator.canShare({files})){
     try{ await navigator.share(dati); return 'condiviso'; }
     catch(e){
