@@ -1,0 +1,18 @@
+{
+ "versione": "63b9070045",
+ "data": "2026-10-21T10:49:51+02:00",
+ "novita": [
+  "Impostazioni → Aggiornamenti: l'app controlla versione.json e avvisa se c'è una versione nuova, «Aggiorna ora» la carica senza toccare i dati",
+  "Service worker: la pagina si chiede sempre al sito, così dopo una pubblicazione non resta la versione vecchia per 10 minuti",
+  "Condivisione: solo i file, senza titolo né testo (Safari li aggiungeva come secondo elemento)",
+  "Documenti: «Prepara un invio» (tipi e persone scelti, cartella per operaio o per tipo, salva in una cartella, ZIP o condividi); salva in una cartella anche dalla finestra di condivisione",
+  "Chrome sul Mac: condividere apre una finestra con i file da trascinare in WhatsApp o da scaricare (Chrome passava il percorso invece del file)",
+  "Condivisione: se il browser rifiuta il foglio dopo la lettura dei file, un secondo tocco su Condividi lo apre; senza condivisione più file in un solo zip",
+  "Condividere le buste di un operaio: scegli quali, oppure tutte",
+  "Bilanci e verbali in Fine anno, firma di un documento qualsiasi, firme delle persone, note sulle buste accettate, linguette senza ridisegnare la pagina, legale rappresentante anche dalla scheda operaio",
+  "Presenze: occhiello come nella simulazione",
+  "Scadenzario e impostazioni come nella simulazione",
+  "Budget, mezzi e fornitori come nella simulazione",
+  "Clienti come schede, come nella simulazione"
+ ]
+}
