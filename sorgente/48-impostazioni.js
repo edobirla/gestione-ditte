@@ -4,7 +4,7 @@
 // ---------------------------------------------------------------------
 VISTE.impostazioni=function(r){
   const sotto=r.id||(r.query.backup?'backup':'azienda');
-  return html`<div class="testata"><div><div class="occhiello">Sistema</div><h1>Impostazioni</h1><p class="sotto">Dati dell'azienda, backup, documenti e preferenze. Versione dati ${VERSIONE_SCHEMA}${stato.impostazioni.dispositivo?' · '+stato.impostazioni.dispositivo:''}.</p></div></div>
+  return html`<div class="testata"><div><div class="occhiello">Sistema</div><h1>Impostazioni</h1><p class="sotto">Dati dell'azienda, backup, documenti e preferenze. Versione ${NUMERO_VERSIONE} · dati ${VERSIONE_SCHEMA}${stato.impostazioni.dispositivo?' · '+stato.impostazioni.dispositivo:''}.</p></div></div>
   ${linguette('impostazioni',[{id:'azienda',testo:'Azienda'},{id:'backup',testo:'Backup'},{id:'peso',testo:'Peso archivio'},{id:'tipi',testo:'Tipi di documento'},{id:'preferenze',testo:'Preferenze'},{id:'esporta',testo:'Esportazioni'},{id:'aggiornamenti',testo:'Aggiornamenti',contatore:ui.aggiornamento?1:null,critico:!!ui.aggiornamento},{id:'sistema',testo:'Sistema'}],sotto)}
   ${sotto==='azienda'?impAzienda():sotto==='backup'?impBackup():sotto==='peso'?vistaPeso():sotto==='tipi'?impTipi():sotto==='preferenze'?impPreferenze():sotto==='esporta'?impEsporta():sotto==='aggiornamenti'?impAggiornamenti():impSistema()}`;
 };

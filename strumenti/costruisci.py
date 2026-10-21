@@ -53,6 +53,10 @@ def testaApp():
 mappa=open(os.path.join(base,'sorgente','00-mappa.txt'),encoding='utf8').read() if os.path.exists(os.path.join(base,'sorgente','00-mappa.txt')) else ''
 out='<!DOCTYPE html>\n<html lang="it">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n<meta name="color-scheme" content="light dark">\n<meta name="apple-mobile-web-app-capable" content="yes">\n<meta name="apple-mobile-web-app-status-bar-style" content="default">\n<title>Gestionale</title>\n%s\n<!--\n%s-->\n<style>\n%s\n</style>\n</head>\n<body>\n%s\n<script>\n"use strict";\n%s\n</script>\n</body>\n</html>\n'%(testaApp(),mappa,'\n'.join(css),'\n'.join(html),'\n'.join(js))
 
+# numero della versione (1.0, 1.1…): l'ultimo pubblicato, da strumenti/versioni.json (lo aggiorna pubblica.py)
+try: numero=json.load(open(os.path.join(base,'strumenti','versioni.json'),encoding='utf8'))[0]['versione']
+except Exception: numero='0'
+out=out.replace('__NUMERO_VERSIONE__',numero)
 # impronta della versione: cambia solo se cambia il contenuto (costruire due volte dà lo stesso file)
 import hashlib
 out=out.replace('__VERSIONE_APP__',hashlib.sha1(out.encode('utf8')).hexdigest()[:10])

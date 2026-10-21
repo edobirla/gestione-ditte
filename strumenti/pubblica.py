@@ -19,6 +19,22 @@ base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 def git(*args, **kw):
     return subprocess.run(['git', *args], cwd=kw.get('cwd', base), capture_output=True, text=True, check=False)
 
+# 0) numero di versione: si sale di uno (1.4 → 1.5) se ci sono commit nuovi dall'ultima pubblicazione.
+#    Le novità sono i messaggi di quei commit (mai dati reali nei messaggi: il sito è pubblico).
+import json, datetime, re
+file_versioni = os.path.join(base, 'strumenti', 'versioni.json')
+versioni = json.load(open(file_versioni, encoding='utf8'))
+testa = git('rev-parse', '--short', 'HEAD').stdout.strip()
+nuova = None
+# i commit «Versione 1.x» li fa questo script: non sono novità
+novita = [x for x in git('log', '--format=%s', versioni[0]['commit'] + '..HEAD').stdout.splitlines() if x.strip() and not re.match(r'Versione \d+\.\d+$', x)]
+if novita:
+    princ, sec = versioni[0]['versione'].split('.')
+    nuova = {'versione': f'{princ}.{int(sec) + 1}', 'data': datetime.datetime.now().astimezone().isoformat(timespec='seconds'), 'commit': testa, 'novita': novita}
+    versioni.insert(0, nuova)
+    json.dump(versioni, open(file_versioni, 'w', encoding='utf8'), ensure_ascii=False, indent=1)
+    print('versione', nuova['versione'])
+
 # 1) costruisci l'applicazione senza i dati di nessuna ditta
 esito = subprocess.run([sys.executable, os.path.join(base, 'strumenti', 'costruisci.py'), '--vuoto'],
                        cwd=base, capture_output=True, text=True)
@@ -47,11 +63,10 @@ try:
     if r.returncode:
         sys.exit('non riesco ad aprire il ramo main: ' + r.stderr.strip())
     shutil.copyfile(sorgente_html, os.path.join(tmp, 'index.html'))
-    # versione.json: l'impronta pubblicata e le ultime novità, che l'app controlla per avvisare
-    import json, datetime
-    versione = re.search(r"const VERSIONE_APP='([0-9a-f]+)'", testo).group(1)
-    novita = [x for x in git('log', '-12', '--format=%s', 'sorgenti').stdout.splitlines() if x.strip()]
-    json.dump({'versione': versione, 'data': datetime.datetime.now().astimezone().isoformat(timespec='seconds'), 'novita': novita},
+    # versione.json: numero, impronta e novità delle ultime versioni, che l'app controlla per avvisare
+    impronta = re.search(r"const VERSIONE_APP='([0-9a-f]+)'", testo).group(1)
+    json.dump({'versione': versioni[0]['versione'], 'impronta': impronta, 'data': versioni[0]['data'],
+               'storico': [{k: v[k] for k in ('versione', 'data', 'novita')} for v in versioni[:15]]},
               open(os.path.join(tmp, 'versione.json'), 'w', encoding='utf8'), ensure_ascii=False, indent=1)
     # service worker: permette all'app installata di aprirsi anche senza internet
     shutil.copyfile(os.path.join(base, 'strumenti', 'sw.js'), os.path.join(tmp, 'sw.js'))
@@ -71,3 +86,9 @@ try:
         print(r.stderr.strip() or 'pubblicato su main')
 finally:
     git('worktree', 'remove', '--force', tmp)
+
+# il numero nuovo e l'index.html che lo contiene restano anche sul ramo di lavoro
+if nuova:
+    git('add', 'strumenti/versioni.json', 'index.html')
+    git('commit', '--quiet', '-m', 'Versione ' + nuova['versione'])
+    print('registrata la versione', nuova['versione'], 'sul ramo di lavoro (ricordati git push)')
