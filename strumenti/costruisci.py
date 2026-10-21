@@ -53,6 +53,9 @@ def testaApp():
 mappa=open(os.path.join(base,'sorgente','00-mappa.txt'),encoding='utf8').read() if os.path.exists(os.path.join(base,'sorgente','00-mappa.txt')) else ''
 out='<!DOCTYPE html>\n<html lang="it">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n<meta name="color-scheme" content="light dark">\n<meta name="apple-mobile-web-app-capable" content="yes">\n<meta name="apple-mobile-web-app-status-bar-style" content="default">\n<title>Gestionale</title>\n%s\n<!--\n%s-->\n<style>\n%s\n</style>\n</head>\n<body>\n%s\n<script>\n"use strict";\n%s\n</script>\n</body>\n</html>\n'%(testaApp(),mappa,'\n'.join(css),'\n'.join(html),'\n'.join(js))
 
+# impronta della versione: cambia solo se cambia il contenuto (costruire due volte dà lo stesso file)
+import hashlib
+out=out.replace('__VERSIONE_APP__',hashlib.sha1(out.encode('utf8')).hexdigest()[:10])
 dest=os.path.join(base,'index.html' if vuoto else 'Gestionale Pavimass.html')
 open(dest,'w',encoding='utf8').write(out)
 conAzienda=any(c=='azienda' for c,_ in parti)

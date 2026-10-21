@@ -47,14 +47,22 @@ try:
     if r.returncode:
         sys.exit('non riesco ad aprire il ramo main: ' + r.stderr.strip())
     shutil.copyfile(sorgente_html, os.path.join(tmp, 'index.html'))
+    # versione.json: l'impronta pubblicata e le ultime novità, che l'app controlla per avvisare
+    import json, datetime
+    versione = re.search(r"const VERSIONE_APP='([0-9a-f]+)'", testo).group(1)
+    novita = [x for x in git('log', '-12', '--format=%s', 'sorgenti').stdout.splitlines() if x.strip()]
+    json.dump({'versione': versione, 'data': datetime.datetime.now().astimezone().isoformat(timespec='seconds'), 'novita': novita},
+              open(os.path.join(tmp, 'versione.json'), 'w', encoding='utf8'), ensure_ascii=False, indent=1)
     # service worker: permette all'app installata di aprirsi anche senza internet
     shutil.copyfile(os.path.join(base, 'strumenti', 'sw.js'), os.path.join(tmp, 'sw.js'))
     # il .gitignore di main lascia passare solo i file elencati: sw.js va ammesso
     gi = os.path.join(tmp, '.gitignore')
     testo_gi = open(gi, encoding='utf8').read()
-    if '!sw.js' not in testo_gi:
-        open(gi, 'w', encoding='utf8').write(testo_gi.rstrip('\n') + '\n!sw.js\n')
-    git('add', 'index.html', 'sw.js', '.gitignore', cwd=tmp)
+    for f in ('!sw.js', '!versione.json'):
+        if f not in testo_gi:
+            testo_gi = testo_gi.rstrip('\n') + '\n' + f + '\n'
+    open(gi, 'w', encoding='utf8').write(testo_gi)
+    git('add', 'index.html', 'sw.js', 'versione.json', '.gitignore', cwd=tmp)
     if not git('diff', '--cached', '--quiet', cwd=tmp).returncode:
         print('index.html e sw.js non sono cambiati: niente da pubblicare')
     else:

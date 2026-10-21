@@ -46,6 +46,7 @@ function contatoriMenu(){
   const out={};
   try{ const sc=riepilogoScadenze(); const k=(sc.scaduti.length+sc.mancanti.length)||0; if(k) out.operai={n:k,titolo:k+' documenti scaduti o mancanti'}; }catch(e){}
   try{ const v=scadenzeVersamenti(); if(v.length) out.versamenti={n:v.length,classe:v.some(x=>x.livello==='scaduto')?'':'giallo',titolo:v.map(x=>x.testo).join('\n')}; }catch(e){}
+  if(ui.aggiornamento) out.impostazioni={n:1,classe:'giallo',titolo:'È disponibile un aggiornamento dell\'app'};
   return out;
 }
 // ---- render principale ----
