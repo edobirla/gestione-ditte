@@ -1,8 +1,15 @@
 {
- "versione": "1.9",
- "impronta": "7a4579ded4",
- "data": "2026-10-23T14:24:59+02:00",
+ "versione": "1.10",
+ "impronta": "30687e8abb",
+ "data": "2026-10-23T15:02:27+02:00",
  "storico": [
+  {
+   "versione": "1.10",
+   "data": "2026-10-23T15:02:27+02:00",
+   "novita": [
+    "POS: firme solo di datore di lavoro, RSPP e RLS"
+   ]
+  },
   {
    "versione": "1.9",
    "data": "2026-10-23T14:24:59+02:00",
