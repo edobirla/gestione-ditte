@@ -1,8 +1,15 @@
 {
- "versione": "1.3",
- "impronta": "496280a86d",
- "data": "2026-10-23T10:16:37+02:00",
+ "versione": "1.4",
+ "impronta": "f66e5deba0",
+ "data": "2026-10-23T12:45:34+02:00",
  "storico": [
+  {
+   "versione": "1.4",
+   "data": "2026-10-23T12:45:34+02:00",
+   "novita": [
+    "Nuovo POS e tipi di lavorazione nel cantiere"
+   ]
+  },
   {
    "versione": "1.3",
    "data": "2026-10-23T10:16:37+02:00",
