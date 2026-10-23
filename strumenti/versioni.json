@@ -1,5 +1,13 @@
 [
  {
+  "versione": "1.5",
+  "data": "2026-10-23T12:57:43+02:00",
+  "commit": "1757a57",
+  "novita": [
+   "Ente formatore predefinito per i corsi"
+  ]
+ },
+ {
   "versione": "1.4",
   "data": "2026-10-23T12:45:34+02:00",
   "commit": "078538c",
