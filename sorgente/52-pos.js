@@ -133,7 +133,11 @@ AZIONI['pos-genera']=async()=>{
   setTimeout(()=>{if(leggiRotta().sotto==='pos')vai('cantieri/'+c.id)},100);
   avvisoNomine(nomine);
 };
-AZIONI['pos-ristampa']=d=>{const p=perId('pos',d.id);const g=p&&perId('generati',p.generatoId);if(g)anteprimaStampa({titolo:g.titolo,pagineHtml:g.pagine,giaRegistrato:true});else if(p){anteprimaStampa({titolo:'POS '+nomeCantiere(p.cantiereId)+' rev '+p.revisione,doc:docPos(p,cantiere(p.cantiereId)),giaRegistrato:true})}};
+// ristampando un POS fatto prima delle nomine automatiche, le nomine che mancano nel cantiere si preparano ora
+AZIONI['pos-ristampa']=d=>{const p=perId('pos',d.id);const g=p&&perId('generati',p.generatoId);
+  const cc=p&&cantiere(p.cantiereId);let nomine=null;if(cc&&!(cc.documentiProdotti||[]).some(x=>x.automatica&&NOMINE_CANTIERE.some(([id])=>id===x.modelloId)))nomine=generaNomineCantiere(cc.id,p.revisione?p.dataRevisione:p.dataEmissione);
+  if(nomine)setTimeout(()=>avvisoNomine(nomine),300);
+if(g)anteprimaStampa({titolo:g.titolo,pagineHtml:g.pagine,giaRegistrato:true});else if(p){anteprimaStampa({titolo:'POS '+nomeCantiere(p.cantiereId)+' rev '+p.revisione,doc:docPos(p,cantiere(p.cantiereId)),giaRegistrato:true})}};
 AZIONI['pos-nuova-revisione']=d=>{const p=perId('pos',d.id);ui.posWizard=null;vai('cantieri/'+p.cantiereId+'/pos?da='+p.id)};
 
 // ---------------------------------------------------------------------
