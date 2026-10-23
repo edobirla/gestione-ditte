@@ -3226,8 +3226,8 @@ function scegliFile(opz){
 // L'app lo controlla all'avvio, ogni mezz'ora e quando torna in primo piano: se è diversa avvisa,
 // e «Aggiorna ora» scarica la pagina nuova scavalcando le copie del browser. I dati non si toccano.
 // ---------------------------------------------------------------------
-const VERSIONE_APP='769fb5c404';   // impronta del contenuto: dice se è cambiato qualcosa
-const NUMERO_VERSIONE='1.14'; // il numero per le persone: 1.0, 1.1…
+const VERSIONE_APP='21d891d012';   // impronta del contenuto: dice se è cambiato qualcosa
+const NUMERO_VERSIONE='1.15'; // il numero per le persone: 1.0, 1.1…
 function appPubblicata(){return location.protocol==='https:'}
 async function controllaAggiornamento(manuale){
   if(!appPubblicata()){if(manuale)avviso('Il controllo funziona sull\'app pubblicata, non su questa copia locale');return null}
