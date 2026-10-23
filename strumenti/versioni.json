@@ -1,5 +1,13 @@
 [
  {
+  "versione": "1.20",
+  "data": "2026-10-23T17:35:33+02:00",
+  "commit": "83d8b1d",
+  "novita": [
+   "Documenti firmati con la stessa qualità dell'originale"
+  ]
+ },
+ {
   "versione": "1.19",
   "data": "2026-10-23T17:23:21+02:00",
   "commit": "db82178",
