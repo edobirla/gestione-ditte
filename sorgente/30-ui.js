@@ -131,10 +131,13 @@ document.addEventListener('click',e=>{
 function modulo(campi,valori,opz){
   valori=valori||{};opz=opz||{};
   return html`<div class="campi ${opz.classe||''}">${campi.map(c=>{
+    if(c.tipo==='sezione') return html`<div class="sezione-titolo largo">${c.etichetta}</div>`;
     const v=leggiPercorso(valori,c.nome);
     const idc='c-'+c.nome.replace(/\./g,'-');
     let input;
     switch(c.tipo){
+      // scegli: si scrive e si sceglie fra i suggerimenti (datalist); con c.nuovo un nome non in elenco è accettato
+      case 'scegli': {const o=(c.opzioni||[]).find(o=>String(o.v)===String(v==null?'':v));input=html`<input type="text" id="${idc}" name="${c.nome}" value="${o?o.t:''}" list="${idc}-l" ${c.sola?'disabled':''} placeholder="${c.segnaposto||'Scrivi per cercare'}" autocomplete="off"><datalist id="${idc}-l">${(c.opzioni||[]).map(o=>html`<option value="${o.t}">`)}</datalist>`; break;}
       case 'select': input=html`<select id="${idc}" name="${c.nome}" ${c.sola?'disabled':''}>${(c.vuoto!==false?html`<option value="">${c.vuotoTesto||'—'}</option>`:'')}${(c.opzioni||[]).map(o=>html`<option value="${o.v}" ${String(o.v)===String(v==null?'':v)?'selected':''}>${o.t}</option>`)}</select>`; break;
       case 'textarea': input=html`<textarea id="${idc}" name="${c.nome}" rows="${c.righe||3}" ${c.sola?'disabled':''}>${v==null?'':v}</textarea>`; break;
       case 'spunta': input=html`<label class="spunta"><input type="checkbox" id="${idc}" name="${c.nome}" ${v?'checked':''} ${c.sola?'disabled':''}> ${c.testo||''}</label>`; break;
@@ -159,6 +162,7 @@ function leggiModulo(radice,campi){
     if(c.tipo==='chip'){v=tutti(`[name="${c.nome}"]:checked`,radice).map(x=>x.value)}
     else if(c.tipo==='radio'){const r=radice.querySelector(`[name="${c.nome}"]:checked`);v=r?r.value:null}
     else if(!elc) continue;
+    else if(c.tipo==='scegli'){const raw=elc.value.trim();const o=(c.opzioni||[]).find(o=>o.t===raw)||(c.opzioni||[]).find(o=>normalizzaTesto(o.t)===normalizzaTesto(raw));v=!raw?null:o?o.v:c.nuovo?{nuovo:raw}:undefined;if(v===undefined){v=null;errori.push({campo:c.nome,errore:'Non trovato: scegli fra i suggerimenti'})}}
     else if(c.tipo==='spunta') v=elc.checked;
     else if(c.tipo==='numero'||c.tipo==='euro'||c.tipo==='ore'){const raw=elc.value.trim();v=raw===''?null:leggiNumero(raw);if(raw!==''&&v===null)errori.push({campo:c.nome,errore:'Numero non valido'})}
     else v=elc.value;

@@ -240,5 +240,9 @@ function autoverifica(){
   const eco=economiaCantiere('c1',[{tipo:'entrata',imponibile:1000,quote:[{cantiereId:'c1',importo:600},{cantiereId:'c2',importo:400}]},{tipo:'uscita',imponibile:200,cantiereId:'c1'},{tipo:'nota_credito',imponibile:50,cantiereId:'c1'}]);
   t('economia cantiere margine 350',eco.margine===350);
   t('checkQuote differenza',checkQuote({imponibile:100,quote:[{importo:60},{importo:30}]}).differenza===10);
+  {const o=proponiDatiDaPsc('Oggetto dei lavori: Scuola media\nCIG: Z1A2B3C4D5 CUP J12F34000560001\nImporto complessivo dei lavori: € 450.000,00\nData presunta di inizio lavori: 10/08/2026');
+   t('PSC: CIG, CUP, importo e inizio',o.cig==='Z1A2B3C4D5'&&o.cup==='J12F34000560001'&&o.importoLavori===450000&&o.dataInizio==='2026-08-10')}
+  t('apertura: 15 giorni la richiede, 14 no',motiviApertura({dataInizio:'2026-08-01',dataFine:'2026-08-15',denuncia:{}}).length===1&&!motiviApertura({dataInizio:'2026-08-01',dataFine:'2026-08-14',denuncia:{}}).length);
+  t('apertura: oltre 70.000 € la richiede',motiviApertura({denuncia:{importoComplessivo:70001}}).length===1&&!motiviApertura({denuncia:{importoComplessivo:70000}}).length);
   return esiti;
 }

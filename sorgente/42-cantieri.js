@@ -158,6 +158,7 @@ function vistaCantiere(id,r){
       <span class="spazio"></span><a class="pulsante piccolo" href="#/cantieri/${c.id}/pos">${icona('scudo','piccola')}Genera POS</a><a class="pulsante piccolo" href="#/cantieri/${c.id}/pacchetto">${icona('pacchetto','piccola')}Pacchetto committenza</a><button class="pulsante piccolo" data-azione="cantiere-modifica" data-id="${c.id}">${icona('modifica','piccola')}Modifica</button></div>
   </div>
   ${ck.urgenti.length?html`<div class="avviso-inline critico">${icona('errore')}<div class="corpo"><b>Prima dell'ingresso in cantiere:</b> ${ck.urgenti.map(v=>html`${v.soggetto}: ${v.nome}${v.motivo?' ('+v.motivo+')':''}`).reduce((a,b)=>html`${a} · ${b}`)}</div></div>`:''}
+  ${(()=>{const m=motiviApertura(c);return m.length&&!c.denuncia.data?html`<div class="avviso-inline attenzione">${icona('attenzione')}<div class="corpo"><b>Serve la denuncia di apertura cantiere:</b> ${m.join(' e ')}.</div><button class="pulsante piccolo" data-azione="apertura-stampa" data-id="${c.id}">${icona('stampa','piccola')}Prepara il foglio</button></div>`:''})()}
   ${linguette('cantiere:'+c.id,[{id:'panoramica',testo:'Panoramica'},{id:'checklist',testo:'Documenti per la committenza',contatore:ck.pronti+'/'+ck.totale,critico:ck.urgenti.length>0},{id:'pagamenti',testo:'Pagamenti del mese'},{id:'squadra',testo:'Squadra',contatore:(c.operai||[]).length||null},{id:'scheda',testo:'Dati e figure'},{id:'documenti',testo:'Sicurezza e documenti'},{id:'economia',testo:'Economia'},{id:'diario',testo:'Diario e invii'}],ling)}
   ${ling==='panoramica'?schedaCantierePanoramica(c,ck):ling==='scheda'?schedaCantiereAnagrafica(c):ling==='squadra'?schedaCantiereSquadra(c):ling==='documenti'?schedaCantiereDocumenti(c):ling==='checklist'?schedaCantiereChecklist(c,ck):ling==='pagamenti'?schedaCantierePagamenti(c):ling==='economia'?schedaCantiereEconomia(c):schedaCantiereDiario(c)}`;
 }
@@ -187,9 +188,9 @@ function schedaCantiereAnagrafica(c){
   const v=(x,fmt)=>valoreODaCompilare(x,fmt);
   return html`<div class="bento">
   <div class="guscio c-7"><div class="scheda"><div class="intesta"><h2>Dati del cantiere</h2><a class="vai" data-azione="cantiere-modifica" data-id="${c.id}">Modifica</a></div>
-    <dl class="dati-doc"><dt>Descrizione</dt><dd>${v(c.descrizione)}</dd><dt>Indirizzo</dt><dd>${v(c.indirizzo.via)}</dd><dt>Comune</dt><dd>${v(c.indirizzo.comune)}${c.indirizzo.provincia?' ('+c.indirizzo.provincia+')':''}${c.indirizzo.cap?' · '+c.indirizzo.cap:''}</dd><dt>Inizio lavori</dt><dd>${v(c.dataInizio,fData)}</dd><dt>Fine lavori</dt><dd>${v(c.dataFine,fData)}</dd>${c.periodoTesto?html`<dt>Periodo</dt><dd>${c.periodoTesto}</dd>`:''}<dt>Importo contratto</dt><dd>${v(c.importoContratto,fEuro)}</dd><dt>Orari</dt><dd>${v(c.orari)}</dd><dt>Uomini/giorno</dt><dd>${v(c.uominiGiorno)}</dd></dl>
+    <dl class="dati-doc"><dt>Descrizione</dt><dd>${v(c.descrizione)}</dd><dt>Indirizzo</dt><dd>${v(c.indirizzo.via)}</dd><dt>Comune</dt><dd>${v(c.indirizzo.comune)}${c.indirizzo.provincia?' ('+c.indirizzo.provincia+')':''}${c.indirizzo.cap?' · '+c.indirizzo.cap:''}</dd><dt>Inizio lavori</dt><dd>${v(c.dataInizio,fData)}</dd><dt>Fine lavori</dt><dd>${v(c.dataFine,fData)}</dd>${c.periodoTesto?html`<dt>Periodo</dt><dd>${c.periodoTesto}</dd>`:''}${c.cig||c.cup?html`<dt>CIG / CUP</dt><dd>${[c.cig,c.cup].filter(Boolean).join(' · ')}</dd>`:''}<dt>Importo contratto</dt><dd>${v(c.importoContratto,fEuro)}</dd><dt>Orari</dt><dd>${v(c.orari)}</dd><dt>Uomini/giorno</dt><dd>${v(c.uominiGiorno)}</dd></dl>
     <div class="sezione-titolo">PSC</div><dl class="dati-doc"><dt>Data</dt><dd>${v(c.psc.data||c.psc.periodoTesto,x=>dataValida(x)?fData(x):x)}</dd><dt>Redattore</dt><dd>${v(c.psc.redattore)}</dd>${c.psc.prescrizioni?html`<dt>Prescrizioni</dt><dd>${c.psc.prescrizioni}</dd>`:''}<dt>File</dt><dd>${c.psc.fileId?html`<button class="pulsante piccolo" data-azione="file-apri" data-id="${c.psc.fileId}">${icona('pdf','piccola')}Apri PSC</button>`:html`<button class="pulsante piccolo" data-azione="cantiere-psc-carica" data-id="${c.id}">${icona('carica','piccola')}Carica PSC</button>`}</dd></dl>
-    <div class="sezione-titolo">Denuncia di apertura cantiere</div><dl class="dati-doc"><dt>Data</dt><dd>${v(c.denuncia.data,fData)}</dd><dt>Periodo</dt><dd>${c.denuncia.dal?fData(c.denuncia.dal)+' → '+fData(c.denuncia.al):daCompilare()}</dd><dt>Importo lavori</dt><dd>${v(c.denuncia.importoComplessivo,fEuro)}</dd><dt>Importo impresa</dt><dd>${v(c.denuncia.importoPavimass,fEuro)}</dd></dl>
+    <div class="sezione-titolo">Denuncia di apertura cantiere <button class="pulsante piccolo" data-azione="apertura-stampa" data-id="${c.id}">${icona('stampa','piccola')}Foglio di apertura</button></div><dl class="dati-doc"><dt>Data</dt><dd>${v(c.denuncia.data,fData)}</dd><dt>Periodo</dt><dd>${c.denuncia.dal?fData(c.denuncia.dal)+' → '+fData(c.denuncia.al):daCompilare()}</dd><dt>Importo lavori</dt><dd>${v(c.denuncia.importoComplessivo,fEuro)}</dd><dt>Importo impresa</dt><dd>${v(c.denuncia.importoPavimass,fEuro)}</dd></dl>
     ${c.note?html`<div class="sezione-titolo">Note</div><p>${c.note}</p>`:''}</div></div>
   <div class="guscio c-5"><div class="scheda"><div class="intesta"><h2>Le sei figure</h2><a class="vai" data-azione="cantiere-modifica" data-id="${c.id}">Modifica</a></div><p class="piccolo silenzioso">Progettista e direttore dei lavori non sono mai facoltativi.</p>
     <div class="figure">${FIGURE_CANTIERE.map(f=>{const t=testoFigura(c,f);return html`<div class="figura"><small>${f.ruolo}</small>${t?html`<b>${t.href?html`<a href="${t.href}">${t.nome}</a>`:t.nome}</b>${t.righe.map(x=>html`<span>${x}</span>`)}`:html`<b>${daCompilare()}</b>`}</div>`})}</div></div></div>
@@ -220,6 +221,30 @@ function schedaCantiereDocumenti(c){
     <div class="zona-drop mb" data-azione="documento-nuovo" data-soggetto-tipo="cantiere" data-soggetto-id="${c.id}" data-drop-soggetto="cantiere:${c.id}">${icona('carica')}Trascina qui i documenti ricevuti per questo cantiere</div>
     ${docsCant.length?tabella({righe:docsCant,onRiga:d=>apriDocumento(d.id),colonne:[{chiave:'t',titolo:'Documento',principale:true,formatta:d=>html`<b>${(tipoDoc(d.tipoId)||{}).nome||''}</b>${d.titolo?html`<br><span class="piccolo secondario">${d.titolo}</span>`:''}`},{chiave:'d',titolo:'Data',formatta:d=>fData(d.dataEmissione)},{chiave:'f',titolo:'File',formatta:d=>(d.file||[]).length?icona('allega','piccola'):''}]}):''}</div>`;
 }
+// ---- foglio di apertura cantiere (denuncia ASL) ----
+// Serve quando il cantiere dura più di 14 giorni o i lavori superano 70.000 €
+function motiviApertura(c){
+  const dal=c.denuncia.dal||c.dataInizio,al=c.denuncia.al||c.dataFine;const g=dal&&al?giorniTra(dal,al)+1:0;
+  const m=[];if(g>14)m.push('dura '+g+' giorni');if((c.denuncia.importoComplessivo||0)>70000)m.push('i lavori superano 70.000 €');return m;
+}
+function docApertura(c){
+  const dc='<span class="da-compilare">[DA COMPILARE]</span>';const x=v=>v?h(v):dc;
+  const dal=c.denuncia.dal||c.dataInizio,al=c.denuncia.al||c.dataFine;const g=dal&&al?giorniTra(dal,al)+1:null;
+  const viola='#534AB7',tinta='#F4F3FE',grigio='#6e6e73',bordo='#d2d2d7';
+  const lb=t=>`<div style="font-size:8.5pt;color:${grigio}">${t}</div>`;
+  const soggetto=(titolo,cl)=>`<div style="background:${tinta};border-radius:3mm;padding:3.5mm 4.5mm"><div style="font-size:8.5pt;color:${viola}">${titolo}</div><div style="font-size:12pt;font-weight:600;margin:1mm 0">${x(cl&&cl.ragioneSociale)}</div><div>${x(cl&&cl.indirizzo&&cl.indirizzo.via)}</div><div>${x(cl&&cl.indirizzo&&cl.indirizzo.comune)}${cl&&cl.indirizzo&&cl.indirizzo.provincia?' ('+h(cl.indirizzo.provincia)+')':''}</div><div>P.IVA / C.F. ${x(cl&&(cl.piva||cl.cf))}</div></div>`;
+  const numero=(t,v,colore,sotto)=>`<div style="border:0.3mm solid ${bordo};border-radius:3mm;padding:3mm 4mm">${lb(t)}<div style="font-size:15pt;font-weight:600;${colore?'color:'+colore:''}">${v}</div>${sotto?lb(sotto):''}</div>`;
+  const riga=(t,v)=>`<div style="color:${grigio}">${t}</div><div style="font-weight:500">${v}</div>`;
+  const lav=(c.lavorazioni||[]).map(id=>(stato.lavorazioni.find(l=>l.id===id)||{}).nome).filter(Boolean).join(', ');
+  const corpo=`<div style="font-size:10.5pt;line-height:1.45;color:#1d1d1f">
+  <div style="display:flex;justify-content:space-between;align-items:flex-end;border-bottom:0.8mm solid ${viola};padding-bottom:4mm"><div><img src="{{IMG:logo}}" alt="" style="height:16mm;display:block;margin-bottom:2mm"><div style="font-size:16pt;font-weight:600;color:${viola}">Apertura cantiere</div><div style="color:${grigio}">Denuncia ASL</div></div><div style="text-align:right">${lb('Data')}<div style="font-size:14pt;font-weight:600">${h(fData(c.denuncia.data||oggi()))}</div></div></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:4mm;margin-top:6mm">${soggetto('Committente',cliente(c.committenteId))}${soggetto('Impresa affidataria',cliente(c.affidatariaId))}</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4mm;margin-top:4mm">${numero('Importo complessivo lavori',c.denuncia.importoComplessivo?h(fEuro(c.denuncia.importoComplessivo,2)):dc)}${numero('Importo '+h(nomeImpresa(true)||'impresa'),c.denuncia.importoPavimass?h(fEuro(c.denuncia.importoPavimass,2)):dc,viola)}${numero('Durata',g?g+' giorni':dc,'',dal&&al?h(fData(dal)+' → '+fData(al)):'')}</div>
+  <div style="display:grid;grid-template-columns:40mm 1fr;row-gap:2mm;margin-top:6mm;border-top:0.3mm solid ${bordo};padding-top:4mm">
+  ${riga('Inizio lavori',dal?h(fData(dal)):dc)}${riga('Fine lavori',al?h(fData(al)):dc)}${riga('Cantiere',x(c.descrizione||c.nome))}${riga('Località',x(indirizzoTesto(c.indirizzo)))}${riga('Tipologia lavori',x(lav))}${c.cig?riga('CIG',h(c.cig)):''}${c.cup?riga('CUP',h(c.cup)):''}</div></div>`;
+  return {titolo:'Apertura cantiere '+c.nome,intestazione:'',pie:'',blocchi:[corpo]};
+}
+AZIONI['apertura-stampa']=d=>{const c=cantiere(d.id);anteprimaStampa({titolo:'Apertura cantiere '+c.nome,doc:docApertura(c),riferimento:c.nome,dopoRegistrazione:(s,g)=>{const x=s.cantieri.find(y=>y.id===c.id);if(!x.denuncia.data)x.denuncia.data=oggi();x.documentiProdotti=x.documentiProdotti.filter(p=>!(p.tipo==='Denuncia apertura cantiere'&&p.generatoId));x.documentiProdotti.push({id:nuovoId('dp'),tipo:'Denuncia apertura cantiere',titolo:'Foglio di apertura cantiere',data:oggi(),generatoId:g.id,fileId:null})}});render()};
 AZIONI['cantiere-psc-carica']=async d=>{const fs=await scegliFile({multipli:false,accetta:'.pdf'});if(!fs.length)return;const es=await acquisisciFile(fs[0],{});esegui('Caricato PSC',s=>{const c=s.cantieri.find(x=>x.id===d.id);c.psc.fileId=es.rec.id});avviso('PSC archiviato. Nella procedura POS potrai estrarne i dati.')};
 AZIONI['cantiere-prodotto-file']=async d=>{const fs=await scegliFile({multipli:false,accetta:'.pdf,.docx,image/*'});if(!fs.length)return;const es=await acquisisciFile(fs[0],{});esegui('Allegato file al documento del cantiere',s=>{const c=s.cantieri.find(x=>x.id===d.id);const p=c.documentiProdotti.find(x=>x.id===d.prod);p.fileId=es.rec.id})};
 AZIONI['cantiere-prodotto-nuovo']=async d=>{const v=await dialogoModulo('Registra documento prodotto',[{nome:'tipo',etichetta:'Tipo',tipo:'select',vuoto:false,opzioni:['POS','PSC','Dichiarazione','Denuncia apertura cantiere','Nomina','Verbale','Altro'].map(x=>({v:x,t:x}))},{nome:'titolo',etichetta:'Titolo',obbligatorio:true},{nome:'data',etichetta:'Data',tipo:'data',obbligatorio:true},{nome:'revisione',etichetta:'Revisione',tipo:'numero',decimali:0},{nome:'note',etichetta:'Note',tipo:'textarea',largo:true}],{data:oggi()});if(!v)return;esegui('Registrato documento '+v.titolo,s=>{s.cantieri.find(x=>x.id===d.id).documentiProdotti.push(Object.assign({id:nuovoId('dp'),fileId:null},v))})};
@@ -322,31 +347,82 @@ AZIONI['cantiere-diario-nuovo']=async d=>{const v=await dialogoModulo('Nota nel 
 AZIONI['invio-dettaglio']=d=>{const c=cantiere(d.cantiere);const i=c.invii.find(x=>x.id===d.id);dialogo({titolo:'Invio del '+fDataOra(i.data),largo:true,corpo:html`<p><b>Destinatario:</b> ${i.destinatario||'—'} · <b>Mezzo:</b> ${i.mezzo||'—'}${i.note?html`<br><b>Note:</b> ${i.note}`:''}</p><div class="sezione-titolo">Contenuto (${i.contenuto.length})</div><ul class="piccolo">${i.contenuto.map(x=>html`<li>${x}</li>`)}</ul>${i.mancanti.length?html`<div class="sezione-titolo">Mancava al momento dell'invio</div><ul class="piccolo da-compilare">${i.mancanti.map(x=>html`<li>${x}</li>`)}</ul>`:''}${i.forzati&&i.forzati.length?html`<div class="sezione-titolo">Inclusi forzando</div><ul class="piccolo">${i.forzati.map(x=>html`<li>${x}</li>`)}</ul>`:''}`,pulsanti:[{testo:'Chiudi',valore:true}]})};
 
 // ---- dialogo cantiere ----
+// Committente, affidataria e figure si scrivono a mano (cambiano a ogni cantiere): un nome già usato
+// riprende la sua scheda, uno nuovo la crea. Committente e figure restano fuori dagli elenchi di
+// Clienti e Professionisti; l'affidataria è chi paga, quindi diventa un cliente vero.
+function clienteDaNome(s,val,ruolo,dati){
+  if(!val) return null;
+  let cl=typeof val==='string'?s.clienti.find(q=>q.id===val):s.clienti.find(q=>normalizzaTesto(q.ragioneSociale)===normalizzaTesto(val.nuovo));
+  if(!cl){cl={id:nuovoId('cl'),ragioneSociale:val.nuovo,ruoli:[ruolo],indirizzo:{},referenti:[],interazioni:[],documenti:[],stato:'attivo'};s.clienti.push(cl)}
+  else if(!(cl.ruoli||[]).includes(ruolo)) cl.ruoli=(cl.ruoli||[]).concat(ruolo);
+  if(dati){cl.indirizzo=cl.indirizzo||{};for(const k of ['via','comune','provincia','cap'])if(dati[k])cl.indirizzo[k]=dati[k];if(dati.piva){if(/^\d{11}$/.test(dati.piva))cl.piva=dati.piva;else cl.cf=dati.piva}}
+  return cl.id;
+}
+function professionistaDaNome(s,val,ruolo){
+  if(!val) return null;
+  let pr=typeof val==='string'?s.professionisti.find(q=>q.id===val):null;
+  if(!pr){const n=normalizzaTesto(val.nuovo);pr=s.professionisti.find(q=>normalizzaTesto([q.titolo,q.nome].join(' '))===n||normalizzaTesto(q.nome)===n)}
+  if(!pr){const m=/^(arch\.?|ing\.?|geom\.?|dott\.?|per\.? ind\.?)\s+(.*)$/i.exec(val.nuovo);pr={id:nuovoId('pr'),titolo:m?capitalizza(m[1].replace(/\.?$/,'.')):'',nome:m?m[2]:val.nuovo,ruoli:[],indirizzo:{},telefoni:[]};s.professionisti.push(pr)}
+  if(!(pr.ruoli||[]).includes(ruolo)) pr.ruoli=(pr.ruoli||[]).concat(ruolo);
+  return pr.id;
+}
+const datiSoggetto=cl=>cl?{via:(cl.indirizzo||{}).via,comune:(cl.indirizzo||{}).comune,provincia:(cl.indirizzo||{}).provincia,piva:cl.piva||cl.cf}:{};
+// Legge il PSC scelto, lo archivia e riempie i campi ancora vuoti del dialogo: sono proposte da controllare.
+async function compilaDalPsc(velo){
+  const fs=await scegliFile({multipli:false,accetta:'.pdf'});if(!fs.length)return null;
+  const es=await acquisisciFile(fs[0],{});
+  const prog=dialogoAvanzamento('Lettura del PSC',{testo:'Estraggo il testo dal PDF…'});
+  let testo='';try{testo=(await estraiTestoPdf(fs[0],(i,n)=>prog.aggiorna(i,n,'pagina '+i+' di '+n))).testo||''}catch(e){}finally{prog.chiudi()}
+  const leggibile=testo.replace(/\s/g,'').length>=200;const prop=leggibile?proponiDatiDaPsc(testo):{};
+  const mappa={committente:'committenteId',affidataria:'affidatariaId',descrizione:'descrizione',indirizzo:'indirizzo.via',comune:'indirizzo.comune',provincia:'indirizzo.provincia',cap:'indirizzo.cap',cig:'cig',cup:'cup',progettista:'progettistaId',direttoreLavori:'direttoreLavoriId',cse:'cseId',csp:'cspId',dataInizio:'dataInizio',dataFine:'dataFine',importoLavori:'denuncia.importoComplessivo',dataPsc:'psc.data',redattore:'psc.redattore'};
+  const messi=[],saltati=[];
+  for(const [k,nome] of Object.entries(mappa)){const x=prop[k];const e=velo.querySelector(`[name="${nome}"]`);if(x==null||x===''||!e)continue;const l=e.closest('.campo').querySelector('label');const et=l?l.textContent.replace('*','').trim():k;if(e.value.trim()){saltati.push(et);continue}
+    e.value=typeof x==='number'?fNum(x,2):x;e.dispatchEvent(new Event('change',{bubbles:true}));if(l)l.insertAdjacentHTML('beforeend',String(html`<span class="pillola valido dal-psc">${icona('magia','piccola')}dal PSC</span>`));messi.push(et)}
+  const testoEsito=!leggibile?'Il PDF non ha un testo leggibile (forse è una scansione): l’ho salvato nel cantiere, i dati vanno scritti a mano.':messi.length?'Dal PSC ho compilato: '+messi.join(', ')+'. Controlla e correggi prima di salvare.'+(saltati.length?' Non ho toccato i campi già scritti ('+saltati.join(', ')+').':''):'Ho letto il PSC ma non ho riconosciuto dati nuovi: compila a mano. Il PSC resta salvato nel cantiere.';
+  const vecchio=velo.querySelector('.esito-psc');if(vecchio)vecchio.remove();
+  velo.querySelector('form').insertAdjacentHTML('afterbegin',`<div class="esito-psc mb">${avvisoInline(messi.length?'info':'attenzione',testoEsito)}</div>`);velo.querySelector('.corpo').scrollTop=0;
+  return es.rec.id;
+}
 function dialogoCantiere(c){
   const nuovo=!c; c=c||{anno:new Date().getFullYear(),stato:'attivo',indirizzo:{},lavorazioni:[],operai:[],psc:{},denuncia:{}};
-  const clientiOpz=r=>stato.clienti.filter(x=>(x.ruoli||[]).includes(r)||!x.ruoli.length).map(x=>({v:x.id,t:x.ragioneSociale})).concat(stato.clienti.filter(x=>!(x.ruoli||[]).includes(r)&&x.ruoli.length).map(x=>({v:x.id,t:x.ragioneSociale+' ('+x.ruoli.map(y=>RUOLI_CLIENTE[y]).join(', ')+')'})));
-  const profOpz=r=>stato.professionisti.map(p=>({v:p.id,t:[p.titolo,p.nome].filter(Boolean).join(' ')+((p.ruoli||[]).includes(r)?'':' ('+(p.ruoli||[]).map(x=>RUOLI_PROFESSIONISTA[x]||x).join(', ')+')')}));
+  const clientiOpz=stato.clienti.map(x=>({v:x.id,t:x.ragioneSociale}));
+  const profOpz=stato.professionisti.map(p=>({v:p.id,t:[p.titolo,p.nome].filter(Boolean).join(' ')}));
   const qualificati=personeQualificatePreposto();
+  const soggetto=(pre)=>[{nome:pre+'.via',etichetta:'Indirizzo'},{nome:pre+'.comune',etichetta:'Località'},{nome:pre+'.provincia',etichetta:'Provincia',maiuscolo:true},{nome:pre+'.piva',etichetta:'P.IVA / C.F.',maiuscolo:true}];
   const campi=[
+    {nome:'s-cantiere',etichetta:'Cantiere',tipo:'sezione'},
     {nome:'nome',etichetta:'Nome del cantiere',obbligatorio:true},{nome:'anno',etichetta:'Anno',tipo:'numero',decimali:0,obbligatorio:true,aiuto:'Anno di inizio: il cantiere appartiene interamente a questo anno'},{nome:'stato',etichetta:'Stato',tipo:'select',vuoto:false,opzioni:Object.entries(STATI_CANTIERE).map(([v,t])=>({v,t}))},
     {nome:'descrizione',etichetta:'Descrizione dell\'opera',tipo:'textarea',largo:true},
     {nome:'indirizzo.via',etichetta:'Indirizzo',largo:true},{nome:'indirizzo.comune',etichetta:'Comune'},{nome:'indirizzo.provincia',etichetta:'Provincia',maiuscolo:true},{nome:'indirizzo.cap',etichetta:'CAP'},
-    {nome:'committenteId',etichetta:'Committente',tipo:'select',opzioni:clientiOpz('committente')},{nome:'affidatariaId',etichetta:'Impresa affidataria',tipo:'select',opzioni:clientiOpz('affidataria'),aiuto:'Chi ha subappaltato all’impresa'},
-    {nome:'progettistaId',etichetta:'Progettista',tipo:'select',opzioni:profOpz('progettista')},{nome:'direttoreLavoriId',etichetta:'Direttore dei lavori',tipo:'select',opzioni:profOpz('direttoreLavori')},{nome:'cseId',etichetta:'Coordinatore in esecuzione (CSE)',tipo:'select',opzioni:profOpz('cse')},{nome:'cspId',etichetta:'Coordinatore in progettazione (CSP)',tipo:'select',opzioni:profOpz('csp')},
+    {nome:'cig',etichetta:'CIG (lavori pubblici)',maiuscolo:true,valida:v=>/^[A-Z0-9]{10}$/.test(v)?null:'Il CIG ha 10 caratteri, lettere e numeri'},{nome:'cup',etichetta:'CUP (lavori pubblici)',maiuscolo:true,valida:v=>/^[A-Z0-9]{15}$/.test(v)?null:'Il CUP ha 15 caratteri, lettere e numeri'},
+    {nome:'s-committente',etichetta:'Committente',tipo:'sezione'},
+    {nome:'committenteId',etichetta:'Committente',tipo:'scegli',nuovo:true,largo:true,opzioni:clientiOpz,segnaposto:'Scrivi il nome: se è già stato usato te lo suggerisco'},...soggetto('comm'),
+    {nome:'s-affidataria',etichetta:'Impresa affidataria',tipo:'sezione'},
+    {nome:'affidatariaId',etichetta:'Impresa affidataria',tipo:'scegli',nuovo:true,largo:true,opzioni:clientiOpz,aiuto:'Chi ha subappaltato all’impresa. Se è nuova la aggiungo ai Clienti'},...soggetto('aff'),
+    {nome:'s-figure',etichetta:'Figure del cantiere',tipo:'sezione'},
+    {nome:'progettistaId',etichetta:'Progettista',tipo:'scegli',nuovo:true,opzioni:profOpz,segnaposto:'Arch. Nome Cognome'},{nome:'direttoreLavoriId',etichetta:'Direttore dei lavori',tipo:'scegli',nuovo:true,opzioni:profOpz},{nome:'cseId',etichetta:'Coordinatore in esecuzione (CSE)',tipo:'scegli',nuovo:true,opzioni:profOpz},{nome:'cspId',etichetta:'Coordinatore in progettazione (CSP)',tipo:'scegli',nuovo:true,opzioni:profOpz},
+    {nome:'s-lavori',etichetta:'Lavori dell’impresa',tipo:'sezione'},
     {nome:'dataInizio',etichetta:'Inizio lavori',tipo:'data'},{nome:'dataFine',etichetta:'Fine lavori',tipo:'data'},{nome:'periodoTesto',etichetta:'Periodo (se le date non sono note)',segnaposto:'es. luglio 2026'},
     {nome:'lavorazioni',etichetta:'Lavorazioni previste',tipo:'chip',largo:true,opzioni:stato.lavorazioni.map(l=>({v:String(l.id),t:l.breve}))},
-    {nome:'uominiGiorno',etichetta:'Entità presunta uomini/giorno',tipo:'numero',decimali:0,aiuto:'Operai dell'+String.fromCharCode(39)+'impresaass in cantiere: non si prende dal PSC'},{nome:'orari',etichetta:'Orari di lavoro',segnaposto:'lun-ven 08:00–12:00 / 13:00–17:00'},{nome:'importoContratto',etichetta:'Importo di contratto',tipo:'euro'},
+    {nome:'uominiGiorno',etichetta:'Entità presunta uomini/giorno',tipo:'numero',decimali:0,aiuto:'Operai dell'+String.fromCharCode(39)+'impresa in cantiere: non si prende dal PSC'},{nome:'orari',etichetta:'Orari di lavoro',segnaposto:'lun-ven 08:00–12:00 / 13:00–17:00'},{nome:'importoContratto',etichetta:'Importo di contratto',tipo:'euro'},
     {nome:'operai',etichetta:'Operai assegnati',tipo:'chip',largo:true,opzioni:stato.persone.filter(p=>p.attivo&&p.inCantiere!==false).map(p=>{const i=idoneita(p);return {v:p.id,t:nomePersona(p)+(i.idonea?'':' ⚠')}}),aiuto:'⚠ = documenti scaduti o mancanti'},
     {nome:'prepostoId',etichetta:'Preposto',tipo:'select',opzioni:qualificati.map(p=>({v:p.id,t:nomePersona(p)})),vuotoTesto:qualificati.length?'— scegli —':'nessuno con corso preposto valido',aiuto:qualificati.length?'Solo chi ha il corso preposto in corso di validità':'Nessuna persona qualifica: serve un corso preposto valido'},
+    {nome:'s-psc',etichetta:'PSC',tipo:'sezione'},
     {nome:'psc.data',etichetta:'Data PSC',tipo:'data'},{nome:'psc.periodoTesto',etichetta:'PSC: periodo (se senza data)'},{nome:'psc.redattore',etichetta:'PSC: redattore'},{nome:'psc.prescrizioni',etichetta:'PSC: prescrizioni particolari',tipo:'textarea',largo:true},
+    {nome:'s-denuncia',etichetta:'Denuncia di apertura cantiere (oltre 14 giorni o oltre 70.000 € di lavori)',tipo:'sezione'},
     {nome:'denuncia.data',etichetta:'Denuncia apertura: data',tipo:'data'},{nome:'denuncia.dal',etichetta:'Denuncia: dal',tipo:'data'},{nome:'denuncia.al',etichetta:'Denuncia: al',tipo:'data'},{nome:'denuncia.importoComplessivo',etichetta:'Importo complessivo lavori',tipo:'euro'},{nome:'denuncia.importoPavimass',etichetta:'Importo dell'+String.fromCharCode(39)+'impresa',tipo:'euro'},
     {nome:'note',etichetta:'Note',tipo:'textarea',largo:true},
   ];
-  const val=clona(c);val.lavorazioni=(c.lavorazioni||[]).map(String);
-  return dialogoModulo(nuovo?'Nuovo cantiere':'Modifica '+c.nome,campi,val,{validaTutto:v=>{if(v.dataInizio&&v.dataFine&&v.dataFine<v.dataInizio)return 'La fine lavori precede l\'inizio';if(v.denuncia.dal&&v.denuncia.al&&v.denuncia.al<v.denuncia.dal)return 'Il periodo della denuncia è incoerente';if(v.prepostoId&&!(v.operai||[]).includes(v.prepostoId))return 'Il preposto deve essere fra gli operai assegnati';return null}}).then(v=>{
+  const val=clona(c);val.lavorazioni=(c.lavorazioni||[]).map(String);val.comm=datiSoggetto(cliente(c.committenteId));val.aff=datiSoggetto(cliente(c.affidatariaId));
+  let pscFileId=null;
+  // scegliendo un committente o un'affidataria già usati si riempiono indirizzo e P.IVA ancora vuoti
+  const alMontaggio=v=>{for(const [k,pre] of [['committenteId','comm'],['affidatariaId','aff']]){const i=v.querySelector(`[name="${k}"]`);i.addEventListener('change',()=>{const cl=stato.clienti.find(x=>normalizzaTesto(x.ragioneSociale)===normalizzaTesto(i.value));for(const [f,x] of Object.entries(datiSoggetto(cl))){const e=v.querySelector(`[name="${pre}.${f}"]`);if(e&&!e.value&&x)e.value=x}})}};
+  return dialogoModulo(nuovo?'Nuovo cantiere':'Modifica '+c.nome,campi,val,{alMontaggio,pulsantiExtra:[{testo:'Compila dal PSC',sinistra:true,fn:v=>compilaDalPsc(v).then(id=>{if(id)pscFileId=id;return false})}],validaTutto:v=>{if(v.dataInizio&&v.dataFine&&v.dataFine<v.dataInizio)return 'La fine lavori precede l\'inizio';if(v.denuncia.dal&&v.denuncia.al&&v.denuncia.al<v.denuncia.dal)return 'Il periodo della denuncia è incoerente';if(v.prepostoId&&!(v.operai||[]).includes(v.prepostoId))return 'Il preposto deve essere fra gli operai assegnati';return null}}).then(v=>{
     if(!v) return;
     v.lavorazioni=(v.lavorazioni||[]).map(Number);v.anno=+v.anno;
-    if(nuovo){const id=nuovoId('ca');esegui('Nuovo cantiere '+v.nome,s=>{s.cantieri.push(Object.assign({id,documentiProdotti:[],checklistExtra:[],invii:[],diario:[],creato:new Date().toISOString()},v))});vai('cantieri/'+id)}
-    else esegui('Modificato cantiere '+v.nome,s=>{const x=s.cantieri.find(x=>x.id===c.id);Object.assign(x,v);x.psc=Object.assign({},c.psc,v.psc);x.denuncia=Object.assign({},c.denuncia,v.denuncia)});
+    const {comm,aff}=v;delete v.comm;delete v.aff;
+    const risolvi=(s,x)=>{x.committenteId=clienteDaNome(s,v.committenteId,'committente',comm);x.affidatariaId=clienteDaNome(s,v.affidatariaId,'affidataria',aff);for(const f of FIGURE_CANTIERE.filter(f=>f.tipo==='professionista'))x[f.chiave]=professionistaDaNome(s,v[f.chiave],f.ruoloProf);if(pscFileId)x.psc.fileId=pscFileId};
+    if(nuovo){const id=nuovoId('ca');esegui('Nuovo cantiere '+v.nome,s=>{const x=Object.assign({id,documentiProdotti:[],checklistExtra:[],invii:[],diario:[],creato:new Date().toISOString()},v);s.cantieri.push(x);risolvi(s,x)});vai('cantieri/'+id)}
+    else esegui('Modificato cantiere '+v.nome,s=>{const x=s.cantieri.find(x=>x.id===c.id);Object.assign(x,v);x.psc=Object.assign({},c.psc,v.psc);x.denuncia=Object.assign({},c.denuncia,v.denuncia);risolvi(s,x)});
   });
 }

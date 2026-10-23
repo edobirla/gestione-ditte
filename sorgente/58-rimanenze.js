@@ -120,7 +120,7 @@ AZIONI['rim-proponi']=d=>{
   esegui(`Proposte: ${plurale(lav.length,'lavoro in corso','lavori in corso')}, ${plurale(ft.length,'fattura da emettere','fatture da emettere')}`,s=>{const X=rimanenzeAnno(s,d.anno);X.lavori.push(...lav);X.fatture.push(...ft)});
 };
 AZIONI['rim-cantiere']=async d=>{
-  const v=await dialogoModulo('Aggiungi un cantiere ai lavori in corso',[{nome:'cantiereId',etichetta:'Cantiere',tipo:'select',obbligatorio:true,opzioni:stato.cantieri.map(c=>({v:c.id,t:c.nome+(c.anno?' ('+c.anno+')':'')}))}],{},{ok:'Aggiungi',intro:html`<p class="piccolo secondario">Ore e costi si calcolano dal giorno dopo l'ultima fattura del cantiere fino al 31/12/${d.anno}.</p>`});
+  const v=await dialogoModulo('Aggiungi un cantiere ai lavori in corso',[{nome:'cantiereId',etichetta:'Cantiere',tipo:'scegli',obbligatorio:true,opzioni:stato.cantieri.map(c=>({v:c.id,t:c.nome+(c.anno?' ('+c.anno+')':'')}))}],{},{ok:'Aggiungi',intro:html`<p class="piccolo secondario">Ore e costi si calcolano dal giorno dopo l'ultima fattura del cantiere fino al 31/12/${d.anno}.</p>`});
   if(!v)return;const c=cantiere(v.cantiereId);
   esegui('Aggiunto '+c.nome+' ai lavori in corso',s=>{rimanenzeAnno(s,d.anno).lavori.push(rigaLavoro(c,d.anno))});
 };

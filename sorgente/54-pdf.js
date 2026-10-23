@@ -338,7 +338,7 @@ function proponiDatiDaPsc(testo){
   const ind=cerca(['indirizzo del cantiere','ubicazione del cantiere','indirizzo cantiere','cantiere sito in','ubicazione','indirizzo']);
   if(ind){out.indirizzo=ind;const capM=/\b(\d{5})\b/.exec(ind);if(capM)out.cap=capM[1];const cm=/(?:\d{5}\s+)?([A-ZÀ-Ü][a-zà-ü']+(?:\s+[A-ZÀ-Ü][a-zà-ü']+)*)\s*\(([A-Z]{2})\)/.exec(ind);if(cm){out.comune=cm[1];out.provincia=cm[2]}}
   if(!out.comune){const c=cerca(['comune'],{soloColon:true});if(c&&c.length<40){const cm=/^([^(]+?)\s*(?:\(([A-Z]{2})\))?$/.exec(c);if(cm){out.comune=cm[1].trim();if(cm[2])out.provincia=cm[2]}}}
-  if(!out.comune){const m=/\bComune di ([A-ZÀ-Ü][a-zà-ü']+(?:\s+[A-ZÀ-Ü][a-zà-ü']+){0,2})\s*(?:\(([A-Z]{2})\))?/.exec(t);if(m){out.comune=m[1];if(m[2])out.provincia=m[2]}}
+  if(!out.comune){const m=/\bComune di ([A-ZÀ-Ü][a-zà-ü']+(?:[ \t]+[A-ZÀ-Ü][a-zà-ü']+){0,2})[ \t]*(?:\(([A-Z]{2})\))?/.exec(t);if(m){out.comune=m[1];if(m[2])out.provincia=m[2]}}
   if(!out.cap){const c=cerca(['cap','c\\.a\\.p\\.'],{soloColon:true});if(c&&/^\d{5}/.test(c))out.cap=c.slice(0,5)}
   out.progettista=cerca(['progettista','progettazione architettonica','progettista architettonico']);
   out.direttoreLavori=cerca(['direttore dei lavori','direzione lavori','direttore lavori','d\\.l\\.']);
@@ -348,6 +348,12 @@ function proponiDatiDaPsc(testo){
   const dm=/(?:revisione|data|emesso|emissione)\s*[:：]?\s*(\d{1,2}[\/.-]\d{1,2}[\/.-]\d{2,4}|(?:gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)\s+\d{4})/i.exec(t);
   if(dm){const d=interpretaData(dm[1]);if(d)out.dataPsc=d;else{const mm=/(gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)\s+(\d{4})/i.exec(dm[1]);if(mm)out.dataPsc=mm[2]+'-'+pad2(NOMI_MESI.indexOf(mm[1].toLowerCase())+1)+'-01'}}
   out.redattore=cerca(['redatto da','il coordinatore','redattore'],{soloColon:true});
+  out.descrizione=cerca(['oggetto dei lavori','oggetto dell\'appalto','oggetto dell\'intervento','descrizione dell\'opera','descrizione sintetica dell\'opera','natura dell\'opera','oggetto'],{soloColon:true});
+  // CIG 10 caratteri, CUP 15: almeno una cifra, così una parola qualsiasi dopo "CIG" non passa
+  const cig=/\bC\.?\s?I\.?\s?G\.?\s*(?:n\.?|n°|nr\.?)?\s*[:：]?\s*((?=[A-Z]*\d)[A-Z0-9]{10})\b/i.exec(t);if(cig)out.cig=cig[1].toUpperCase();
+  const cup=/\bC\.?\s?U\.?\s?P\.?\s*(?:n\.?|n°|nr\.?)?\s*[:：]?\s*((?=[A-Z]*\d)[A-Z0-9]{15})\b/i.exec(t);if(cup)out.cup=cup[1].toUpperCase();
+  const imp=/importo\s+(?:complessivo\s+)?(?:presunto\s+)?(?:dei\s+|del\s+|delle\s+)?(?:lavori|appalto|opere)[^\d€\n]{0,60}(?:€|euro)?\s*(\d{1,3}(?:\.\d{3})+(?:,\d{2})?|\d+,\d{2})/i.exec(t);if(imp){const n=leggiNumero(imp[1]);if(n>=1000)out.importoLavori=n}
+  for(const [k,et] of [['dataInizio',['data presunta di inizio lavori','data presunta inizio lavori','data di inizio dei lavori','data di inizio lavori','inizio lavori']],['dataFine',['data presunta di fine lavori','data presunta fine lavori','data di fine dei lavori','data di fine lavori','fine lavori']]]){const v=cerca(et,{soloColon:true});const d=v&&interpretaData((/\d{1,2}[\/.-]\d{1,2}[\/.-]\d{2,4}/.exec(v)||[])[0]||'');if(d)out[k]=d}
   for(const k of Object.keys(out)){if(!out[k]||(typeof out[k]==='string'&&out[k].length>140))delete out[k]}
   return out;
 }

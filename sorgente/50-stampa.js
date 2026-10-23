@@ -231,7 +231,7 @@ AZIONI['dichiarazione-compila']=async d=>{
   if(!modelloId||!c){
     const campi=[];
     if(!modelloId)campi.push({nome:'modelloId',etichetta:'Modello',tipo:'select',obbligatorio:true,opzioni:stato.modelli.dichiarazioni.map(m=>({v:m.id,t:m.nome}))});
-    if(!c)campi.push({nome:'cantiereId',etichetta:'Cantiere (facoltativo)',tipo:'select',opzioni:stato.cantieri.map(x=>({v:x.id,t:x.nome})),aiuto:'Lascia vuoto per una dichiarazione aziendale non legata a un cantiere: i campi del cantiere compariranno da compilare'});
+    if(!c)campi.push({nome:'cantiereId',etichetta:'Cantiere (facoltativo)',tipo:'scegli',opzioni:stato.cantieri.map(x=>({v:x.id,t:x.nome})),aiuto:'Lascia vuoto per una dichiarazione aziendale non legata a un cantiere: i campi del cantiere compariranno da compilare'});
     campi.push({nome:'data',etichetta:'Data',tipo:'data',obbligatorio:true});
     const scelta=await dialogoModulo('Compila una dichiarazione',campi,{data:oggi()},{ok:'Anteprima',intro:html`<p class="piccolo secondario">Si compila da sola con i dati dell'azienda, del legale rappresentante e, se scelto, del cantiere: denominazione e indirizzo, comune, committente, impresa affidataria, operai assegnati. Quello che manca compare in rosso, non si inventa.</p>`});
     if(!scelta)return;
