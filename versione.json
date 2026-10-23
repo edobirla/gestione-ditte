@@ -1,8 +1,15 @@
 {
- "versione": "1.21",
- "impronta": "6921ffd05a",
- "data": "2026-10-23T17:53:23+02:00",
+ "versione": "1.22",
+ "impronta": "8ce1b90530",
+ "data": "2026-10-23T17:59:35+02:00",
  "storico": [
+  {
+   "versione": "1.22",
+   "data": "2026-10-23T17:59:35+02:00",
+   "novita": [
+    "Firme nitide anche partendo da immagini piccole"
+   ]
+  },
   {
    "versione": "1.21",
    "data": "2026-10-23T17:53:23+02:00",
@@ -105,13 +112,6 @@
    "novita": [
     "Tasto indietro: una volta sola basta",
     "POS firmato da tutti"
-   ]
-  },
-  {
-   "versione": "1.7",
-   "data": "2026-10-23T13:59:20+02:00",
-   "novita": [
-    "Rivestimenti: il tipo in ceramica e gres ora si chiama così anche nella scelta del cantiere"
    ]
   }
  ]
