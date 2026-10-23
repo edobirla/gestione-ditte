@@ -1255,6 +1255,10 @@ select.stato-rapido.inviato{background:var(--giallo-chiaro);border-color:var(--g
   #stampa{display:block!important}
   #stampa .pagina{box-shadow:none;margin:0;page-break-after:always;break-after:page;-webkit-print-color-adjust:exact;print-color-adjust:exact}
   #stampa .pagina:last-child{page-break-after:auto;break-after:auto}
+  /* Safari arrotonda l'A4 per difetto: con 297 mm esatti ogni foglio sforava di una frazione e dopo ogni
+     pagina ne usciva una bianca. Mezzo millimetro in meno non si vede e non sfora più. */
+  #stampa .pagina{height:296.5mm;overflow:hidden;break-inside:avoid}
+  #stampa .pagina.orizzontale{height:209.5mm}
   .anteprima-stampa{display:none!important}
 }
 
@@ -3222,8 +3226,8 @@ function scegliFile(opz){
 // L'app lo controlla all'avvio, ogni mezz'ora e quando torna in primo piano: se è diversa avvisa,
 // e «Aggiorna ora» scarica la pagina nuova scavalcando le copie del browser. I dati non si toccano.
 // ---------------------------------------------------------------------
-const VERSIONE_APP='30687e8abb';   // impronta del contenuto: dice se è cambiato qualcosa
-const NUMERO_VERSIONE='1.10'; // il numero per le persone: 1.0, 1.1…
+const VERSIONE_APP='87724b0580';   // impronta del contenuto: dice se è cambiato qualcosa
+const NUMERO_VERSIONE='1.11'; // il numero per le persone: 1.0, 1.1…
 function appPubblicata(){return location.protocol==='https:'}
 async function controllaAggiornamento(manuale){
   if(!appPubblicata()){if(manuale)avviso('Il controllo funziona sull\'app pubblicata, non su questa copia locale');return null}
@@ -7857,7 +7861,11 @@ AZIONI['pos-genera']=async()=>{
   setTimeout(()=>{if(leggiRotta().sotto==='pos')vai('cantieri/'+c.id)},100);
   avvisoNomine(nomine);
 };
-AZIONI['pos-ristampa']=d=>{const p=perId('pos',d.id);const g=p&&perId('generati',p.generatoId);if(g)anteprimaStampa({titolo:g.titolo,pagineHtml:g.pagine,giaRegistrato:true});else if(p){anteprimaStampa({titolo:'POS '+nomeCantiere(p.cantiereId)+' rev '+p.revisione,doc:docPos(p,cantiere(p.cantiereId)),giaRegistrato:true})}};
+// ristampando un POS fatto prima delle nomine automatiche, le nomine che mancano nel cantiere si preparano ora
+AZIONI['pos-ristampa']=d=>{const p=perId('pos',d.id);const g=p&&perId('generati',p.generatoId);
+  const cc=p&&cantiere(p.cantiereId);let nomine=null;if(cc&&!(cc.documentiProdotti||[]).some(x=>x.automatica&&NOMINE_CANTIERE.some(([id])=>id===x.modelloId)))nomine=generaNomineCantiere(cc.id,p.revisione?p.dataRevisione:p.dataEmissione);
+  if(nomine)setTimeout(()=>avvisoNomine(nomine),300);
+if(g)anteprimaStampa({titolo:g.titolo,pagineHtml:g.pagine,giaRegistrato:true});else if(p){anteprimaStampa({titolo:'POS '+nomeCantiere(p.cantiereId)+' rev '+p.revisione,doc:docPos(p,cantiere(p.cantiereId)),giaRegistrato:true})}};
 AZIONI['pos-nuova-revisione']=d=>{const p=perId('pos',d.id);ui.posWizard=null;vai('cantieri/'+p.cantiereId+'/pos?da='+p.id)};
 
 // ---------------------------------------------------------------------

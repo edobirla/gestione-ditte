@@ -1,8 +1,16 @@
 {
- "versione": "1.10",
- "impronta": "30687e8abb",
- "data": "2026-10-23T15:02:27+02:00",
+ "versione": "1.11",
+ "impronta": "87724b0580",
+ "data": "2026-10-23T15:11:58+02:00",
  "storico": [
+  {
+   "versione": "1.11",
+   "data": "2026-10-23T15:11:58+02:00",
+   "novita": [
+    "Nomine anche ristampando un POS già fatto",
+    "Stampa in PDF da Safari senza pagine bianche"
+   ]
+  },
   {
    "versione": "1.10",
    "data": "2026-10-23T15:02:27+02:00",
