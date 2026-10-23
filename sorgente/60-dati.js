@@ -71,7 +71,7 @@ const TIPI_LAVORAZIONE=[
   {id:'l_flottante',cat:3,nome:'Parquet e laminato flottante',breve:'Parquet flottante'},
   {id:'l_levigatura',cat:3,nome:'Levigatura e verniciatura del parquet in opera',breve:'Levigatura parquet'},
   {id:'g_galleggiante',cat:4,nome:'Pavimento galleggiante su supporti',breve:'Galleggiante'},
-  {id:'r_ceramica',cat:5,nome:'Rivestimenti in ceramica e gres',breve:'Rivestimenti in ceramica'},
+  {id:'r_ceramica',cat:5,nome:'Rivestimenti in ceramica e gres',breve:'Ceramica e gres'},
   {id:'r_pietra',cat:5,nome:'Rivestimenti in marmo e pietra',breve:'Rivestimenti in pietra'},
   {id:'r_scale',cat:5,nome:'Rivestimento di scale',breve:'Scale'},
   {id:'b_ceramica',cat:6,nome:'Battiscopa in gres e ceramica',breve:'Battiscopa in gres'},
