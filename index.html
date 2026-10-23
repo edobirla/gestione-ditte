@@ -3226,7 +3226,7 @@ function scegliFile(opz){
 // L'app lo controlla all'avvio, ogni mezz'ora e quando torna in primo piano: se è diversa avvisa,
 // e «Aggiorna ora» scarica la pagina nuova scavalcando le copie del browser. I dati non si toccano.
 // ---------------------------------------------------------------------
-const VERSIONE_APP='23745bba58';   // impronta del contenuto: dice se è cambiato qualcosa
+const VERSIONE_APP='1e71cb3365';   // impronta del contenuto: dice se è cambiato qualcosa
 const NUMERO_VERSIONE='1.17'; // il numero per le persone: 1.0, 1.1…
 function appPubblicata(){return location.protocol==='https:'}
 async function controllaAggiornamento(manuale){
@@ -4172,8 +4172,8 @@ function schedaCantiereDocumenti(c){
   return html`<div class="scheda"><h3>${icona('scudo')}Sicurezza <span class="azioni"><a class="pulsante piccolo" href="#/cantieri/${c.id}/pos">${icona('piu','piccola')}Genera POS</a><button class="pulsante piccolo" data-azione="cantiere-psc-carica" data-id="${c.id}">${icona('carica','piccola')}Carica PSC</button></span></h3>
     <ul class="elenco-piatto">
       <li>${icona('pdf')}<span class="spazio"><b>PSC</b> ${c.psc.data||c.psc.periodoTesto?html`<span class="secondario piccolo">del ${dataValida(c.psc.data)?fData(c.psc.data):(c.psc.periodoTesto||'')}${c.psc.redattore?' · '+c.psc.redattore:''}</span>`:''}</span>${c.psc.fileId?html`<button class="pulsante piccolo" data-azione="file-apri" data-id="${c.psc.fileId}">${icona('occhio','piccola')}Apri</button>`:html`<span class="pillola mancante">${icona('blocco')}non caricato</span>`}</li>
-      ${posGen.map(p=>html`<li>${icona('scudo')}<span class="spazio"><b>POS revisione ${p.revisione}</b> <span class="secondario piccolo">emesso ${fData(p.dataEmissione)}${p.dataRevisione&&p.dataRevisione!==p.dataEmissione?' · rev. '+fData(p.dataRevisione):''} · ${p.lavorazioni.length} lavorazioni · ${p.operai.length} operai</span></span><button class="pulsante piccolo" data-azione="pos-ristampa" data-id="${p.id}">${icona('stampa','piccola')}Stampa</button><button class="pulsante piccolo" data-azione="pos-nuova-revisione" data-id="${p.id}">${icona('aggiorna','piccola')}Nuova revisione</button></li>`)}
-      ${prodotti.filter(d=>d.tipo==='POS').map(d=>html`<li>${icona('scudo')}<span class="spazio"><b>${d.titolo}</b> <span class="secondario piccolo">${d.dataEmissione?'emesso '+fData(d.dataEmissione)+' · ':''}${d.data?'rev. '+fData(d.data):''}</span>${d.note?html`<br><span class="piccolo secondario">${d.note}</span>`:''}</span>${d.fileId?html`<button class="pulsante piccolo" data-azione="file-apri" data-id="${d.fileId}">${icona('occhio','piccola')}Apri</button>`:html`<button class="pulsante piccolo" data-azione="cantiere-prodotto-file" data-id="${c.id}" data-prod="${d.id}">${icona('carica','piccola')}Allega file</button>`}</li>`)}
+      ${posGen.map(p=>html`<li>${icona('scudo')}<span class="spazio"><b>POS revisione ${p.revisione}</b> <span class="secondario piccolo">emesso ${fData(p.dataEmissione)}${p.dataRevisione&&p.dataRevisione!==p.dataEmissione?' · rev. '+fData(p.dataRevisione):''} · ${p.lavorazioni.length} lavorazioni · ${p.operai.length} operai</span></span><button class="pulsante piccolo" data-azione="pos-ristampa" data-id="${p.id}">${icona('stampa','piccola')}Stampa</button><button class="pulsante piccolo" data-azione="pos-nuova-revisione" data-id="${p.id}">${icona('aggiorna','piccola')}Nuova revisione</button><button class="pulsante piccolo icona pericolo" data-azione="pos-elimina" data-id="${p.id}" title="Elimina questo POS" aria-label="Elimina questo POS">${icona('elimina','piccola')}</button></li>`)}
+      ${prodotti.filter(d=>d.tipo==='POS').map(d=>html`<li>${icona('scudo')}<span class="spazio"><b>${d.titolo}</b> <span class="secondario piccolo">${d.dataEmissione?'emesso '+fData(d.dataEmissione)+' · ':''}${d.data?'rev. '+fData(d.data):''}</span>${d.note?html`<br><span class="piccolo secondario">${d.note}</span>`:''}</span>${d.fileId?html`<button class="pulsante piccolo" data-azione="file-apri" data-id="${d.fileId}">${icona('occhio','piccola')}Apri</button>`:html`<button class="pulsante piccolo" data-azione="cantiere-prodotto-file" data-id="${c.id}" data-prod="${d.id}">${icona('carica','piccola')}Allega file</button>`}<button class="pulsante piccolo icona pericolo" data-azione="cantiere-prodotto-elimina" data-id="${c.id}" data-prod="${d.id}" title="Elimina questo POS" aria-label="Elimina questo POS">${icona('elimina','piccola')}</button></li>`)}
     </ul></div>
   <div class="scheda"><h3>${icona('firma')}Dichiarazioni e altri documenti prodotti <span class="azioni"><button class="pulsante piccolo" data-azione="nomine-rifai" data-id="${c.id}" title="Nomina del preposto e degli addetti antincendio e primo soccorso, già firmate">${icona('firma','piccola')}Rifai le nomine</button><button class="pulsante piccolo" data-azione="dichiarazione-compila" data-cantiere="${c.id}">${icona('piu','piccola')}Compila dichiarazione</button><button class="pulsante piccolo" data-azione="cantiere-prodotto-nuovo" data-id="${c.id}">${icona('allega','piccola')}Registra documento</button></span></h3>
     ${prodotti.filter(d=>d.tipo!=='POS').length?html`<ul class="elenco-piatto">${prodotti.filter(d=>d.tipo!=='POS').map(d=>html`<li>${icona(d.tipo==='Dichiarazione'?'firma':'file')}<span class="spazio"><b>${d.titolo}</b> <span class="secondario piccolo">${d.tipo} · ${fData(d.data)}${d.revisione?' · rev. '+d.revisione:''}</span>${d.note?html`<br><span class="piccolo secondario">${d.note}</span>`:''}</span>${d.generatoId?html`<button class="pulsante piccolo" data-azione="generato-ristampa" data-id="${d.generatoId}">${icona('stampa','piccola')}Ristampa</button>`:''}${d.fileId?html`<button class="pulsante piccolo" data-azione="file-apri" data-id="${d.fileId}">${icona('occhio','piccola')}Apri</button>`:d.generatoId?'':html`<button class="pulsante piccolo" data-azione="cantiere-prodotto-file" data-id="${c.id}" data-prod="${d.id}">${icona('carica','piccola')}Allega</button>`}<button class="pulsante piccolo icona pericolo" data-azione="cantiere-prodotto-elimina" data-id="${c.id}" data-prod="${d.id}" aria-label="Elimina">${icona('elimina','piccola')}</button></li>`)}</ul>`:html`<p class="secondario">Nessuna dichiarazione ancora. Compilale dai modelli: si riempiono con i dati di questo cantiere.</p>`}</div>
@@ -6741,7 +6741,7 @@ function anteprimaStampa(opz){
   const cont=el('#stampa');cont.innerHTML=risolviImmagini(pagine.join(''));
   const stile=el('#stile-stampa')||creaEl('<style id="stile-stampa"></style>');stile.textContent=`@media print{@page{size:A4 ${oriz?'landscape':'portrait'};margin:0}}`;document.head.appendChild(stile);
   if(!opz.giaRegistrato&&opz.registra!==false){const g={id:nuovoId('g'),titolo:opz.titolo,quando:new Date().toISOString(),pagine,orientamento:oriz?'orizzontale':'verticale',riferimento:opz.riferimento||''};esegui('Generato: '+opz.titolo,s=>{s.generati.push(g);if(s.generati.length>200)s.generati.shift();if(opz.dopoRegistrazione)opz.dopoRegistrazione(s,g)},{senzaRender:true,silenzioso:true});opz.generatoId=g.id}
-  const overlay=creaEl(html`<div class="anteprima-stampa" role="dialog" aria-label="Anteprima di stampa"><div class="comandi"><button class="pulsante icona" data-chiudi-anteprima aria-label="Chiudi">${icona('chiudi')}</button><h2>${opz.titolo}</h2><span class="piccolo secondario">${pagine.length} ${pagine.length===1?'pagina':'pagine'} · A4 ${oriz?'orizzontale':'verticale'}</span><button class="pulsante piccolo icona" data-zoom="-" aria-label="Riduci">${icona('zoom-meno')}</button><button class="pulsante piccolo icona" data-zoom="+" aria-label="Ingrandisci">${icona('zoom-piu')}</button>${opz.azioniExtra?grezzo(opz.azioniExtra):''}<button class="pulsante primario" data-stampa>${icona('stampa')}Stampa / Salva PDF</button></div>${segnaposti.length?html`<div class="segnaposto-lista">${icona('attenzione')} <b>${segnaposti.length} segnaposto da compilare</b>: ${segnaposti.slice(0,6).map(s=>html`<span title="${s.frase}">pag. ${s.pagina}</span>`).reduce((a,b)=>html`${a} · ${b}`)}${segnaposti.length>6?' …':''} <button class="pulsante piccolo" data-segnaposti>Elenco</button></div>`:''}<div class="fogli"><div class="zoom-contenitore">${grezzo(risolviImmagini(pagine.join('')))}</div></div></div>`);
+  const overlay=creaEl(html`<div class="anteprima-stampa" role="dialog" aria-label="Anteprima di stampa"><div class="comandi"><button class="pulsante icona" data-chiudi-anteprima aria-label="Chiudi">${icona('chiudi')}</button><h2>${opz.titolo}</h2><span class="piccolo secondario">${pagine.length} ${pagine.length===1?'pagina':'pagine'} · A4 ${oriz?'orizzontale':'verticale'}</span><button class="pulsante piccolo icona" data-zoom="-" aria-label="Riduci">${icona('zoom-meno')}</button><button class="pulsante piccolo icona" data-zoom="+" aria-label="Ingrandisci">${icona('zoom-piu')}</button>${opz.azioniExtra?grezzo(opz.azioniExtra):''}<button class="pulsante" data-scarica-pdf>${icona('pdf')}Scarica PDF</button><button class="pulsante primario" data-stampa>${icona('stampa')}Stampa</button></div>${segnaposti.length?html`<div class="segnaposto-lista">${icona('attenzione')} <b>${segnaposti.length} segnaposto da compilare</b>: ${segnaposti.slice(0,6).map(s=>html`<span title="${s.frase}">pag. ${s.pagina}</span>`).reduce((a,b)=>html`${a} · ${b}`)}${segnaposti.length>6?' …':''} <button class="pulsante piccolo" data-segnaposti>Elenco</button></div>`:''}<div class="fogli"><div class="zoom-contenitore">${grezzo(risolviImmagini(pagine.join('')))}</div></div></div>`);
   document.body.appendChild(overlay);ui.anteprimaAperta=true;
   const zc=overlay.querySelector('.zoom-contenitore');let zoom=Math.min(1,(overlay.querySelector('.fogli').clientWidth-48)/((oriz?297:210)*MM));
   const applica=()=>{zc.style.transform=`scale(${zoom})`;zc.style.width=((oriz?297:210)*MM)+'px';zc.style.marginBottom=(-(1-zoom)*zc.scrollHeight)+'px'};applica();
@@ -6749,6 +6749,8 @@ function anteprimaStampa(opz){
   const chiudi=()=>{overlay.remove();ui.anteprimaAperta=false;document.removeEventListener('keydown',tasti)};
   const tasti=e=>{if(e.key==='Escape'){e.preventDefault();chiudi()}};document.addEventListener('keydown',tasti);
   overlay.querySelector('[data-chiudi-anteprima]').onclick=chiudi;
+  // PDF fatto dall'app: identico all'anteprima, senza passare dalla stampa del browser (e dalle sue pagine bianche)
+  overlay.querySelector('[data-scarica-pdf]').onclick=async e=>{const b=e.currentTarget;b.disabled=true;try{const pdf=await pdfDaPagine(pagine);await condividiOScarica(pdf,pulisciNomeFile(opz.titolo||'Documento')+'.pdf',{testo:opz.titolo})}catch(err){segnalaErrore(err,'PDF non creato')}finally{b.disabled=false}};
   overlay.querySelector('[data-stampa]').onclick=()=>{ if(eIos()) avviso('Su iPad e iPhone: Condividi → Stampa, oppure Condividi → Salva su File come PDF',{durata:6000}); setTimeout(()=>window.print(),50); };
   const bs=overlay.querySelector('[data-segnaposti]');if(bs)bs.onclick=()=>informa('Segnaposto non compilati',html`<p>Ogni voce mostra la frase che contiene il segnaposto, così sai dove intervenire.</p><ol>${segnaposti.map(s=>html`<li><b>Pag. ${s.pagina}</b>: ${s.frase}</li>`)}</ol>`);
   if(opz.alMontaggio)opz.alMontaggio(overlay);
@@ -7251,10 +7253,11 @@ function generatiVoce(c,v){
   if(v.nomine&&v.nomine.length) return v.nomine.map(n=>{const d=prod.find(x=>x.generatoId===n.g)||{};return {titolo:'Nomina '+n.r,generatoId:n.g,fileId:d.fileId,data:d.data,modelloId:d.modelloId}});
   if(modello){const d=prod.filter(x=>x.modelloId===modello).pop();return d?[{titolo:v.nome,generatoId:d.generatoId,fileId:d.fileId,data:d.data,modelloId:modello}]:[]}
   if(v.azione==='pos'){
-    const p=stato.pos.filter(x=>x.cantiereId===c.id).sort((a,b)=>b.revisione-a.revisione)[0];
-    if(p)return [{titolo:'POS rev. '+pad2(p.revisione),generatoId:p.generatoId,fileId:p.fileId,data:p.dataRevisione||p.dataEmissione,pos:p}];
-    const caricato=prod.filter(x=>x.tipo==='POS'&&x.fileId).pop();
-    return caricato?[{titolo:caricato.titolo||'POS',fileId:caricato.fileId,data:caricato.data}]:[];
+    // il più recente fra i POS generati dall'app e quelli caricati con il loro file
+    const cand=[...stato.pos.filter(x=>x.cantiereId===c.id).map(p=>({titolo:'POS rev. '+pad2(p.revisione),generatoId:p.generatoId,fileId:p.fileId,data:p.dataRevisione||p.dataEmissione,pos:p,ord:p.revisione})),
+      ...prod.filter(x=>x.tipo==='POS'&&x.fileId).map(d=>({titolo:d.titolo||'POS',fileId:d.fileId,data:d.data||d.dataEmissione,ord:-1}))];
+    cand.sort((a,b)=>(b.data||'').localeCompare(a.data||'')||b.ord-a.ord);
+    return cand.length?[cand[0]]:[];
   }
   return [];
 }
@@ -7271,9 +7274,9 @@ function vistaPacchetto(c,r){
   return html`<div class="briciole"><a href="#/cantieri">Cantieri</a> › <a href="#/cantieri/${c.id}">${c.nome}</a> › Pacchetto committenza</div>
   <div class="testata"><div><h1>Pacchetto per la committenza</h1><div class="sotto">${c.nome} · ${nomeCliente(c.committenteId)||daCompilare('committente')} · affidataria ${nomeCliente(c.affidatariaId)||daCompilare()}</div></div><div class="azioni"><button class="pulsante" data-azione="checklist-copia" data-id="${c.id}">${icona('copia')}Copia checklist</button><button class="pulsante primario" data-azione="pacchetto-genera" data-id="${c.id}" ${blocchi.length?'disabled':''}>${icona('pacchetto')}Genera lo ZIP (${righe.filter(includibile).length} documenti)</button></div></div>
   ${blocchi.length?html`<div class="avviso-inline critico">${icona('blocco')}<div class="corpo"><b>Blocco di conformità.</b> ${blocchi.map(b=>html`${nomePersona(b.p)}: ${b.tipo.nome} ${b.motivo}`).reduce((a,b)=>html`${a} · ${b}`)}. Mandare questi operai alla committenza è un rischio: togli le persone dal cantiere o regolarizza i documenti prima di generare il pacchetto.</div></div>`:''}
-  <div class="scheda"><h3>Revisione obbligatoria</h3><p class="secondario piccolo">Ogni riga dice cosa entrerà nello ZIP, a chi si riferisce, quale file verrà usato, la scadenza e lo stato. I documenti scaduti non entrano, se non forzando con una motivazione. Le dichiarazioni entrano se sono state compilate e stampate in PDF e il PDF è stato allegato; altrimenti entrano come pagina HTML pronta da stampare e firmare.</p>
+  <div class="scheda"><h3>Revisione obbligatoria</h3><p class="secondario piccolo">Ogni riga dice cosa entrerà nello ZIP, a chi si riferisce, quale file verrà usato, la scadenza e lo stato. I documenti scaduti non entrano, se non forzando con una motivazione. POS, nomine e dichiarazioni compilate entrano come PDF fatti dall’app (o come il PDF allegato, se c’è).</p>
   <div class="tabella-scorri"><table class="tabella densa"><thead><tr><th>Entra</th><th>Documento</th><th>Soggetto</th><th>File</th><th>Scadenza</th><th>Stato</th></tr></thead><tbody>
-  ${righe.map(x=>{const v=x.v;const st=STATI_CHECKLIST[v.stato];const entra=includibile(x)&&!sc.esclusi[x.i];return html`<tr class="${v.stato==='scaduto'?'riga-scaduto':v.stato==='ok'?'riga-valido':''}"><td>${includibile(x)?html`<input type="checkbox" data-pacchetto-escludi="${x.i}" ${entra?'checked':''} aria-label="Includi">`:v.stato==='scaduto'?html`<button class="pulsante piccolo pericolo" data-azione="pacchetto-forza" data-i="${x.i}">Forza</button>`:html`<span class="silenzioso">—</span>`}</td><td><b>${v.nome}</b>${sc.forzati[x.i]?html`<br><span class="piccolo da-compilare">forzato: ${sc.forzati[x.i]}</span>`:''}</td><td>${v.soggetto}</td><td class="piccolo">${x.file.length?x.file.map(f=>html`${f.nome} <span class="secondario">(${fPeso(f.dimensione)})</span><br>`):x.generati.length?x.generati.map(g=>html`<span class="secondario">${g.fileId?(fileMeta(g.fileId)||{}).nome:g.titolo+' — pagina da stampare in PDF'}</span><br>`):v.azione==='nomine'?html`<button class="pulsante piccolo" data-azione="nomine-rifai" data-id="${c.id}">Prepara le nomine</button>`:v.azione==='pos'?html`<a class="pulsante piccolo" href="#/cantieri/${c.id}/pos">Genera il POS</a>`:v.stato==='preparare'&&(v.modelloId||(v.azione||'').startsWith('dichiarazione:'))?html`<button class="pulsante piccolo" data-azione="dichiarazione-compila" data-cantiere="${c.id}" data-modello="${v.modelloId||v.azione.split(':')[1]}">Compila</button>`:html`<span class="da-compilare">nessun file</span>`}</td><td>${v.info&&v.info.data?html`<span class="${v.info.stato==='scaduto'?'da-compilare':''}">${fData(v.info.data)}${v.info.stimata?' ~':''}</span>`:''}</td><td><span class="pillola ${st.cl}">${icona(st.ic,'piccola')}${st.t}</span></td></tr>`})}
+  ${righe.map(x=>{const v=x.v;const st=STATI_CHECKLIST[v.stato];const entra=includibile(x)&&!sc.esclusi[x.i];return html`<tr class="${v.stato==='scaduto'?'riga-scaduto':v.stato==='ok'?'riga-valido':''}"><td>${includibile(x)?html`<input type="checkbox" data-pacchetto-escludi="${x.i}" ${entra?'checked':''} aria-label="Includi">`:v.stato==='scaduto'?html`<button class="pulsante piccolo pericolo" data-azione="pacchetto-forza" data-i="${x.i}">Forza</button>`:html`<span class="silenzioso">—</span>`}</td><td><b>${v.nome}</b>${sc.forzati[x.i]?html`<br><span class="piccolo da-compilare">forzato: ${sc.forzati[x.i]}</span>`:''}</td><td>${v.soggetto}</td><td class="piccolo">${x.file.length?x.file.map(f=>html`${f.nome} <span class="secondario">(${fPeso(f.dimensione)})</span><br>`):x.generati.length?x.generati.map(g=>html`<span class="secondario">${g.fileId?(fileMeta(g.fileId)||{}).nome:g.titolo+' — PDF fatto dall’app'}</span><br>`):v.azione==='nomine'?html`<button class="pulsante piccolo" data-azione="nomine-rifai" data-id="${c.id}">Prepara le nomine</button>`:v.azione==='pos'?html`<a class="pulsante piccolo" href="#/cantieri/${c.id}/pos">Genera il POS</a>`:v.stato==='preparare'&&(v.modelloId||(v.azione||'').startsWith('dichiarazione:'))?html`<button class="pulsante piccolo" data-azione="dichiarazione-compila" data-cantiere="${c.id}" data-modello="${v.modelloId||v.azione.split(':')[1]}">Compila</button>`:html`<span class="da-compilare">nessun file</span>`}</td><td>${v.info&&v.info.data?html`<span class="${v.info.stato==='scaduto'?'da-compilare':''}">${fData(v.info.data)}${v.info.stimata?' ~':''}</span>`:''}</td><td><span class="pillola ${st.cl}">${icona(st.ic,'piccola')}${st.t}</span></td></tr>`})}
   </tbody></table></div></div>`;
 }
 document.addEventListener('change',e=>{const t=e.target;if(t.dataset&&t.dataset.pacchettoEscludi!==undefined&&ui.pacchetto){ui.pacchetto.esclusi[+t.dataset.pacchettoEscludi]=!t.checked;render()}});
@@ -7307,8 +7310,7 @@ AZIONI['pacchetto-genera']=async d=>{
           const gen=g.generatoId&&perId('generati',g.generatoId);
           const pagine=gen?gen.pagine:g.pos?impagina(docPos(g.pos,c)):g.modelloId?impagina(docDichiarazione(stato.modelli.dichiarazioni.find(m=>m.id===g.modelloId),c,{data:g.data})):null;
           if(!pagine)continue;
-          const htmlDoc=`<!DOCTYPE html><html lang="it"><head><meta charset="utf-8"><title>${h(g.titolo||v.nome)}</title><style>${stileStampaPerHtml()}</style></head><body>${risolviImmagini(pagine.join(''))}</body></html>`;
-          const k=base+' (da stampare in PDF).html';voci.push({nome:k,dati:htmlDoc});indice.push({cartella,nome:k.split('/').pop(),documento:g.titolo||v.nome,soggetto:v.soggetto,scadenza:'',stato:'del '+fData(g.data)+' — da aprire nel browser e stampare in PDF'});
+          const k=base+'.pdf';voci.push({nome:k,dati:await pdfDaPagine(pagine)});indice.push({cartella,nome:k.split('/').pop(),documento:g.titolo||v.nome,soggetto:v.soggetto,scadenza:'',stato:'del '+fData(g.data)});
         }
       }
     }
@@ -7937,6 +7939,9 @@ AZIONI['pos-ristampa']=d=>{const p=perId('pos',d.id);const g=p&&perId('generati'
   const cc=p&&cantiere(p.cantiereId);let nomine=null;if(cc&&!(cc.documentiProdotti||[]).some(x=>x.automatica&&NOMINE_CANTIERE.some(([id])=>id===x.modelloId)))nomine=generaNomineCantiere(cc.id,p.revisione?p.dataRevisione:p.dataEmissione);
   if(nomine)setTimeout(()=>avvisoNomine(nomine),300);
 if(g)anteprimaStampa({titolo:g.titolo,pagineHtml:g.pagine,giaRegistrato:true});else if(p){anteprimaStampa({titolo:'POS '+nomeCantiere(p.cantiereId)+' rev '+p.revisione,doc:docPos(p,cantiere(p.cantiereId)),giaRegistrato:true})}};
+// POS di prova o sbagliati si eliminano: nel pacchetto va sempre l'ultima revisione rimasta
+AZIONI['pos-elimina']=async d=>{const p=perId('pos',d.id);if(!p)return;if(!(await conferma(`Eliminare il POS revisione ${pad2(p.revisione)} del ${fData(p.dataRevisione||p.dataEmissione)}? Le nomine del cantiere restano.`,{pericolo:true,ok:'Elimina'})))return;
+  esegui('Eliminato POS rev. '+pad2(p.revisione),s=>{s.pos=s.pos.filter(x=>x.id!==p.id);s.generati=s.generati.filter(g=>g.id!==p.generatoId)})};
 AZIONI['pos-nuova-revisione']=d=>{const p=perId('pos',d.id);ui.posWizard=null;vai('cantieri/'+p.cantiereId+'/pos?da='+p.id)};
 
 // ---------------------------------------------------------------------
@@ -8153,6 +8158,144 @@ function dialogoFornitore(f){
     if(nuovo){const id=nuovoId('fr');esegui('Nuovo fornitore '+v.ragioneSociale,s=>{s.fornitori.push(Object.assign({id},v))});vai('fornitori/'+id)}
     else esegui('Modificato fornitore '+v.ragioneSociale,s=>{Object.assign(s.fornitori.find(x=>x.id===f.id),v)});
   });
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   SEZIONE JS · PDF-CREA
+   ═══════════════════════════════════════════════════════════════════ */
+// ---------------------------------------------------------------------
+// PDF dalle pagine stampabili, senza librerie. Le pagine si dispongono nel DOM come per la stampa e se ne
+// copia la geometria in un PDF A4 vettoriale: sfondi e bordi, immagini (anche trasparenti), elenchi e
+// testo parola per parola con i caratteri standard Helvetica, allargato o stretto per occupare lo stesso
+// spazio della pagina a video. Così il PDF è identico all'anteprima, il testo resta selezionabile e
+// funziona anche su Safari, dove l'HTML non si può trasformare in immagine.
+// ---------------------------------------------------------------------
+// larghezze dei caratteri standard PDF (Helvetica, grassetto, corsivo, grassetto corsivo) per i codici WinAnsi 32-255,
+// in millesimi di em: servono a stringere o allargare ogni parola alla larghezza che ha a video
+const LARGHEZZE_HELVETICA=[[278,278,355,556,556,889,667,191,333,333,389,584,278,333,278,278,556,556,556,556,556,556,556,556,556,556,278,278,584,584,584,556,1015,667,667,722,722,667,611,778,722,278,500,667,556,833,722,778,667,778,722,667,611,722,667,944,667,667,611,278,278,278,469,556,333,556,556,500,556,556,278,556,556,222,222,500,222,833,556,556,556,556,333,500,278,556,500,722,500,500,500,334,260,334,584,0,556,0,222,556,333,1000,556,556,333,1000,667,333,1000,0,611,0,0,222,222,333,333,350,556,1000,333,1000,500,333,944,0,500,667,278,333,556,556,556,556,260,556,333,737,370,556,584,333,737,333,400,584,333,333,333,556,537,278,333,333,365,556,834,834,834,611,667,667,667,667,667,667,1000,722,667,667,667,667,278,278,278,278,722,722,778,778,778,778,778,584,778,722,722,722,722,667,667,611,556,556,556,556,556,556,889,500,556,556,556,556,278,278,278,278,556,556,556,556,556,556,556,584,611,556,556,556,556,500,556,500],[278,333,474,556,556,889,722,238,333,333,389,584,278,333,278,278,556,556,556,556,556,556,556,556,556,556,333,333,584,584,584,611,975,722,722,722,722,667,611,778,722,278,556,722,611,833,722,778,667,778,722,667,611,722,667,944,667,667,611,333,278,333,584,556,333,556,611,556,611,556,333,611,611,278,278,556,278,889,611,611,611,611,389,556,333,611,556,778,556,556,500,389,280,389,584,0,556,0,278,556,500,1000,556,556,333,1000,667,333,1000,0,611,0,0,278,278,500,500,350,556,1000,333,1000,556,333,944,0,500,667,278,333,556,556,556,556,280,556,333,737,370,556,584,333,737,333,400,584,333,333,333,611,556,278,333,333,365,556,834,834,834,611,722,722,722,722,722,722,1000,722,667,667,667,667,278,278,278,278,722,722,778,778,778,778,778,584,778,722,722,722,722,667,667,611,556,556,556,556,556,556,889,556,556,556,556,556,278,278,278,278,611,611,611,611,611,611,611,584,611,611,611,611,611,556,611,556],[278,278,355,556,556,889,667,191,333,333,389,584,278,333,278,278,556,556,556,556,556,556,556,556,556,556,278,278,584,584,584,556,1015,667,667,722,722,667,611,778,722,278,500,667,556,833,722,778,667,778,722,667,611,722,667,944,667,667,611,278,278,278,469,556,333,556,556,500,556,556,278,556,556,222,222,500,222,833,556,556,556,556,333,500,278,556,500,722,500,500,500,334,260,334,584,0,556,0,222,556,333,1000,556,556,333,1000,667,333,1000,0,611,0,0,222,222,333,333,350,556,1000,333,1000,500,333,944,0,500,667,278,333,556,556,556,556,260,556,333,737,370,556,584,333,737,333,400,584,333,333,333,556,537,278,333,333,365,556,834,834,834,611,667,667,667,667,667,667,1000,722,667,667,667,667,278,278,278,278,722,722,778,778,778,778,778,584,778,722,722,722,722,667,667,611,556,556,556,556,556,556,889,500,556,556,556,556,278,278,278,278,556,556,556,556,556,556,556,584,611,556,556,556,556,500,556,500],[278,333,474,556,556,889,722,238,333,333,389,584,278,333,278,278,556,556,556,556,556,556,556,556,556,556,333,333,584,584,584,611,975,722,722,722,722,667,611,778,722,278,556,722,611,833,722,778,667,778,722,667,611,722,667,944,667,667,611,333,278,333,584,556,333,556,611,556,611,556,333,611,611,278,278,556,278,889,611,611,611,611,389,556,333,611,556,778,556,556,500,389,280,389,584,0,556,0,278,556,500,1000,556,556,333,1000,667,333,1000,0,611,0,0,278,278,500,500,350,556,1000,333,1000,556,333,944,0,500,667,278,333,556,556,556,556,280,556,333,737,370,556,584,333,737,333,400,584,333,333,333,611,556,278,333,333,365,556,834,834,834,611,722,722,722,722,722,722,1000,722,667,667,667,667,278,278,278,278,722,722,778,778,778,778,778,584,778,722,722,722,722,667,667,611,556,556,556,556,556,556,889,556,556,556,556,556,278,278,278,278,611,611,611,611,611,611,611,584,611,611,611,611,611,556,611,556]];
+async function pdfDaPagine(pagine){
+  const cont=el('#stampa');const htmlPrima=cont.innerHTML,stilePrima=cont.style.cssText;
+  cont.innerHTML=risolviImmagini(pagine.join(''));cont.style.cssText='display:block;position:absolute;left:-30000px;top:0;width:auto';
+  try{
+    await Promise.all(Array.from(cont.querySelectorAll('img')).map(i=>i.complete&&i.naturalWidth?null:new Promise(r=>{i.onload=i.onerror=r})));
+    if(document.fonts&&document.fonts.ready)await document.fonts.ready;
+    const pdf=scrittorePdf();
+    for(const p of cont.querySelectorAll('.pagina')) await pdf.pagina(p);
+    return await pdf.chiudi();
+  }finally{cont.innerHTML=htmlPrima;cont.style.cssText=stilePrima}
+}
+function scrittorePdf(){
+  const W=595.28,H=841.89;const FONT=['Helvetica','Helvetica-Bold','Helvetica-Oblique','Helvetica-BoldOblique'];
+  const immagini=[];const cacheImg=new Map();const pagine=[];
+  const n2=x=>(Math.round(x*100)/100).toString();
+  const colore=s=>{const m=/rgba?\(([^)]+)\)/.exec(s||'');if(!m)return null;const v=m[1].split(/[ ,/]+/).filter(Boolean).map(Number);const a=v.length>3?v[3]:1;if(!(a>0))return null;return v.slice(0,3).map(c=>(c*a+255*(1-a))/255)};
+  const rgb=(c,op)=>c.map(n2).join(' ')+' '+op;
+  // testo in WinAnsi (cp1252): i caratteri che non ci sono diventano equivalenti semplici
+  const CP={8364:128,8218:130,8222:132,8230:133,8216:145,8217:146,8220:147,8221:148,8226:149,8211:150,8212:151,8482:153,338:140,339:156};
+  const SOST={8594:'->',8592:'<-',8804:'<=',8805:'>=',8203:'',160:' ',8239:' ',8201:' ',10003:'v'};
+  const cp1252=t=>{let o='';for(const ch of t){const c=ch.codePointAt(0);if(SOST[c]!==undefined){o+=SOST[c];continue}if(c<128||(c>=160&&c<=255))o+=String.fromCharCode(c);else if(CP[c])o+=String.fromCharCode(CP[c]);else o+='?'}return o};
+  const esc=s=>s.replace(/[\\()]/g,m=>'\\'+m);
+  const larghezza=(t,f,pt)=>{const tab=LARGHEZZE_HELVETICA[f];let w=0;for(let i=0;i<t.length;i++){const c=t.charCodeAt(i);w+=c>=32&&c<=255?tab[c-32]:500}return w/1000*pt};
+  const rettArrotondato=(x,y,w,h,r)=>{r=Math.min(r,w/2,h/2);const k=0.5523*r;return `${n2(x+r)} ${n2(y)} m ${n2(x+w-r)} ${n2(y)} l ${n2(x+w-r+k)} ${n2(y)} ${n2(x+w)} ${n2(y+r-k)} ${n2(x+w)} ${n2(y+r)} c ${n2(x+w)} ${n2(y+h-r)} l ${n2(x+w)} ${n2(y+h-r+k)} ${n2(x+w-r+k)} ${n2(y+h)} ${n2(x+w-r)} ${n2(y+h)} c ${n2(x+r)} ${n2(y+h)} l ${n2(x+r-k)} ${n2(y+h)} ${n2(x)} ${n2(y+h-r+k)} ${n2(x)} ${n2(y+h-r)} c ${n2(x)} ${n2(y+r)} l ${n2(x)} ${n2(y+r-k)} ${n2(x+r-k)} ${n2(y)} ${n2(x+r)} ${n2(y)} c h`};
+  async function immagine(img,wPt,hPt){
+    const st=getComputedStyle(img);const fit=st.objectFit;
+    const iw=img.naturalWidth,ih=img.naturalHeight;if(!iw||!ih)return null;
+    // con object-fit:contain l'immagine occupa solo una parte del riquadro: si disegna solo quella parte
+    // (le fasce vuote ai lati, sfumate, uscivano come righe grigie)
+    let dx=0,dy=0;if(fit==='contain'||fit==='scale-down'){const sc=Math.min(wPt/iw,hPt/ih);const nw=iw*sc,nh=ih*sc;dx=(wPt-nw)/2;dy=(hPt-nh)/2;wPt=nw;hPt=nh}
+    const scala=4.2;// ~300 dpi
+    const cw=Math.max(1,Math.min(2400,Math.round(wPt*scala))),ch=Math.max(1,Math.min(2400,Math.round(hPt*scala)));
+    const chiave=img.currentSrc+'|'+cw+'|'+ch+'|'+fit;if(cacheImg.has(chiave))return Object.assign({},cacheImg.get(chiave),{dx,dy,dw:wPt,dh:hPt});
+    const cv=document.createElement('canvas');cv.width=cw;cv.height=ch;const g=cv.getContext('2d');
+    if(fit==='cover'){const s=Math.max(cw/iw,ch/ih);const sw=cw/s,sh=ch/s;g.drawImage(img,(iw-sw)/2,(ih-sh)/2,sw,sh,0,0,cw,ch)}
+    else g.drawImage(img,0,0,cw,ch);
+    const dati=g.getImageData(0,0,cw,ch).data;let opaca=true;for(let i=3;i<dati.length;i+=4)if(dati[i]<255){opaca=false;break}
+    let ogg;
+    if(opaca){const blob=await new Promise(r=>cv.toBlob(r,'image/jpeg',0.86));ogg={w:cw,h:ch,jpeg:new Uint8Array(await blob.arrayBuffer())}}
+    else{const rgbB=new Uint8Array(cw*ch*3),alfa=new Uint8Array(cw*ch);for(let i=0,j=0,k=0;i<dati.length;i+=4){rgbB[j++]=dati[i];rgbB[j++]=dati[i+1];rgbB[j++]=dati[i+2];alfa[k++]=dati[i+3]}ogg={w:cw,h:ch,rgb:await comprimiFlate(rgbB),alfa:await comprimiFlate(alfa)}}
+    ogg.nome='Im'+(immagini.length+1);immagini.push(ogg);cacheImg.set(chiave,ogg);return Object.assign({},ogg,{dx,dy,dw:wPt,dh:hPt});
+  }
+  async function pagina(pag){
+    const P=pag.getBoundingClientRect();const k=W/P.width;
+    const X=x=>(x-P.left)*k,Y=y=>H-(y-P.top)*k;
+    const fondi=[],testi=[],usate=new Set();
+    const dentro=r=>r.width>0&&r.height>0&&r.right>P.left&&r.left<P.right&&r.bottom>P.top&&r.top<P.bottom;
+    for(const e of pag.querySelectorAll('*')){
+      const r=e.getBoundingClientRect();if(!dentro(r))continue;
+      const st=getComputedStyle(e);if(st.visibility==='hidden'||st.display==='none')continue;
+      const x=X(r.left),y=Y(r.bottom),w=r.width*k,h=r.height*k;
+      const raggio=parseFloat(st.borderTopLeftRadius)*k||0;
+      const fondo=colore(st.backgroundColor);
+      if(fondo&&e!==pag)fondi.push(raggio?`${rgb(fondo,'rg')} ${rettArrotondato(x,y,w,h,raggio)} f`:`${rgb(fondo,'rg')} ${n2(x)} ${n2(y)} ${n2(w)} ${n2(h)} re f`);
+      // bordi: lato per lato (tratteggiati e punteggiati come linee)
+      const lati=[['Top',x,y+h,x+w,y+h],['Right',x+w,y,x+w,y+h],['Bottom',x,y,x+w,y],['Left',x,y,x,y+h]];
+      const bw=lati.map(([l])=>parseFloat(st['border'+l+'Width'])*k||0);
+      const uguali=bw.every(b=>b===bw[0])&&lati.every(([l])=>st['border'+l+'Style']===st.borderTopStyle&&st['border'+l+'Color']===st.borderTopColor);
+      if(raggio&&uguali&&bw[0]>0&&st.borderTopStyle!=='none'){const c=colore(st.borderTopColor);if(c)fondi.push(`${rgb(c,'RG')} ${n2(bw[0])} w ${rettArrotondato(x+bw[0]/2,y+bw[0]/2,w-bw[0],h-bw[0],Math.max(0,raggio-bw[0]/2))} S`)}
+      else lati.forEach(([l,x1,y1,x2,y2],i)=>{const s=st['border'+l+'Style'];if(!bw[i]||s==='none'||s==='hidden')return;const c=colore(st['border'+l+'Color']);if(!c)return;const o=bw[i]/2;const d=[[0,-o],[-o,0],[0,o],[o,0]][i];const tr=s==='dotted'?`[${n2(bw[i])} ${n2(bw[i]*2)}] 0 d 1 J `:s==='dashed'?`[${n2(bw[i]*3)} ${n2(bw[i]*2)}] 0 d `:'';fondi.push(`${rgb(c,'RG')} ${n2(bw[i])} w ${tr}${n2(x1+d[0])} ${n2(y1+d[1])} m ${n2(x2+d[0])} ${n2(y2+d[1])} l S [] 0 d 0 J`)});
+      if(e.tagName==='IMG'&&e.naturalWidth){const im=await immagine(e,w,h);if(im){usate.add(immagini.find(o=>o.nome===im.nome));fondi.push(`q ${n2(im.dw)} 0 0 ${n2(im.dh)} ${n2(x+im.dx)} ${n2(y+h-im.dy-im.dh)} cm /${im.nome} Do Q`)}}
+      // pallini e numeri degli elenchi, spunte delle liste .spunte (sono pseudo-elementi: non stanno nel DOM)
+      if(e.tagName==='LI'){
+        const fs=parseFloat(st.fontSize);const lh=st.lineHeight==='normal'?fs*1.2:parseFloat(st.lineHeight);const base=r.top+(lh-fs)/2+fs*0.8;
+        if(e.parentNode.classList.contains('spunte')){const b=getComputedStyle(e,'::before');const c=colore(b.borderLeftColor)||[0.17,0.14,0.79];const mm=96/25.4;const x0=r.left+0.7*mm,y0=r.top+1.55*mm;fondi.push(`${rgb(c,'RG')} ${n2(0.8)} w ${n2(X(x0))} ${n2(Y(y0+0.9*mm))} m ${n2(X(x0+0.8*mm))} ${n2(Y(y0+1.7*mm))} l ${n2(X(x0+2.4*mm))} ${n2(Y(y0+0.1*mm))} l S`)}
+        else if(st.display==='list-item'&&st.listStyleType!=='none'){
+          const lista=e.parentNode;const pos=Array.from(lista.children).indexOf(e);const inizio=parseInt(lista.getAttribute('start')||'1',10);const n=inizio+pos;
+          const tipo=st.listStyleType;const t=tipo==='decimal'?n+'.':tipo==='lower-alpha'?String.fromCharCode(96+n)+'.':tipo==='upper-alpha'?String.fromCharCode(64+n)+'.':'•';
+          const m=getComputedStyle(e,'::marker');const c=colore(m.color)||colore(st.color)||[0,0,0];const bold=parseInt(m.fontWeight||st.fontWeight,10)>=600;const pt=fs*k;
+          const lw=larghezza(t,bold?1:0,pt);testi.push(`BT /F${bold?2:1} ${n2(pt)} Tf ${rgb(c,'rg')} ${n2(X(r.left)-lw-pt*0.45)} ${n2(Y(base))} Td (${esc(cp1252(t))}) Tj ET`);
+        }
+      }
+    }
+    // testo, una parola alla volta: la posizione e la larghezza sono quelle della pagina a video
+    const tw=document.createTreeWalker(pag,NodeFilter.SHOW_TEXT);const rg=document.createRange();
+    for(let nodo=tw.nextNode();nodo;nodo=tw.nextNode()){
+      const t=nodo.nodeValue;if(!t.trim())continue;const par=nodo.parentElement;if(!par)continue;
+      const st=getComputedStyle(par);if(st.visibility==='hidden')continue;
+      const fs=parseFloat(st.fontSize);const pt=fs*k;const f=(parseInt(st.fontWeight,10)>=600?1:0)|(st.fontStyle==='italic'||st.fontStyle==='oblique'?2:0);const c=colore(st.color)||[0,0,0];
+      const maiusc=st.textTransform==='uppercase';const re=/\S+/g;let m;
+      while((m=re.exec(t))){rg.setStart(nodo,m.index);rg.setEnd(nodo,m.index+m[0].length);const rr=rg.getClientRects();if(!rr.length)continue;const r=rr[0];if(!dentro(r))continue;
+        const parola=cp1252(maiusc?m[0].toUpperCase():m[0]);if(!parola)continue;const lw=larghezza(parola,f,pt);if(!lw)continue;
+        const tz=Math.max(40,Math.min(250,(r.width*k)/lw*100));const base=r.top+r.height*0.78;
+        testi.push(`BT /F${f+1} ${n2(pt)} Tf ${rgb(c,'rg')} ${n2(tz)} Tz ${n2(X(r.left))} ${n2(Y(base))} Td (${esc(parola)}) Tj ET`)}
+    }
+    pagine.push({contenuto:fondi.join('\n')+'\n'+testi.join('\n'),immagini:Array.from(usate)});
+  }
+  async function chiudi(){
+    const parti=[];let pos=0;const offs=[];const enc=new TextEncoder();
+    const latin=s=>{const b=new Uint8Array(s.length);for(let i=0;i<s.length;i++)b[i]=s.charCodeAt(i)&255;return b};
+    const scrivi=x=>{const b=typeof x==='string'?latin(x):x;parti.push(b);pos+=b.length};
+    // numeri degli oggetti: 1 catalogo, 2 pagine, 3-6 caratteri, poi immagini e pagine
+    let n=6;for(const im of immagini){if(im.alfa)im.idMaschera=++n;im.id=++n}
+    for(const p of pagine){p.idCont=++n;p.id=++n}
+    const oggetto=(id,testa,flusso)=>{offs[id]=pos;scrivi(`${id} 0 obj\n${testa}`);if(flusso){scrivi('\nstream\n');scrivi(flusso);scrivi('\nendstream')}scrivi('\nendobj\n')};
+    scrivi('%PDF-1.4\n%\xe2\xe3\xcf\xd3\n');
+    oggetto(1,'<< /Type /Catalog /Pages 2 0 R >>');
+    oggetto(2,`<< /Type /Pages /Count ${pagine.length} /Kids [${pagine.map(p=>p.id+' 0 R').join(' ')}] >>`);
+    FONT.forEach((f,i)=>oggetto(3+i,`<< /Type /Font /Subtype /Type1 /BaseFont /${f} /Encoding /WinAnsiEncoding >>`));
+    for(const im of immagini){
+      if(im.jpeg){oggetto(im.id,`<< /Type /XObject /Subtype /Image /Width ${im.w} /Height ${im.h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${im.jpeg.length} >>`,im.jpeg)}
+      else{oggetto(im.idMaschera,`<< /Type /XObject /Subtype /Image /Width ${im.w} /Height ${im.h} /ColorSpace /DeviceGray /BitsPerComponent 8${im.alfa.flate?' /Filter /FlateDecode':''} /Length ${im.alfa.dati.length} >>`,im.alfa.dati);
+        oggetto(im.id,`<< /Type /XObject /Subtype /Image /Width ${im.w} /Height ${im.h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /SMask ${im.idMaschera} 0 R${im.rgb.flate?' /Filter /FlateDecode':''} /Length ${im.rgb.dati.length} >>`,im.rgb.dati)}
+    }
+    for(const p of pagine){
+      const c=await comprimiFlate(latin(p.contenuto));
+      oggetto(p.idCont,`<< /Length ${c.dati.length}${c.flate?' /Filter /FlateDecode':''} >>`,c.dati);
+      oggetto(p.id,`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${W} ${H}] /Contents ${p.idCont} 0 R /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R /F4 6 0 R >>${p.immagini.length?' /XObject << '+p.immagini.map(im=>`/${im.nome} ${im.id} 0 R`).join(' ')+' >>':''} >> >>`);
+    }
+    const inizioXref=pos;
+    scrivi(`xref\n0 ${n+1}\n0000000000 65535 f \n`+Array.from({length:n},(_,i)=>String(offs[i+1]||0).padStart(10,'0')+' 00000 n \n').join(''));
+    scrivi(`trailer\n<< /Size ${n+1} /Root 1 0 R >>\nstartxref\n${inizioXref}\n%%EOF\n`);
+    void enc;
+    return new Blob(parti,{type:'application/pdf'});
+  }
+  return {pagina,chiudi};
+}
+// FlateDecode con CompressionStream (Safari 16.4+, Chrome, Firefox); senza, il dato resta non compresso
+async function comprimiFlate(bytes){
+  if(typeof CompressionStream==='undefined')return {dati:bytes,flate:false};
+  const s=new Blob([bytes]).stream().pipeThrough(new CompressionStream('deflate'));
+  return {dati:new Uint8Array(await new Response(s).arrayBuffer()),flate:true};
 }
 
 

@@ -138,6 +138,9 @@ AZIONI['pos-ristampa']=d=>{const p=perId('pos',d.id);const g=p&&perId('generati'
   const cc=p&&cantiere(p.cantiereId);let nomine=null;if(cc&&!(cc.documentiProdotti||[]).some(x=>x.automatica&&NOMINE_CANTIERE.some(([id])=>id===x.modelloId)))nomine=generaNomineCantiere(cc.id,p.revisione?p.dataRevisione:p.dataEmissione);
   if(nomine)setTimeout(()=>avvisoNomine(nomine),300);
 if(g)anteprimaStampa({titolo:g.titolo,pagineHtml:g.pagine,giaRegistrato:true});else if(p){anteprimaStampa({titolo:'POS '+nomeCantiere(p.cantiereId)+' rev '+p.revisione,doc:docPos(p,cantiere(p.cantiereId)),giaRegistrato:true})}};
+// POS di prova o sbagliati si eliminano: nel pacchetto va sempre l'ultima revisione rimasta
+AZIONI['pos-elimina']=async d=>{const p=perId('pos',d.id);if(!p)return;if(!(await conferma(`Eliminare il POS revisione ${pad2(p.revisione)} del ${fData(p.dataRevisione||p.dataEmissione)}? Le nomine del cantiere restano.`,{pericolo:true,ok:'Elimina'})))return;
+  esegui('Eliminato POS rev. '+pad2(p.revisione),s=>{s.pos=s.pos.filter(x=>x.id!==p.id);s.generati=s.generati.filter(g=>g.id!==p.generatoId)})};
 AZIONI['pos-nuova-revisione']=d=>{const p=perId('pos',d.id);ui.posWizard=null;vai('cantieri/'+p.cantiereId+'/pos?da='+p.id)};
 
 // ---------------------------------------------------------------------
