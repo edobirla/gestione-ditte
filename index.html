@@ -361,6 +361,7 @@ table.tabella-excel td input:focus{background:var(--accent-soft);outline:2px sol
 .campi{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px 16px}
 .campo{display:flex;flex-direction:column;gap:6px;min-width:0}
 .campo.largo{grid-column:1/-1}
+.tipi-doc table{table-layout:fixed;width:100%}.tipi-doc th:nth-child(1){width:40%}.tipi-doc th:nth-child(2),.tipi-doc th:nth-child(3),.tipi-doc th:nth-child(4){width:16%}
 .campi>.sezione-titolo{grid-column:1/-1;margin:10px 0 -4px}
 .pillola.dal-psc{margin-left:6px;font-size:11px;padding:1px 7px}
 .campo label,.etichetta-campo{font-size:12.5px;font-weight:500;color:var(--ink-2);letter-spacing:0;text-transform:none}
@@ -3221,7 +3222,7 @@ function scegliFile(opz){
 // L'app lo controlla all'avvio, ogni mezz'ora e quando torna in primo piano: se è diversa avvisa,
 // e «Aggiorna ora» scarica la pagina nuova scavalcando le copie del browser. I dati non si toccano.
 // ---------------------------------------------------------------------
-const VERSIONE_APP='e2cea4e987';   // impronta del contenuto: dice se è cambiato qualcosa
+const VERSIONE_APP='fa8e7f29f3';   // impronta del contenuto: dice se è cambiato qualcosa
 const NUMERO_VERSIONE='1.8'; // il numero per le persone: 1.0, 1.1…
 function appPubblicata(){return location.protocol==='https:'}
 async function controllaAggiornamento(manuale){
@@ -6432,10 +6433,23 @@ AZIONI['backup-fondi']=async()=>{
   try{await applicaFusione(letto,scelte,(i,n)=>prog.aggiorna(i,n));prog.chiudi();avviso('Fusione applicata: '+scelte.length+' elementi')}catch(e){prog.chiudi();segnalaErrore(e,'Fusione non riuscita')}
 };
 AZIONI['istantanea-ripristina']=async d=>{if(!(await conferma('Ripristinare questa istantanea? Lo stato attuale verrà salvato a sua volta come istantanea.',{pericolo:true})))return;const v=await idbGet('dati',d.chiave);if(!v||!v.stato)return avviso('Istantanea non trovata',{tipo:'errore'});await istantanea('prima del ritorno a istantanea');stato=migraStato(clona(v.stato));delete stato.__migrato;storia.annulla.length=0;storia.ripristina.length=0;await salvaSubito();render();avviso('Istantanea ripristinata')};
+// Tipi di documento divisi per chi riguardano (pulsanti in alto) e, dentro, per categoria in ordine
+// alfabetico, con la ricerca per nome o sinonimo: erano una sola tabella lunga e ci si perdeva.
+const AMBITI_TIPO_DOC=[['persona','Operai'],['azienda','Azienda'],['cantiere','Cantieri'],['mezzo','Mezzi']];
 function impTipi(){
+  const f=Object.assign({per:'persona',cerca:''},ui.filtri.tipiDoc);
+  const q=normalizzaTesto(f.cerca);
+  const tipi=stato.tipiDocumento.filter(t=>q?normalizzaTesto([t.nome,...(t.sinonimi||[])].join(' ')).includes(q):t.ambito===f.per);
+  const gruppi=raggruppa(tipi,t=>t.categoria||'altro');
+  const chiavi=Array.from(gruppi.keys()).sort((a,b)=>{const ia=ORDINE_CATEGORIE_DOC.indexOf(a),ib=ORDINE_CATEGORIE_DOC.indexOf(b);return (ia<0?99:ia)-(ib<0?99:ib)});
+  const obbl=t=>({si:'sì',no:'no',extraUE:'extra UE',preposto:'preposto',rls:'RLS',rspp:'RSPP',antincendio:'antincendio',primoSoccorso:'primo soccorso',ple:'se usa PLE',ponteggi:'se monta ponteggi',ruolo:'secondo il ruolo',richiesta:'a richiesta',attrezzatura:'se usate'})[t.obbligatorio]||t.obbligatorio;
+  const colonne=[{chiave:'nome',titolo:'Tipo',principale:true,formatta:t=>html`<b>${t.nome}</b>${q?html` <span class="pillola neutro">${(AMBITI_TIPO_DOC.find(a=>a[0]===t.ambito)||[,t.ambito])[1]}</span>`:''}`},{chiave:'val',titolo:'Validità',formatta:t=>t.validitaMesi?t.validitaMesi+' mesi':t.validitaGiorni?t.validitaGiorni+' giorni':html`<span class="silenzioso">nessuna</span>`},{chiave:'obb',titolo:'Obbligatorio',formatta:obbl},{chiave:'bl',titolo:'Blocca idoneità',formatta:t=>t.bloccaIdoneita?html`<span class="pillola scaduto">sì</span>`:html`<span class="silenzioso">no</span>`},{chiave:'n',titolo:'Documenti',num:true,valore:t=>stato.documenti.filter(d=>d.tipoId===t.id).length}];
   return html`<div class="guscio"><div class="scheda"><div class="intesta"><h2>Tipi di documento</h2><button class="pulsante piccolo" data-azione="tipo-nuovo">${icona('piu','piccola')}Nuovo tipo</button></div><p class="secondario piccolo">La validità tipica serve solo a stimare una scadenza quando manca la data: la data scritta sul documento prevale sempre. «Blocca idoneità» = se manca o è scaduto, la persona non può entrare in cantiere; gli altri obbligatori entrano solo nella checklist.</p>
-  ${tabella({righe:stato.tipiDocumento,onRiga:t=>dialogoTipoDoc(t),colonne:[{chiave:'nome',titolo:'Tipo',principale:true},{chiave:'ambito',titolo:'Per',formatta:t=>html`<span class="pillola neutro">${t.ambito}</span>`},{chiave:'val',titolo:'Validità',formatta:t=>t.validitaMesi?t.validitaMesi+' mesi':t.validitaGiorni?t.validitaGiorni+' giorni':html`<span class="silenzioso">nessuna</span>`},{chiave:'obb',titolo:'Obbligatorio',formatta:t=>({si:'sì',no:'no',extraUE:'extra UE',preposto:'preposto',rls:'RLS',rspp:'RSPP',antincendio:'antincendio',primoSoccorso:'primo soccorso',ple:'se usa PLE',ponteggi:'se monta ponteggi',ruolo:'secondo il ruolo',richiesta:'a richiesta',attrezzatura:'se usate'})[t.obbligatorio]||t.obbligatorio},{chiave:'bl',titolo:'Blocca idoneità',formatta:t=>t.bloccaIdoneita?html`<span class="pillola scaduto">sì</span>`:html`<span class="silenzioso">no</span>`},{chiave:'cat',titolo:'Categoria',formatta:t=>CATEGORIE_TIPO_DOC[t.categoria]||t.categoria||''},{chiave:'n',titolo:'Documenti',num:true,valore:t=>stato.documenti.filter(d=>d.tipoId===t.id).length}]})}</div></div>`;
+  <div class="strumenti-tabella"><div class="gruppo-pulsanti">${AMBITI_TIPO_DOC.map(([v,t])=>html`<button class="pulsante ${!q&&f.per===v?'attivo':''}" data-azione="tipi-per" data-valore="${v}">${t} <span class="silenzioso">${stato.tipiDocumento.filter(x=>x.ambito===v).length}</span></button>`)}</div><input type="search" placeholder="Cerca un tipo di documento" value="${f.cerca}" data-cerca-tipi aria-label="Cerca un tipo di documento"></div>
+  <div class="tipi-doc">${tipi.length?chiavi.map(k=>html`<div class="sezione-titolo">${CATEGORIE_TIPO_DOC[k]||capitalizza(k)} <span class="silenzioso">${gruppi.get(k).length}</span></div>${tabella({id:'tipi-'+k,righe:gruppi.get(k).slice().sort((a,b)=>a.nome.localeCompare(b.nome)),onRiga:t=>dialogoTipoDoc(t),colonne})}`):html`<p class="secondario">Nessun tipo di documento trovato.</p>`}</div></div></div>`;
 }
+AZIONI['tipi-per']=d=>{ui.filtri.tipiDoc={per:d.valore,cerca:''};render()};
+document.addEventListener('input',debounce(e=>{const t=e.target;if(!t.matches||!t.matches('[data-cerca-tipi]'))return;ui.filtri.tipiDoc=Object.assign({per:'persona'},ui.filtri.tipiDoc,{cerca:t.value});render();setTimeout(()=>{const i=el('[data-cerca-tipi]');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}},0)},250));
 AZIONI['tipo-nuovo']=()=>dialogoTipoDoc(null);
 function dialogoTipoDoc(t){
   const nuovo=!t;t=t||{ambito:'persona',obbligatorio:'no',bloccaIdoneita:false,categoria:'amministrativo',sinonimi:[]};
