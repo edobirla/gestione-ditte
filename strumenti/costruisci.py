@@ -13,7 +13,7 @@ inclusa mai, e si ottiene il file da dare a chiunque altro.
 Il file senza dati si chiama index.html perché è quello da pubblicare: aperto da un indirizzo web
 si installa come applicazione (ha dentro il manifesto e le icone, non servono altri file).
 """
-import os,re,sys,json,base64
+import gzip,os,re,sys,json,base64
 from urllib.parse import quote
 sys.path.insert(0,os.path.dirname(os.path.abspath(__file__)))
 from icona import dataUrl
@@ -37,6 +37,8 @@ for cartella,p in parti:
         css.append(t)
     elif p.endswith('.html'): html.append(t)
     elif p.endswith('.js'):
+        # librerie in sorgente/lib/ (es. pdf.js): dentro il file compresse, si scompattano solo quando servono
+        t=re.sub(r'/\*LIBGZ:([\w.-]+)\*/',lambda m:base64.b64encode(gzip.compress(open(os.path.join(base,'sorgente','lib',m.group(1)),'rb').read(),9,mtime=0)).decode(),t)
         nome=re.sub(r'^\d+-','',p[:-3])
         js.append('\n/* ═══════════════════════════════════════════════════════════════════\n   SEZIONE JS · %s\n   ═══════════════════════════════════════════════════════════════════ */\n%s'%(nome.upper(),t))
 

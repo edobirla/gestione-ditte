@@ -193,76 +193,103 @@ function generatiVoce(c,v){
   }
   return [];
 }
+// Righe del pacchetto: le voci della checklist (con i file caricati o i documenti fatti dall'app) più i
+// documenti «a richiesta», che si vedono ma entrano solo se scelti. I tipi impostati su «no» non compaiono.
+function righePacchetto(c){
+  const ck=checklistCantiere(c);
+  const righe=ck.voci.filter(v=>v.stato!=='na').map(v=>({v,file:v.doc?(v.doc.file||[]):[],generati:generatiVoce(c,v)}));
+  const oggiIso=oggi(),s=soglie();
+  const facoltativo=(gruppo,t,docs,sogg,persona)=>{const m=migliorDocumento(docs,t,oggiIso,s);if(!m||!(m.doc.file||[]).length)return;righe.push({v:{gruppo,nome:t.nome,tipo:t,soggetto:sogg,persona,doc:m.doc,info:m.info,stato:m.info.stato==='scaduto'?'scaduto':'ok'},file:m.doc.file,generati:[],facoltativo:true})};
+  for(const t of stato.tipiDocumento.filter(t=>t.ambito==='azienda'&&(t.obbligatorio==='richiesta'||t.obbligatorio==='attrezzatura')))facoltativo('Impresa',t,documentiAzienda().filter(d=>d.tipoId===t.id),nomeImpresa()||'Impresa');
+  for(const p of (c.operai||[]).map(id=>persona(id)).filter(Boolean))for(const t of stato.tipiDocumento.filter(t=>t.ambito==='persona'&&t.obbligatorio==='richiesta'))facoltativo('Operai',t,documentiPersona(p.id).filter(d=>d.tipoId===t.id),nomePersona(p),p);
+  righe.forEach((x,i)=>{x.i=i});
+  return righe;
+}
+const statoPacchetto=c=>ui.pacchetto&&ui.pacchetto.cantiereId===c.id?ui.pacchetto:(ui.pacchetto={cantiereId:c.id,forzati:{},esclusi:{},scelti:{}});
+const possibilePacchetto=(x,sc)=>x.facoltativo?(x.v.stato==='ok'||!!sc.forzati[x.i]):(x.v.stato==='ok'&&(x.file.length||x.generati.length))||(x.v.stato==='scaduto'&&!!sc.forzati[x.i])||(x.v.stato==='preparare'&&x.generati.length);
+const entraPacchetto=(x,sc)=>possibilePacchetto(x,sc)&&(x.facoltativo?!!sc.scelti[x.i]:!sc.esclusi[x.i]);
+// sezioni nell'ordine in cui si controllano (e in cui finiscono nello ZIP)
+function sezioniPacchetto(c,righe){
+  const operai=(c.operai||[]).map(id=>persona(id)).filter(Boolean);
+  const sez=[['Impresa',x=>x.v.gruppo==='Impresa'],...operai.map(p=>[nomePersona(p),x=>x.v.gruppo==='Operai'&&x.v.persona&&x.v.persona.id===p.id,p]),['Sicurezza del cantiere',x=>x.v.gruppo==='Sicurezza cantiere'],['Dichiarazioni',x=>x.v.gruppo==='Dichiarazioni'],['Altri documenti richiesti',x=>x.v.gruppo==='Richieste dalla committenza']];
+  const usate=new Set();const out=sez.map(([t,f,p])=>{const r=righe.filter(x=>!usate.has(x.i)&&f(x));r.forEach(x=>usate.add(x.i));return {titolo:t,persona:p,righe:r}});
+  const resto=righe.filter(x=>!usate.has(x.i));if(resto.length)out.push({titolo:'Altro',righe:resto});
+  return out.filter(s=>s.righe.length);
+}
 function vistaPacchetto(c,r){
   if(!c) return html`<div class="vuoto">${icona('attenzione')}<h3>Cantiere non trovato</h3></div>`;
-  const ck=checklistCantiere(c);
   const operai=(c.operai||[]).map(id=>persona(id)).filter(Boolean);
   // blocchi di conformità: UNILAV mancante/scaduto o permesso di soggiorno scaduto
   const blocchi=[];
   for(const p of operai){for(const t of ['unilav','permesso_soggiorno']){const tipo=tipoDoc(t);if(!tipoApplicabile(tipo,p))continue;const m=migliorDocumento(documentiPersona(p.id).filter(d=>d.tipoId===t),tipo,oggi(),soglie());if(!m||m.info.stato==='scaduto'||!(m.doc.file||[]).length)blocchi.push({p,tipo,motivo:!m?'mancante':m.info.stato==='scaduto'?'scaduto il '+fData(m.info.data):'senza file'})}}
-  const righe=ck.voci.filter(v=>v.stato!=='na').map((v,i)=>({i,v,file:v.doc?(v.doc.file||[]).map(id=>fileMeta(id)).filter(Boolean):[],generati:generatiVoce(c,v)}));
-  const sc=ui.pacchetto&&ui.pacchetto.cantiereId===c.id?ui.pacchetto:(ui.pacchetto={cantiereId:c.id,forzati:{},esclusi:{}});
-  const includibile=x=>(x.v.stato==='ok'&&(x.file.length||x.generati.length))||(x.v.stato==='scaduto'&&sc.forzati[x.i])||(x.v.stato==='preparare'&&x.generati.length);
+  const righe=righePacchetto(c);const sc=statoPacchetto(c);
+  const n=righe.filter(x=>entraPacchetto(x,sc)).length;
+  const cellaFile=x=>{const v=x.v;const fm=x.file.map(id=>fileMeta(id)).filter(Boolean);
+    if(fm.length>1)return html`<span>${fm.length} file</span> <span class="secondario">→ un solo PDF</span>`;
+    if(fm.length)return html`${fm[0].nome} <span class="secondario">(${fPeso(fm[0].dimensione)})</span>`;
+    if(x.generati.length)return x.generati.map(g=>html`<span class="secondario">${g.fileId?(fileMeta(g.fileId)||{}).nome:g.titolo+' — PDF fatto dall’app'}</span><br>`);
+    if(v.azione==='nomine')return html`<button class="pulsante piccolo" data-azione="nomine-rifai" data-id="${c.id}">Prepara le nomine</button>`;
+    if(v.azione==='pos')return html`<a class="pulsante piccolo" href="#/cantieri/${c.id}/pos">Genera il POS</a>`;
+    if(v.stato==='preparare'&&(v.modelloId||(v.azione||'').startsWith('dichiarazione:')))return html`<button class="pulsante piccolo" data-azione="dichiarazione-compila" data-cantiere="${c.id}" data-modello="${v.modelloId||v.azione.split(':')[1]}">Compila</button>`;
+    return html`<span class="da-compilare">nessun file</span>`};
+  const riga=x=>{const v=x.v;const st=STATI_CHECKLIST[v.stato];const pos=possibilePacchetto(x,sc);const dentro=entraPacchetto(x,sc);
+    return html`<tr class="${dentro?'riga-dentro':''}"><td class="c-entra">${pos?html`<input type="checkbox" ${x.facoltativo?html`data-pacchetto-scegli="${x.i}"`:html`data-pacchetto-escludi="${x.i}"`} ${dentro?'checked':''} aria-label="Includi">`:v.stato==='scaduto'?html`<button class="pulsante piccolo pericolo" data-azione="pacchetto-forza" data-i="${x.i}">Forza</button>`:html`<span class="silenzioso">—</span>`}</td>
+      <td><b>${v.nome}</b>${x.facoltativo?html` <span class="pillola neutro piccolo">a richiesta</span>`:''}${sc.forzati[x.i]?html`<br><span class="piccolo da-compilare">forzato: ${sc.forzati[x.i]}</span>`:''}</td>
+      <td class="piccolo">${cellaFile(x)}</td><td class="piccolo">${v.info&&v.info.data?html`<span class="${v.info.stato==='scaduto'?'da-compilare':''}">${fData(v.info.data)}${v.info.stimata?' ~':''}</span>`:''}</td><td><span class="pillola ${st.cl}">${icona(st.ic,'piccola')}${st.t}</span></td></tr>`};
   return html`<div class="briciole"><a href="#/cantieri">Cantieri</a> › <a href="#/cantieri/${c.id}">${c.nome}</a> › Pacchetto committenza</div>
-  <div class="testata"><div><h1>Pacchetto per la committenza</h1><div class="sotto">${c.nome} · ${nomeCliente(c.committenteId)||daCompilare('committente')} · affidataria ${nomeCliente(c.affidatariaId)||daCompilare()}</div></div><div class="azioni"><button class="pulsante" data-azione="checklist-copia" data-id="${c.id}">${icona('copia')}Copia checklist</button><button class="pulsante primario" data-azione="pacchetto-genera" data-id="${c.id}" ${blocchi.length?'disabled':''}>${icona('pacchetto')}Genera lo ZIP (${righe.filter(includibile).length} documenti)</button></div></div>
+  <div class="testata"><div><h1>Pacchetto per la committenza</h1><div class="sotto">${c.nome} · ${nomeCliente(c.committenteId)||daCompilare('committente')} · affidataria ${nomeCliente(c.affidatariaId)||daCompilare()}</div></div><div class="azioni"><button class="pulsante" data-azione="checklist-copia" data-id="${c.id}">${icona('copia')}Copia checklist</button><button class="pulsante primario" data-azione="pacchetto-genera" data-id="${c.id}" ${blocchi.length?'disabled':''}>${icona('pacchetto')}Genera lo ZIP (${n} documenti)</button></div></div>
   ${blocchi.length?html`<div class="avviso-inline critico">${icona('blocco')}<div class="corpo"><b>Blocco di conformità.</b> ${blocchi.map(b=>html`${nomePersona(b.p)}: ${b.tipo.nome} ${b.motivo}`).reduce((a,b)=>html`${a} · ${b}`)}. Mandare questi operai alla committenza è un rischio: togli le persone dal cantiere o regolarizza i documenti prima di generare il pacchetto.</div></div>`:''}
-  <div class="scheda"><h3>Revisione obbligatoria</h3><p class="secondario piccolo">Ogni riga dice cosa entrerà nello ZIP, a chi si riferisce, quale file verrà usato, la scadenza e lo stato. I documenti scaduti non entrano, se non forzando con una motivazione. POS, nomine e dichiarazioni compilate entrano come PDF fatti dall’app (o come il PDF allegato, se c’è).</p>
-  <div class="tabella-scorri"><table class="tabella densa"><thead><tr><th>Entra</th><th>Documento</th><th>Soggetto</th><th>File</th><th>Scadenza</th><th>Stato</th></tr></thead><tbody>
-  ${righe.map(x=>{const v=x.v;const st=STATI_CHECKLIST[v.stato];const entra=includibile(x)&&!sc.esclusi[x.i];return html`<tr class="${v.stato==='scaduto'?'riga-scaduto':v.stato==='ok'?'riga-valido':''}"><td>${includibile(x)?html`<input type="checkbox" data-pacchetto-escludi="${x.i}" ${entra?'checked':''} aria-label="Includi">`:v.stato==='scaduto'?html`<button class="pulsante piccolo pericolo" data-azione="pacchetto-forza" data-i="${x.i}">Forza</button>`:html`<span class="silenzioso">—</span>`}</td><td><b>${v.nome}</b>${sc.forzati[x.i]?html`<br><span class="piccolo da-compilare">forzato: ${sc.forzati[x.i]}</span>`:''}</td><td>${v.soggetto}</td><td class="piccolo">${x.file.length?x.file.map(f=>html`${f.nome} <span class="secondario">(${fPeso(f.dimensione)})</span><br>`):x.generati.length?x.generati.map(g=>html`<span class="secondario">${g.fileId?(fileMeta(g.fileId)||{}).nome:g.titolo+' — PDF fatto dall’app'}</span><br>`):v.azione==='nomine'?html`<button class="pulsante piccolo" data-azione="nomine-rifai" data-id="${c.id}">Prepara le nomine</button>`:v.azione==='pos'?html`<a class="pulsante piccolo" href="#/cantieri/${c.id}/pos">Genera il POS</a>`:v.stato==='preparare'&&(v.modelloId||(v.azione||'').startsWith('dichiarazione:'))?html`<button class="pulsante piccolo" data-azione="dichiarazione-compila" data-cantiere="${c.id}" data-modello="${v.modelloId||v.azione.split(':')[1]}">Compila</button>`:html`<span class="da-compilare">nessun file</span>`}</td><td>${v.info&&v.info.data?html`<span class="${v.info.stato==='scaduto'?'da-compilare':''}">${fData(v.info.data)}${v.info.stimata?' ~':''}</span>`:''}</td><td><span class="pillola ${st.cl}">${icona(st.ic,'piccola')}${st.t}</span></td></tr>`})}
-  </tbody></table></div></div>`;
+  <p class="secondario piccolo">Ogni riquadro dice cosa entra nello ZIP. I documenti scaduti entrano solo forzandoli con una motivazione; quelli «a richiesta» entrano solo se li spunti. Se un documento ha più file (per esempio fronte e retro) diventa un unico PDF.</p>
+  ${sezioniPacchetto(c,righe).map(s=>{const dentro=s.righe.filter(x=>entraPacchetto(x,sc)).length;return html`<div class="scheda pacchetto-sezione"><div class="intesta">${s.persona?avatar(s.persona,'mini'):html`<span class="icona-tipo">${icona(s.titolo==='Impresa'?'azienda':s.titolo==='Dichiarazioni'?'firma':'scudo','piccola')}</span>`}<h2>${s.titolo}</h2><span class="piccolo silenzioso">${dentro} di ${s.righe.length} nello ZIP</span></div>
+    <div class="tabella-scorri"><table class="tabella densa tabella-pacchetto"><thead><tr><th>Entra</th><th>Documento</th><th>File</th><th>Scadenza</th><th>Stato</th></tr></thead><tbody>${s.righe.map(riga)}</tbody></table></div></div>`})}`;
 }
-document.addEventListener('change',e=>{const t=e.target;if(t.dataset&&t.dataset.pacchettoEscludi!==undefined&&ui.pacchetto){ui.pacchetto.esclusi[+t.dataset.pacchettoEscludi]=!t.checked;render()}});
-AZIONI['pacchetto-forza']=async d=>{const m=await chiediTesto('Includere un documento scaduto',{etichetta:'Motivazione (resterà nello storico dell\'invio)',obbligatorio:true,aiuto:'Es. rinnovo già richiesto, attestato in arrivo'});if(!m)return;ui.pacchetto.forzati[+d.i]=m;render()};
+document.addEventListener('change',e=>{const t=e.target;if(!t.dataset||!ui.pacchetto)return;if(t.dataset.pacchettoEscludi!==undefined){ui.pacchetto.esclusi[+t.dataset.pacchettoEscludi]=!t.checked;render()}else if(t.dataset.pacchettoScegli!==undefined){ui.pacchetto.scelti[+t.dataset.pacchettoScegli]=t.checked;render()}});
+AZIONI['pacchetto-forza']=async d=>{const m=await chiediTesto('Includere un documento scaduto',{etichetta:'Motivazione (resterà nello storico dell\'invio)',obbligatorio:true,aiuto:'Es. rinnovo già richiesto, attestato in arrivo'});if(!m)return;ui.pacchetto.forzati[+d.i]=m;if(ui.pacchetto.scelti)ui.pacchetto.scelti[+d.i]=true;render()};
 AZIONI['pacchetto-genera']=async d=>{
-  const c=cantiere(d.id);const ck=checklistCantiere(c);const sc=ui.pacchetto||{forzati:{},esclusi:{}};
-  const righe=ck.voci.filter(v=>v.stato!=='na').map((v,i)=>({i,v,file:v.doc?(v.doc.file||[]):[],generati:generatiVoce(c,v)}));
-  const inclusi=righe.filter(x=>!sc.esclusi[x.i]&&((x.v.stato==='ok'&&(x.file.length||x.generati.length))||(x.v.stato==='scaduto'&&sc.forzati[x.i])||(x.v.stato==='preparare'&&x.generati.length)));
-  const mancanti=righe.filter(x=>!inclusi.includes(x)).map(x=>x.v.nome+' — '+x.v.soggetto+' ('+STATI_CHECKLIST[x.v.stato].t+')');
-  const dest=await dialogoModulo('Registra l\'invio',[{nome:'destinatario',etichetta:'Destinatario',obbligatorio:true,segnaposto:'es. Geom. Manetti (CSE), LGC ufficio sicurezza'},{nome:'mezzo',etichetta:'Mezzo',tipo:'select',vuoto:false,opzioni:[{v:'mail',t:'Mail'},{v:'pec',t:'PEC'},{v:'whatsapp',t:'WhatsApp'},{v:'portale',t:'Portale della committenza'},{v:'altro',t:'Altro'}]},{nome:'note',etichetta:'Note',tipo:'textarea',largo:true}],{destinatario:nomeProfessionista(c.cseId)||nomeCliente(c.affidatariaId)||'',mezzo:'mail'},{ok:'Genera lo ZIP',intro:html`<p>Lo ZIP conterrà <b>${inclusi.length}</b> documenti. ${mancanti.length?html`<span class="da-compilare">${mancanti.length} voci mancano</span> e resteranno segnate nello storico dell'invio.`:'Niente manca.'}</p>`});
+  const c=cantiere(d.id);const sc=statoPacchetto(c);
+  const righe=righePacchetto(c);
+  // stesso ordine delle sezioni: un documento che compare due volte resta nella prima (prima l'impresa, poi gli operai)
+  const inclusi=sezioniPacchetto(c,righe).flatMap(z=>z.righe).filter(x=>entraPacchetto(x,sc));
+  const mancanti=righe.filter(x=>!x.facoltativo&&!inclusi.includes(x)).map(x=>x.v.nome+' — '+x.v.soggetto+' ('+STATI_CHECKLIST[x.v.stato].t+')');
+  const dest=await dialogoModulo('Registra l\'invio',[{nome:'destinatario',etichetta:'Destinatario',obbligatorio:true,segnaposto:'es. Geom. Rossi (CSE), ufficio sicurezza dell’impresa affidataria'},{nome:'mezzo',etichetta:'Mezzo',tipo:'select',vuoto:false,opzioni:[{v:'mail',t:'Mail'},{v:'pec',t:'PEC'},{v:'whatsapp',t:'WhatsApp'},{v:'portale',t:'Portale della committenza'},{v:'altro',t:'Altro'}]},{nome:'note',etichetta:'Note',tipo:'textarea',largo:true}],{destinatario:nomeProfessionista(c.cseId)||nomeCliente(c.affidatariaId)||'',mezzo:'mail'},{ok:'Genera lo ZIP',intro:html`<p>Lo ZIP conterrà <b>${inclusi.length}</b> documenti.${mancanti.length?html` <span class="da-compilare">${mancanti.length} voci mancano</span>: restano registrate nel diario del cantiere.`:''}</p>`});
   if(!dest) return;
   const prog=dialogoAvanzamento('Preparazione del pacchetto',{annullabile:true});
   const voci=[];const indice=[];const usati=new Set();
   const cartelle={Impresa:'01 Documenti impresa',Operai:'02 Documenti operai','Sicurezza cantiere':'03 Sicurezza cantiere',Dichiarazioni:'04 Dichiarazioni','Richieste dalla committenza':'05 Altri documenti richiesti'};
   const pulisci=s=>pulisciNomeFile(s).replace(/\s+/g,' ').trim();
+  const metti=(cartella,nome,dati,x,g)=>{let k=cartella+'/'+nome;let n=2;while(usati.has(k)){k=cartella+'/'+nome.replace(/\.[^.]+$/,' '+n+'$&');n++}usati.add(k);voci.push({nome:k,dati});indice.push({cartella,nome:k.split('/').pop(),documento:(g&&g.titolo)||x.v.nome,soggetto:x.v.soggetto,scadenza:x.v.info&&x.v.info.data?fData(x.v.info.data):'',stato:STATI_CHECKLIST[x.v.stato].t+(sc.forzati[x.i]?' — FORZATO: '+sc.forzati[x.i]:'')})};
   try{
     for(let i=0;i<inclusi.length;i++){
       const x=inclusi[i];const v=x.v;if(prog.annullato)break;await prog.aggiorna(i,inclusi.length,v.nome);
       let cartella=cartelle[v.gruppo]||'05 Altri documenti richiesti';
       if(v.gruppo==='Operai'&&v.persona) cartella+='/'+pulisci(nomePersona(v.persona));
-      const scad=v.info&&v.info.data?fData(v.info.data):'';
-      if(v.doc&&(v.doc.file||[]).length){
-        for(const fid of v.doc.file){const m=fileMeta(fid);if(!m)continue;const b=await leggiFile(m.hash);if(!b)continue;const est=estensioneDi(m.nome)||'pdf';let nome=pulisci(v.nome+(v.doc.dataEmissione?' '+fDataBreve(v.doc.dataEmissione).replace(/\//g,'-'):''))+'.'+est;let k=cartella+'/'+nome;let n=2;while(usati.has(k)){k=cartella+'/'+nome.replace(/\.[^.]+$/,' '+n+'$&');n++}usati.add(k);voci.push({nome:k,dati:b});indice.push({cartella,nome:k.split('/').pop(),documento:v.nome,soggetto:v.soggetto,scadenza:scad,stato:STATI_CHECKLIST[v.stato].t+(sc.forzati[x.i]?' — FORZATO: '+sc.forzati[x.i]:'')})}
+      if(v.doc&&x.file.length){
+        // ogni documento (e ogni file) entra una volta sola, anche se due voci lo richiamano
+        const metas=x.file.map(id=>fileMeta(id)).filter(Boolean);const chiavi=['doc:'+v.doc.id,...metas.map(m=>'file:'+m.hash)];
+        if(chiavi.some(k=>usati.has(k)))continue;chiavi.forEach(k=>usati.add(k));
+        const blobs=[];for(const m of metas){const b=await leggiFile(m.hash);if(b)blobs.push(new File([b],m.nome,{type:m.mime||b.type}))}
+        if(!blobs.length)continue;
+        const base=pulisci(v.nome+(v.doc.dataEmissione?' '+fDataBreve(v.doc.dataEmissione).replace(/\//g,'-'):''));
+        if(blobs.length>1) metti(cartella,base+'.pdf',await unisciInPdf(blobs),x);
+        else metti(cartella,base+'.'+(estensioneDi(blobs[0].name)||'pdf'),blobs[0],x);
       } else if(x.generati.length){
         for(const g of x.generati){
-          // un documento generato entra una volta sola: le nomine di cantiere valgono per tutti gli addetti
           const chiave=g.generatoId||g.fileId;if(chiave&&usati.has('gen:'+chiave))continue;if(chiave)usati.add('gen:'+chiave);
-          if(v.nomine)cartella='03 Sicurezza cantiere';
-          const base=cartella+'/'+pulisci(g.titolo||v.nome);
-          if(g.fileId){const m=fileMeta(g.fileId);const b=m&&await leggiFile(m.hash);if(b){voci.push({nome:base+'.'+(estensioneDi(m.nome)||'pdf'),dati:b});indice.push({cartella,nome:(base+'.'+(estensioneDi(m.nome)||'pdf')).split('/').pop(),documento:g.titolo||v.nome,soggetto:v.soggetto,scadenza:'',stato:'del '+fData(g.data)});continue}}
+          const cart=v.nomine?'03 Sicurezza cantiere':cartella;const base=pulisci(g.titolo||v.nome);
+          if(g.fileId){const m=fileMeta(g.fileId);const b=m&&await leggiFile(m.hash);if(b){metti(cart,base+'.'+(estensioneDi(m.nome)||'pdf'),b,x,g);continue}}
           const gen=g.generatoId&&perId('generati',g.generatoId);
           const pagine=gen?gen.pagine:g.pos?impagina(docPos(g.pos,c)):g.modelloId?impagina(docDichiarazione(stato.modelli.dichiarazioni.find(m=>m.id===g.modelloId),c,{data:g.data})):null;
-          if(!pagine)continue;
-          const k=base+'.pdf';voci.push({nome:k,dati:await pdfDaPagine(pagine)});indice.push({cartella,nome:k.split('/').pop(),documento:g.titolo||v.nome,soggetto:v.soggetto,scadenza:'',stato:'del '+fData(g.data)});
+          if(pagine) metti(cart,base+'.pdf',await pdfDaPagine(pagine),x,g);
         }
       }
     }
-    // indice
-    const a=stato.azienda;
-    let txt=`PACCHETTO DOCUMENTI — ${a.ragioneSociale}\nCantiere: ${c.nome} — ${indirizzoTesto(c.indirizzo)}\nCommittente: ${nomeCliente(c.committenteId)||'[DA COMPILARE]'} · Impresa affidataria: ${nomeCliente(c.affidatariaId)||'[DA COMPILARE]'}\nPreparato il ${fData(oggi())} per ${dest.destinatario}\n\nCARTELLE\n  01 Documenti impresa — visura, DURC, patente a crediti, DVR, nomine\n  02 Documenti operai — una sottocartella per persona\n  03 Sicurezza cantiere — POS, PSC, nomine di cantiere\n  04 Dichiarazioni — autocertificazioni compilate e firmate\n  05 Altri documenti richiesti\n\nELENCO (${indice.length} file)\n`;
-    let ultima='';for(const r of indice){if(r.cartella!==ultima){txt+=`\n[${r.cartella}]\n`;ultima=r.cartella}txt+=`  ${r.nome}\n      ${r.documento} — ${r.soggetto}${r.scadenza?' — scadenza '+r.scadenza:''} — ${r.stato}\n`}
-    if(mancanti.length) txt+=`\nNON INCLUSI (mancanti al momento dell'invio)\n`+mancanti.map(m=>'  - '+m).join('\n')+'\n';
-    txt+=`\nNota: le dichiarazioni con firma grafica non sostituiscono la firma digitale ove richiesta.\n`;
-    voci.unshift({nome:'00 Indice.txt',dati:txt});
-    voci.push({nome:'00 Indice.csv',dati:csvDaRighe([['Cartella','File','Documento','Soggetto','Scadenza','Stato'],...indice.map(r=>[r.cartella,r.nome,r.documento,r.soggetto,r.scadenza,r.stato])])});
     const blob=await creaZip(voci);
     prog.chiudi();
     const nome=nomeFileData('Documenti '+pulisci(c.nome)+' '+pulisci(stato.azienda.ragioneSociale||''),'zip');
     esegui('Registrato invio pacchetto '+c.nome,s=>{s.cantieri.find(x=>x.id===c.id).invii.push({id:nuovoId('inv'),data:new Date().toISOString(),destinatario:dest.destinatario,mezzo:dest.mezzo,note:dest.note,contenuto:indice.map(r=>r.cartella+'/'+r.nome+' — '+r.documento+' ('+r.soggetto+')'+(r.scadenza?' scad. '+r.scadenza:'')),mancanti,forzati:Object.entries(sc.forzati).map(([i,m])=>(righe[+i]||{v:{nome:'?'}}).v.nome+': '+m),peso:blob.size,nomeFile:nome})},{senzaRender:true});
     ui.pacchetto=null;
-    const esito=await condividiOScarica(blob,nome,{testo:'Documentazione '+(stato.azienda.ragioneSociale||'')+' per il cantiere '+c.nome});
-    informa('Pacchetto pronto',html`<p><b>${nome}</b> · ${fPeso(blob.size)} · ${indice.length} file in cartelle numerate, con indice.</p>${blob.size>20*1024*1024?html`<p class="da-compilare">Pesa più di 20 MB: difficilmente passa via mail. Meglio WeTransfer, AirDrop, iCloud Drive o WhatsApp.</p>`:''}<p class="piccolo secondario">L'invio è registrato nel diario del cantiere con l'elenco esatto di cosa conteneva e cosa mancava.</p>`);
+    await condividiOScarica(blob,nome,{testo:'Documentazione '+(stato.azienda.ragioneSociale||'')+' per il cantiere '+c.nome});
+    informa('Pacchetto pronto',html`<p><b>${nome}</b> · ${fPeso(blob.size)} · ${voci.length} file in cartelle numerate.</p>${blob.size>20*1024*1024?html`<p class="da-compilare">Pesa più di 20 MB: difficilmente passa via mail. Meglio WeTransfer, AirDrop, iCloud Drive o WhatsApp.</p>`:''}<p class="piccolo secondario">L'invio è registrato nel diario del cantiere con l'elenco esatto di cosa conteneva e cosa mancava.</p>`);
     vai('cantieri/'+c.id);
   }catch(e){prog.chiudi();segnalaErrore(e,'Pacchetto non generato')}
 };
-// CSS minimo per i documenti HTML dentro lo ZIP (stesse regole di stampa dell'applicazione)
-function stileStampaPerHtml(){const s=Array.from(document.styleSheets).find(x=>!x.href);let out='';try{for(const r of s.cssRules){if(/\.pagina|\.doc|\.carta-intestata|@media print|\.testa-pagina|\.pie-pagina|\.blocco-firma|\.da-compilare/.test(r.cssText))out+=r.cssText+'\n'}}catch(e){}return out+'body{margin:0;background:#888}.pagina{margin:10px auto}'}

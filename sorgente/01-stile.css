@@ -297,6 +297,9 @@ table.tabella-excel td input:focus{background:var(--accent-soft);outline:2px sol
 .campi{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px 16px}
 .campo{display:flex;flex-direction:column;gap:6px;min-width:0}
 .campo.largo{grid-column:1/-1}
+.pacchetto-sezione{margin-bottom:var(--sp-3)}.pacchetto-sezione .intesta{display:flex;align-items:center;gap:10px}.pacchetto-sezione .intesta h2{margin:0;flex:1}
+.tabella-pacchetto{table-layout:fixed;width:100%}.tabella-pacchetto th:nth-child(1){width:64px}.tabella-pacchetto th:nth-child(2){width:34%}.tabella-pacchetto th:nth-child(4){width:96px}.tabella-pacchetto th:nth-child(5){width:170px}
+.tabella-pacchetto td.c-entra{text-align:center}.tabella-pacchetto tr:not(.riga-dentro) td:nth-child(2) b{color:var(--ink-3);font-weight:500}
 .tipi-doc table{table-layout:fixed;width:100%}.tipi-doc th:nth-child(1){width:40%}.tipi-doc th:nth-child(2),.tipi-doc th:nth-child(3),.tipi-doc th:nth-child(4){width:16%}
 .campi>.sezione-titolo{grid-column:1/-1;margin:10px 0 -4px}
 .pillola.dal-psc{margin-left:6px;font-size:11px;padding:1px 7px}
@@ -1148,8 +1151,8 @@ body.trascinamento iframe,body.trascinamento embed,body.trascinamento object{poi
 .assistente .ap-o.scelto .maniglia{display:block}
 .assistente .ap-lato{overflow:auto;border-left:1px solid var(--bordo);padding-left:var(--sp-3)}
 .assistente .ap-firme{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-.assistente .ap-firma{display:flex;flex-direction:column;align-items:center;gap:2px;border:1px solid var(--bordo);border-radius:var(--raggio);padding:4px;background:var(--superficie);cursor:pointer}
-.assistente .ap-firma:hover{border-color:var(--blu)}
+.assistente .ap-firma{display:flex;flex-direction:column;align-items:center;gap:4px;border:1px solid var(--bordo);border-radius:12px;padding:8px 6px;background:var(--superficie);cursor:pointer;font:inherit;color:var(--ink);transition:border-color .15s,background .15s}
+.assistente .ap-firma:hover{border-color:var(--accent);background:var(--accent-soft)}
 .assistente .ap-firma img{max-width:100%;height:34px;object-fit:contain;background:#fff;border-radius:3px}
 @media (max-width:900px){.assistente .ap-corpo{grid-template-columns:1fr;grid-template-rows:1fr auto}.assistente .ap-lato{border-left:0;padding-left:0}}
 .ck-sezione{border:1px solid var(--bordo);border-radius:var(--raggio);margin-bottom:var(--sp-2);background:var(--superficie)}
@@ -1173,7 +1176,15 @@ select.stato-rapido.inviato{background:var(--giallo-chiaro);border-color:var(--g
 .foto-persona-bottone:hover .foto-persona{opacity:.85}
 .segnaposto-picker{border:1px solid var(--bordo);border-radius:var(--raggio);padding:var(--sp-2);max-height:220px;overflow:auto;background:var(--superficie-2)}
 .segnaposto-picker .gruppo+.gruppo{margin-top:var(--sp-2)}
-.segnaposto-picker .chip{cursor:pointer}
+/* pulsanti «inserisci un dato» (assistente di firma, modelli delle dichiarazioni): pillole leggere con il +,
+   non le etichette a cui il browser aggiungeva il suo bordo in rilievo */
+.dato-btn{display:inline-flex;align-items:center;gap:6px;min-height:30px;padding:0 12px 0 9px;border:1px solid var(--bordo);border-radius:999px;background:var(--superficie);font:inherit;font-size:12.5px;line-height:1.2;color:var(--ink);cursor:pointer;box-shadow:none;transition:background .15s,border-color .15s,color .15s}
+.dato-btn::before{content:"+";font-size:14px;font-weight:500;color:var(--accent);line-height:1}
+.dato-btn:hover{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-ink)}
+.dato-btn:active{transform:scale(.97)}
+.dato-btn.usata{background:var(--sunk);color:var(--ink-3)}
+.gruppo-dati{margin-bottom:var(--sp-3)}.gruppo-dati>b{display:block;font-size:11.5px;font-weight:560;color:var(--ink-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+.gruppo-dati .chip-lista{gap:6px}
 .doc .firma-accettazione{display:flex;align-items:flex-end;gap:4mm;margin:6mm 0 0;page-break-inside:avoid}
 .doc .firma-accettazione .chi{white-space:nowrap}
 .doc .firma-accettazione .linea{flex:1;max-width:70mm;border-bottom:.6pt solid #111;height:16mm;position:relative}

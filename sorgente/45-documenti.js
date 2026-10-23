@@ -84,7 +84,7 @@ async function anteprimaConBarra(files,attivo){
 AZIONI['file-firma']=async d=>{
   const m=fileMeta(d.id);const b=m&&await leggiFile(m.hash);if(!b)return avviso('Contenuto non disponibile',{tipo:'errore'});
   const file=new File([b],m.nome,{type:m.mime||b.type});
-  const doc=stato.documenti.find(x=>(x.file||[]).includes(m.id));if(doc)file.docId=doc.id;
+  const doc=stato.documenti.find(x=>(x.file||[]).includes(m.id));if(doc){file.docId=doc.id;file.fileId=m.id}
   chiudiPannello();await apriAssistenteDocumento(file);
 };
 AZIONI['anteprima-ingrandisci']=()=>{const i=el('#pannello .foglio-anteprima img');if(i)i.classList.toggle('grande')};
@@ -116,6 +116,7 @@ async function apriDocumento(docId){
       <dt>Tipo</dt><dd>${t?t.nome:daCompilare('tipo')}</dd>
       ${d.titolo?html`<dt>Titolo</dt><dd>${d.titolo}</dd>`:''}
       ${d.ente?html`<dt>Ente</dt><dd>${d.ente}</dd>`:''}
+      ${d.firmato?html`<dt>Firmato</dt><dd>il ${fData(d.firmato)}</dd>`:''}
       <dt>${t&&t.periodo?'Dal':'Emesso il'}</dt><dd class="num-l">${d.dataEmissione?fData(d.dataEmissione):daCompilare()}</dd>
       ${t&&t.periodo?html`<dt>Al</dt><dd>${d.dataFine?fData(d.dataFine):daCompilare()}</dd>`:''}
       ${d.anno?html`<dt>Anno</dt><dd>${d.anno}</dd>`:''}
@@ -128,7 +129,7 @@ async function apriDocumento(docId){
   const rinnovabile=!!(info.data||info.stato==='mancante')&&!successivo;
   const sogg=d.soggettoTipo==='persona'?persona(d.soggettoId):null;
   apriPannello({titolo:t?t.nome:'Documento',icona:ICONA_CATEGORIA[(t&&t.categoria)||'amministrativo']||'documenti',sottotitolo:html`${sogg?avatar(sogg,'mini'):''}<a href="${hrefSoggettoDoc(d)}">${nomeSoggettoDoc(d)}</a>`,largo:!!files.length,affiancato:!!files.length,corpo:meta,anteprima:files.length?'anteprima-doc':null,
-    azioni:html`${pillolaDocumento(info)}`,
+    azioni:html`${d.firmato?html`<span class="pillola valido">${icona('firma','piccola')}Firmato il ${fData(d.firmato)}</span> `:''}${pillolaDocumento(info)}`,
     piede:html`${rinnovabile?html`<button class="pulsante primario" data-azione="documento-rinnova" data-id="${d.id}" title="Carica il documento nuovo: questo passa nello storico">${icona('aggiorna','piccola')}Rinnova con un documento nuovo</button>`:''}<button class="pulsante ${rinnovabile?'':'primario'}" data-azione="documento-modifica" data-id="${d.id}">${icona('modifica','piccola')}Modifica</button>${files.length?html`<button class="pulsante discreto" data-azione="file-condividi" data-id="${files[0].id}">${icona('condividi','piccola')}Condividi</button>`:''}${rinnovabile?html`<button class="pulsante discreto" data-azione="documento-duplica" data-id="${d.id}" title="Rinnovo senza scansione: stesso tipo e soggetto, date nuove">Rinnovo senza file</button>`:''}<span class="spazio"></span><button class="pulsante discreto pericolo" data-azione="documento-elimina" data-id="${d.id}">${icona('elimina','piccola')}Elimina</button>`});
   if(files.length){const a=await anteprimaConBarra(files,files[0].id);const c=el('#anteprima-doc');if(c)c.innerHTML=a}
 }
@@ -142,6 +143,13 @@ AZIONI['documento-modifica']=d=>dialogoDocumento(perId('documenti',d.id));
 AZIONI['documento-taci']=d=>{const doc=perId('documenti',d.id);const ora=!doc.avvisoTaciuto;esegui(ora?'Scadenza non più segnalata':'Scadenza segnalata di nuovo',s=>{const x=s.documenti.find(x=>x.id===d.id);if(ora)x.avvisoTaciuto=true;else delete x.avvisoTaciuto},{senzaRender:true});apriDocumento(d.id);render()};
 AZIONI['documento-duplica']=d=>{const o=perId('documenti',d.id);dialogoDocumento({soggettoTipo:o.soggettoTipo,soggettoId:o.soggettoId,tipoId:o.tipoId,titolo:o.titolo,rinnovoDi:o.id})};
 AZIONI['documento-elimina']=async d=>{const doc=perId('documenti',d.id);const t=tipoDoc(doc.tipoId);if(!(await conferma(`Eliminare «${t?t.nome:'documento'}» di ${nomeSoggettoDoc(doc)}? I file allegati restano nel cestino 30 giorni.`,{pericolo:true,ok:'Elimina'})))return;chiudiPannello();esegui('Eliminato documento '+(t?t.nome:''),s=>{s.documenti=s.documenti.filter(x=>x.id!==d.id);for(const x of s.documenti)if(x.sostituitoDa===d.id)delete x.sostituitoDa;cestinaFileOrfani(s)})};
+// la copia firmata prende il posto del file originale nello stesso documento (l'originale va nel cestino
+// per 30 giorni) e il documento risulta firmato
+async function sostituisciFileDocumento(docId,fileIdVecchio,nuovo){
+  const e=await acquisisciFile(nuovo,{});
+  esegui('Documento firmato',s=>{const doc=s.documenti.find(x=>x.id===docId);if(!doc)return;const i=doc.file.indexOf(fileIdVecchio);if(i>=0)doc.file[i]=e.rec.id;else doc.file.push(e.rec.id);doc.firmato=oggi();cestinaFileOrfani(s)});
+  apriDocumento(docId);avviso('Firmato: nel documento ora c’è la copia firmata');
+}
 async function allegaFilesADocumento(docId,files){
   const esiti=await acquisisciConAnteprima(files); if(!esiti) return;
   esegui('Allegati '+esiti.length+' file',s=>{const doc=s.documenti.find(x=>x.id===docId);for(const e of esiti){if(!doc.file.includes(e.rec.id))doc.file.push(e.rec.id)}},{senzaRender:true});
@@ -771,7 +779,7 @@ const SEGNAPOSTO_GRUPPI=[
 ];
 function dialogoModello(m){
   const nuovo=!m; m=m||{nome:'',testo:'# TITOLO\n\nIl sottoscritto {{legale.nome}}…\n\n{{luogoData}}',cartaIntestata:true,firma:true,timbro:true,firmatario:'Il Legale Rappresentante'};
-  const picker=html`<div class="segnaposto-picker">${SEGNAPOSTO_GRUPPI.map(([g,voci])=>html`<div class="gruppo"><b class="piccolo">${g}</b><div class="chip-lista">${voci.map(([k,et])=>html`<button type="button" class="chip" data-segnaposto="${k}" title="Inserisce ${et.toLowerCase()} nel punto in cui stai scrivendo">${et}</button>`)}</div></div>`)}</div>`;
+  const picker=html`<div class="segnaposto-picker">${SEGNAPOSTO_GRUPPI.map(([g,voci])=>html`<div class="gruppo gruppo-dati"><b>${g}</b><div class="chip-lista">${voci.map(([k,et])=>html`<button type="button" class="dato-btn" data-segnaposto="${k}" title="Inserisce ${et.toLowerCase()} nel punto in cui stai scrivendo">${et}</button>`)}</div></div>`)}</div>`;
   return dialogoModulo(nuovo?'Nuovo modello':'Modello: '+m.nome,[{nome:'nome',etichetta:'Nome del documento',obbligatorio:true,largo:true},{nome:'firmatario',etichetta:'Dicitura firmatario'},{nome:'cartaIntestata',tipo:'spunta',testo:'Su carta intestata'},{nome:'firma',tipo:'spunta',testo:'Va firmato'},{nome:'timbro',tipo:'spunta',testo:'Va timbrato'},{nome:'soloConSubappalto',tipo:'spunta',testo:'Solo se ci sono subappaltatori'},{nome:'testo',etichetta:'Testo del documento',tipo:'textarea',righe:18,largo:true,obbligatorio:true,aiuto:'Si scrive normalmente. # titolo, ## sottotitolo, - elenco, **grassetto**, tabelle con |'}],m,
     {intro:html`<p class="piccolo secondario">Scrivi il testo come lo diresti. Dove serve un dato che l'applicazione conosce già, clicca il campo qui sotto e lo inserisce dove sei arrivato a scrivere: si riempirà da solo con i dati dell'azienda, del legale rappresentante e del cantiere. Quello che manca esce in rosso, non viene mai inventato.</p>${picker}<p class="piccolo"><button type="button" class="pulsante piccolo" id="mod-anteprima">${icona('occhio','piccola')}Vedi com'è compilato</button></p>`,
     alMontaggio:v=>{

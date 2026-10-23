@@ -62,11 +62,18 @@ AZIONI['assistente-documento-esterno']=async()=>{
   if(!fs.length) return;
   await apriAssistenteDocumento(fs[0]);
 };
+async function paginaAssistentePdf(file,indice){
+  try{if(!file._pdf)file._pdf=await apriPdfJs(file);const p=await paginaPdfJs(file._pdf,indice,2);
+    return {pagina:{larghezza:p.larghezza,altezza:p.altezza,elementi:p.elementi,pagine:file._pdf.numPages,indice},sfondo:p.canvas.toDataURL('image/jpeg',0.9),nPagine:file._pdf.numPages}}
+  catch(e){console.warn('pdf.js',e);return null}
+}
 async function apriAssistenteDocumento(file){
   let sfondo=null,pagina=null,nPagine=1,indice=0;
   const prog=dialogoAvanzamento('Lettura del documento',{testo:'Apro «'+file.name+'»…'});
   try{
     if(ePdf(file.type,file.name)){
+      // la pagina si vede com'è davvero (pdf.js); il vecchio lettore resta come riserva
+      const pj=await paginaAssistentePdf(file,0);if(pj){prog.chiudi();return postazioneAssistente(file,pj.pagina,pj.sfondo,pj.nPagine,0)}
       pagina=await rendiPaginaPdf(file,0);nPagine=pagina.pagine;
       if(pagina.scansione) sfondo=pagina.scansione; // pagina scansionata: si lavora sulla fotografia
       else if(!pagina.elementi.length){prog.chiudi();return informa('Questa pagina non si riesce ad aprire','Non contiene né testo né una fotografia leggibile: se è una scansione in un formato particolare, esporta o fotografa la pagina come JPG e caricala qui.')}
@@ -112,7 +119,7 @@ function postazioneAssistente(file,pagina,sfondo,nPagine,indice){
       </div></div>
       <div class="ap-lato">
         <div class="sezione-titolo">Dati da inserire</div>
-        ${dati.map(([g,voci])=>html`<div class="mb-s"><b class="piccolo">${g}</b><div class="chip-lista">${voci.map(([nome,val])=>html`<button type="button" class="chip" data-dato="${nome}" title="${val}">${nome}</button>`)}</div></div>`)}
+        ${dati.map(([g,voci])=>html`<div class="gruppo-dati"><b>${g}</b><div class="chip-lista">${voci.map(([nome,val])=>html`<button type="button" class="dato-btn" data-dato="${nome}" title="${val}">${nome}</button>`)}</div></div>`)}
         <div class="sezione-titolo">Firme in archivio</div>
         ${firme.length?html`<div class="ap-firme">${firme.map(f=>html`<button type="button" class="ap-firma" data-firma="${f.id}" title="${f.nome}"><img src="${f.src}" alt="${f.nome}"><span class="piccolo">${f.nome}</span></button>`)}</div>`:html`<p class="piccolo secondario">Nessuna firma in archivio. Caricale dalla scheda di ogni persona o da Documenti → Modelli.</p>`}
         <div class="sezione-titolo">Elemento scelto</div>
@@ -181,6 +188,8 @@ function montaAssistente(v,ctx){
   }));
   const sel=v.querySelector('#ap-pagina');
   if(sel) sel.addEventListener('change',async()=>{
+    const pj=await paginaAssistentePdf(ctx.file,+sel.value);
+    if(pj){v.chiudi(null);postazioneAssistente(ctx.file,pj.pagina,pj.sfondo,ctx.nPagine,+sel.value);return}
     const p=await rendiPaginaPdf(ctx.file,+sel.value);
     v.chiudi(null);postazioneAssistente(ctx.file,p,p.scansione||null,ctx.nPagine,+sel.value);
   });
@@ -253,32 +262,47 @@ function paginaAssistenteHtml(r){
 // ...e diventa anche un'immagine da archiviare: si disegna l'HTML dentro un SVG e lo si porta su una
 // tela. Dentro il foglio ci sono solo stili in riga e immagini data:, altrimenti la tela resterebbe
 // bianca (non può caricare risorse esterne). L'HTML qui dev'essere XML valido, tag chiusi compresi.
-async function immagineDelFoglio(r){
-  const L=r.pagina.larghezza,A=r.pagina.altezza;
-  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${Math.round(L*2)}" height="${Math.round(A*2)}" viewBox="0 0 ${L} ${A}">`
-    +`<foreignObject x="0" y="0" width="${L}" height="${A}">`
-    +`<div xmlns="http://www.w3.org/1999/xhtml" style="width:${L}pt;height:${A}pt;position:relative;overflow:hidden;background:#ffffff;font-family:Helvetica,Arial,sans-serif;color:#111111">${contenutoFoglio(r,true)}</div>`
-    +`</foreignObject></svg>`;
-  const url='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
-  const img=await new Promise((ok,ko)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=()=>ko(new Error('il foglio non si è potuto disegnare'));i.src=url});
-  const c=document.createElement('canvas');c.width=Math.round(L*2);c.height=Math.round(A*2);
-  const ctx=c.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,c.width,c.height);ctx.drawImage(img,0,0,c.width,c.height);
-  return await canvasABlob(c,'image/jpeg',0.9);
+async function telaDelFoglio(r,scala){
+  scala=scala||2.5;const L=r.pagina.larghezza,A=r.pagina.altezza;
+  const c=document.createElement('canvas');c.width=Math.round(L*scala);c.height=Math.round(A*scala);const g=c.getContext('2d');
+  g.fillStyle='#fff';g.fillRect(0,0,c.width,c.height);g.scale(scala,scala);
+  if(r.sfondo){const im=await caricaImmagine(await (await fetch(r.sfondo)).blob());g.drawImage(im,0,0,L,A)}
+  else for(const e of r.pagina.elementi){g.fillStyle='#111';if(e.t==='testo'){g.font=(e.grassetto?'bold ':'')+e.dim+'px Helvetica, Arial, sans-serif';g.fillText(e.testo,e.x,e.y)}else if(e.t==='riquadro'){g.strokeStyle='#333';g.lineWidth=.6;g.strokeRect(e.x,e.y,e.w,e.h)}else g.fillRect(e.x,e.y,e.w,e.h)}
+  for(const o of r.oggetti){
+    if(o.t==='testo'){g.fillStyle='#111';g.font=o.dim+'px Helvetica, Arial, sans-serif';g.textBaseline='top';
+      // a capo come a video: righe scritte e, se c'è una larghezza, parole che non ci stanno
+      const righe=[];for(const riga of String(o.testo||'').split('\n')){if(!o.w||!/\n/.test(o.testo||'')){righe.push(riga);continue}let cur='';for(const w of riga.split(' ')){const prova=cur?cur+' '+w:w;if(cur&&g.measureText(prova).width>o.w){righe.push(cur);cur=w}else cur=prova}righe.push(cur)}
+      righe.forEach((t,k)=>g.fillText(t,o.x,o.y+k*o.dim*1.25));g.textBaseline='alphabetic'}
+    else if(o.t==='firma'){const im=await caricaImmagine(await (await fetch(o.src)).blob());const s=Math.min(o.w/im.width,o.h/im.height);const w=im.width*s,h=im.height*s;g.drawImage(im,o.x+(o.w-w)/2,o.y+(o.h-h)/2,w,h)}
+    else{g.fillStyle='#fff';g.fillRect(o.x,o.y,o.w,o.h)}
+  }
+  return c;
+}
+async function immagineDelFoglio(r){return await canvasABlob(await telaDelFoglio(r),'image/jpeg',0.9)}
+// Il documento firmato completo: la pagina compilata al suo posto, le altre pagine come sono
+async function pdfFirmato(file,r){
+  const tela=await telaDelFoglio(r,2.5);const pag={jpeg:await canvasInJpeg(tela,0.9),px:tela.width,py:tela.height,w:r.pagina.larghezza,h:r.pagina.altezza};
+  if(!file._pdf)return pdfDaImmagini([pag]);
+  const pagine=[];const fatta=r.pagina.indice||0;
+  for(let i=0;i<file._pdf.numPages;i++){if(i===fatta){pagine.push(pag);continue}const p=await paginaPdfJs(file._pdf,i,2.2);pagine.push({jpeg:await canvasInJpeg(p.canvas),px:p.canvas.width,py:p.canvas.height,w:p.larghezza,h:p.altezza})}
+  return pdfDaImmagini(pagine);
 }
 async function esitoAssistente(file,r){
   const nome=file.name.replace(/\.[a-z0-9]+$/i,'')+' - compilato';
   const ant=anteprimaStampa({titolo:nome,pagineHtml:[paginaAssistenteHtml(r)],registra:false,
-    azioniExtra:`${file.docId?`<button class="pulsante primario" data-ap-allega>${icona('allega')}Aggiungi al documento</button>`:''}<button class="pulsante" data-ap-archivia>${icona('allega')}Archivia come documento nuovo</button>`});
+    azioniExtra:`${file.docId?`<button class="pulsante primario" data-ap-allega>${icona('firma')}Salva firmato nel documento</button>`:''}<button class="pulsante" data-ap-archivia>${icona('allega')}Archivia come documento nuovo</button>`});
   const ba=el('[data-ap-allega]');
   if(ba) ba.addEventListener('click',async()=>{
-    try{ const blob=await immagineDelFoglio(r); if(ant&&ant.chiudi)ant.chiudi(); await allegaFilesADocumento(file.docId,[new File([blob],nome.replace(' - compilato',' - firmato')+'.jpg',{type:'image/jpeg'})]); }
-    catch(e){ segnalaErrore(e,'Non sono riuscito a trasformare il foglio in immagine: usa "Stampa / Salva PDF" e poi allega il PDF'); }
+    try{ ba.disabled=true; const pdf=await pdfFirmato(file,r); if(ant&&ant.chiudi)ant.chiudi();
+      const nuovo=new File([pdf],file.name.replace(/\.[a-z0-9]+$/i,'')+' - firmato.pdf',{type:'application/pdf'});
+      if(file.fileId) await sostituisciFileDocumento(file.docId,file.fileId,nuovo); else await allegaFilesADocumento(file.docId,[nuovo]); }
+    catch(e){ ba.disabled=false; segnalaErrore(e,'Non sono riuscito a salvare il documento firmato'); }
   });
   const b=el('[data-ap-archivia]');
   if(b) b.addEventListener('click',async()=>{
     try{
-      const blob=await immagineDelFoglio(r);
-      dialogoDocumento({},[new File([blob],nome+'.jpg',{type:'image/jpeg'})]);
+      const pdf=await pdfFirmato(file,r);
+      dialogoDocumento({},[new File([pdf],nome+'.pdf',{type:'application/pdf'})]);
     }catch(e){ segnalaErrore(e,'Non sono riuscito a trasformare il foglio in immagine: usa "Stampa / Salva PDF" e poi allega il PDF'); }
   });
 }
