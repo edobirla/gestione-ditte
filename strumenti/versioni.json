@@ -1,5 +1,13 @@
 [
  {
+  "versione": "1.10",
+  "data": "2026-10-23T15:02:27+02:00",
+  "commit": "4f69628",
+  "novita": [
+   "POS: firme solo di datore di lavoro, RSPP e RLS"
+  ]
+ },
+ {
   "versione": "1.9",
   "data": "2026-10-23T14:24:59+02:00",
   "commit": "2343b38",
