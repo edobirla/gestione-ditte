@@ -1,8 +1,15 @@
 {
- "versione": "1.6",
- "impronta": "07dedd021b",
- "data": "2026-10-23T13:54:47+02:00",
+ "versione": "1.7",
+ "impronta": "bf5e7170b1",
+ "data": "2026-10-23T13:59:20+02:00",
  "storico": [
+  {
+   "versione": "1.7",
+   "data": "2026-10-23T13:59:20+02:00",
+   "novita": [
+    "Rivestimenti: il tipo in ceramica e gres ora si chiama così anche nella scelta del cantiere"
+   ]
+  },
   {
    "versione": "1.6",
    "data": "2026-10-23T13:54:47+02:00",
