@@ -1,8 +1,15 @@
 {
- "versione": "1.12",
- "impronta": "80a1cc14f9",
- "data": "2026-10-23T15:30:05+02:00",
+ "versione": "1.13",
+ "impronta": "af15ac2748",
+ "data": "2026-10-23T15:36:16+02:00",
  "storico": [
+  {
+   "versione": "1.13",
+   "data": "2026-10-23T15:36:16+02:00",
+   "novita": [
+    "Organico medio: conteggio corretto di operai e impiegati"
+   ]
+  },
   {
    "versione": "1.12",
    "data": "2026-10-23T15:30:05+02:00",
