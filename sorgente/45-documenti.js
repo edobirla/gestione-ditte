@@ -240,7 +240,12 @@ async function dialogoDocumento(d,filesIniziali){
     const form=v.querySelector('form');
     for(const [n,da] of Object.entries(proposti)){const c=form.querySelector(`[name=${n}]`);if(!c)continue;c.classList.add('proposto');const r=c.closest('.campo');if(r)r.insertAdjacentHTML('beforeend',`<div class="aiuto proposta">✦ ${h(da)}</div>`);c.addEventListener('change',()=>c.classList.remove('proposto'),{once:true})}
     const sel=form.querySelector('[name=soggetto]'),tipoSel=form.querySelector('[name=tipoId]'),em=form.querySelector('[name=dataEmissione]'),sc=form.querySelector('[name=dataScadenza]'),ss=form.querySelector('[name=senzaScadenza]');
-    const filtraTipi=()=>{const amb=sel.value?ambitoDi(sel.value):null;tutti('option',tipoSel).forEach(o=>{const t=tipoDoc(o.value);o.hidden=!!(t&&amb&&t.ambito!==amb&&!(amb==='cliente'&&t.ambito==='cantiere'))})};
+    // Safari ignora le <option> nascoste: la lista dei tipi si ricostruisce con i soli tipi del soggetto,
+    // raggruppati per categoria (per un operaio: identità, contratto, sanitario, formazione…)
+    const filtraTipi=()=>{const amb=sel.value?ambitoDi(sel.value):null;const scelto=tipoSel.value;
+      const tipi=stato.tipiDocumento.filter(t=>!amb||t.ambito===amb||(amb==='cliente'&&t.ambito==='cantiere')||t.id===scelto);
+      const gruppi=raggruppa(tipi,t=>t.categoria||'altro');const chiavi=Array.from(gruppi.keys()).sort((x,y)=>{const ix=ORDINE_CATEGORIE_DOC.indexOf(x),iy=ORDINE_CATEGORIE_DOC.indexOf(y);return (ix<0?99:ix)-(iy<0?99:iy)});
+      tipoSel.innerHTML='<option value="">—</option>'+chiavi.map(k=>`<optgroup label="${h(CATEGORIE_TIPO_DOC[k]||capitalizza(k))}">${gruppi.get(k).sort((x,y)=>x.nome.localeCompare(y.nome)).map(t=>`<option value="${h(t.id)}"${t.id===scelto?' selected':''}>${h(t.nome)}${amb?'':' ('+h(t.ambito)+')'}</option>`).join('')}</optgroup>`).join('')};
     const dur=form.querySelector('[name=durata]'),fine=form.querySelector('[name=dataFine]'),annoI=form.querySelector('[name=anno]');
     const rigaDi=(e2)=>e2&&e2.closest('.campo');
     // ogni tipo di documento chiede quello che gli serve: chi copre un periodo (una malattia) chiede
