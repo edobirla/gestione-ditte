@@ -1,5 +1,13 @@
 [
  {
+  "versione": "1.13",
+  "data": "2026-10-23T15:36:16+02:00",
+  "commit": "b1d3027",
+  "novita": [
+   "Organico medio: conteggio corretto di operai e impiegati"
+  ]
+ },
+ {
   "versione": "1.12",
   "data": "2026-10-23T15:30:05+02:00",
   "commit": "4a6b987",
