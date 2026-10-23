@@ -1,8 +1,16 @@
 {
- "versione": "1.13",
- "impronta": "af15ac2748",
- "data": "2026-10-23T15:36:16+02:00",
+ "versione": "1.14",
+ "impronta": "b06669f520",
+ "data": "2026-10-23T15:47:15+02:00",
  "storico": [
+  {
+   "versione": "1.14",
+   "data": "2026-10-23T15:47:15+02:00",
+   "novita": [
+    "Checklist: corso preposto solo per il preposto del cantiere",
+    "Dichiarazioni: i campi da compilare dicono dove si compilano"
+   ]
+  },
   {
    "versione": "1.13",
    "data": "2026-10-23T15:36:16+02:00",
