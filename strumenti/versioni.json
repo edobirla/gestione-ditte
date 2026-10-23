@@ -1,5 +1,13 @@
 [
  {
+  "versione": "1.21",
+  "data": "2026-10-23T17:53:23+02:00",
+  "commit": "2454084",
+  "novita": [
+   "Firme sempre visibili e nitide"
+  ]
+ },
+ {
   "versione": "1.20",
   "data": "2026-10-23T17:35:33+02:00",
   "commit": "83d8b1d",
