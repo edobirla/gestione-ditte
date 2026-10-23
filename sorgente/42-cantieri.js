@@ -49,6 +49,8 @@ function checklistCantiere(c,opz){
     const visti=new Set();
     for(const t of stato.tipiDocumento.filter(t=>t.ambito==='persona'&&t.obbligatorio!=='no')){
       if(!tipoApplicabile(t,p)) continue;
+      // nel cantiere il corso preposto si chiede solo al preposto nominato per quel cantiere
+      if(t.obbligatorio==='preposto'&&c.prepostoId!==p.id) continue;
       // le nomine di preposto e addetti sono documenti del cantiere (preparate con il POS), non della persona
       if(t.id==='nomina_persona'){const q=p.qualifiche||[];
         const servono=[['nomina_preposto_cantiere','preposto',c.prepostoId===p.id],['nomina_antincendio_cantiere','antincendio',q.includes('antincendio')],['nomina_primo_soccorso_cantiere','primo soccorso',q.includes('primoSoccorso')]].filter(x=>x[2]);

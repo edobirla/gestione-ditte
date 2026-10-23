@@ -3226,7 +3226,7 @@ function scegliFile(opz){
 // L'app lo controlla all'avvio, ogni mezz'ora e quando torna in primo piano: se è diversa avvisa,
 // e «Aggiorna ora» scarica la pagina nuova scavalcando le copie del browser. I dati non si toccano.
 // ---------------------------------------------------------------------
-const VERSIONE_APP='a6e9feca65';   // impronta del contenuto: dice se è cambiato qualcosa
+const VERSIONE_APP='2679ae472a';   // impronta del contenuto: dice se è cambiato qualcosa
 const NUMERO_VERSIONE='1.13'; // il numero per le persone: 1.0, 1.1…
 function appPubblicata(){return location.protocol==='https:'}
 async function controllaAggiornamento(manuale){
@@ -3999,6 +3999,8 @@ function checklistCantiere(c,opz){
     const visti=new Set();
     for(const t of stato.tipiDocumento.filter(t=>t.ambito==='persona'&&t.obbligatorio!=='no')){
       if(!tipoApplicabile(t,p)) continue;
+      // nel cantiere il corso preposto si chiede solo al preposto nominato per quel cantiere
+      if(t.obbligatorio==='preposto'&&c.prepostoId!==p.id) continue;
       // le nomine di preposto e addetti sono documenti del cantiere (preparate con il POS), non della persona
       if(t.id==='nomina_persona'){const q=p.qualifiche||[];
         const servono=[['nomina_preposto_cantiere','preposto',c.prepostoId===p.id],['nomina_antincendio_cantiere','antincendio',q.includes('antincendio')],['nomina_primo_soccorso_cantiere','primo soccorso',q.includes('primoSoccorso')]].filter(x=>x[2]);
