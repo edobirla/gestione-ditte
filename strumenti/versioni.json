@@ -1,5 +1,14 @@
 [
  {
+  "versione": "1.14",
+  "data": "2026-10-23T15:47:15+02:00",
+  "commit": "c5083ce",
+  "novita": [
+   "Checklist: corso preposto solo per il preposto del cantiere",
+   "Dichiarazioni: i campi da compilare dicono dove si compilano"
+  ]
+ },
+ {
   "versione": "1.13",
   "data": "2026-10-23T15:36:16+02:00",
   "commit": "b1d3027",
