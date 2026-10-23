@@ -125,10 +125,13 @@ AZIONI['pos-genera']=async()=>{
   salvaPassoNelCantiere(w);
   const c=cantiere(w.cantiereId);const d=w.dati;
   const pos={id:nuovoId('pos'),cantiereId:c.id,revisione:d.revisione,dataEmissione:d.dataEmissione,dataRevisione:d.revisione?d.dataRevisione:d.dataEmissione,descrizioneRevisione:d.revisione?d.descrizioneRevisione:'Emissione iniziale',revisioni:d.revisioniPrecedenti||[],lavorazioni:unici(TIPI_LAVORAZIONE.filter(t=>d.tipi.includes(t.id)).map(t=>t.cat)),tipi:d.tipi.slice(),operai:d.operai.slice(),prepostoId:d.prepostoId,uominiGiorno:d.uominiGiorno,tipoAppalto:d.tipoAppalto,organizzazione:d.organizzazione,generato:new Date().toISOString(),generatoId:null};
+  // le nomine si impaginano prima di aprire l'anteprima del POS (usano lo stesso spazio di stampa)
+  const nomine=generaNomineCantiere(c.id,pos.revisione?pos.dataRevisione:pos.dataEmissione);
   const doc=docPos(pos,c);
   const ris=anteprimaStampa({titolo:'POS '+c.nome+' rev '+pos.revisione,doc,riferimento:c.nome,dopoRegistrazione:(s,g)=>{pos.generatoId=g.id;s.pos.push(pos)}});
   ui.posWizard=null;
   setTimeout(()=>{if(leggiRotta().sotto==='pos')vai('cantieri/'+c.id)},100);
+  avvisoNomine(nomine);
 };
 AZIONI['pos-ristampa']=d=>{const p=perId('pos',d.id);const g=p&&perId('generati',p.generatoId);if(g)anteprimaStampa({titolo:g.titolo,pagineHtml:g.pagine,giaRegistrato:true});else if(p){anteprimaStampa({titolo:'POS '+nomeCantiere(p.cantiereId)+' rev '+p.revisione,doc:docPos(p,cantiere(p.cantiereId)),giaRegistrato:true})}};
 AZIONI['pos-nuova-revisione']=d=>{const p=perId('pos',d.id);ui.posWizard=null;vai('cantieri/'+p.cantiereId+'/pos?da='+p.id)};

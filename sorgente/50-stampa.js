@@ -192,6 +192,10 @@ function bloccoFirma(opz){
   const src=opz.src?h(opz.src):'{{IMG:'+(opz.immagine||'firmaTimbro')+'}}';
   return html`<div class="blocco-firma"><div class="luogo">${a.indirizzo.comune||'Subbiano'} (${a.indirizzo.provincia||'AR'}), ${fData(opz.data||oggi())}</div><div class="firma"><div>${opz.etichetta||'Timbro e firma impresa/società'}</div><div class="linea">${opz.senzaFirma?'':grezzo('<img src="'+src+'" alt="">')}</div></div></div>`.s;
 }
+// Firma di una persona: quella caricata nella sua scheda o, se è RLS, legale rappresentante o RSPP,
+// quella salvata per quel ruolo nei dati aziendali (è la stessa persona). Mai la firma di altri.
+function firmaPersona(p){if(!p)return null;if(p.firmaImg)return p.firmaImg;const a=stato.azienda;const leg=legaleRappresentante();
+  return (p.id===a.rlsId&&immagineAzienda('firmaRls'))||(leg&&p.id===leg.id&&immagineAzienda('firmaLegale'))||(p.id===a.rsppId&&immagineAzienda('firmaRspp'))||null}
 // Contesto dei segnaposto per le dichiarazioni di un cantiere
 function contestoDichiarazione(c,opz){
   opz=opz||{};
@@ -210,7 +214,7 @@ function contestoDichiarazione(c,opz){
   // altrimenti la riga vuota di prima (mai una firma di qualcun altro al posto suo).
   const accettazione=(persone,ruolo)=>{
     if(!persone.length) return `<p>Per accettazione, ${h(ruolo)}: ______________________________</p>`;
-    return '<div class="gruppo">'+persone.map(x=>`<div class="firma-accettazione"><span class="chi">Per accettazione, ${h(ruolo)} ${h(nomePersona(x))}</span><span class="linea">${x.firmaImg?`<img src="${h(x.firmaImg)}" alt="">`:''}</span></div>`).join('')+'</div>';
+    return '<div class="gruppo">'+persone.map(x=>`<div class="firma-accettazione"><span class="chi">Per accettazione, ${h(ruolo)} ${h(nomePersona(x))}</span><span class="linea">${firmaPersona(x)?`<img src="${h(firmaPersona(x))}" alt="">`:''}</span></div>`).join('')+'</div>';
   };
   const elencoAddetti=(q)=>{const l=operai.filter(p=>(p.qualifiche||[]).includes(q));return '<ul>'+(l.length?l.map(p=>`<li>${h(nomePersona(p))}${p.cf?', C.F. '+h(p.cf):''}</li>`).join(''):`<li><span class="da-compilare">[DA COMPILARE: nessun operaio assegnato con qualifica ${h(QUALIFICHE[q])}]</span></li>`)+'</ul>'};
   const mappa={
@@ -299,6 +303,35 @@ function salvaDichiarazione(m,c,st,pagine){
   else avviso('«'+m.nome+'» salvata fra i documenti generati.');
 }
 
+// Nomine di cantiere (preposto, addetti antincendio, addetti primo soccorso) già firmate dal datore di
+// lavoro e, se c'è la firma caricata, dalla persona nominata. Si preparano insieme al POS perché
+// dipendono dalla squadra e dal preposto scelti lì; rifacendole si sostituiscono quelle automatiche.
+// Usa #stampa per impaginare: va chiamata prima di aprire un'anteprima, non durante.
+const NOMINE_CANTIERE=[['nomina_preposto_cantiere',null],['nomina_antincendio_cantiere','antincendio'],['nomina_primo_soccorso_cantiere','primoSoccorso']];
+function generaNomineCantiere(cId,data){
+  const c=cantiere(cId);const operai=(c.operai||[]).map(id=>persona(id)).filter(Boolean);
+  const fatte=[],saltate=[],nuove=[];
+  for(const [id,qualifica] of NOMINE_CANTIERE){
+    const m=stato.modelli.dichiarazioni.find(x=>x.id===id);if(!m)continue;
+    const ci=qualifica?operai.some(p=>(p.qualifiche||[]).includes(qualifica)):!!c.prepostoId;
+    if(!ci){saltate.push(m.nome);continue}
+    const pagine=impagina(docDichiarazione(m,c,{data}));
+    nuove.push({m,g:{id:nuovoId('g'),titolo:m.nome+' · '+c.nome,quando:new Date().toISOString(),pagine,orientamento:'verticale',riferimento:c.nome}});fatte.push(m.nome);
+  }
+  esegui('Nomine di cantiere: '+c.nome,s=>{const cc=s.cantieri.find(x=>x.id===cId);
+    cc.documentiProdotti=cc.documentiProdotti.filter(d=>!(d.automatica&&NOMINE_CANTIERE.some(([id])=>id===d.modelloId)));
+    for(const {m,g} of nuove){s.generati.push(g);cc.documentiProdotti.push({id:nuovoId('dp'),tipo:'Dichiarazione',titolo:m.nome,data,modelloId:m.id,generatoId:g.id,fileId:null,automatica:true,note:'Preparata automaticamente con i dati della squadra'})}
+    while(s.generati.length>200)s.generati.shift()},{silenzioso:true});
+  const senzaFirma=[c.prepostoId,...operai.filter(p=>(p.qualifiche||[]).some(q=>q==='antincendio'||q==='primoSoccorso')).map(p=>p.id)].map(id=>persona(id)).filter(p=>p&&!firmaPersona(p));
+  return {fatte,saltate,senzaFirma:unici(senzaFirma.map(p=>nomePersona(p)))};
+}
+function avvisoNomine(r){
+  const parti=[];if(r.fatte.length)parti.push('Preparate: '+r.fatte.join(', ').toLowerCase()+'.');
+  if(r.saltate.length)parti.push('Non fatte, perché fra gli operai del cantiere manca chi ha la qualifica: '+r.saltate.join(', ').toLowerCase()+'.');
+  if(r.senzaFirma.length)parti.push('Senza firma per accettazione (firma non caricata): '+r.senzaFirma.join(', ')+'.');
+  avviso(parti.join(' '),{durata:9000,tipo:r.saltate.length?'attenzione':undefined});
+}
+AZIONI['nomine-rifai']=d=>{const r=generaNomineCantiere(d.id,oggi());render();avvisoNomine(r)};
 function docScadenzario(){
   const sc=riepilogoScadenze();
   const conData=sc.righe.filter(x=>x.info.data).sort((a,b)=>a.info.data<b.info.data?-1:1);
