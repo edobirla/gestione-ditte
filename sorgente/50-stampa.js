@@ -216,7 +216,15 @@ function contestoDichiarazione(c,opz){
   const operai=c?(c.operai||[]).map(id=>persona(id)).filter(Boolean):[];
   const prep=c&&c.prepostoId?persona(c.prepostoId):null;
   const rls=persona(a.rlsId),rspp=persona(a.rsppId);
-  const DC=(k)=>'[DA COMPILARE: '+k+']';
+  // ogni segnaposto dice cosa manca e dove si scrive, non il nome tecnico del campo
+  const AZ='Impostazioni › Azienda › Modifica',LEG='scheda del legale rappresentante in Operai',CANT='cantiere › Modifica';
+  const DOVE={'azienda.ragioneSociale':['ragione sociale',AZ],'azienda.sede':['sede',AZ],'azienda.piva':['partita IVA',AZ],'azienda.cf':['codice fiscale',AZ],'azienda.pec':['PEC',AZ],'azienda.telefono':['telefono',AZ],'azienda.inail':['codice INAIL',AZ],'azienda.inps':['matricola INPS',AZ],'azienda.cassaEdile':['Cassa Edile',AZ],'azienda.ccnl':['contratto collettivo',AZ],'azienda.rea':['REA',AZ],'azienda.email':['email',AZ],
+    'legale.nome':['legale rappresentante',AZ],'legale.natoA':['luogo di nascita',LEG],'legale.natoIl':['data di nascita',LEG],'legale.residenza':['residenza',LEG],'legale.cf':['codice fiscale',LEG],
+    'cantiere.nome':['cantiere','scegli il cantiere'],'cantiere.indirizzo':['indirizzo del cantiere',CANT],'cantiere.comune':['comune del cantiere',CANT],'cantiere.cap':['CAP del cantiere',CANT],'cantiere.lavorazioni':['lavorazioni',CANT],'cantiere.descrizione':['descrizione',CANT],
+    'committente.nome':['committente',CANT],'committente.indirizzo':['indirizzo del committente',CANT],'affidataria.nome':['impresa affidataria',CANT],'affidataria.indirizzo':['indirizzo dell’affidataria',CANT],'cse.nome':['CSE',CANT],
+    'rspp.nome':['RSPP',AZ],'rls.nome':['RLS',AZ],'medico.nome':['medico competente',AZ],'preposto.nome':['preposto',CANT],'preposto.cf':['codice fiscale del preposto','sua scheda in Operai'],'preposto.natoIl':['data di nascita del preposto','sua scheda in Operai'],'preposto.corsoData':['corso preposto','documenti del preposto in Operai'],
+    'organico.medio':['organico medio','libro presenze in Presenze']};
+  const DC=(k)=>'[DA COMPILARE: '+(DOVE[k]?DOVE[k][0]+' → '+DOVE[k][1]:k)+']';
   const v=(x,k)=>(x===null||x===undefined||x==='')?DC(k):String(x);
   const sede=indirizzoTesto(a.indirizzo);
   const lavNomi=c?tipiCantiere(c).map(t=>t.nome):[];
