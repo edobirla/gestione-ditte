@@ -123,7 +123,9 @@ document.addEventListener('click',e=>{
   const tr=e.target.closest('tr[data-riga]');
   if(tr&&!e.target.closest('button,a,input,select,label')){const tab=tr.closest('table');const opz=tabelleCliccabili.find(o=>o.id&&tab.id==='tab-'+o.id)||tabelleCliccabili[tabelleCliccabili.length-1];if(opz&&opz._righeOrdinate){opz.onRiga(opz._righeOrdinate[+tr.dataset.riga])}return}
   const trh=e.target.closest('tr[data-href]');
-  if(trh&&!e.target.closest('button,a,input,select,label')){location.hash=trh.dataset.href}
+  // vai() scrive sempre #/percorso: con location.hash diretto le righe che hanno anche data-azione="vai"
+  // finivano due volte nella cronologia (#operai/x e #/operai/x) e servivano due «indietro»
+  if(trh&&!e.target.closest('button,a,input,select,label')){vai(trh.dataset.href)}
 });
 
 // ---- moduli (form) ----
@@ -293,7 +295,7 @@ function graficoTemporale(righe,opz){
   const xo=x(daIso(oggiIso));
   return html`<svg class="grafico" viewBox="0 0 ${W} ${H}" role="img" aria-label="Diagramma temporale dei cantieri">${mesi}${barre}<line class="oggi" x1="${xo}" x2="${xo}" y1="${mt-4}" y2="${H}"/><text x="${xo+3}" y="${H-2}" style="fill:var(--rosso)">oggi</text></svg>`;
 }
-document.addEventListener('click',e=>{const g=e.target.closest('svg g[data-href]');if(g)location.hash=g.dataset.href});
+document.addEventListener('click',e=>{const g=e.target.closest('svg g[data-href]');if(g)vai(g.dataset.href)});
 // Completamento automatico semplice su input (data-suggerimenti="nome elenco")
 function attivaSuggerimenti(input,fonte){
   // fonte() può restituire stringhe, oppure {v,t} quando il valore da scrivere differisce dall'etichetta mostrata
