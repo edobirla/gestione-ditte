@@ -59,7 +59,7 @@ const ATTREZZATURE_POS={
     durante:['Impugnarlo con due mani e avviarlo con la frusta già immersa','Bloccare il secchio con i piedi o in un supporto','Versare la polvere lentamente, stando sopravento'],
     dopo:['Staccare la spina prima di pulire o cambiare la frusta','Pulire subito la frusta'],
     dpi:['guanti_chimici','occhiali','ffp2','otoprotettori']},
-  taglia_piastrelle:{nome:'Taglia piastrelle manuale',img:'image23',descrizione:'Attrezzo a leva con rotella per incidere e spezzare piastrelle e battiscopa.',
+  taglia_piastrelle:{nome:'Taglia piastrelle manuale',img:'image23',ce:false,descrizione:'Attrezzo a leva con rotella per incidere e spezzare piastrelle e battiscopa.',
     rischi:['Tagli','Schiacciamento delle mani','Proiezione di schegge'],
     prima:['Appoggiarlo su una base stabile e piana','Controllare rotella e guide'],
     durante:['Tenere le mani fuori dalla corsa della leva','Appoggiare il pezzo per tutta la lunghezza'],
@@ -174,6 +174,8 @@ const ATTREZZATURE_POS={
     dopo:['Chiudere la bombola e spurgare il tubo','Controllare la copertura per almeno 30 minuti dopo la fine dei lavori a caldo'],
     dpi:['guanti_calore','occhiali','scarpe','tuta'],verifiche:'Prima dell’uso (tubo, raccordi e riduttore)'},
 };
+// attrezzature che sono opere provvisionali (nella dichiarazione di conformità stanno in un gruppo a parte)
+const OPERE_PROVVISIONALI_POS=['trabattello'];
 const SCHEDE_TIPO={
   m_tradizionale:{
     descrizione:'Formazione di massetti in sabbia e cemento impastati in cantiere, stesi tra guide di livello, battuti, staggiati e frattazzati, come sottofondo per pavimenti.',

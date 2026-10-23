@@ -3226,7 +3226,7 @@ function scegliFile(opz){
 // L'app lo controlla all'avvio, ogni mezz'ora e quando torna in primo piano: se è diversa avvisa,
 // e «Aggiorna ora» scarica la pagina nuova scavalcando le copie del browser. I dati non si toccano.
 // ---------------------------------------------------------------------
-const VERSIONE_APP='f06c438e37';   // impronta del contenuto: dice se è cambiato qualcosa
+const VERSIONE_APP='58a7ef5562';   // impronta del contenuto: dice se è cambiato qualcosa
 const NUMERO_VERSIONE='1.11'; // il numero per le persone: 1.0, 1.1…
 function appPubblicata(){return location.protocol==='https:'}
 async function controllaAggiornamento(manuale){
@@ -6834,6 +6834,10 @@ function contestoDichiarazione(c,opz){
     if(k==='luogoData') return {blocco:bloccoFirma({data:opz.data,senzaFirma:opz.senzaFirma,etichetta:opz.etichettaFirma,src:opz.firmaSrc})};
     if(k==='operai.elenco') return {blocco:elencoOperai()};
     if(k==='organico.tabella') return {blocco:tabellaOrganico()};
+    if(k==='cantiere.attrezzature'){const ids=c?unici(tipiCantiere(c).flatMap(t=>(SCHEDE_TIPO[t.id]||{}).attrezzature||[])):[];if(!ids.length)return {blocco:'<p><span class="da-compilare">[DA COMPILARE: lavorazioni del cantiere]</span></p>'};
+      const riga=id=>{const x=ATTREZZATURE_POS[id];return `<tr><td>${h(x.nome)}</td><td>${x.ce===false?'Non prevista':'Sì'}</td><td>${x.ce===false?'—':'Sì'}</td><td>${h(x.verifiche||'Controllo prima dell’uso e manutenzione periodica')}</td></tr>`};
+      const opere=ids.filter(id=>OPERE_PROVVISIONALI_POS.includes(id)),macchine=ids.filter(id=>!OPERE_PROVVISIONALI_POS.includes(id));
+      return {blocco:`<table><thead><tr><th>Macchina, attrezzatura o opera provvisionale</th><th style="width:26mm">Marcatura CE</th><th style="width:26mm">Manuale d’uso</th><th style="width:52mm">Controlli e verifiche</th></tr></thead><tbody>${macchine.map(riga).join('')}${opere.length?`<tr><td colspan="4"><b>Opere provvisionali</b></td></tr>${opere.map(riga).join('')}`:''}</tbody></table>`}}
     if(k==='operai.tabella') return {blocco:tabellaOperai()};
     if(k==='cantiere.lavorazioniElenco') return {blocco:'<ol>'+(lavNomi.length?lavNomi.map(x=>'<li>'+h(x)+'</li>').join(''):'<li><span class="da-compilare">[DA COMPILARE: lavorazioni]</span></li>')+'</ol>'};
     if(k==='addettiAntincendio.elenco') return {blocco:elencoAddetti('antincendio')};
@@ -7447,7 +7451,7 @@ const ATTREZZATURE_POS={
     durante:['Impugnarlo con due mani e avviarlo con la frusta già immersa','Bloccare il secchio con i piedi o in un supporto','Versare la polvere lentamente, stando sopravento'],
     dopo:['Staccare la spina prima di pulire o cambiare la frusta','Pulire subito la frusta'],
     dpi:['guanti_chimici','occhiali','ffp2','otoprotettori']},
-  taglia_piastrelle:{nome:'Taglia piastrelle manuale',img:'image23',descrizione:'Attrezzo a leva con rotella per incidere e spezzare piastrelle e battiscopa.',
+  taglia_piastrelle:{nome:'Taglia piastrelle manuale',img:'image23',ce:false,descrizione:'Attrezzo a leva con rotella per incidere e spezzare piastrelle e battiscopa.',
     rischi:['Tagli','Schiacciamento delle mani','Proiezione di schegge'],
     prima:['Appoggiarlo su una base stabile e piana','Controllare rotella e guide'],
     durante:['Tenere le mani fuori dalla corsa della leva','Appoggiare il pezzo per tutta la lunghezza'],
@@ -7562,6 +7566,8 @@ const ATTREZZATURE_POS={
     dopo:['Chiudere la bombola e spurgare il tubo','Controllare la copertura per almeno 30 minuti dopo la fine dei lavori a caldo'],
     dpi:['guanti_calore','occhiali','scarpe','tuta'],verifiche:'Prima dell’uso (tubo, raccordi e riduttore)'},
 };
+// attrezzature che sono opere provvisionali (nella dichiarazione di conformità stanno in un gruppo a parte)
+const OPERE_PROVVISIONALI_POS=['trabattello'];
 const SCHEDE_TIPO={
   m_tradizionale:{
     descrizione:'Formazione di massetti in sabbia e cemento impastati in cantiere, stesi tra guide di livello, battuti, staggiati e frattazzati, come sottofondo per pavimenti.',
@@ -9865,6 +9871,35 @@ const TIPI_DOCUMENTO_INIZIALI=[
 // legale.nome, legale.natoA, legale.natoIl, legale.residenza, legale.cf, cantiere.nome, cantiere.descrizione, cantiere.indirizzo, cantiere.comune, cantiere.cap,
 // committente.nome, committente.indirizzo, affidataria.nome, affidataria.indirizzo, cse.nome, oggi, operai.elenco (elenco puntato), operai.tabella (tabella), luogoData
 const MODELLI_DICHIARAZIONI_INIZIALI=[
+  {id:'conformita_attrezzature',nome:'Dichiarazione di conformità di macchine, attrezzature e opere provvisionali',cartaIntestata:true,firma:true,timbro:true,firmatario:'Il legale rappresentante',testo:
+`# Dichiarazione di conformità di macchine, attrezzature e opere provvisionali
+## ai sensi dell'Allegato XVII, punto 1, lettera c) e degli artt. 70 e 71 del D.Lgs. 81/2008 e degli artt. 46 e 47 del D.P.R. 445/2000
+
+Il sottoscritto {{legale.nome}}, nato a {{legale.natoA}} il {{legale.natoIl}}, codice fiscale {{legale.cf}}, in qualità di legale rappresentante dell'impresa {{azienda.ragioneSociale}}, con sede in {{azienda.sede}}, partita IVA {{azienda.piva}},
+
+con riferimento ai lavori di {{cantiere.lavorazioni}} nel cantiere {{cantiere.nome}}, {{cantiere.indirizzo}}, committente {{committente.nome}},
+
+consapevole delle sanzioni penali previste dall'art. 76 del D.P.R. 445/2000 per le dichiarazioni mendaci e della decadenza dai benefici prevista dall'art. 75 dello stesso decreto,
+
+**DICHIARA**
+
+che le macchine, le attrezzature e le opere provvisionali che l'impresa utilizzerà nel cantiere sono le seguenti:
+
+{{cantiere.attrezzature}}
+
+e che le stesse:
+
+- sono conformi alle disposizioni legislative e regolamentari di recepimento delle direttive di prodotto (art. 70, comma 1, del D.Lgs. 81/2008) e, dove prevista, provviste di marcatura CE e di dichiarazione di conformità del fabbricante;
+- sono corredate del manuale di istruzioni per l'uso e la manutenzione in lingua italiana, disponibile in cantiere;
+- sono installate e utilizzate secondo le istruzioni del fabbricante, controllate prima dell'uso e sottoposte a manutenzione periodica, come previsto dall'art. 71 del D.Lgs. 81/2008, e, quando richieste, alle verifiche periodiche dell'Allegato VII;
+- sono usate solo da lavoratori informati, formati e addestrati ai sensi degli artt. 71, 72 e 73 del D.Lgs. 81/2008 e, per le attrezzature che la richiedono, in possesso dell'abilitazione prevista dall'Accordo Stato-Regioni;
+- per quanto riguarda le opere provvisionali, sono montate, usate e smontate secondo le istruzioni del fabbricante da personale formato.
+
+Dichiara inoltre che eventuali macchine o attrezzature diverse da quelle elencate saranno comunicate prima del loro impiego in cantiere, con la relativa documentazione.
+
+{{luogoData}}
+
+Si allega copia del documento di identità del dichiarante.`},
   {id:'organico_medio',nome:'Dichiarazione dell’organico medio annuo',cartaIntestata:true,firma:true,timbro:true,firmatario:'Il legale rappresentante',testo:
 `# Dichiarazione dell'organico medio annuo
 ## ai sensi dell'art. 90, comma 9, lettera b) e dell'Allegato XVII del D.Lgs. 81/2008 e degli artt. 46 e 47 del D.P.R. 445/2000

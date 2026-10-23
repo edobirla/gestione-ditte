@@ -245,6 +245,10 @@ function contestoDichiarazione(c,opz){
     if(k==='luogoData') return {blocco:bloccoFirma({data:opz.data,senzaFirma:opz.senzaFirma,etichetta:opz.etichettaFirma,src:opz.firmaSrc})};
     if(k==='operai.elenco') return {blocco:elencoOperai()};
     if(k==='organico.tabella') return {blocco:tabellaOrganico()};
+    if(k==='cantiere.attrezzature'){const ids=c?unici(tipiCantiere(c).flatMap(t=>(SCHEDE_TIPO[t.id]||{}).attrezzature||[])):[];if(!ids.length)return {blocco:'<p><span class="da-compilare">[DA COMPILARE: lavorazioni del cantiere]</span></p>'};
+      const riga=id=>{const x=ATTREZZATURE_POS[id];return `<tr><td>${h(x.nome)}</td><td>${x.ce===false?'Non prevista':'Sì'}</td><td>${x.ce===false?'—':'Sì'}</td><td>${h(x.verifiche||'Controllo prima dell’uso e manutenzione periodica')}</td></tr>`};
+      const opere=ids.filter(id=>OPERE_PROVVISIONALI_POS.includes(id)),macchine=ids.filter(id=>!OPERE_PROVVISIONALI_POS.includes(id));
+      return {blocco:`<table><thead><tr><th>Macchina, attrezzatura o opera provvisionale</th><th style="width:26mm">Marcatura CE</th><th style="width:26mm">Manuale d’uso</th><th style="width:52mm">Controlli e verifiche</th></tr></thead><tbody>${macchine.map(riga).join('')}${opere.length?`<tr><td colspan="4"><b>Opere provvisionali</b></td></tr>${opere.map(riga).join('')}`:''}</tbody></table>`}}
     if(k==='operai.tabella') return {blocco:tabellaOperai()};
     if(k==='cantiere.lavorazioniElenco') return {blocco:'<ol>'+(lavNomi.length?lavNomi.map(x=>'<li>'+h(x)+'</li>').join(''):'<li><span class="da-compilare">[DA COMPILARE: lavorazioni]</span></li>')+'</ol>'};
     if(k==='addettiAntincendio.elenco') return {blocco:elencoAddetti('antincendio')};

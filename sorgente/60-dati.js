@@ -152,6 +152,35 @@ const TIPI_DOCUMENTO_INIZIALI=[
 // legale.nome, legale.natoA, legale.natoIl, legale.residenza, legale.cf, cantiere.nome, cantiere.descrizione, cantiere.indirizzo, cantiere.comune, cantiere.cap,
 // committente.nome, committente.indirizzo, affidataria.nome, affidataria.indirizzo, cse.nome, oggi, operai.elenco (elenco puntato), operai.tabella (tabella), luogoData
 const MODELLI_DICHIARAZIONI_INIZIALI=[
+  {id:'conformita_attrezzature',nome:'Dichiarazione di conformità di macchine, attrezzature e opere provvisionali',cartaIntestata:true,firma:true,timbro:true,firmatario:'Il legale rappresentante',testo:
+`# Dichiarazione di conformità di macchine, attrezzature e opere provvisionali
+## ai sensi dell'Allegato XVII, punto 1, lettera c) e degli artt. 70 e 71 del D.Lgs. 81/2008 e degli artt. 46 e 47 del D.P.R. 445/2000
+
+Il sottoscritto {{legale.nome}}, nato a {{legale.natoA}} il {{legale.natoIl}}, codice fiscale {{legale.cf}}, in qualità di legale rappresentante dell'impresa {{azienda.ragioneSociale}}, con sede in {{azienda.sede}}, partita IVA {{azienda.piva}},
+
+con riferimento ai lavori di {{cantiere.lavorazioni}} nel cantiere {{cantiere.nome}}, {{cantiere.indirizzo}}, committente {{committente.nome}},
+
+consapevole delle sanzioni penali previste dall'art. 76 del D.P.R. 445/2000 per le dichiarazioni mendaci e della decadenza dai benefici prevista dall'art. 75 dello stesso decreto,
+
+**DICHIARA**
+
+che le macchine, le attrezzature e le opere provvisionali che l'impresa utilizzerà nel cantiere sono le seguenti:
+
+{{cantiere.attrezzature}}
+
+e che le stesse:
+
+- sono conformi alle disposizioni legislative e regolamentari di recepimento delle direttive di prodotto (art. 70, comma 1, del D.Lgs. 81/2008) e, dove prevista, provviste di marcatura CE e di dichiarazione di conformità del fabbricante;
+- sono corredate del manuale di istruzioni per l'uso e la manutenzione in lingua italiana, disponibile in cantiere;
+- sono installate e utilizzate secondo le istruzioni del fabbricante, controllate prima dell'uso e sottoposte a manutenzione periodica, come previsto dall'art. 71 del D.Lgs. 81/2008, e, quando richieste, alle verifiche periodiche dell'Allegato VII;
+- sono usate solo da lavoratori informati, formati e addestrati ai sensi degli artt. 71, 72 e 73 del D.Lgs. 81/2008 e, per le attrezzature che la richiedono, in possesso dell'abilitazione prevista dall'Accordo Stato-Regioni;
+- per quanto riguarda le opere provvisionali, sono montate, usate e smontate secondo le istruzioni del fabbricante da personale formato.
+
+Dichiara inoltre che eventuali macchine o attrezzature diverse da quelle elencate saranno comunicate prima del loro impiego in cantiere, con la relativa documentazione.
+
+{{luogoData}}
+
+Si allega copia del documento di identità del dichiarante.`},
   {id:'organico_medio',nome:'Dichiarazione dell’organico medio annuo',cartaIntestata:true,firma:true,timbro:true,firmatario:'Il legale rappresentante',testo:
 `# Dichiarazione dell'organico medio annuo
 ## ai sensi dell'art. 90, comma 9, lettera b) e dell'Allegato XVII del D.Lgs. 81/2008 e degli artt. 46 e 47 del D.P.R. 445/2000
