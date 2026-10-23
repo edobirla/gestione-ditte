@@ -49,6 +49,14 @@ function checklistCantiere(c,opz){
     const visti=new Set();
     for(const t of stato.tipiDocumento.filter(t=>t.ambito==='persona'&&t.obbligatorio!=='no')){
       if(!tipoApplicabile(t,p)) continue;
+      // le nomine di preposto e addetti sono documenti del cantiere (preparate con il POS), non della persona
+      if(t.id==='nomina_persona'){const q=p.qualifiche||[];
+        const servono=[['nomina_preposto_cantiere','preposto',c.prepostoId===p.id],['nomina_antincendio_cantiere','antincendio',q.includes('antincendio')],['nomina_primo_soccorso_cantiere','primo soccorso',q.includes('primoSoccorso')]].filter(x=>x[2]);
+        if(!servono.length) continue;
+        const trovate=servono.map(([id,r])=>({r,d:(c.documentiProdotti||[]).filter(d=>d.modelloId===id&&d.generatoId).pop()}));
+        const mancano=trovate.filter(x=>!x.d);
+        aggiungi({gruppo:'Operai',nome:'Nomina '+servono.map(x=>x[1]).join(', '),tipo:t,soggetto:nomePersona(p),soggettoTipo:'persona',persona:p,stato:mancano.length?'preparare':'ok',motivo:mancano.length?'manca: '+mancano.map(x=>x.r).join(', '):'',nomine:trovate.filter(x=>x.d).map(x=>({r:x.r,g:x.d.generatoId})),azione:mancano.length?'nomine':null});
+        continue}
       const gruppo=gruppoAlternativo(t.id);const k=gruppo?gruppo.join('|'):t.id; if(visti.has(k)) continue; visti.add(k);
       const tipi=gruppo?stato.tipiDocumento.filter(x=>gruppo.includes(x.id)):[t];
       let best=null;for(const tt of tipi){const m=migliorDocumento(documentiPersona(p.id).filter(d=>d.tipoId===tt.id),tt,oggiIso,s);if(m&&(!best||confrontoStato(m.info,best.info)>0))best={...m,tipo:tt}}
@@ -266,7 +274,7 @@ function riassuntoChecklist(voci){
   return parti;
 }
 function vociChecklist(voci,c){
-  return html`${voci.map(v=>{const st=STATI_CHECKLIST[v.stato];return html`<div class="checklist-voce"><span class="pillola ${st.cl}">${icona(st.ic,'piccola')}${st.t}</span><span><b>${v.nome}</b> <span class="secondario">· ${v.soggetto}</span>${v.info&&v.info.data?html` <span class="piccolo ${v.info.stato==='scaduto'?'da-compilare':'secondario'}">${v.info.stato==='scaduto'?'scaduto il':'scade il'} ${fData(v.info.data)}</span>`:''}${v.motivo?html`<br><span class="piccolo secondario">${v.motivo}</span>`:''}</span><span>${v.doc?html`<button class="pulsante piccolo" data-azione="doc-apri" data-id="${v.doc.id}">${icona('occhio','piccola')}</button>`:v.azione==='pos'?html`<a class="pulsante piccolo" href="#/cantieri/${c.id}/pos">Genera</a>`:v.azione&&v.azione.startsWith('dichiarazione:')?html`<button class="pulsante piccolo" data-azione="dichiarazione-compila" data-cantiere="${c.id}" data-modello="${v.azione.split(':')[1]}">Compila</button>`:v.persona?html`<a class="pulsante piccolo" href="#/operai/${v.persona.id}">Vai</a>`:''}${v.extra?html`<button class="pulsante piccolo icona pericolo" data-azione="checklist-voce-elimina" data-id="${c.id}" data-voce="${v.id}" aria-label="Togli">${icona('chiudi','piccola')}</button>`:''}</span></div>`})}`;
+  return html`${voci.map(v=>{const st=STATI_CHECKLIST[v.stato];return html`<div class="checklist-voce"><span class="pillola ${st.cl}">${icona(st.ic,'piccola')}${st.t}</span><span><b>${v.nome}</b> <span class="secondario">· ${v.soggetto}</span>${v.info&&v.info.data?html` <span class="piccolo ${v.info.stato==='scaduto'?'da-compilare':'secondario'}">${v.info.stato==='scaduto'?'scaduto il':'scade il'} ${fData(v.info.data)}</span>`:''}${v.motivo?html`<br><span class="piccolo secondario">${v.motivo}</span>`:''}</span><span>${(v.nomine||[]).map(n=>html`<button class="pulsante piccolo" data-azione="generato-ristampa" data-id="${n.g}" title="Vedi la nomina ${n.r}">${icona('occhio','piccola')}${capitalizza(n.r)}</button>`)}${v.azione==='nomine'?html`<button class="pulsante piccolo" data-azione="nomine-rifai" data-id="${c.id}">Prepara</button>`:v.nomine&&v.nomine.length?'':v.doc?html`<button class="pulsante piccolo" data-azione="doc-apri" data-id="${v.doc.id}">${icona('occhio','piccola')}</button>`:v.azione==='pos'?html`<a class="pulsante piccolo" href="#/cantieri/${c.id}/pos">Genera</a>`:v.azione&&v.azione.startsWith('dichiarazione:')?html`<button class="pulsante piccolo" data-azione="dichiarazione-compila" data-cantiere="${c.id}" data-modello="${v.azione.split(':')[1]}">Compila</button>`:v.persona?html`<a class="pulsante piccolo" href="#/operai/${v.persona.id}">Vai</a>`:''}${v.extra?html`<button class="pulsante piccolo icona pericolo" data-azione="checklist-voce-elimina" data-id="${c.id}" data-voce="${v.id}" aria-label="Togli">${icona('chiudi','piccola')}</button>`:''}</span></div>`})}`;
 }
 function sezioneChecklist(titolo,voci,c,extra){
   const parti=riassuntoChecklist(voci);

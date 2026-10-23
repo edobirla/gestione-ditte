@@ -196,6 +196,17 @@ function bloccoFirma(opz){
 // quella salvata per quel ruolo nei dati aziendali (è la stessa persona). Mai la firma di altri.
 function firmaPersona(p){if(!p)return null;if(p.firmaImg)return p.firmaImg;const a=stato.azienda;const leg=legaleRappresentante();
   return (p.id===a.rlsId&&immagineAzienda('firmaRls'))||(leg&&p.id===leg.id&&immagineAzienda('firmaLegale'))||(p.id===a.rsppId&&immagineAzienda('firmaRspp'))||null}
+// Organico medio annuo: per ogni mese dell'anno, i lavoratori dipendenti presenti nel libro presenze;
+// la media è sui mesi registrati. Soci e legale rappresentante si contano a parte (non sono dipendenti).
+function organicoMedio(anno){
+  const cat=p=>!p?null:p.tipo==='amministrativo'?'impiegati':(p.tipo==='socio'||p.tipo==='legale_rappresentante')?null:'operai';
+  const somme={operai:0,impiegati:0};let mesi=0;
+  for(let m=1;m<=12;m++){const mm=meseP(anno,m);if(!mm||!Object.keys(mm.persone||{}).length)continue;mesi++;
+    for(const [pid,r] of Object.entries(mm.persone)){const k=cat(persona(pid));if(!k)continue;if(Object.values(r.giorni||{}).some(c=>{const v=valoreCella(c);return v!=null&&v!==0}))somme[k]++}}
+  const inForza=stato.persone.filter(p=>p.attivo!==false);
+  return {anno,mesi,operai:mesi?somme.operai/mesi:null,impiegati:mesi?somme.impiegati/mesi:null,totale:mesi?(somme.operai+somme.impiegati)/mesi:null,
+    oggi:{operai:inForza.filter(p=>cat(p)==='operai').length,impiegati:inForza.filter(p=>cat(p)==='impiegati').length,soci:inForza.filter(p=>p.tipo==='socio'||p.tipo==='legale_rappresentante').length}};
+}
 // Contesto dei segnaposto per le dichiarazioni di un cantiere
 function contestoDichiarazione(c,opz){
   opz=opz||{};
@@ -217,6 +228,9 @@ function contestoDichiarazione(c,opz){
     return '<div class="gruppo">'+persone.map(x=>`<div class="firma-accettazione"><span class="chi">Per accettazione, ${h(ruolo)} ${h(nomePersona(x))}</span><span class="linea">${firmaPersona(x)?`<img src="${h(firmaPersona(x))}" alt="">`:''}</span></div>`).join('')+'</div>';
   };
   const elencoAddetti=(q)=>{const l=operai.filter(p=>(p.qualifiche||[]).includes(q));return '<ul>'+(l.length?l.map(p=>`<li>${h(nomePersona(p))}${p.cf?', C.F. '+h(p.cf):''}</li>`).join(''):`<li><span class="da-compilare">[DA COMPILARE: nessun operaio assegnato con qualifica ${h(QUALIFICHE[q])}]</span></li>`)+'</ul>'};
+  // anno precedente; se il libro presenze di quell'anno non c'è, l'anno in corso sui mesi registrati
+  const annoDich=new Date(opz.data||oggi()).getFullYear();let org=organicoMedio(annoDich-1);if(!org.mesi)org=organicoMedio(annoDich);const fN1=x=>x==null?null:fNum(Math.round(x*10)/10,Number.isInteger(Math.round(x*10)/10)?0:1);
+  const tabellaOrganico=()=>`<table><thead><tr><th>Qualifica</th><th style="width:40mm">In forza oggi</th><th style="width:48mm">Media anno ${org.anno}</th></tr></thead><tbody><tr><td>Operai</td><td>${org.oggi.operai}</td><td>${org.mesi?h(fN1(org.operai)):'<span class="da-compilare">[DA COMPILARE]</span>'}</td></tr><tr><td>Impiegati</td><td>${org.oggi.impiegati}</td><td>${org.mesi?h(fN1(org.impiegati)):'<span class="da-compilare">[DA COMPILARE]</span>'}</td></tr><tr class="totale"><td>Totale lavoratori dipendenti</td><td>${org.oggi.operai+org.oggi.impiegati}</td><td>${org.mesi?h(fN1(org.totale)):'<span class="da-compilare">[DA COMPILARE]</span>'}</td></tr></tbody></table><p class="sx" style="font-size:9pt">Oltre ai dipendenti: soci e titolari che lavorano nell'impresa n. ${org.oggi.soci}.${org.mesi&&org.mesi<12?' Media calcolata sui '+org.mesi+' mesi registrati nel libro presenze.':''}</p>`;
   const mappa={
     'azienda.ragioneSociale':a.ragioneSociale,'azienda.sede':sede,'azienda.piva':a.piva,'azienda.cf':a.cf,'azienda.pec':a.pec,'azienda.telefono':a.telefono,'azienda.inail':a.inail,'azienda.rea':a.rea,'azienda.email':a.email,
     'legale.nome':leg?nomePersona(leg):null,'legale.natoA':leg?leg.luogoNascita:null,'legale.natoIl':leg&&leg.dataNascita?fData(leg.dataNascita):null,'legale.residenza':leg?leg.residenza:null,'legale.cf':leg?leg.cf:null,
@@ -225,10 +239,12 @@ function contestoDichiarazione(c,opz){
     'cse.nome':cse?nomeProfessionista(cse.id):null,'rspp.nome':rspp?nomePersona(rspp):null,'rls.nome':rls?nomePersona(rls):null,'medico.nome':a.medicoCompetente?a.medicoCompetente.nome:null,
     'preposto.nome':prep?nomePersona(prep):null,'preposto.cf':prep?prep.cf:null,'preposto.natoIl':prep&&prep.dataNascita?fData(prep.dataNascita):null,'preposto.corsoData':prep?docCorso(prep,'corso_preposto'):null,
     'oggi':fData(opz.data||oggi()),
+    'azienda.inps':a.inps,'azienda.cassaEdile':a.cassaEdile,'azienda.ccnl':a.ccnl,'organico.anno':String(org.anno),'organico.medio':fN1(org.totale),
   };
   return (k)=>{
     if(k==='luogoData') return {blocco:bloccoFirma({data:opz.data,senzaFirma:opz.senzaFirma,etichetta:opz.etichettaFirma,src:opz.firmaSrc})};
     if(k==='operai.elenco') return {blocco:elencoOperai()};
+    if(k==='organico.tabella') return {blocco:tabellaOrganico()};
     if(k==='operai.tabella') return {blocco:tabellaOperai()};
     if(k==='cantiere.lavorazioniElenco') return {blocco:'<ol>'+(lavNomi.length?lavNomi.map(x=>'<li>'+h(x)+'</li>').join(''):'<li><span class="da-compilare">[DA COMPILARE: lavorazioni]</span></li>')+'</ol>'};
     if(k==='addettiAntincendio.elenco') return {blocco:elencoAddetti('antincendio')};

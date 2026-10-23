@@ -152,6 +152,34 @@ const TIPI_DOCUMENTO_INIZIALI=[
 // legale.nome, legale.natoA, legale.natoIl, legale.residenza, legale.cf, cantiere.nome, cantiere.descrizione, cantiere.indirizzo, cantiere.comune, cantiere.cap,
 // committente.nome, committente.indirizzo, affidataria.nome, affidataria.indirizzo, cse.nome, oggi, operai.elenco (elenco puntato), operai.tabella (tabella), luogoData
 const MODELLI_DICHIARAZIONI_INIZIALI=[
+  {id:'organico_medio',nome:'Dichiarazione dell’organico medio annuo',cartaIntestata:true,firma:true,timbro:true,firmatario:'Il legale rappresentante',testo:
+`# Dichiarazione dell'organico medio annuo
+## ai sensi dell'art. 90, comma 9, lettera b) e dell'Allegato XVII del D.Lgs. 81/2008 e degli artt. 46 e 47 del D.P.R. 445/2000
+
+Il sottoscritto {{legale.nome}}, nato a {{legale.natoA}} il {{legale.natoIl}}, codice fiscale {{legale.cf}}, in qualità di legale rappresentante dell'impresa {{azienda.ragioneSociale}}, con sede in {{azienda.sede}}, partita IVA {{azienda.piva}}, telefono {{azienda.telefono}}, PEC {{azienda.pec}},
+
+con riferimento ai lavori di {{cantiere.lavorazioni}} nel cantiere {{cantiere.nome}}, {{cantiere.indirizzo}}, committente {{committente.nome}},
+
+consapevole delle sanzioni penali previste dall'art. 76 del D.P.R. 445/2000 per le dichiarazioni mendaci e della decadenza dai benefici prevista dall'art. 75 dello stesso decreto,
+
+**DICHIARA**
+
+- che l'organico medio annuo dell'impresa riferito all'anno {{organico.anno}} è di **{{organico.medio}}** lavoratori dipendenti, così distinti per qualifica:
+
+{{organico.tabella}}
+
+- di applicare ai lavoratori dipendenti il contratto collettivo nazionale di lavoro {{azienda.ccnl}}, stipulato dalle organizzazioni sindacali comparativamente più rappresentative, e i relativi accordi integrativi territoriali;
+- di essere iscritta ai seguenti enti previdenziali e assicurativi e di aver effettuato regolarmente le denunce e i versamenti dovuti:
+
+| Ente | Posizione |
+|---|---|
+| INPS | {{azienda.inps}} |
+| INAIL | {{azienda.inail}} |
+| Cassa Edile | {{azienda.cassaEdile}} |
+
+{{luogoData}}
+
+Si allega copia del documento di identità del dichiarante.`},
   {id:'antimafia',nome:'Autocertificazione comunicazione antimafia (D.Lgs 159/2011)',cartaIntestata:true,firma:true,timbro:true,firmatario:'Il Legale Rappresentante',testo:
 `# DICHIARAZIONE SOSTITUTIVA DI CERTIFICAZIONE
 ## (art. 46 D.P.R. 28 dicembre 2000, n. 445)
