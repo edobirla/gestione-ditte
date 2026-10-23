@@ -22,15 +22,28 @@ async function disegnoOggettiPdf(oggetti,w,h){
     if(o.t==='firma'&&o.src){
       const im=await caricaImmagine(await (await fetch(o.src)).blob());
       const s=Math.min(o.w/im.width,o.h/im.height);const dw=im.width*s,dh=im.height*s;
-      const sc=Math.min(1,1600/Math.max(im.width,im.height));const cw=Math.max(1,Math.round(im.width*sc)),ch=Math.max(1,Math.round(im.height*sc));
-      const c=document.createElement('canvas');c.width=cw;c.height=ch;c.getContext('2d').drawImage(im,0,0,cw,ch);
-      const dati=c.getContext('2d').getImageData(0,0,cw,ch).data;const rgb=new Uint8Array(cw*ch*3),alfa=new Uint8Array(cw*ch);
+      const {cw,ch,dati}=firmaNitida(im,Math.max(dw,dh));const rgb=new Uint8Array(cw*ch*3),alfa=new Uint8Array(cw*ch);
       for(let i=0,j=0,k=0;i<dati.length;i+=4){rgb[j++]=dati[i];rgb[j++]=dati[i+1];rgb[j++]=dati[i+2];alfa[k++]=dati[i+3]}
       const nome='S'+(immagini.length+1);immagini.push({nome,w:cw,h:ch,rgb:await comprimiFlate(rgb),alfa:await comprimiFlate(alfa)});
       righe.push(`q ${n2(dw)} 0 0 ${n2(dh)} ${n2(o.x+(o.w-dw)/2)} ${n2(h-o.y-(o.h+dh)/2)} cm /${nome} Do Q`);
     }
   }
   return {contenuto:righe.join('\n'),immagini};
+}
+// Firme e timbri caricati spesso sono piccoli (poche centinaia di pixel): stampati o ingranditi escono sfocati
+// e a scalini. Si portano a 600 dpi della misura in cui vanno sul foglio e si ripulisce il bordo della
+// trasparenza (sfocatura leggera + curva a S), come si fa per vettorializzare un tratto: bordi netti e lisci.
+function firmaNitida(im,latoPt){
+  const lato=Math.max(im.width,im.height);const f=Math.max(1,Math.min(8,latoPt/72*600/lato,3000/lato));
+  const cw=Math.max(1,Math.round(im.width*f)),ch=Math.max(1,Math.round(im.height*f));
+  const c=document.createElement('canvas');c.width=cw;c.height=ch;const g=c.getContext('2d');g.imageSmoothingQuality='high';g.drawImage(im,0,0,cw,ch);
+  const dati=g.getImageData(0,0,cw,ch).data;if(f<1.5)return {cw,ch,dati};
+  // sfocatura a scatola sulla sola trasparenza (raggio mezzo pixel originale), in orizzontale e in verticale
+  const r=Math.max(1,Math.round(f/2));let a=new Float32Array(cw*ch);for(let i=0;i<a.length;i++)a[i]=dati[i*4+3];
+  const passo=(src,lun,n,st,sp)=>{const out=new Float32Array(src.length);for(let k=0;k<n;k++){const b=k*sp;let s=0,cnt=0;for(let i=-r;i<=r;i++){const j=Math.min(lun-1,Math.max(0,i));s+=src[b+j*st];cnt++}for(let i=0;i<lun;i++){out[b+i*st]=s/cnt;const via=Math.max(0,i-r),entra=Math.min(lun-1,i+r+1);s+=src[b+entra*st]-src[b+via*st]}}return out};
+  a=passo(passo(a,cw,ch,1,cw),ch,cw,cw,1);
+  for(let i=0;i<a.length;i++){let t=(a[i]/255-0.3)/0.4;t=t<0?0:t>1?1:t;dati[i*4+3]=Math.round(255*t*t*(3-2*t))}
+  return {cw,ch,dati};
 }
 const FONT_HELVETICA_PDF='<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>';
 const latinPdf=s=>{const b=new Uint8Array(s.length);for(let i=0;i<s.length;i++)b[i]=s.charCodeAt(i)&255;return b};
