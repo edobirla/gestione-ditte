@@ -148,7 +148,7 @@ const SOGLIA_FIRMA=200;
 async function firmaSenzaSfondo(blob,soglia){
   soglia=soglia==null?SOGLIA_FIRMA:+soglia;
   const img=await caricaImmagine(blob);
-  const scala=Math.min(1,900/Math.max(img.width,img.height));
+  const scala=Math.min(1,2000/Math.max(img.width,img.height));
   const w=Math.max(1,Math.round(img.width*scala)),hh=Math.max(1,Math.round(img.height*scala));
   const c=document.createElement('canvas');c.width=w;c.height=hh;
   // sfondo bianco prima di disegnare: se la foto è già un PNG trasparente, altrimenti il
@@ -159,9 +159,10 @@ async function firmaSenzaSfondo(blob,soglia){
   for(let i=0,p=0;i<px.length;i+=4,p++){
     const l=0.299*px[i]+0.587*px[i+1]+0.114*px[i+2];
     if(l>soglia){px[i+3]=0;continue}
-    // l'inchiostro si scurisce in proporzione a quanto è più scuro della soglia: i tratti leggeri restano leggeri
+    // l'inchiostro si scurisce in proporzione a quanto è più scuro della soglia: i tratti leggeri restano leggeri;
+    // il bordo sfuma negli ultimi 40 livelli invece di tagliare netto, così il tratto non esce seghettato
     const k=Math.round(60*(l/soglia));
-    px[i]=k;px[i+1]=k;px[i+2]=k;px[i+3]=255;
+    px[i]=k;px[i+1]=k;px[i+2]=k;px[i+3]=Math.round(255*Math.min(1,(soglia-l)/40+0.15));
     const x=p%w,y=(p-x)/w;
     if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y;
   }
@@ -192,6 +193,7 @@ async function acquisisciFile(file,opz){
       }
     }catch(e){ avvisoTesto='Immagine non ricomprimibile ('+(e.message||e)+'): archiviata come originale'; }
   }
+  if(ePdf(file.type,file.name)){ try{ const r=await riparaMascherePdf(file); if(r) blob=new File([r],file.name,{type:'application/pdf'}); }catch(e){} }
   if(ePdf(file.type,file.name)&&file.size>SOGLIA_PDF_PESANTE) avvisoTesto=`PDF pesante (${fPeso(file.size)}): meglio una scansione più leggera, in bianco e nero o a 150 dpi`;
   const {rec,duplicato}=await salvaFile(blob,meta,{dentroEsegui:opz.dentroEsegui});
   return {rec,duplicato,compressione,avviso:avvisoTesto};

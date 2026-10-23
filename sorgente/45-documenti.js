@@ -760,7 +760,15 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-linguetta=
 AZIONI['filtro-modelli-cerca']=(d,t)=>{ui.filtri.cercaModelli=t.value;render();setTimeout(()=>{const i=el('[data-cambio="filtro-modelli-cerca"]');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}},0)};
 document.addEventListener('input',debounce(e=>{const t=e.target;if(t.matches&&t.matches('[data-cambio="filtro-modelli-cerca"]'))AZIONI['filtro-modelli-cerca']({},t)},250));
 function immagineAzienda(chiave){return (stato.azienda['img_'+chiave])||IMMAGINI[chiave]}
-AZIONI['immagine-sostituisci']=async d=>{const fs=await scegliFile({multipli:false,accetta:'image/*'});if(!fs.length)return;const c=await comprimiImmagine(fs[0],{maxLato:900,obiettivo:120*1024});const du=await leggiComeDataUrl(fs[0].type==='image/png'&&fs[0].size<200000?fs[0]:c.blob);esegui('Sostituita immagine '+d.chiave,s=>{s.azienda['img_'+d.chiave]=du})};
+// Logo, timbro e firme vanno sui documenti: niente riduzione forte. Un PNG resta com'è (tiene la trasparenza);
+// solo se è enorme si rimpicciolisce a 2400 pixel, sempre in PNG.
+async function immagineAziendaDaFile(f){
+  if(f.type!=='image/png') return leggiComeDataUrl((await comprimiImmagine(f,{maxLato:2400,obiettivo:600*1024})).blob);
+  if(f.size<3*1024*1024) return leggiComeDataUrl(f);
+  const img=await caricaImmagine(f);const s=2400/Math.max(img.width,img.height);const c=document.createElement('canvas');c.width=Math.round(img.width*s);c.height=Math.round(img.height*s);
+  const g=c.getContext('2d');g.imageSmoothingQuality='high';g.drawImage(img,0,0,c.width,c.height);return leggiComeDataUrl(await canvasABlob(c,'image/png'));
+}
+AZIONI['immagine-sostituisci']=async d=>{const fs=await scegliFile({multipli:false,accetta:'image/*'});if(!fs.length)return;const du=await immagineAziendaDaFile(fs[0]);esegui('Sostituita immagine '+d.chiave,s=>{s.azienda['img_'+d.chiave]=du})};
 AZIONI['immagine-ripristina']=d=>esegui('Ripristinata immagine originale',s=>{delete s.azienda['img_'+d.chiave]});
 AZIONI['carta-modifica']=async()=>{const v=await chiediTesto('Righe della carta intestata',{multiriga:true,valore:(stato.azienda.cartaIntestata.righe||[]).join('\n'),aiuto:'Una riga per ogni linea'});if(v==null)return;esegui('Modificata carta intestata',s=>{s.azienda.cartaIntestata.righe=v.split('\n').map(x=>x.trim()).filter(Boolean)})};
 AZIONI['modello-nuovo']=()=>dialogoModello(null);

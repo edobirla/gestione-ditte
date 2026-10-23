@@ -2274,7 +2274,7 @@ const SOGLIA_FIRMA=200;
 async function firmaSenzaSfondo(blob,soglia){
   soglia=soglia==null?SOGLIA_FIRMA:+soglia;
   const img=await caricaImmagine(blob);
-  const scala=Math.min(1,900/Math.max(img.width,img.height));
+  const scala=Math.min(1,2000/Math.max(img.width,img.height));
   const w=Math.max(1,Math.round(img.width*scala)),hh=Math.max(1,Math.round(img.height*scala));
   const c=document.createElement('canvas');c.width=w;c.height=hh;
   // sfondo bianco prima di disegnare: se la foto è già un PNG trasparente, altrimenti il
@@ -2285,9 +2285,10 @@ async function firmaSenzaSfondo(blob,soglia){
   for(let i=0,p=0;i<px.length;i+=4,p++){
     const l=0.299*px[i]+0.587*px[i+1]+0.114*px[i+2];
     if(l>soglia){px[i+3]=0;continue}
-    // l'inchiostro si scurisce in proporzione a quanto è più scuro della soglia: i tratti leggeri restano leggeri
+    // l'inchiostro si scurisce in proporzione a quanto è più scuro della soglia: i tratti leggeri restano leggeri;
+    // il bordo sfuma negli ultimi 40 livelli invece di tagliare netto, così il tratto non esce seghettato
     const k=Math.round(60*(l/soglia));
-    px[i]=k;px[i+1]=k;px[i+2]=k;px[i+3]=255;
+    px[i]=k;px[i+1]=k;px[i+2]=k;px[i+3]=Math.round(255*Math.min(1,(soglia-l)/40+0.15));
     const x=p%w,y=(p-x)/w;
     if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y;
   }
@@ -2318,6 +2319,7 @@ async function acquisisciFile(file,opz){
       }
     }catch(e){ avvisoTesto='Immagine non ricomprimibile ('+(e.message||e)+'): archiviata come originale'; }
   }
+  if(ePdf(file.type,file.name)){ try{ const r=await riparaMascherePdf(file); if(r) blob=new File([r],file.name,{type:'application/pdf'}); }catch(e){} }
   if(ePdf(file.type,file.name)&&file.size>SOGLIA_PDF_PESANTE) avvisoTesto=`PDF pesante (${fPeso(file.size)}): meglio una scansione più leggera, in bianco e nero o a 150 dpi`;
   const {rec,duplicato}=await salvaFile(blob,meta,{dentroEsegui:opz.dentroEsegui});
   return {rec,duplicato,compressione,avviso:avvisoTesto};
@@ -3237,7 +3239,7 @@ function scegliFile(opz){
 // L'app lo controlla all'avvio, ogni mezz'ora e quando torna in primo piano: se è diversa avvisa,
 // e «Aggiorna ora» scarica la pagina nuova scavalcando le copie del browser. I dati non si toccano.
 // ---------------------------------------------------------------------
-const VERSIONE_APP='7e806e0671';   // impronta del contenuto: dice se è cambiato qualcosa
+const VERSIONE_APP='b12df13072';   // impronta del contenuto: dice se è cambiato qualcosa
 const NUMERO_VERSIONE='1.20'; // il numero per le persone: 1.0, 1.1…
 function appPubblicata(){return location.protocol==='https:'}
 async function controllaAggiornamento(manuale){
@@ -5717,7 +5719,15 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-linguetta=
 AZIONI['filtro-modelli-cerca']=(d,t)=>{ui.filtri.cercaModelli=t.value;render();setTimeout(()=>{const i=el('[data-cambio="filtro-modelli-cerca"]');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}},0)};
 document.addEventListener('input',debounce(e=>{const t=e.target;if(t.matches&&t.matches('[data-cambio="filtro-modelli-cerca"]'))AZIONI['filtro-modelli-cerca']({},t)},250));
 function immagineAzienda(chiave){return (stato.azienda['img_'+chiave])||IMMAGINI[chiave]}
-AZIONI['immagine-sostituisci']=async d=>{const fs=await scegliFile({multipli:false,accetta:'image/*'});if(!fs.length)return;const c=await comprimiImmagine(fs[0],{maxLato:900,obiettivo:120*1024});const du=await leggiComeDataUrl(fs[0].type==='image/png'&&fs[0].size<200000?fs[0]:c.blob);esegui('Sostituita immagine '+d.chiave,s=>{s.azienda['img_'+d.chiave]=du})};
+// Logo, timbro e firme vanno sui documenti: niente riduzione forte. Un PNG resta com'è (tiene la trasparenza);
+// solo se è enorme si rimpicciolisce a 2400 pixel, sempre in PNG.
+async function immagineAziendaDaFile(f){
+  if(f.type!=='image/png') return leggiComeDataUrl((await comprimiImmagine(f,{maxLato:2400,obiettivo:600*1024})).blob);
+  if(f.size<3*1024*1024) return leggiComeDataUrl(f);
+  const img=await caricaImmagine(f);const s=2400/Math.max(img.width,img.height);const c=document.createElement('canvas');c.width=Math.round(img.width*s);c.height=Math.round(img.height*s);
+  const g=c.getContext('2d');g.imageSmoothingQuality='high';g.drawImage(img,0,0,c.width,c.height);return leggiComeDataUrl(await canvasABlob(c,'image/png'));
+}
+AZIONI['immagine-sostituisci']=async d=>{const fs=await scegliFile({multipli:false,accetta:'image/*'});if(!fs.length)return;const du=await immagineAziendaDaFile(fs[0]);esegui('Sostituita immagine '+d.chiave,s=>{s.azienda['img_'+d.chiave]=du})};
 AZIONI['immagine-ripristina']=d=>esegui('Ripristinata immagine originale',s=>{delete s.azienda['img_'+d.chiave]});
 AZIONI['carta-modifica']=async()=>{const v=await chiediTesto('Righe della carta intestata',{multiriga:true,valore:(stato.azienda.cartaIntestata.righe||[]).join('\n'),aiuto:'Una riga per ogni linea'});if(v==null)return;esegui('Modificata carta intestata',s=>{s.azienda.cartaIntestata.righe=v.split('\n').map(x=>x.trim()).filter(Boolean)})};
 AZIONI['modello-nuovo']=()=>dialogoModello(null);
@@ -8682,8 +8692,13 @@ async function comprimiPdf(blob,opz){
   if(pdf.cifrato) return null;
   if(Array.from(pdf.oggetti.values()).some(o=>o.inline!==undefined)) return null;
   const sostituzioni=new Map();
+  // Le trasparenze (SMask/Mask, tipiche delle firme incollate come immagine) e le maschere a 1 bit non si
+  // toccano: diventate JPEG a colori non sono più maschere valide e l'immagine che ritagliano sparisce.
+  const maschere=new Set();
+  for(const o of pdf.oggetti.values()) for(const m of o.dict.matchAll(/\/S?Mask\s+(\d+)\s+\d+\s+R/g)) maschere.add(+m[1]);
   for(const [num,o] of pdf.oggetti){
     if(!/\/Subtype\s*\/Image/.test(o.dict)) continue;
+    if(maschere.has(num)||/\/ImageMask\s+true/.test(o.dict)||/\/Mask\s*\[/.test(o.dict)) continue;
     // Immagini CMYK (rare ma non rarissime da alcuni scanner): il canvas del browser non le
     // decodifica in modo affidabile, spesso vengono fuori nere o con i colori invertiti. Meglio
     // lasciarle come sono che rischiare di rovinare il documento per risparmiare qualche KB.
@@ -8700,6 +8715,26 @@ async function comprimiPdf(blob,opz){
   }
   if(!sostituzioni.size) return null;
   return riscriviPdfConImmagini(pdf,sostituzioni);
+}
+// Alcuni programmi (UPDF, per esempio) salvano la trasparenza di una firma incollata come JPEG a colori:
+// lo standard la vuole in scala di grigi, e Safari e gli altri lettori allora non disegnano la firma (o la
+// disegnano a righe). Si rifà quella maschera in grigio, il resto del file resta byte per byte com'era.
+// null se non c'è niente da riparare o se il file non si può riscrivere (cifrato, object stream).
+async function riparaMascherePdf(blob){
+  const pdf=await analizzaPdf(blob);
+  if(pdf.cifrato||Array.from(pdf.oggetti.values()).some(o=>o.inline!==undefined)) return null;
+  const maschere=new Set();for(const o of pdf.oggetti.values()) for(const m of o.dict.matchAll(/\/SMask\s+(\d+)\s+\d+\s+R/g)) maschere.add(+m[1]);
+  const sostituzioni=new Map();
+  for(const n of maschere){
+    const o=pdf.oggetti.get(n);if(!o||!/\/DCTDecode/.test(o.dict)||componentiColorSpace(pdf,o.dict)!==3) continue;
+    const img=await caricaImmagine(new Blob([await pdf.flusso(o)],{type:'image/jpeg'}));
+    const w=img.naturalWidth||img.width,h=img.naturalHeight||img.height;
+    const c=document.createElement('canvas');c.width=w;c.height=h;const g=c.getContext('2d');g.drawImage(img,0,0);
+    const px=g.getImageData(0,0,w,h).data;const grigio=new Uint8Array(w*h);for(let i=0,k=0;k<grigio.length;i+=4,k++)grigio[k]=px[i];
+    const f=await comprimiFlate(grigio);
+    sostituzioni.set(n,{dict:`<< /Type /XObject /Subtype /Image /Width ${w} /Height ${h} /ColorSpace /DeviceGray /BitsPerComponent 8${f.flate?' /Filter /FlateDecode':''} /Length ${f.dati.length} >>`,grezzo:f.dati});
+  }
+  return sostituzioni.size?riscriviPdfConImmagini(pdf,sostituzioni):null;
 }
 // o.dict è catturato da analizzaPdf come "fino a 4000 caratteri dall'inizio dell'oggetto", per
 // motivi di prestazioni: per un'immagine con uno stream grande, questo include davvero anche i
@@ -8726,7 +8761,9 @@ async function riscriviPdfConImmagini(pdf,sostituzioni){
   for(const n of numeri){
     const o=pdf.oggetti.get(n);
     posizioni.set(n,lunghezza);
-    if(sostituzioni.has(n)){
+    if(sostituzioni.has(n)&&sostituzioni.get(n).grezzo){
+      const c=sostituzioni.get(n);scrivi(n+' 0 obj\n'+c.dict+'\nstream\n');scrivi(c.grezzo);scrivi('\nendstream\nendobj\n');
+    }else if(sostituzioni.has(n)){
       const c=sostituzioni.get(n);
       const nuovo=new Uint8Array(await c.blob.arrayBuffer());
       let dict=dizionarioVero(o.dict);

@@ -211,8 +211,13 @@ async function comprimiPdf(blob,opz){
   if(pdf.cifrato) return null;
   if(Array.from(pdf.oggetti.values()).some(o=>o.inline!==undefined)) return null;
   const sostituzioni=new Map();
+  // Le trasparenze (SMask/Mask, tipiche delle firme incollate come immagine) e le maschere a 1 bit non si
+  // toccano: diventate JPEG a colori non sono più maschere valide e l'immagine che ritagliano sparisce.
+  const maschere=new Set();
+  for(const o of pdf.oggetti.values()) for(const m of o.dict.matchAll(/\/S?Mask\s+(\d+)\s+\d+\s+R/g)) maschere.add(+m[1]);
   for(const [num,o] of pdf.oggetti){
     if(!/\/Subtype\s*\/Image/.test(o.dict)) continue;
+    if(maschere.has(num)||/\/ImageMask\s+true/.test(o.dict)||/\/Mask\s*\[/.test(o.dict)) continue;
     // Immagini CMYK (rare ma non rarissime da alcuni scanner): il canvas del browser non le
     // decodifica in modo affidabile, spesso vengono fuori nere o con i colori invertiti. Meglio
     // lasciarle come sono che rischiare di rovinare il documento per risparmiare qualche KB.
@@ -229,6 +234,26 @@ async function comprimiPdf(blob,opz){
   }
   if(!sostituzioni.size) return null;
   return riscriviPdfConImmagini(pdf,sostituzioni);
+}
+// Alcuni programmi (UPDF, per esempio) salvano la trasparenza di una firma incollata come JPEG a colori:
+// lo standard la vuole in scala di grigi, e Safari e gli altri lettori allora non disegnano la firma (o la
+// disegnano a righe). Si rifà quella maschera in grigio, il resto del file resta byte per byte com'era.
+// null se non c'è niente da riparare o se il file non si può riscrivere (cifrato, object stream).
+async function riparaMascherePdf(blob){
+  const pdf=await analizzaPdf(blob);
+  if(pdf.cifrato||Array.from(pdf.oggetti.values()).some(o=>o.inline!==undefined)) return null;
+  const maschere=new Set();for(const o of pdf.oggetti.values()) for(const m of o.dict.matchAll(/\/SMask\s+(\d+)\s+\d+\s+R/g)) maschere.add(+m[1]);
+  const sostituzioni=new Map();
+  for(const n of maschere){
+    const o=pdf.oggetti.get(n);if(!o||!/\/DCTDecode/.test(o.dict)||componentiColorSpace(pdf,o.dict)!==3) continue;
+    const img=await caricaImmagine(new Blob([await pdf.flusso(o)],{type:'image/jpeg'}));
+    const w=img.naturalWidth||img.width,h=img.naturalHeight||img.height;
+    const c=document.createElement('canvas');c.width=w;c.height=h;const g=c.getContext('2d');g.drawImage(img,0,0);
+    const px=g.getImageData(0,0,w,h).data;const grigio=new Uint8Array(w*h);for(let i=0,k=0;k<grigio.length;i+=4,k++)grigio[k]=px[i];
+    const f=await comprimiFlate(grigio);
+    sostituzioni.set(n,{dict:`<< /Type /XObject /Subtype /Image /Width ${w} /Height ${h} /ColorSpace /DeviceGray /BitsPerComponent 8${f.flate?' /Filter /FlateDecode':''} /Length ${f.dati.length} >>`,grezzo:f.dati});
+  }
+  return sostituzioni.size?riscriviPdfConImmagini(pdf,sostituzioni):null;
 }
 // o.dict è catturato da analizzaPdf come "fino a 4000 caratteri dall'inizio dell'oggetto", per
 // motivi di prestazioni: per un'immagine con uno stream grande, questo include davvero anche i
@@ -255,7 +280,9 @@ async function riscriviPdfConImmagini(pdf,sostituzioni){
   for(const n of numeri){
     const o=pdf.oggetti.get(n);
     posizioni.set(n,lunghezza);
-    if(sostituzioni.has(n)){
+    if(sostituzioni.has(n)&&sostituzioni.get(n).grezzo){
+      const c=sostituzioni.get(n);scrivi(n+' 0 obj\n'+c.dict+'\nstream\n');scrivi(c.grezzo);scrivi('\nendstream\nendobj\n');
+    }else if(sostituzioni.has(n)){
       const c=sostituzioni.get(n);
       const nuovo=new Uint8Array(await c.blob.arrayBuffer());
       let dict=dizionarioVero(o.dict);
