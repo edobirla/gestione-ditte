@@ -54,6 +54,34 @@ const LAVORAZIONI_INIZIALI=[
   {id:6,nome:'Battiscopa in gres/marmo/travertino/pietra/legno',breve:'Battiscopa',copertina:'BATTISCOPA',um:'ml',descrizioneOpera:'Posa in opera di battiscopa in gres, marmo, travertino, pietra e legno'},
   {id:7,nome:'Impermeabilizzazioni (guaine bituminose e liquide)',breve:'Impermeabilizzazioni',copertina:'IMPERMEABILIZZAZIONI',um:'mq',descrizioneOpera:'Posa in opera di impermeabilizzazioni con guaine bituminose e liquide'},
 ];
+// Tipi di ogni lavorazione: nel cantiere si scelgono questi (solo livellina, solo gres…) e il POS
+// riporta solo le schede e le attrezzature dei tipi scelti. cat = id della lavorazione qui sopra.
+const TIPI_LAVORAZIONE=[
+  {id:'m_tradizionale',cat:1,nome:'Massetto tradizionale (sabbia e cemento)',breve:'Massetto tradizionale'},
+  {id:'m_autolivellante',cat:1,nome:'Massetto autolivellante (livellina)',breve:'Livellina'},
+  {id:'m_cellulare',cat:1,nome:'Massetto alleggerito in cls cellulare',breve:'Cls cellulare'},
+  {id:'m_alleggerito',cat:1,nome:'Massetto alleggerito (polistirolo o argilla espansa)',breve:'Massetto alleggerito'},
+  {id:'m_premiscelato',cat:1,nome:'Massetto premiscelato a rapida asciugatura',breve:'Massetto premiscelato'},
+  {id:'p_gres',cat:2,nome:'Pavimenti in gres porcellanato',breve:'Gres porcellanato'},
+  {id:'p_lastre',cat:2,nome:'Pavimenti in gres in grandi lastre',breve:'Grandi lastre'},
+  {id:'p_ceramica',cat:2,nome:'Pavimenti in ceramica, monocottura e klinker',breve:'Ceramica'},
+  {id:'p_cotto',cat:2,nome:'Pavimenti in cotto',breve:'Cotto'},
+  {id:'p_pietra',cat:2,nome:'Pavimenti in marmo, pietra e travertino',breve:'Marmo e pietra'},
+  {id:'l_incollato',cat:3,nome:'Parquet incollato',breve:'Parquet incollato'},
+  {id:'l_flottante',cat:3,nome:'Parquet e laminato flottante',breve:'Parquet flottante'},
+  {id:'l_levigatura',cat:3,nome:'Levigatura e verniciatura del parquet in opera',breve:'Levigatura parquet'},
+  {id:'g_galleggiante',cat:4,nome:'Pavimento galleggiante su supporti',breve:'Galleggiante'},
+  {id:'r_ceramica',cat:5,nome:'Rivestimenti in ceramica e gres',breve:'Rivestimenti in ceramica'},
+  {id:'r_pietra',cat:5,nome:'Rivestimenti in marmo e pietra',breve:'Rivestimenti in pietra'},
+  {id:'r_scale',cat:5,nome:'Rivestimento di scale',breve:'Scale'},
+  {id:'b_ceramica',cat:6,nome:'Battiscopa in gres e ceramica',breve:'Battiscopa in gres'},
+  {id:'b_pietra',cat:6,nome:'Battiscopa in marmo e pietra',breve:'Battiscopa in pietra'},
+  {id:'b_legno',cat:6,nome:'Battiscopa in legno',breve:'Battiscopa in legno'},
+  {id:'i_guaina',cat:7,nome:'Guaina bituminosa a fiamma',breve:'Guaina a fiamma'},
+  {id:'i_liquida',cat:7,nome:'Guaina liquida e impermeabilizzante cementizio',breve:'Guaina liquida'},
+];
+// i tipi di un cantiere; per i cantieri creati prima dei tipi valgono tutti quelli delle sue lavorazioni
+function tipiCantiere(c){return c.tipi?TIPI_LAVORAZIONE.filter(t=>c.tipi.includes(t.id)):TIPI_LAVORAZIONE.filter(t=>(c.lavorazioni||[]).includes(t.cat))}
 const QUALIFICHE={preposto:'Preposto',rls:'RLS',rspp:'RSPP',antincendio:'Addetto antincendio',primoSoccorso:'Addetto primo soccorso',ple:'Abilitazione PLE',ponteggi:'Montaggio ponteggi (PiMUS)',datoreLavoro:'Datore di lavoro',gru:'Abilitazione gru'};
 const TIPI_PERSONA={socio:'Socio',dipendente:'Dipendente',amministrativo:'Amministrativo',legale_rappresentante:'Legale Rappresentante'};
 const RUOLI_CLIENTE={committente:'Committente',affidataria:'Impresa affidataria',fornitore:'Fornitore',subappaltatore:'Subappaltatore'};

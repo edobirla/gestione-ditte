@@ -991,28 +991,54 @@ input.proposto,select.proposto{box-shadow:0 0 0 1.5px var(--accent) inset;backgr
 .doc .nota-piede{font-size:8pt;color:#555}
 .doc .pagina-titolo{text-align:center;padding-top:30mm}
 /* POS: stile fedele al modello (Verdana per i titoli, tabelle grigie) */
-.doc.pos{font-family:Arial,"Helvetica Neue",Helvetica,sans-serif;font-size:10pt}
-.doc.pos h2{font-family:Verdana,Geneva,sans-serif;font-size:13pt;border:0;background:#1F497D;color:#fff;padding:2mm 3mm;margin:6mm 0 3mm}
-.doc.pos h3{font-family:Verdana,Geneva,sans-serif;font-size:11pt;color:#1F497D;margin:5mm 0 2mm}
-.doc.pos h4{font-style:normal;font-size:10pt;margin:3mm 0 1.5mm}
-.doc.pos h5{font-size:10pt;margin:3mm 0 1mm;font-weight:700;font-style:italic}
-.doc.pos table{font-size:9pt} .doc.pos table td,.doc.pos table th{border-color:#666;padding:1.2mm 1.8mm}
-.doc.pos table th{background:#D9D9D9;text-transform:none}
-.doc.pos .cella-b{font-weight:700}
-.doc.pos .copertina{text-align:center;padding-top:6mm;height:100%;display:flex;flex-direction:column}
-.doc.pos .copertina .logo{height:34mm;margin:0 auto 8mm}
-.doc.pos .copertina .titolo-pos{font-family:Verdana,Geneva,sans-serif;font-size:34pt;font-weight:700;color:#1F497D;letter-spacing:.1em}
-.doc.pos .copertina .sottotitolo{font-family:Verdana,Geneva,sans-serif;font-size:14pt;font-weight:700;margin-top:2mm}
-.doc.pos .copertina .norma{font-size:9pt;color:#333;margin-top:3mm}
-.doc.pos .copertina table{margin:10mm auto 0;width:150mm;font-size:12pt} .doc.pos .copertina table td{padding:2.5mm 3mm;vertical-align:middle} .doc.pos .copertina table td:first-child{background:#D9D9D9;font-weight:700;width:38mm}
-.doc.pos .copertina table td.grande{font-size:16pt;font-weight:700}
-.doc.pos .copertina .lavori{margin-top:10mm;font-family:Verdana,Geneva,sans-serif;font-weight:700;font-size:13pt;line-height:1.5}
-.doc.pos .copertina .firma-cop{margin-top:auto;display:flex;justify-content:space-between;align-items:flex-end;padding:0 10mm 4mm}
-.doc.pos .copertina .firma-cop img{height:26mm}
-.doc.pos .scheda-titolo{font-weight:700;font-size:11pt;margin:5mm 0 2mm;background:#E6E6E6;padding:1.5mm 2mm;border-left:3mm solid #1F497D}
+/* POS (disegno del 23/10/2026): Geist, colori del logo (blu e, per i rischi alti, rosso), tabelle leggere */
+.doc.pos{font-family:"Geist","Helvetica Neue",Arial,sans-serif;font-size:9.6pt;line-height:1.45;color:#1d1d1f;--v:#2B23C9;--v-scuro:#15125E;--v-chiaro:#EFEEFD;--filo:#D9D8EF;--grigio:#6e6e73;--rosso:#D93636}
+.doc.pos p{margin:0 0 2mm}
+.doc.pos h2{font-size:14pt;font-weight:600;color:var(--v-scuro);margin:7mm 0 3mm;padding:0 0 2mm;border-bottom:.8pt solid var(--v);display:flex;align-items:baseline;gap:3mm;letter-spacing:-.01em}
+.doc.pos h2 .num{font-size:10pt;color:#fff;background:var(--v);border-radius:2mm;padding:.6mm 2.2mm;font-weight:600}
+.doc.pos h2.senza-num{border-bottom-color:var(--filo)}
+.doc.pos h3{font-size:11.5pt;font-weight:600;color:var(--v-scuro);margin:5mm 0 2mm;display:flex;align-items:baseline;gap:2.5mm}
+.doc.pos h3 .num{font-size:9pt;color:var(--v);font-weight:600}
+.doc.pos h4{font-size:9pt;font-style:normal;font-weight:600;color:var(--v);margin:4mm 0 1.5mm;text-transform:uppercase;letter-spacing:.04em}
+.doc.pos h5{font-size:9.6pt;margin:3mm 0 1mm;font-weight:600}
+.doc.pos table{font-size:8.8pt;border-collapse:collapse}
+.doc.pos table td,.doc.pos table th{border:0;border-bottom:.4pt solid var(--filo);padding:1.5mm 2mm}
+.doc.pos table th{background:var(--v-chiaro);color:var(--v-scuro);font-weight:600;text-transform:none}
+.doc.pos table td.c,.doc.pos table th.c{text-align:center}
+.doc.pos .cella-b{font-weight:600}
+.doc.pos ul.spunte{list-style:none;padding-left:0}.doc.pos ul.spunte li{position:relative;padding-left:5mm;margin-bottom:1.2mm}.doc.pos ul.spunte li::before{content:"";position:absolute;left:.6mm;top:1.6mm;width:2mm;height:1.1mm;border-left:.8pt solid var(--v);border-bottom:.8pt solid var(--v);transform:rotate(-45deg)}
+.doc.pos ol.fasi{padding-left:6mm}.doc.pos ol.fasi li{margin-bottom:1.4mm;padding-left:1mm}.doc.pos ol.fasi li::marker{color:var(--v);font-weight:600}
+.doc.pos .chips-pos{display:flex;flex-wrap:wrap;gap:1.5mm;margin:0 0 2mm}.doc.pos .chips-pos span{background:var(--v-chiaro);color:var(--v-scuro);border-radius:3mm;padding:.8mm 2.6mm;font-size:8.6pt}
+.doc.pos .chips-pos.rossi span{background:#FCEBEB;color:#8E1F1F}
+.doc.pos .rischio{display:inline-block;min-width:7mm;border-radius:2mm;padding:.4mm 1.5mm;font-weight:600;text-align:center}
+.doc.pos .rischio.r1{background:#E6F2DE;color:#2D5A10}.doc.pos .rischio.r2{background:#FBF0D2;color:#6B4A06}.doc.pos .rischio.r3{background:#FBE3DA;color:#9A3A1A}.doc.pos .rischio.r4{background:var(--rosso);color:#fff}
+.doc.pos .dpi-griglia{display:grid;grid-template-columns:repeat(5,1fr);gap:2mm}.doc.pos .dpi-griglia.piccola{grid-template-columns:repeat(6,1fr)}
+.doc.pos .dpi-pitto{display:flex;flex-direction:column;align-items:center;text-align:center;gap:1mm;font-size:7.6pt;color:#333}.doc.pos .dpi-pitto img{width:13mm;height:13mm;object-fit:contain}.doc.pos .dpi-griglia.piccola .dpi-pitto img{width:10mm;height:10mm}
+.doc.pos .dpi-vuoto{width:13mm;height:13mm;border-radius:50%;background:var(--v-chiaro);display:block}
+.doc.pos .dpi-tab img{width:9mm;height:9mm;object-fit:contain;display:block}
+.doc.pos .sl-testa{display:grid;grid-template-columns:1fr 52mm;gap:5mm;align-items:start;background:var(--v-chiaro);border-radius:3mm;padding:4mm 5mm;margin:6mm 0 2mm}
+.doc.pos .sl-testa h3{margin:.5mm 0 1.5mm;font-size:13pt}.doc.pos .sl-testa p{margin:0;color:#3a3a3c}.doc.pos .sl-testa img{width:52mm;height:34mm;object-fit:cover;border-radius:2mm}
+.doc.pos .occh{font-size:7.6pt;text-transform:uppercase;letter-spacing:.08em;color:var(--v);font-weight:600}
+.doc.pos .sa-testa{display:grid;grid-template-columns:34mm 1fr;gap:5mm;align-items:start;border:.5pt solid var(--filo);border-radius:3mm;padding:3.5mm 4mm;margin:6mm 0 1mm}
+.doc.pos .sa-testa img{width:34mm;height:26mm;object-fit:contain}.doc.pos .sa-testa h3{margin:0 0 1mm}.doc.pos .sa-testa p{margin:0 0 2mm;color:#3a3a3c}.doc.pos .sa-vuoto{display:block;width:34mm;height:26mm;border-radius:2mm;background:var(--v-chiaro)}
+.doc.pos .riga-flusso{border-bottom:.4pt solid var(--filo);padding:1.5mm 0}.doc.pos .riga-flusso .rf-t{font-weight:600;color:var(--v-scuro)}.doc.pos .riga-flusso p{margin:0 0 1mm}.doc.pos .riga-flusso ul{margin:0}
+.doc.pos .scheda-titolo{font-weight:600;font-size:12pt;color:var(--v-scuro);margin:6mm 0 2mm;background:var(--v-chiaro);padding:2.5mm 4mm;border-radius:2mm}
 .doc.pos img.inline{display:inline-block;vertical-align:middle}
-.doc.pos .indice-voce{display:flex;justify-content:space-between;gap:4mm;padding:.6mm 0;border-bottom:.3pt dotted #999} .doc.pos .indice-voce.l2{padding-left:8mm;font-size:9.5pt}
-.pagina .testata-pos{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:1pt solid #1F497D;padding-bottom:1.5mm;font-size:8pt;color:#333;height:100%;font-family:Arial,Helvetica,sans-serif} .pagina .testata-pos img{height:16mm;width:auto;flex:none}
+.doc.pos ul.indice-pos{list-style:none;padding:0;margin:0}.doc.pos ul.indice-pos li{display:flex;gap:2mm;align-items:baseline;padding:1mm 0;margin:0}.doc.pos ul.indice-pos li.l2{padding-left:8mm;font-size:9pt;color:#3a3a3c}
+.doc.pos ul.indice-pos li i{font-style:normal;color:var(--v);font-weight:600;display:inline-block;min-width:8mm}.doc.pos ul.indice-pos .pun{flex:1;border-bottom:.6pt dotted #b8b6cf}.doc.pos ul.indice-pos [data-pag-ind]{min-width:6mm;text-align:right;color:var(--grigio)}
+.doc.pos .firme-pos{display:grid;grid-template-columns:1fr 1fr;gap:5mm;margin:2mm 0 4mm}
+.doc.pos .carta-firma{border:.5pt solid var(--filo);border-radius:3mm;padding:4mm 5mm}.doc.pos .carta-firma b{font-size:11pt}.doc.pos .carta-firma .mt-firma{margin-top:4mm}.doc.pos .spazio-firma{height:22mm;border-bottom:.5pt solid #999;display:flex;align-items:flex-end;justify-content:center}.doc.pos .spazio-firma img{max-height:21mm;max-width:60mm}
+.doc.pos .et{font-size:7.6pt;text-transform:uppercase;letter-spacing:.08em;color:var(--grigio);margin-bottom:.8mm}
+.doc.pos .cop{height:100%;display:flex;flex-direction:column}
+.doc.pos .cop-alto{display:flex;justify-content:space-between;align-items:flex-start}.doc.pos .cop-logo{height:22mm}
+.doc.pos .cop-rev{text-align:right;font-size:8.6pt;color:var(--grigio);display:flex;flex-direction:column}.doc.pos .cop-rev b{font-size:20pt;color:var(--v-scuro);line-height:1.1}
+.doc.pos .cop-titolo{margin-top:24mm}.doc.pos .cop-sigla{font-size:64pt;font-weight:700;color:var(--v);letter-spacing:-.03em;line-height:1}.doc.pos .cop-nome{font-size:21pt;font-weight:600;color:var(--v-scuro);margin-top:2mm}.doc.pos .cop-norma{font-size:9pt;color:var(--grigio);margin-top:2mm}
+.doc.pos .cop-cantiere{margin-top:12mm;border-top:.8pt solid var(--v);border-bottom:.4pt solid var(--filo);padding:5mm 0 5mm}.doc.pos .cop-cantiere .nome{font-size:18pt;font-weight:600;color:var(--v-scuro)}.doc.pos .cop-cantiere .ind{font-size:10.5pt;color:#3a3a3c;margin-top:1mm}
+.doc.pos .cop-chip{display:flex;flex-wrap:wrap;gap:1.6mm;margin-top:4mm}.doc.pos .cop-chip span{background:var(--v-chiaro);color:var(--v-scuro);border-radius:3mm;padding:1mm 3mm;font-size:9pt;font-weight:500}
+.doc.pos .cop-griglia{display:grid;grid-template-columns:1fr 1fr;gap:5mm 8mm;margin-top:9mm}.doc.pos .cop-griglia b{font-size:11pt}
+.doc.pos .cop-firma{margin-top:auto;border-top:.5pt solid var(--filo);padding-top:3mm}.doc.pos .cop-firma .firme-pos{margin:2mm 0 0}.doc.pos .cop-timbro{text-align:right}.doc.pos .cop-timbro img{height:24mm}
+.pagina .testata-pos{display:flex;justify-content:space-between;align-items:center;border-bottom:.5pt solid #D9D8EF;padding-bottom:2mm;font-size:8pt;color:#6e6e73;height:100%;font-family:"Geist",Arial,sans-serif}.pagina .testata-pos img{height:12mm;width:auto}.pagina .testata-pos .tp-dx{text-align:right;display:flex;flex-direction:column}.pagina .testata-pos .tp-dx b{color:#15125E;font-size:9pt;font-weight:600}
+.pagina:has(.doc.pos) .testa-pagina{height:20mm}.pagina:has(.doc.pos) .corpo-pagina{top:32mm}.pagina:has(.doc.pos) .pie-pagina{border-top-color:#D9D8EF;color:#6e6e73;font-family:"Geist",Arial,sans-serif}
 .pagina.copertina-pagina .testa-pagina,.pagina.copertina-pagina .pie-pagina{display:none} .pagina.copertina-pagina .corpo-pagina{top:12mm;bottom:12mm}
 .doc .cornice-modulo{border:.6pt solid #111;padding:3mm}
 .doc .caselle{display:inline-flex;gap:.6mm;vertical-align:middle} .doc .caselle span{display:inline-block;width:5.2mm;height:6.5mm;border:.5pt solid #111;text-align:center;font-family:"Courier New",monospace;font-size:10.5pt;line-height:6.5mm;text-transform:uppercase}

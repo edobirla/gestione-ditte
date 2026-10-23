@@ -36,7 +36,7 @@ function impagina(doc){
   const H=corpo.getBoundingClientRect().height;
   const blocchi=doc.blocchi.map(b=>typeof b==='string'||b instanceof Grezzo?{html:String(b)}:b).filter(b=>b.html&&String(b.html).trim()).map(b=>Object.assign({},b,{html:risolviImmagini(String(b.html))}));
   const nodi=blocchi.map(b=>{const n=creaEl('<div class="blk">'+String(b.html)+'</div>');corpo.appendChild(n);return n});
-  const misure=nodi.map((n,i)=>{const r=n.getBoundingClientRect();const cr=corpo.getBoundingClientRect();const m={top:r.top-cr.top,h:r.height};const t=n.querySelector(':scope>table');if(t){const th=t.querySelector('thead');m.tabella=t;m.testaH=th?th.getBoundingClientRect().height:0;m.righe=raggruppaRigheRowspan(Array.from(t.querySelectorAll(':scope>tbody>tr')));m.pieH=t.querySelector('tfoot')?t.querySelector('tfoot').getBoundingClientRect().height:0}const l=n.querySelector(':scope>ul,:scope>ol');if(l&&l.children.length>3){m.lista=l;m.voci=Array.from(l.children).map(li=>({el:li,h:li.getBoundingClientRect().height}))}const g=n.querySelector(':scope>.gruppo');if(g&&g.children.length>1){m.gruppo=g;m.figli=Array.from(g.children).map(c=>({el:c,h:c.getBoundingClientRect().height+parseFloat(getComputedStyle(c).marginBottom||0)}))}return m});
+  const misure=nodi.map((n,i)=>{const r=n.getBoundingClientRect();const cr=corpo.getBoundingClientRect();const m={top:r.top-cr.top,h:r.height};const t=n.querySelector(':scope>table');if(t){const th=t.querySelector('thead');m.tabella=t;m.testaH=th?th.getBoundingClientRect().height:0;m.righe=raggruppaRigheRowspan(Array.from(t.querySelectorAll(':scope>tbody>tr')));m.pieH=t.querySelector('tfoot')?t.querySelector('tfoot').getBoundingClientRect().height:0}const l=n.querySelector(':scope>ul,:scope>ol');if(l&&l.children.length>3){m.lista=l;m.voci=Array.from(l.children).map(li=>{const st=getComputedStyle(li);return {el:li,h:li.getBoundingClientRect().height+parseFloat(st.marginTop||0)+parseFloat(st.marginBottom||0)}});m.listaMb=parseFloat(getComputedStyle(l).marginBottom||0)}const g=n.querySelector(':scope>.gruppo');if(g&&g.children.length>1){m.gruppo=g;m.figli=Array.from(g.children).map(c=>({el:c,h:c.getBoundingClientRect().height+parseFloat(getComputedStyle(c).marginBottom||0)}))}return m});
   // altezza effettiva = distanza dal prossimo (comprende i margini)
   for(let i=0;i<misure.length;i++){misure[i].alt=i<misure.length-1?misure[i+1].top-misure[i].top:misure[i].h}
   const eTitolo=n=>/^H[1-5]$/.test((n.firstElementChild||{}).tagName||'')||n.firstElementChild&&n.firstElementChild.classList&&(n.firstElementChild.classList.contains('scheda-titolo')||n.firstElementChild.classList.contains('titolo-tabella')||n.firstElementChild.classList.contains('scadenzario-gruppo'));
@@ -45,23 +45,31 @@ function impagina(doc){
   const pagine=[];let pag=null,y=0;const TOL=1;
   const apri=(classe)=>{pag=nuovaPagina(classe);pagine.push(pag);y=0;return pag.querySelector('.corpo-pagina')};
   let corpoP=apri();
-  const metti=(nodo,alt)=>{corpoP.appendChild(nodo);y+=alt};
+  // y si misura sulla pagina vera: le stime (righe di tabella clonate, margini) sbagliavano di qualche punto e il testo finiva tagliato
+  const sfora=w=>w.getBoundingClientRect().bottom>corpoP.getBoundingClientRect().bottom+TOL;
+  const metti=(nodo,alt)=>{corpoP.appendChild(nodo);y+=alt;const r=nodo.getBoundingClientRect(),c0=corpoP.getBoundingClientRect();y=Math.max(y,r.bottom-c0.top)};
   for(let i=0;i<blocchi.length;i++){
     const b=blocchi[i],n=nodi[i],m=misure[i];
     if(b.nuovaPagina&&y>0) corpoP=apri();
     if(b.intera){ if(y>0||pagine.length===0)corpoP=apri(b.senzaIntestazione?'copertina-pagina':''); else if(b.senzaIntestazione){pag.classList.add('copertina-pagina')} n.style.height='100%'; metti(n,H); corpoP=apri(); continue; }
     const spazio=H-y;
     // titolo: deve stare con almeno un pezzo del blocco successivo
-    if(eTitolo(n)&&i<blocchi.length-1){const prossimo=misure[i+1];const minimoProssimo=prossimo.righe?Math.min(prossimo.alt,prossimo.testaH+(prossimo.righe[0]?prossimo.righe[0].h:0)+8):Math.min(prossimo.alt,48);if(m.alt+minimoProssimo>spazio+TOL&&y>0){corpoP=apri()}metti(n,m.alt);continue}
+    // un titolo (o più titoli di fila) non resta mai in fondo alla pagina: va con almeno due righe di
+    // tabella, due voci di elenco o l'intero blocco che segue se è corto, e non comincia nell'ultimo quinto
+    const eTit=k=>eTitolo(nodi[k])||!!blocchi[k].tieniConSuccessivo;
+    if(eTit(i)&&i<blocchi.length-1){let k=i,alt=0;while(k<blocchi.length-1&&eTit(k)){alt+=misure[k].alt;k++}const p=misure[k];const minP=p.righe?p.testaH+p.righe.slice(0,2).reduce((a,r)=>a+r.h,0)+8:p.voci?p.voci.slice(0,2).reduce((a,v)=>a+v.h,0)+8:(p.alt<=H*0.3?p.alt:Math.min(p.alt,90));if(y>0&&(alt+minP>spazio+TOL||y+alt>H*0.82)){corpoP=apri()}metti(n,m.alt);continue}
     if(m.alt<=spazio+TOL){metti(n,m.alt);continue}
     // tabella: spezza per righe ripetendo l'intestazione
-    if(m.righe&&m.righe.length>1){
+    // le tabelle corte (firme, dati) non si dividono: vanno intere alla pagina dopo
+    if(m.righe&&m.righe.length>1&&(m.righe.length>4||m.alt>H*0.6)){
       let righe=m.righe.slice();let prima=true;
       while(righe.length){
         if(!prima||y>0){ if(y+m.testaH+righe[0].h>H-TOL){corpoP=apri()} }
         const t=m.tabella.cloneNode(false);const thead=m.tabella.querySelector('thead');if(thead)t.appendChild(thead.cloneNode(true));const tb=document.createElement('tbody');t.appendChild(tb);
         let hh=m.testaH;const disp=H-y-TOL;
-        while(righe.length&&hh+righe[0].h<=disp){const r=righe.shift();for(const rr of r.righe)tb.appendChild(rr.el);hh+=r.h}
+        const messe=[];while(righe.length&&hh+righe[0].h<=disp){const r=righe.shift();messe.push(r);for(const rr of r.righe)tb.appendChild(rr.el);hh+=r.h}
+        if(y>0&&messe.length&&messe.length<2&&m.righe.length>=4){for(const r of messe.reverse()){for(const rr of r.righe)rr.el.remove();righe.unshift(r)}corpoP=apri();continue}
+        if(righe.length===1&&messe.length>2){const r=messe.pop();for(const rr of r.righe)rr.el.remove();righe.unshift(r)}
         if(!tb.children.length){ // neanche un gruppo di righe entra: pagina nuova
           if(y===0){const r=righe.shift();for(const rr of r.righe)tb.appendChild(rr.el);hh+=r.h} else {corpoP=apri();continue} }
         if(!righe.length&&m.tabella.querySelector('tfoot')){t.appendChild(m.tabella.querySelector('tfoot').cloneNode(true));hh+=m.pieH}
@@ -70,6 +78,8 @@ function impagina(doc){
         if(prima){Array.from(n.childNodes).filter(x=>x!==m.tabella&&x.compareDocumentPosition(m.tabella)&Node.DOCUMENT_POSITION_FOLLOWING).forEach(x=>wrap.insertBefore(x,t))}
         if(!righe.length){Array.from(n.childNodes).filter(x=>x!==m.tabella).forEach(x=>wrap.appendChild(x))}
         metti(wrap,hh+8);prima=false;
+        // controllo sulla pagina vera: se sfora, le ultime righe passano alla pagina dopo
+        while(messe.length>1&&sfora(wrap)){const r=messe.pop();for(const rr of r.righe)rr.el.remove();righe.unshift(r)}
         if(righe.length)corpoP=apri();
       }
       continue;
@@ -81,10 +91,14 @@ function impagina(doc){
         if(y>H-40)corpoP=apri();
         const l=m.lista.cloneNode(false);let hh=0;const disp=H-y-TOL;
         if(prima){Array.from(n.childNodes).filter(x=>x!==m.lista&&x.compareDocumentPosition(m.lista)&Node.DOCUMENT_POSITION_FOLLOWING).forEach(x=>{corpoP.appendChild(x);y+=x.getBoundingClientRect?x.getBoundingClientRect().height:0})}
-        while(voci.length&&hh+voci[0].h<=H-y-TOL){/* y conta anche il testo prima dell'elenco */const v=voci.shift();l.appendChild(v.el);hh+=v.h;if(y+hh>H-TOL)break}
+        const messe=[];while(voci.length&&hh+voci[0].h+(m.listaMb||0)<=H-y-TOL){/* y conta anche il testo prima dell'elenco */const v=voci.shift();messe.push(v);l.appendChild(v.el);hh+=v.h;if(y+hh>H-TOL)break}
+        // niente voce sola in fondo o in cima alla pagina
+        if(y>0&&messe.length&&messe.length<2&&m.voci.length>=4){for(const v of messe.reverse()){v.el.remove();voci.unshift(v)}corpoP=apri();continue}
+        if(voci.length===1&&messe.length>2){const v=messe.pop();v.el.remove();voci.unshift(v);hh-=v.h}
         if(!l.children.length){if(y===0){const v=voci.shift();l.appendChild(v.el);hh+=v.h}else{corpoP=apri();continue}}
         if(m.lista.tagName==='OL'&&!prima)l.setAttribute('start',String(m.voci.length-voci.length-l.children.length+1));
         const wrap=document.createElement('div');wrap.className='blk';wrap.appendChild(l);metti(wrap,hh+6);prima=false;
+        while(l.children.length>1&&sfora(wrap)){const li=l.lastElementChild;li.remove();voci.unshift({el:li,h:li.getBoundingClientRect().height})}
         if(voci.length)corpoP=apri();
       }
       continue;
@@ -110,6 +124,9 @@ function impagina(doc){
   for(const p of pagine.slice()){const c=p.querySelector('.corpo-pagina');if(!c.children.length&&pagine.length>1){p.remove();pagine.splice(pagine.indexOf(p),1)}}
   // 3) numerazione
   pagine.forEach((p,i)=>{const nn=p.querySelector('[data-n]'),mm=p.querySelector('[data-m]');if(nn)nn.textContent=String(i+1);if(mm)mm.textContent=String(pagine.length)});
+  // indice con i numeri di pagina: [data-ind] segna dove inizia una voce, [data-pag-ind] riceve il numero
+  const pagInd={};pagine.forEach((p,i)=>p.querySelectorAll('[data-ind]').forEach(e=>{if(!(e.dataset.ind in pagInd))pagInd[e.dataset.ind]=i+1}));
+  pagine.forEach(p=>p.querySelectorAll('[data-pag-ind]').forEach(e=>{e.textContent=pagInd[e.dataset.pagInd]||''}));
   cont.style.cssText='';
   return pagine.map(p=>astraiImmagini(p.outerHTML));
 }
@@ -185,7 +202,7 @@ function contestoDichiarazione(c,opz){
   const DC=(k)=>'[DA COMPILARE: '+k+']';
   const v=(x,k)=>(x===null||x===undefined||x==='')?DC(k):String(x);
   const sede=indirizzoTesto(a.indirizzo);
-  const lavNomi=c?(c.lavorazioni||[]).map(id=>(stato.lavorazioni.find(l=>l.id===id)||{}).nome).filter(Boolean):[];
+  const lavNomi=c?tipiCantiere(c).map(t=>t.nome):[];
   const docCorso=(p,tipo)=>{const d=migliorDocumento(documentiPersona(p.id).filter(x=>x.tipoId===tipo),tipoDoc(tipo),oggi(),soglie());return d&&d.doc.dataEmissione?fData(d.doc.dataEmissione):null};
   const tabellaOperai=()=>'<table><thead><tr><th>Cognome e nome</th><th>Nato il</th><th>Codice fiscale</th><th>Mansione</th><th>Qualifiche</th></tr></thead><tbody>'+(operai.length?operai.map(p=>`<tr><td>${h(nomePersona(p))}</td><td>${p.dataNascita?h(fData(p.dataNascita)):'<span class="da-compilare">[DA COMPILARE]</span>'}</td><td>${p.cf?h(p.cf):'<span class="da-compilare">[DA COMPILARE]</span>'}</td><td>${h(p.mansione||'')}</td><td>${h((p.qualifiche||[]).map(q=>QUALIFICHE[q]||q).join(', '))}</td></tr>`).join(''):'<tr><td colspan="5"><span class="da-compilare">[DA COMPILARE: operai assegnati al cantiere]</span></td></tr>')+'</tbody></table>';
   const elencoOperai=()=>'<ul>'+(operai.length?operai.map(p=>`<li>${h(nomePersona(p))}${p.dataNascita?', nato il '+h(fData(p.dataNascita)):''}${p.cf?', C.F. '+h(p.cf):''} — ${h(p.mansione||'')}</li>`).join(''):'<li><span class="da-compilare">[DA COMPILARE: operai assegnati al cantiere]</span></li>')+'</ul>';
