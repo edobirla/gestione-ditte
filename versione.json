@@ -1,8 +1,15 @@
 {
- "versione": "1.18",
- "impronta": "ad332f734b",
- "data": "2026-10-23T16:50:08+02:00",
+ "versione": "1.19",
+ "impronta": "c28563c7d3",
+ "data": "2026-10-23T17:23:21+02:00",
  "storico": [
+  {
+   "versione": "1.19",
+   "data": "2026-10-23T17:23:21+02:00",
+   "novita": [
+    "Firma leggibile e documenti firmati, pacchetto ordinato"
+   ]
+  },
   {
    "versione": "1.18",
    "data": "2026-10-23T16:50:08+02:00",
@@ -105,13 +112,6 @@
    "data": "2026-10-23T12:57:43+02:00",
    "novita": [
     "Ente formatore predefinito per i corsi"
-   ]
-  },
-  {
-   "versione": "1.4",
-   "data": "2026-10-23T12:45:34+02:00",
-   "novita": [
-    "Nuovo POS e tipi di lavorazione nel cantiere"
    ]
   }
  ]
