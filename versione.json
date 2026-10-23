@@ -1,8 +1,15 @@
 {
- "versione": "1.20",
- "impronta": "7e806e0671",
- "data": "2026-10-23T17:35:33+02:00",
+ "versione": "1.21",
+ "impronta": "6921ffd05a",
+ "data": "2026-10-23T17:53:23+02:00",
  "storico": [
+  {
+   "versione": "1.21",
+   "data": "2026-10-23T17:53:23+02:00",
+   "novita": [
+    "Firme sempre visibili e nitide"
+   ]
+  },
   {
    "versione": "1.20",
    "data": "2026-10-23T17:35:33+02:00",
@@ -105,13 +112,6 @@
    "data": "2026-10-23T13:59:20+02:00",
    "novita": [
     "Rivestimenti: il tipo in ceramica e gres ora si chiama così anche nella scelta del cantiere"
-   ]
-  },
-  {
-   "versione": "1.6",
-   "data": "2026-10-23T13:54:47+02:00",
-   "novita": [
-    "Nomine di cantiere automatiche e già firmate"
    ]
   }
  ]
