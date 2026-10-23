@@ -1,8 +1,16 @@
 {
- "versione": "1.7",
- "impronta": "bf5e7170b1",
- "data": "2026-10-23T13:59:20+02:00",
+ "versione": "1.8",
+ "impronta": "460002fce5",
+ "data": "2026-10-23T14:13:24+02:00",
  "storico": [
+  {
+   "versione": "1.8",
+   "data": "2026-10-23T14:13:24+02:00",
+   "novita": [
+    "Tasto indietro: una volta sola basta",
+    "POS firmato da tutti"
+   ]
+  },
   {
    "versione": "1.7",
    "data": "2026-10-23T13:59:20+02:00",
