@@ -199,7 +199,9 @@ function firmaPersona(p){if(!p)return null;if(p.firmaImg)return p.firmaImg;const
 // Organico medio annuo: per ogni mese dell'anno, i lavoratori dipendenti presenti nel libro presenze;
 // la media è sui mesi registrati. Soci e legale rappresentante si contano a parte (non sono dipendenti).
 function organicoMedio(anno){
-  const cat=p=>!p?null:p.tipo==='amministrativo'?'impiegati':(p.tipo==='socio'||p.tipo==='legale_rappresentante')?null:'operai';
+  // impiegato: tipo amministrativo o mansione d'ufficio (es. «Amministrazione e cantiere»); chi è fuori dal
+  // libro presenze non è un dipendente dell'impresa e non si conta
+  const cat=p=>!p||p.inLibroPresenze===false?null:(p.tipo==='socio'||p.tipo==='legale_rappresentante')?null:(p.tipo==='amministrativo'||/amministr|impiegat|ufficio|segreteri|contabil/i.test(p.mansione||''))?'impiegati':'operai';
   const somme={operai:0,impiegati:0};let mesi=0;
   for(let m=1;m<=12;m++){const mm=meseP(anno,m);if(!mm||!Object.keys(mm.persone||{}).length)continue;mesi++;
     for(const [pid,r] of Object.entries(mm.persone)){const k=cat(persona(pid));if(!k)continue;if(Object.values(r.giorni||{}).some(c=>{const v=valoreCella(c);return v!=null&&v!==0}))somme[k]++}}
