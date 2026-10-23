@@ -1255,6 +1255,10 @@ select.stato-rapido.inviato{background:var(--giallo-chiaro);border-color:var(--g
   #stampa{display:block!important}
   #stampa .pagina{box-shadow:none;margin:0;page-break-after:always;break-after:page;-webkit-print-color-adjust:exact;print-color-adjust:exact}
   #stampa .pagina:last-child{page-break-after:auto;break-after:auto}
+  /* Safari arrotonda l'A4 per difetto: con 297 mm esatti ogni foglio sforava di una frazione e dopo ogni
+     pagina ne usciva una bianca. Mezzo millimetro in meno non si vede e non sfora più. */
+  #stampa .pagina{height:296.5mm;overflow:hidden;break-inside:avoid}
+  #stampa .pagina.orizzontale{height:209.5mm}
   .anteprima-stampa{display:none!important}
 }
 
@@ -3222,7 +3226,7 @@ function scegliFile(opz){
 // L'app lo controlla all'avvio, ogni mezz'ora e quando torna in primo piano: se è diversa avvisa,
 // e «Aggiorna ora» scarica la pagina nuova scavalcando le copie del browser. I dati non si toccano.
 // ---------------------------------------------------------------------
-const VERSIONE_APP='30687e8abb';   // impronta del contenuto: dice se è cambiato qualcosa
+const VERSIONE_APP='1ddb4de365';   // impronta del contenuto: dice se è cambiato qualcosa
 const NUMERO_VERSIONE='1.10'; // il numero per le persone: 1.0, 1.1…
 function appPubblicata(){return location.protocol==='https:'}
 async function controllaAggiornamento(manuale){
