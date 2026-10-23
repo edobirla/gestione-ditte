@@ -1,8 +1,15 @@
 {
- "versione": "1.4",
- "impronta": "f66e5deba0",
- "data": "2026-10-23T12:45:34+02:00",
+ "versione": "1.5",
+ "impronta": "f5c3134929",
+ "data": "2026-10-23T12:57:43+02:00",
  "storico": [
+  {
+   "versione": "1.5",
+   "data": "2026-10-23T12:57:43+02:00",
+   "novita": [
+    "Ente formatore predefinito per i corsi"
+   ]
+  },
   {
    "versione": "1.4",
    "data": "2026-10-23T12:45:34+02:00",
