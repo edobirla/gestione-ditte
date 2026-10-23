@@ -281,10 +281,17 @@ async function telaDelFoglio(r,scala){
 async function immagineDelFoglio(r){return await canvasABlob(await telaDelFoglio(r),'image/jpeg',0.9)}
 // Il documento firmato completo: la pagina compilata al suo posto, le altre pagine come sono
 async function pdfFirmato(file,r){
-  const tela=await telaDelFoglio(r,2.5);const pag={jpeg:await canvasInJpeg(tela,0.9),px:tela.width,py:tela.height,w:r.pagina.larghezza,h:r.pagina.altezza};
+  // prima la strada senza perdita di qualità: PDF originale con la firma sopra, o foto a piena risoluzione
+  try{
+    if(ePdf(file.type,file.name)){const p=await pdfFirmatoOriginale(file,r);if(p)return p}
+    else if(eImmagine(file.type,file.name))return await pdfFirmatoDaFoto(file,r);
+  }catch(e){console.warn('firma senza perdita non riuscita',e)}
+  // riserva (PDF protetti o ruotati): l'immagine della pagina, ad alta risoluzione
+  if(file._pdf){const pj=await paginaPdfJs(file._pdf,r.pagina.indice||0,4.2);r=Object.assign({},r,{sfondo:pj.canvas.toDataURL('image/png')})}
+  const tela=await telaDelFoglio(r,4.2);const pag={jpeg:await canvasInJpeg(tela,0.95),px:tela.width,py:tela.height,w:r.pagina.larghezza,h:r.pagina.altezza};
   if(!file._pdf)return pdfDaImmagini([pag]);
   const pagine=[];const fatta=r.pagina.indice||0;
-  for(let i=0;i<file._pdf.numPages;i++){if(i===fatta){pagine.push(pag);continue}const p=await paginaPdfJs(file._pdf,i,2.2);pagine.push({jpeg:await canvasInJpeg(p.canvas),px:p.canvas.width,py:p.canvas.height,w:p.larghezza,h:p.altezza})}
+  for(let i=0;i<file._pdf.numPages;i++){if(i===fatta){pagine.push(pag);continue}const p=await paginaPdfJs(file._pdf,i,4.2);pagine.push({jpeg:await canvasInJpeg(p.canvas,0.95),px:p.canvas.width,py:p.canvas.height,w:p.larghezza,h:p.altezza})}
   return pdfDaImmagini(pagine);
 }
 async function esitoAssistente(file,r){
