@@ -1,8 +1,15 @@
 {
- "versione": "1.19",
- "impronta": "c28563c7d3",
- "data": "2026-10-23T17:23:21+02:00",
+ "versione": "1.20",
+ "impronta": "7e806e0671",
+ "data": "2026-10-23T17:35:33+02:00",
  "storico": [
+  {
+   "versione": "1.20",
+   "data": "2026-10-23T17:35:33+02:00",
+   "novita": [
+    "Documenti firmati con la stessa qualità dell'originale"
+   ]
+  },
   {
    "versione": "1.19",
    "data": "2026-10-23T17:23:21+02:00",
@@ -105,13 +112,6 @@
    "data": "2026-10-23T13:54:47+02:00",
    "novita": [
     "Nomine di cantiere automatiche e già firmate"
-   ]
-  },
-  {
-   "versione": "1.5",
-   "data": "2026-10-23T12:57:43+02:00",
-   "novita": [
-    "Ente formatore predefinito per i corsi"
    ]
   }
  ]
