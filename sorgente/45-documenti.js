@@ -360,6 +360,9 @@ function classificaFile(percorso){
     [/nomina|elezione/,'nomina_persona'],[/preposto/,'corso_preposto'],[/\brls\b/,'corso_rls'],[/primo soccorso|pronto soccorso|\bps\b|p s\b/,'primo_soccorso'],[/antincendio/,'antincendio_2'],[/aggiornamento/,'aggiornamento_rischio_alto'],[/rischio alto|sicurezza|formazione|16h|16 ore/,'rischio_alto_16'],[/\bple\b|piattaform/,'ple'],[/pimus|ponteggi/,'pimus'],[/\bdpi\b/,'consegna_dpi'],[/comunicazione inail|inail/,'altro_persona'],
   ];
   for(const [re,tipo] of regole){ if(re.test(p)){out.tipoId=tipo;fidTipo=1;out.motivi.push('parola chiave «'+re.source.split('|')[0].replace(/\\b/g,'')+'»');break} }
+  // poi i sinonimi dei tipi (anche quelli aggiunti in Impostazioni, es. il nome del consorzio): vince il più lungo
+  if(!out.tipoId){let best=null;for(const t of stato.tipiDocumento)for(const sn of t.sinonimi||[]){const n=normalizzaTesto(sn);if(n.length>=3&&new RegExp('(^|\\s)'+n.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'(\\s|$)').test(p)&&(!best||n.length>best.n.length))best={t,n}}
+    if(best){out.tipoId=best.t.id;fidTipo=0.8;out.motivi.push('sinonimo «'+best.n+'»')}}
   if(!out.tipoId&&/corsi/.test(cartelle)){out.tipoId='rischio_alto_16';fidTipo=0.4;out.motivi.push('cartella «corsi» senza altre indicazioni: corso da verificare')}
   if(out.tipoId==='nomina_persona'&&/elezione/.test(p)){out.tipoId='corso_rls';out.motivi.push('«elezione» → RLS')}
   // date nei nomi: AA.MM.GG o AA.MM (26.07.01 = 1 luglio 2026), oppure gg-mm-aa
