@@ -3226,7 +3226,7 @@ function scegliFile(opz){
 // L'app lo controlla all'avvio, ogni mezz'ora e quando torna in primo piano: se è diversa avvisa,
 // e «Aggiorna ora» scarica la pagina nuova scavalcando le copie del browser. I dati non si toccano.
 // ---------------------------------------------------------------------
-const VERSIONE_APP='31b608063c';   // impronta del contenuto: dice se è cambiato qualcosa
+const VERSIONE_APP='9f945a959c';   // impronta del contenuto: dice se è cambiato qualcosa
 const NUMERO_VERSIONE='1.16'; // il numero per le persone: 1.0, 1.1…
 function appPubblicata(){return location.protocol==='https:'}
 async function controllaAggiornamento(manuale){
@@ -7242,6 +7242,22 @@ AZIONI['esporta-schema']=()=>mostraTestoEsportato('Documentazione dello schema d
 // ---------------------------------------------------------------------
 // Pacchetto documenti per la committenza: revisione obbligatoria, poi ZIP con cartelle numerate.
 // ---------------------------------------------------------------------
+// Documenti prodotti dall'app per una voce della checklist: dichiarazioni compilate, nomine di cantiere
+// (preparate con il POS) e il POS generato. Nel pacchetto entrano come PDF se il PDF è stato allegato,
+// altrimenti come pagina da aprire e stampare in PDF.
+function generatiVoce(c,v){
+  const prod=c.documentiProdotti||[];
+  const modello=v.modelloId||(v.azione&&v.azione.startsWith('dichiarazione:')?v.azione.split(':')[1]:null);
+  if(v.nomine&&v.nomine.length) return v.nomine.map(n=>{const d=prod.find(x=>x.generatoId===n.g)||{};return {titolo:'Nomina '+n.r,generatoId:n.g,fileId:d.fileId,data:d.data,modelloId:d.modelloId}});
+  if(modello){const d=prod.filter(x=>x.modelloId===modello).pop();return d?[{titolo:v.nome,generatoId:d.generatoId,fileId:d.fileId,data:d.data,modelloId:modello}]:[]}
+  if(v.azione==='pos'){
+    const p=stato.pos.filter(x=>x.cantiereId===c.id).sort((a,b)=>b.revisione-a.revisione)[0];
+    if(p)return [{titolo:'POS rev. '+pad2(p.revisione),generatoId:p.generatoId,fileId:p.fileId,data:p.dataRevisione||p.dataEmissione,pos:p}];
+    const caricato=prod.filter(x=>x.tipo==='POS'&&x.fileId).pop();
+    return caricato?[{titolo:caricato.titolo||'POS',fileId:caricato.fileId,data:caricato.data}]:[];
+  }
+  return [];
+}
 function vistaPacchetto(c,r){
   if(!c) return html`<div class="vuoto">${icona('attenzione')}<h3>Cantiere non trovato</h3></div>`;
   const ck=checklistCantiere(c);
@@ -7249,23 +7265,23 @@ function vistaPacchetto(c,r){
   // blocchi di conformità: UNILAV mancante/scaduto o permesso di soggiorno scaduto
   const blocchi=[];
   for(const p of operai){for(const t of ['unilav','permesso_soggiorno']){const tipo=tipoDoc(t);if(!tipoApplicabile(tipo,p))continue;const m=migliorDocumento(documentiPersona(p.id).filter(d=>d.tipoId===t),tipo,oggi(),soglie());if(!m||m.info.stato==='scaduto'||!(m.doc.file||[]).length)blocchi.push({p,tipo,motivo:!m?'mancante':m.info.stato==='scaduto'?'scaduto il '+fData(m.info.data):'senza file'})}}
-  const righe=ck.voci.filter(v=>v.stato!=='na').map((v,i)=>({i,v,file:v.doc?(v.doc.file||[]).map(id=>fileMeta(id)).filter(Boolean):[],generato:v.modelloId?(c.documentiProdotti||[]).find(d=>d.modelloId===v.modelloId):null}));
+  const righe=ck.voci.filter(v=>v.stato!=='na').map((v,i)=>({i,v,file:v.doc?(v.doc.file||[]).map(id=>fileMeta(id)).filter(Boolean):[],generati:generatiVoce(c,v)}));
   const sc=ui.pacchetto&&ui.pacchetto.cantiereId===c.id?ui.pacchetto:(ui.pacchetto={cantiereId:c.id,forzati:{},esclusi:{}});
-  const includibile=x=>x.v.stato==='ok'||(x.v.stato==='scaduto'&&sc.forzati[x.i])||(x.v.stato==='preparare'&&x.generato);
+  const includibile=x=>(x.v.stato==='ok'&&(x.file.length||x.generati.length))||(x.v.stato==='scaduto'&&sc.forzati[x.i])||(x.v.stato==='preparare'&&x.generati.length);
   return html`<div class="briciole"><a href="#/cantieri">Cantieri</a> › <a href="#/cantieri/${c.id}">${c.nome}</a> › Pacchetto committenza</div>
   <div class="testata"><div><h1>Pacchetto per la committenza</h1><div class="sotto">${c.nome} · ${nomeCliente(c.committenteId)||daCompilare('committente')} · affidataria ${nomeCliente(c.affidatariaId)||daCompilare()}</div></div><div class="azioni"><button class="pulsante" data-azione="checklist-copia" data-id="${c.id}">${icona('copia')}Copia checklist</button><button class="pulsante primario" data-azione="pacchetto-genera" data-id="${c.id}" ${blocchi.length?'disabled':''}>${icona('pacchetto')}Genera lo ZIP (${righe.filter(includibile).length} documenti)</button></div></div>
   ${blocchi.length?html`<div class="avviso-inline critico">${icona('blocco')}<div class="corpo"><b>Blocco di conformità.</b> ${blocchi.map(b=>html`${nomePersona(b.p)}: ${b.tipo.nome} ${b.motivo}`).reduce((a,b)=>html`${a} · ${b}`)}. Mandare questi operai alla committenza è un rischio: togli le persone dal cantiere o regolarizza i documenti prima di generare il pacchetto.</div></div>`:''}
   <div class="scheda"><h3>Revisione obbligatoria</h3><p class="secondario piccolo">Ogni riga dice cosa entrerà nello ZIP, a chi si riferisce, quale file verrà usato, la scadenza e lo stato. I documenti scaduti non entrano, se non forzando con una motivazione. Le dichiarazioni entrano se sono state compilate e stampate in PDF e il PDF è stato allegato; altrimenti entrano come pagina HTML pronta da stampare e firmare.</p>
   <div class="tabella-scorri"><table class="tabella densa"><thead><tr><th>Entra</th><th>Documento</th><th>Soggetto</th><th>File</th><th>Scadenza</th><th>Stato</th></tr></thead><tbody>
-  ${righe.map(x=>{const v=x.v;const st=STATI_CHECKLIST[v.stato];const entra=includibile(x)&&!sc.esclusi[x.i];return html`<tr class="${v.stato==='scaduto'?'riga-scaduto':v.stato==='ok'?'riga-valido':''}"><td>${includibile(x)?html`<input type="checkbox" data-pacchetto-escludi="${x.i}" ${entra?'checked':''} aria-label="Includi">`:v.stato==='scaduto'?html`<button class="pulsante piccolo pericolo" data-azione="pacchetto-forza" data-i="${x.i}">Forza</button>`:html`<span class="silenzioso">—</span>`}</td><td><b>${v.nome}</b>${sc.forzati[x.i]?html`<br><span class="piccolo da-compilare">forzato: ${sc.forzati[x.i]}</span>`:''}</td><td>${v.soggetto}</td><td class="piccolo">${x.file.length?x.file.map(f=>html`${f.nome} <span class="secondario">(${fPeso(f.dimensione)})</span><br>`):x.generato?html`<span class="secondario">${x.generato.fileId?(fileMeta(x.generato.fileId)||{}).nome:'compilata il '+fData(x.generato.data)+' (senza PDF: entra come HTML)'}</span>`:v.stato==='preparare'?html`<button class="pulsante piccolo" data-azione="dichiarazione-compila" data-cantiere="${c.id}" data-modello="${v.modelloId||''}">Compila</button>`:html`<span class="da-compilare">nessun file</span>`}</td><td>${v.info&&v.info.data?html`<span class="${v.info.stato==='scaduto'?'da-compilare':''}">${fData(v.info.data)}${v.info.stimata?' ~':''}</span>`:''}</td><td><span class="pillola ${st.cl}">${icona(st.ic,'piccola')}${st.t}</span></td></tr>`})}
+  ${righe.map(x=>{const v=x.v;const st=STATI_CHECKLIST[v.stato];const entra=includibile(x)&&!sc.esclusi[x.i];return html`<tr class="${v.stato==='scaduto'?'riga-scaduto':v.stato==='ok'?'riga-valido':''}"><td>${includibile(x)?html`<input type="checkbox" data-pacchetto-escludi="${x.i}" ${entra?'checked':''} aria-label="Includi">`:v.stato==='scaduto'?html`<button class="pulsante piccolo pericolo" data-azione="pacchetto-forza" data-i="${x.i}">Forza</button>`:html`<span class="silenzioso">—</span>`}</td><td><b>${v.nome}</b>${sc.forzati[x.i]?html`<br><span class="piccolo da-compilare">forzato: ${sc.forzati[x.i]}</span>`:''}</td><td>${v.soggetto}</td><td class="piccolo">${x.file.length?x.file.map(f=>html`${f.nome} <span class="secondario">(${fPeso(f.dimensione)})</span><br>`):x.generati.length?x.generati.map(g=>html`<span class="secondario">${g.fileId?(fileMeta(g.fileId)||{}).nome:g.titolo+' — pagina da stampare in PDF'}</span><br>`):v.azione==='nomine'?html`<button class="pulsante piccolo" data-azione="nomine-rifai" data-id="${c.id}">Prepara le nomine</button>`:v.azione==='pos'?html`<a class="pulsante piccolo" href="#/cantieri/${c.id}/pos">Genera il POS</a>`:v.stato==='preparare'&&(v.modelloId||(v.azione||'').startsWith('dichiarazione:'))?html`<button class="pulsante piccolo" data-azione="dichiarazione-compila" data-cantiere="${c.id}" data-modello="${v.modelloId||v.azione.split(':')[1]}">Compila</button>`:html`<span class="da-compilare">nessun file</span>`}</td><td>${v.info&&v.info.data?html`<span class="${v.info.stato==='scaduto'?'da-compilare':''}">${fData(v.info.data)}${v.info.stimata?' ~':''}</span>`:''}</td><td><span class="pillola ${st.cl}">${icona(st.ic,'piccola')}${st.t}</span></td></tr>`})}
   </tbody></table></div></div>`;
 }
 document.addEventListener('change',e=>{const t=e.target;if(t.dataset&&t.dataset.pacchettoEscludi!==undefined&&ui.pacchetto){ui.pacchetto.esclusi[+t.dataset.pacchettoEscludi]=!t.checked;render()}});
 AZIONI['pacchetto-forza']=async d=>{const m=await chiediTesto('Includere un documento scaduto',{etichetta:'Motivazione (resterà nello storico dell\'invio)',obbligatorio:true,aiuto:'Es. rinnovo già richiesto, attestato in arrivo'});if(!m)return;ui.pacchetto.forzati[+d.i]=m;render()};
 AZIONI['pacchetto-genera']=async d=>{
   const c=cantiere(d.id);const ck=checklistCantiere(c);const sc=ui.pacchetto||{forzati:{},esclusi:{}};
-  const righe=ck.voci.filter(v=>v.stato!=='na').map((v,i)=>({i,v,generato:v.modelloId?(c.documentiProdotti||[]).find(x=>x.modelloId===v.modelloId):null}));
-  const inclusi=righe.filter(x=>!sc.esclusi[x.i]&&(x.v.stato==='ok'||(x.v.stato==='scaduto'&&sc.forzati[x.i])||(x.v.stato==='preparare'&&x.generato)));
+  const righe=ck.voci.filter(v=>v.stato!=='na').map((v,i)=>({i,v,file:v.doc?(v.doc.file||[]):[],generati:generatiVoce(c,v)}));
+  const inclusi=righe.filter(x=>!sc.esclusi[x.i]&&((x.v.stato==='ok'&&(x.file.length||x.generati.length))||(x.v.stato==='scaduto'&&sc.forzati[x.i])||(x.v.stato==='preparare'&&x.generati.length)));
   const mancanti=righe.filter(x=>!inclusi.includes(x)).map(x=>x.v.nome+' — '+x.v.soggetto+' ('+STATI_CHECKLIST[x.v.stato].t+')');
   const dest=await dialogoModulo('Registra l\'invio',[{nome:'destinatario',etichetta:'Destinatario',obbligatorio:true,segnaposto:'es. Geom. Manetti (CSE), LGC ufficio sicurezza'},{nome:'mezzo',etichetta:'Mezzo',tipo:'select',vuoto:false,opzioni:[{v:'mail',t:'Mail'},{v:'pec',t:'PEC'},{v:'whatsapp',t:'WhatsApp'},{v:'portale',t:'Portale della committenza'},{v:'altro',t:'Altro'}]},{nome:'note',etichetta:'Note',tipo:'textarea',largo:true}],{destinatario:nomeProfessionista(c.cseId)||nomeCliente(c.affidatariaId)||'',mezzo:'mail'},{ok:'Genera lo ZIP',intro:html`<p>Lo ZIP conterrà <b>${inclusi.length}</b> documenti. ${mancanti.length?html`<span class="da-compilare">${mancanti.length} voci mancano</span> e resteranno segnate nello storico dell'invio.`:'Niente manca.'}</p>`});
   if(!dest) return;
@@ -7281,9 +7297,19 @@ AZIONI['pacchetto-genera']=async d=>{
       const scad=v.info&&v.info.data?fData(v.info.data):'';
       if(v.doc&&(v.doc.file||[]).length){
         for(const fid of v.doc.file){const m=fileMeta(fid);if(!m)continue;const b=await leggiFile(m.hash);if(!b)continue;const est=estensioneDi(m.nome)||'pdf';let nome=pulisci(v.nome+(v.doc.dataEmissione?' '+fDataBreve(v.doc.dataEmissione).replace(/\//g,'-'):''))+'.'+est;let k=cartella+'/'+nome;let n=2;while(usati.has(k)){k=cartella+'/'+nome.replace(/\.[^.]+$/,' '+n+'$&');n++}usati.add(k);voci.push({nome:k,dati:b});indice.push({cartella,nome:k.split('/').pop(),documento:v.nome,soggetto:v.soggetto,scadenza:scad,stato:STATI_CHECKLIST[v.stato].t+(sc.forzati[x.i]?' — FORZATO: '+sc.forzati[x.i]:'')})}
-      } else if(x.generato){
-        if(x.generato.fileId){const m=fileMeta(x.generato.fileId);const b=await leggiFile(m.hash);if(b){const k=cartella+'/'+pulisci(v.nome)+'.'+(estensioneDi(m.nome)||'pdf');voci.push({nome:k,dati:b});indice.push({cartella,nome:k.split('/').pop(),documento:v.nome,soggetto:v.soggetto,scadenza:'',stato:'compilata il '+fData(x.generato.data)})}}
-        else { const g=perId('generati',x.generato.generatoId); const pagine=g?g.pagine:impagina(docDichiarazione(stato.modelli.dichiarazioni.find(m=>m.id===v.modelloId),c,{data:x.generato.data})); const htmlDoc=`<!DOCTYPE html><html lang="it"><head><meta charset="utf-8"><title>${h(v.nome)}</title><style>${stileStampaPerHtml()}</style></head><body>${risolviImmagini(pagine.join(''))}</body></html>`; const k=cartella+'/'+pulisci(v.nome)+' (da stampare in PDF).html'; voci.push({nome:k,dati:htmlDoc}); indice.push({cartella,nome:k.split('/').pop(),documento:v.nome,soggetto:v.soggetto,scadenza:'',stato:'compilata il '+fData(x.generato.data)+' — da aprire nel browser, stampare in PDF e firmare'}) }
+      } else if(x.generati.length){
+        for(const g of x.generati){
+          // un documento generato entra una volta sola: le nomine di cantiere valgono per tutti gli addetti
+          const chiave=g.generatoId||g.fileId;if(chiave&&usati.has('gen:'+chiave))continue;if(chiave)usati.add('gen:'+chiave);
+          if(v.nomine)cartella='03 Sicurezza cantiere';
+          const base=cartella+'/'+pulisci(g.titolo||v.nome);
+          if(g.fileId){const m=fileMeta(g.fileId);const b=m&&await leggiFile(m.hash);if(b){voci.push({nome:base+'.'+(estensioneDi(m.nome)||'pdf'),dati:b});indice.push({cartella,nome:(base+'.'+(estensioneDi(m.nome)||'pdf')).split('/').pop(),documento:g.titolo||v.nome,soggetto:v.soggetto,scadenza:'',stato:'del '+fData(g.data)});continue}}
+          const gen=g.generatoId&&perId('generati',g.generatoId);
+          const pagine=gen?gen.pagine:g.pos?impagina(docPos(g.pos,c)):g.modelloId?impagina(docDichiarazione(stato.modelli.dichiarazioni.find(m=>m.id===g.modelloId),c,{data:g.data})):null;
+          if(!pagine)continue;
+          const htmlDoc=`<!DOCTYPE html><html lang="it"><head><meta charset="utf-8"><title>${h(g.titolo||v.nome)}</title><style>${stileStampaPerHtml()}</style></head><body>${risolviImmagini(pagine.join(''))}</body></html>`;
+          const k=base+' (da stampare in PDF).html';voci.push({nome:k,dati:htmlDoc});indice.push({cartella,nome:k.split('/').pop(),documento:g.titolo||v.nome,soggetto:v.soggetto,scadenza:'',stato:'del '+fData(g.data)+' — da aprire nel browser e stampare in PDF'});
+        }
       }
     }
     // indice
