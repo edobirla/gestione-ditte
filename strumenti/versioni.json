@@ -1,5 +1,14 @@
 [
  {
+  "versione": "1.12",
+  "data": "2026-10-23T15:30:05+02:00",
+  "commit": "4a6b987",
+  "novita": [
+   "Dichiarazione di conformità di macchine, attrezzature e opere provvisionali",
+   "Dichiarazione dell'organico medio annuo e nomine riconosciute nella checklist"
+  ]
+ },
+ {
   "versione": "1.11",
   "data": "2026-10-23T15:11:58+02:00",
   "commit": "58d70f3",
