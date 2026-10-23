@@ -193,6 +193,19 @@ async function acquisisciConAnteprima(files,opz){
 }
 
 // ---- dialogo documento (nuovo/modifica) ----
+// Ente formatore: quello scritto nell'attestato; se manca, quello predefinito del tipo di corso
+// o, per tutti i corsi, quello dei dati aziendali. I nuovi attestati lo ricevono già scritto.
+function enteDefaultTipo(t){return (t&&(t.enteDefault||(t.categoria==='formazione'?stato.azienda.enteFormatore:'')))||''}
+function enteDoc(d){return (d&&(d.ente||enteDefaultTipo(tipoDoc(d.tipoId))))||''}
+// dopo aver impostato un ente predefinito: lo scrive negli attestati già registrati che non ce l'hanno
+// con tipoId: anche gli attestati di quel corso che avevano preso l'ente generale dei dati aziendali
+async function riempiEntiMancanti(tipoId){
+  const generale=stato.azienda.enteFormatore;
+  const daAggiornare=d=>enteDefaultTipo(tipoDoc(d.tipoId))&&(!d.ente||(tipoId&&d.tipoId===tipoId&&d.ente===generale&&d.ente!==enteDefaultTipo(tipoDoc(d.tipoId))));
+  const vuoti=stato.documenti.filter(daAggiornare);if(!vuoti.length)return;
+  if(!(await conferma(`Scrivere l’ente formatore predefinito anche ${vuoti.length===1?'in un attestato già registrato':'in '+vuoti.length+' attestati già registrati'}? Riguarda quelli senza ente${tipoId?' e quelli di questo corso che avevano l’ente generale':''}.`,{ok:'Sì, scrivilo'})))return;
+  esegui('Ente formatore negli attestati',s=>{for(const d of s.documenti)if(daAggiornare(d))d.ente=enteDefaultTipo(s.tipiDocumento.find(t=>t.id===d.tipoId))});
+}
 async function dialogoDocumento(d,filesIniziali){
   const nuovo=!d.id;
   d=Object.assign({soggettoTipo:null,soggettoId:null,tipoId:null,titolo:'',dataEmissione:null,dataScadenza:null,dataFine:null,anno:null,durata:'',senzaScadenza:false,verificato:false,note:'',file:[]},d);
@@ -248,6 +261,8 @@ async function dialogoDocumento(d,filesIniziali){
         inp.value=f.nomeProposto;
       });
     };
+    const enteI=form.querySelector('[name=ente]');const enteAuto=()=>{if(nuovo&&enteI&&(!enteI.value||enteI.dataset.auto)){const e=enteDefaultTipo(tipoDoc(tipoSel.value));enteI.value=e;enteI.dataset.auto=e?'1':''}};
+    if(enteI)enteI.addEventListener('input',()=>{delete enteI.dataset.auto});tipoSel.addEventListener('change',enteAuto);setTimeout(enteAuto,0);
     const daDurata=()=>{const mesi=+dur.value;if(!mesi||!em.value)return;ss.checked=false;sc.disabled=false;sc.value=aggiungiMesi(em.value,mesi)};
     dur.addEventListener('change',daDurata);
     tipoSel.addEventListener('change',adatta);
