@@ -1,5 +1,13 @@
 [
  {
+  "versione": "1.19",
+  "data": "2026-10-23T17:23:21+02:00",
+  "commit": "db82178",
+  "novita": [
+   "Firma leggibile e documenti firmati, pacchetto ordinato"
+  ]
+ },
+ {
   "versione": "1.18",
   "data": "2026-10-23T16:50:08+02:00",
   "commit": "16f3980",
