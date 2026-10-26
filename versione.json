@@ -1,8 +1,16 @@
 {
- "versione": "1.22",
- "impronta": "8ce1b90530",
- "data": "2026-10-23T17:59:35+02:00",
+ "versione": "1.23",
+ "impronta": "53256ebcd0",
+ "data": "2026-10-26T12:21:06+01:00",
  "storico": [
+  {
+   "versione": "1.23",
+   "data": "2026-10-26T12:21:06+01:00",
+   "novita": [
+    "Nuova sezione Commercialista e nomi dei file chiari",
+    "Handoff aggiornato"
+   ]
+  },
   {
    "versione": "1.22",
    "data": "2026-10-23T17:59:35+02:00",
@@ -104,14 +112,6 @@
    "novita": [
     "Tipi di documento ordinati in Impostazioni",
     "Nuovo documento: solo i tipi del soggetto"
-   ]
-  },
-  {
-   "versione": "1.8",
-   "data": "2026-10-23T14:13:24+02:00",
-   "novita": [
-    "Tasto indietro: una volta sola basta",
-    "POS firmato da tutti"
    ]
   }
  ]

@@ -47,6 +47,7 @@ MAPPA DELLE SEZIONI
   JS    PDF-PAGINA ........... ricostruzione di una pagina PDF dentro l'app (testo e righe posizionati)
   JS    RIMANENZE ............ magazzino, lavori in corso, fatture da emettere al 31/12, PDF unico per il commercialista
   JS    ISA .............. quadri C e A dalle fatture emesse e dai cantieri; sezione «Fine anno» (ISA + rimanenze)
+  JS    COMMERCIALISTA ....... pacchetto di fine mese: fatture XML attive/passive, prima nota e IVA, documenti presi dalle altre sezioni
   JS    VERSAMENTI ........... F24 e Cassa Edile mese per mese, lettura delle quietanze, pagamenti del mese per il SAL
   JS    ASSISTENTE ........... moduli di altre aziende: campi proposti, dati e firme da trascinare
   JS    DATI ................. datiIniziali(): i dati reali di partenza dell'azienda
@@ -1154,6 +1155,26 @@ input.proposto,select.proposto{box-shadow:0 0 0 1.5px var(--accent) inset;backgr
 .doc.prev .prev-fondo .firma-acc{flex:1;text-align:center;padding-top:2mm;font-size:10pt}
 .doc.prev .prev-fondo .firma-acc .linea{border-bottom:.6pt solid #111;height:14mm}
 .doc.prev .prev-privacy{font-size:6.5pt;color:#444;margin:3mm 0 0;text-align:justify}
+.doc.fatt{font-size:9pt}
+.doc.fatt .fatt-testa{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:1.2pt solid #1F4E9C;padding:0 0 2.5mm;margin:0 0 3mm}
+.doc.fatt .fatt-testa.nuova{margin-top:8mm}
+.doc.fatt .fatt-tipo{font-size:17pt;font-weight:700;color:#1F4E9C;line-height:1.1}
+.doc.fatt .fatt-num{font-size:10.5pt;margin-top:1mm}
+.doc.fatt .fatt-totale{text-align:right}
+.doc.fatt .fatt-totale b{display:block;font-size:15pt}
+.doc.fatt .et{display:block;font-size:6.5pt;color:#1F4E9C;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.8mm}
+.doc.fatt .fatt-soggetti{display:flex;gap:4mm;margin:0 0 3mm}
+.doc.fatt .fatt-sogg{flex:1;background:#EEF3FA;border-radius:1.5mm;padding:2.5mm 3mm;line-height:1.45}
+.doc.fatt .fatt-rif{font-size:8.5pt;color:#333;margin:0 0 3mm;text-align:left}
+.doc.fatt table th{background:#DCE7F6;color:#10306B;border-color:#9DB3D6}
+.doc.fatt table td{border-color:#C9D3E3}
+.doc.fatt .mini{font-size:7.5pt;color:#555}
+.doc.fatt .fatt-fondo{display:flex;gap:4mm;align-items:flex-start}
+.doc.fatt .fatt-fondo .fatt-iva{flex:1.4}
+.doc.fatt .fatt-fondo .fatt-tot{flex:1}
+.doc.fatt .fatt-tot td{border:0;border-bottom:.4pt solid #C9D3E3;padding:1.2mm 2mm}
+.doc.fatt .fatt-tot tr.totale td{background:#1F4E9C;color:#fff;font-size:10pt}
+.doc.fatt .fatt-nota{font-size:7.5pt;color:#555;text-align:left;margin-top:2mm}
 /* Scheda ore mensile: fedele al modello aziendale (testata con titolo, riquadri, tabella a 4 colonne) */
 .carta-intestata.ore-testa{align-items:flex-start;border-bottom:1.2pt solid #111;padding-bottom:1.5mm}
 .carta-intestata.ore-testa img{height:17mm}
@@ -1873,6 +1894,12 @@ function autoverifica(){
    t('PSC: CIG, CUP, importo e inizio',o.cig==='Z1A2B3C4D5'&&o.cup==='J12F34000560001'&&o.importoLavori===450000&&o.dataInizio==='2026-08-10')}
   t('apertura: 15 giorni la richiede, 14 no',motiviApertura({dataInizio:'2026-08-01',dataFine:'2026-08-15',denuncia:{}}).length===1&&!motiviApertura({dataInizio:'2026-08-01',dataFine:'2026-08-14',denuncia:{}}).length);
   t('apertura: oltre 70.000 € la richiede',motiviApertura({denuncia:{importoComplessivo:70001}}).length===1&&!motiviApertura({denuncia:{importoComplessivo:70000}}).length);
+  {const x=leggiFatturaXml('<?xml version="1.0"?><p:FatturaElettronica xmlns:p="http://ivaservizi.agenziaentrate.gov.it/docs/xsd/fatture/v1.2"><FatturaElettronicaHeader><CedentePrestatore><DatiAnagrafici><IdFiscaleIVA><IdPaese>IT</IdPaese><IdCodice>01234567897</IdCodice></IdFiscaleIVA><Anagrafica><Denominazione>Fornitore Srl</Denominazione></Anagrafica></DatiAnagrafici></CedentePrestatore><CessionarioCommittente><DatiAnagrafici><IdFiscaleIVA><IdPaese>IT</IdPaese><IdCodice>02188850511</IdCodice></IdFiscaleIVA></DatiAnagrafici></CessionarioCommittente></FatturaElettronicaHeader><FatturaElettronicaBody><DatiGenerali><DatiGeneraliDocumento><TipoDocumento>TD01</TipoDocumento><Data>2026-09-30</Data><Numero>12</Numero></DatiGeneraliDocumento><DatiDDT><NumeroDDT>5</NumeroDDT><DataDDT>2026-09-01</DataDDT></DatiDDT></DatiGenerali><DatiBeniServizi><DettaglioLinee><Descrizione>Colla</Descrizione><PrezzoTotale>100.00</PrezzoTotale><AliquotaIVA>22.00</AliquotaIVA></DettaglioLinee><DatiRiepilogo><AliquotaIVA>22.00</AliquotaIVA><ImponibileImporto>100.00</ImponibileImporto><Imposta>22.00</Imposta></DatiRiepilogo></DatiBeniServizi></FatturaElettronicaBody></p:FatturaElettronica>');const d=x.documenti[0];
+   t('fattura XML: numero, data (non quella del DDT), totale',d.numero==='12'&&d.data==='2026-09-30'&&d.totale===122&&d.ddt[0].numero==='5');
+   t('fattura XML: ricevuta = passiva',versoFattura(x,'02188850511')==='passiva'&&versoFattura(x,'01234567897')==='attiva'&&versoFattura(x,'999')===null)}
+  t('cartella fatture come in azienda',cartellaFatture('2026-09','attiva',4)==='9 fatture attive n 4');
+  t('numerazione fatture: buchi',numeriMancanti(['10','11/2026','14'])+''==='12,13');
+  t('nome chiaro: parti vuote saltate',nomeChiaro(['F24','','settembre 2026'])==='F24 - settembre 2026');
   return esiti;
 }
 
@@ -2193,11 +2220,46 @@ function riferimentiFile(fileId){
   for(const v of stato.versamenti||[]) if(v.fileId===fileId) out.push({tipo:'versamento',id:v.id});
   for(const [a,v] of Object.entries(stato.isa||{})) if(v&&v.fileId===fileId) out.push({tipo:'isa',id:a});
   for(const a of Object.keys(stato.bilanci||{})) if(fileBilancio(a).includes(fileId)) out.push({tipo:'bilancio',id:a});
+  for(const f of stato.fatture||[]) if(f.fileId===fileId) out.push({tipo:'fattura',id:f.id});
+  for(const [k,c] of Object.entries(stato.commercialista||{})){ if(!c)continue; for(const [posto] of POSTI_COMMERCIALISTA) if(c[posto]===fileId) out.push({tipo:'commercialista',id:k,posto}); if((c.altri||[]).includes(fileId)) out.push({tipo:'commercialista',id:k,posto:'altri'}); }
   for(const c of stato.cantieri){ if(c.psc&&c.psc.fileId===fileId) out.push({tipo:'cantiere',id:c.id}); if(c.fotoId===fileId) out.push({tipo:'cantiere',id:c.id}); for(const dp of c.documentiProdotti||[]) if(dp.fileId===fileId) out.push({tipo:'cantiere',id:c.id}); }
   for(const k of Object.keys(stato.presenze||{})) for(const pid of Object.keys(stato.presenze[k].persone||{})) if(stato.presenze[k].persone[pid].foglioOreId===fileId) out.push({tipo:'presenze',id:k});
   for(const p of stato.persone){ if(p.fotoId===fileId||p.firmaId===fileId) out.push({tipo:'persona',id:p.id}); }
   return out;
 }
+// ---- nomi chiari: un solo criterio per ogni file che esce dall'app ----
+// «Tipo - Di chi - Quando.ext»: il tipo davanti, così in una cartella alla rinfusa i file dello stesso
+// genere stanno vicini; le parti che mancano si saltano. Documenti del giorno: gg-mm-aaaa; documenti
+// del mese: «settembre 2026». Il nome con cui il file è stato caricato resta in file[].nome (e nei
+// pacchetti degli XML delle fatture, che il commercialista riconosce dal nome dello SdI).
+function nomeChiaro(parti){return pulisciNomeFile(parti.filter(Boolean).join(' - ')).slice(0,120).trim()}
+function dataNomeFile(iso){return iso&&/^\d{4}-\d\d-\d\d/.test(iso)?iso.slice(8,10)+'-'+iso.slice(5,7)+'-'+iso.slice(0,4):''}
+function meseNomeFile(anno,mese){return anno&&mese?nomeMese(+mese)+' '+anno:''}
+function soggettoDocumento(d){return d.soggettoTipo==='persona'?nomePersona(persona(d.soggettoId)):d.soggettoTipo==='cantiere'?nomeCantiere(d.soggettoId):d.soggettoTipo==='mezzo'?nomeMezzo(perId('mezzi',d.soggettoId)).replace(/ · /g,' '):d.soggettoTipo==='cliente'?nomeCliente(d.soggettoId):''}
+function nomeChiaroDocumento(d){const t=tipoDoc(d.tipoId);const tipo=!t||/^altro_/.test(t.id)?(d.titolo||(t&&t.nome)||'Documento'):t.nome;return nomeChiaro([tipo,soggettoDocumento(d),dataNomeFile(d.dataEmissione)])}
+function nomeBaseChiaro(r,fileId){
+  if(r.tipo==='documento'){const d=perId('documenti',r.id);return d?nomeChiaroDocumento(d):''}
+  if(r.tipo==='busta'){const b=perId('bustePaga',r.id);return b?nomeChiaro(['Busta paga',nomePersona(persona(b.personaId)),meseNomeFile(b.anno,b.mese)]):''}
+  if(r.tipo==='versamento'){const v=perId('versamenti',r.id);return v?nomeChiaro([TIPI_VERSAMENTO[v.tipo],meseNomeFile(v.anno,v.mese)]):''}
+  if(r.tipo==='bonifico'){const b=perId('bonifici',r.id);return b?nomeChiaro(['Bonifico',b.controparte,dataNomeFile(b.data)]):''}
+  if(r.tipo==='movimento'){const m=perId('movimenti',r.id);return m?nomeChiaro([m.tipo==='nota_credito'?'Nota di credito':'Fattura',m.numero,m.controparte||nomeCliente(m.clienteId),dataNomeFile(m.data)]):''}
+  if(r.tipo==='isa') return nomeChiaro(['ISA',r.id]);
+  if(r.tipo==='bilancio'){const b=(stato.bilanci||{})[r.id]||{};const p=POSTI_BILANCIO.find(([k])=>b[k]===fileId);return nomeChiaro([p?p[1]:'Bilancio allegato',r.id])}
+  if(r.tipo==='cantiere'){const c=cantiere(r.id);if(!c)return'';if(c.psc&&c.psc.fileId===fileId)return nomeChiaro(['PSC',c.nome]);if(c.fotoId===fileId)return nomeChiaro(['Foto cantiere',c.nome]);const dp=(c.documentiProdotti||[]).find(x=>x.fileId===fileId);return dp?nomeChiaro([dp.titolo||dp.tipo,c.nome,dataNomeFile(dp.data)]):''}
+  if(r.tipo==='presenze'){const [a,m]=r.id.split('-');const pid=Object.keys((stato.presenze[r.id]||{}).persone||{}).find(k=>stato.presenze[r.id].persone[k].foglioOreId===fileId);return nomeChiaro(['Foglio ore',nomePersona(persona(pid)),meseNomeFile(a,m)])}
+  if(r.tipo==='persona'){const p=persona(r.id);return p?nomeChiaro([p.firmaId===fileId?'Firma':'Foto',nomePersona(p)]):''}
+  if(r.tipo==='commercialista'&&r.posto!=='altri'){const [a,m]=r.id.split('-');return nomeChiaro([(POSTI_COMMERCIALISTA.find(([k])=>k===r.posto)||[])[1],meseNomeFile(a,m)])}
+  return ''; // fatture XML e file liberi: il nome originale
+}
+function nomeChiaroFile(fileId){
+  const m=fileMeta(fileId);if(!m)return'';
+  const ref=riferimentiFile(m.id)[0];const base=ref?nomeBaseChiaro(ref,m.id):'';
+  if(!base) return m.nome;
+  const ext=estensioneDi(m.nome)||(ePdf(m.mime)?'pdf':'');
+  return base+(ext?'.'+ext:'');
+}
+// Nomi unici dentro un pacchetto: il secondo «F24 - settembre 2026.pdf» diventa «… 2.pdf»
+function nomeUnico(usati,percorso){let k=percorso,n=2;while(usati.has(k.toLowerCase())){k=percorso.replace(/(\.[^./]+)?$/,' '+n+'$1');n++}usati.add(k.toLowerCase());return k}
 // Cestino: i file senza più riferimenti restano 30 giorni, poi si eliminano davvero.
 function cestinaFileOrfani(s){
   const oggiIso=new Date().toISOString();
@@ -2343,6 +2405,8 @@ function pesoArchivio(){
       else if(r.tipo==='versamento'){sogg='Versamenti';tipo='F24 e Cassa Edile'}
       else if(r.tipo==='isa'){sogg='Azienda';tipo='Dichiarazione ISA'}
       else if(r.tipo==='bilancio'){sogg='Azienda';tipo='Bilancio '+r.id}
+      else if(r.tipo==='fattura'){sogg='Commercialista';tipo='Fattura XML'}
+      else if(r.tipo==='commercialista'){sogg='Commercialista';tipo='Documenti del mese'}
       else if(r.tipo==='cantiere'){sogg='Cantiere '+nomeCantiere(r.id);tipo='Documento di cantiere'}
       else if(r.tipo==='presenze'){sogg='Presenze';tipo='Foglio ore'}
       else if(r.tipo==='persona'){sogg=nomePersona(persona(r.id));tipo='Foto/firma'}
@@ -2495,7 +2559,7 @@ async function ripristinaBackup(letto,avanzamento){
 }
 // Fusione: confronta il backup del collaboratore con lo stato attuale e propone le differenze.
 // Ogni elemento con id: nuovo (non esiste qui), modificato (esiste, ultimaModifica diversa), uguale.
-const COLLEZIONI_FONDIBILI=['persone','documenti','file','clienti','professionisti','cantieri','pos','bustePaga','listino','preventivi','movimenti','generati','versamenti'];
+const COLLEZIONI_FONDIBILI=['persone','documenti','file','clienti','professionisti','cantieri','pos','bustePaga','listino','preventivi','movimenti','generati','versamenti','fatture'];
 function confrontaPerFusione(altro){
   const diff=[];
   for(const coll of COLLEZIONI_FONDIBILI){
@@ -2529,6 +2593,7 @@ function etichettaElemento(coll,x){
     case 'movimenti': return 'Movimento '+(x.numero||'')+' '+(x.controparte||'');
     case 'generati': return 'Documento generato: '+(x.titolo||'');
     case 'versamenti': return (x.tipo==='f24'?'F24 ':'Cassa Edile ')+(x.anno||'')+'-'+pad2(x.mese||0);
+    case 'fatture': return 'Fattura '+(x.tipo==='attiva'?'emessa ':'ricevuta ')+(x.numero||'')+' '+(x.controparte||'');
     default: return coll+' '+x.id;
   }
 }
@@ -2978,6 +3043,7 @@ const MENU=[
   {id:'documenti',testo:'Documenti',icona:'documenti',gruppo:'Amministrazione'},
   {id:'budget',testo:'Budget',icona:'budget',gruppo:'Amministrazione'},
   {id:'versamenti',testo:'Versamenti',icona:'bonifici',gruppo:'Amministrazione',alias:['bonifici']},
+  {id:'commercialista',testo:'Commercialista',icona:'cartella',gruppo:'Amministrazione'},
   {id:'fornitori',testo:'Fornitori',icona:'fornitori',gruppo:'Amministrazione'},
   {id:'fineanno',testo:'Fine anno',icona:'anno',gruppo:'Amministrazione',alias:['rimanenze']},
   {id:'impostazioni',testo:'Impostazioni',icona:'impostazioni',gruppo:'Sistema'},
@@ -3160,7 +3226,7 @@ AZIONI['copia']=d=>copiaNegliAppunti(d.testo).then(()=>avviso('Copiato negli app
 // dragenter/dragleave da tenere in sincronia, che su Chrome si disallineava facilmente e lasciava
 // il drop "morto" nonostante il cursore mostrasse la copia.
 let zonaDropAttiva=null;
-function trovaZonaDrop(target){return target&&target.closest&&(target.closest('[data-drop-bonifico]')||target.closest('[data-drop-doc]')||target.closest('[data-drop-soggetto]')||target.closest('[data-drop-caricamento]')||target.closest('[data-drop-buste]')||target.closest('[data-drop-versamenti]')||target.closest('.zona-drop'))}
+function trovaZonaDrop(target){return target&&target.closest&&(target.closest('[data-drop-bonifico]')||target.closest('[data-drop-doc]')||target.closest('[data-drop-soggetto]')||target.closest('[data-drop-caricamento]')||target.closest('[data-drop-buste]')||target.closest('[data-drop-versamenti]')||target.closest('[data-drop-fatture]')||target.closest('[data-drop-commdoc]')||target.closest('.zona-drop'))}
 function evidenziaZona(z){if(z===zonaDropAttiva)return;if(zonaDropAttiva)zonaDropAttiva.classList.remove('sopra');if(z)z.classList.add('sopra');zonaDropAttiva=z}
 // Mentre si trascina un file, le anteprime dei PDF (iframe) devono farsi da parte: un iframe è un
 // documento a sé, gli eventi di trascinamento sopra di lui non arrivano mai a questa pagina e il
@@ -3193,6 +3259,8 @@ window.addEventListener('drop',async e=>{
     if(z.hasAttribute('data-drop-caricamento')){ui.caricamentoFiles=files;ui.caricamentoRighe=null;return render()}
     if(z.hasAttribute('data-drop-buste')) return accodaBuste(files);
     if(z.hasAttribute('data-drop-versamenti')) return caricaVersamenti(files);
+    if(z.hasAttribute('data-drop-fatture')) return caricaFatture(files);
+    if(z.dataset.dropCommdoc) return /\.(zip|xml|p7m)$/i.test(files[0].name)?caricaFatture(files):caricaDocumentiComm(z.dataset.dropCommdoc,files);
   }
   if(typeof acquisizioneRapida==='function') acquisizioneRapida(files);
 });
@@ -3239,8 +3307,8 @@ function scegliFile(opz){
 // L'app lo controlla all'avvio, ogni mezz'ora e quando torna in primo piano: se è diversa avvisa,
 // e «Aggiorna ora» scarica la pagina nuova scavalcando le copie del browser. I dati non si toccano.
 // ---------------------------------------------------------------------
-const VERSIONE_APP='8ce1b90530';   // impronta del contenuto: dice se è cambiato qualcosa
-const NUMERO_VERSIONE='1.22'; // il numero per le persone: 1.0, 1.1…
+const VERSIONE_APP='53256ebcd0';   // impronta del contenuto: dice se è cambiato qualcosa
+const NUMERO_VERSIONE='1.23'; // il numero per le persone: 1.0, 1.1…
 function appPubblicata(){return location.protocol==='https:'}
 async function controllaAggiornamento(manuale){
   if(!appPubblicata()){if(manuale)avviso('Il controllo funziona sull\'app pubblicata, non su questa copia locale');return null}
@@ -5049,9 +5117,9 @@ AZIONI['file-firma']=async d=>{
 AZIONI['anteprima-ingrandisci']=()=>{const i=el('#pannello .foglio-anteprima img');if(i)i.classList.toggle('grande')};
 AZIONI['anteprima-ruota']=()=>{const i=el('#pannello .foglio-anteprima img');if(i){const r=((+i.dataset.r||0)+90)%360;i.dataset.r=r;i.style.transform='rotate('+r+'deg)'}};
 AZIONI['immagine-zoom']=d=>{dialogo({titolo:'Immagine',enorme:true,corpo:html`<img src="${d.src}" style="max-height:calc(100dvh - 160px);margin:0 auto;object-fit:contain">`,pulsanti:[{testo:'Chiudi',valore:true}]})};
-AZIONI['file-apri']=async d=>{const m=fileMeta(d.id);if(!m)return avviso('File non trovato',{tipo:'errore'});apriPannello({titolo:m.nome,largo:true,pieno:true,corpo:html`<div class="anteprima-nessuna">Caricamento…</div>`,piede:html`<button class="pulsante" data-azione="file-scarica" data-id="${m.id}">${icona('scarica')}Scarica</button><button class="pulsante" data-azione="file-condividi" data-id="${m.id}">${icona('condividi')}Condividi</button><span class="spazio"></span><span class="piccolo secondario">${fPeso(m.dimensione)}${m.compresso?' · compresso da '+fPeso(m.dimensioneOriginale):''}</span>`});const a=await htmlAnteprimaFile(m.id);const c=el('#pannello .corpo');if(c)c.innerHTML=a};
-AZIONI['file-scarica']=async d=>{const m=fileMeta(d.id);const b=await leggiFile(m.hash);if(!b)return avviso('Contenuto non disponibile',{tipo:'errore'});scaricaBlob(b,m.nome)};
-AZIONI['file-condividi']=async d=>{const m=fileMeta(d.id);const b=await leggiFile(m.hash);if(!b)return avviso('Contenuto non disponibile',{tipo:'errore'});condividiOScarica(b,m.nome)};
+AZIONI['file-apri']=async d=>{const m=fileMeta(d.id);if(!m)return avviso('File non trovato',{tipo:'errore'});apriPannello({titolo:nomeChiaroFile(m.id),sottotitolo:nomeChiaroFile(m.id)!==m.nome?h('caricato come «'+m.nome+'»'):'',largo:true,pieno:true,corpo:html`<div class="anteprima-nessuna">Caricamento…</div>`,piede:html`<button class="pulsante" data-azione="file-scarica" data-id="${m.id}">${icona('scarica')}Scarica</button><button class="pulsante" data-azione="file-condividi" data-id="${m.id}">${icona('condividi')}Condividi</button><span class="spazio"></span><span class="piccolo secondario">${fPeso(m.dimensione)}${m.compresso?' · compresso da '+fPeso(m.dimensioneOriginale):''}</span>`});const a=await htmlAnteprimaFile(m.id);const c=el('#pannello .corpo');if(c)c.innerHTML=a};
+AZIONI['file-scarica']=async d=>{const m=fileMeta(d.id);const b=await leggiFile(m.hash);if(!b)return avviso('Contenuto non disponibile',{tipo:'errore'});scaricaBlob(b,nomeChiaroFile(m.id))};
+AZIONI['file-condividi']=async d=>{const m=fileMeta(d.id);const b=await leggiFile(m.hash);if(!b)return avviso('Contenuto non disponibile',{tipo:'errore'});condividiOScarica(b,nomeChiaroFile(m.id))};
 
 // ---- pannello documento ----
 async function apriDocumento(docId){
@@ -7366,7 +7434,7 @@ AZIONI['pacchetto-genera']=async d=>{
         if(chiavi.some(k=>usati.has(k)))continue;chiavi.forEach(k=>usati.add(k));
         const blobs=[];for(const m of metas){const b=await leggiFile(m.hash);if(b)blobs.push(new File([b],m.nome,{type:m.mime||b.type}))}
         if(!blobs.length)continue;
-        const base=pulisci(v.nome+(v.doc.dataEmissione?' '+fDataBreve(v.doc.dataEmissione).replace(/\//g,'-'):''));
+        const base=nomeChiaroDocumento(v.doc);
         if(blobs.length>1) metti(cartella,base+'.pdf',await unisciInPdf(blobs),x);
         else metti(cartella,base+'.'+(estensioneDi(blobs[0].name)||'pdf'),blobs[0],x);
       } else if(x.generati.length){
@@ -7451,16 +7519,15 @@ document.addEventListener('change',e=>{const t=e.target;if(!t.dataset||!t.datase
 AZIONI['invio-tipi']=d=>{const st=statoInvio();st.tipi=d.valore==='tutti'?Object.fromEntries(stato.tipiDocumento.filter(t=>t.ambito==='persona').map(t=>[t.id,true])):{};render()};
 AZIONI['invio-persone']=d=>{const st=statoInvio();st.persone=d.valore==='tutti'?Object.fromEntries(stato.persone.filter(p=>p.attivo).map(p=>[p.id,true])):{};render()};
 AZIONI['invio-per']=d=>{statoInvio().per=d.valore;render()};
-// Percorso di ogni file dentro la cartella: «Rossi Mario/Visita medica 12-03-26.pdf» o «Visita medica/Rossi Mario 12-03-26.pdf»
+// Percorso di ogni file dentro la cartella: «Rossi Mario/Visita medica - Rossi Mario - 12-03-2026.pdf»
+// (o per tipo): il nome del file segue il criterio unico di nomeChiaroDocumento
 async function fileInvio(prog){
   const st=statoInvio();const {voci}=vociInvio();const out=[];const usati=new Set();const pul=s=>pulisciNomeFile(s);
   for(let i=0;i<voci.length;i++){
     const v=voci[i];if(prog){if(prog.annullato)return null;await prog.aggiorna(i,voci.length,v.chi+' · '+v.t.nome)}
-    const data=v.d.dataEmissione?' '+fDataBreve(v.d.dataEmissione).replace(/\//g,'-'):'';
-    const cartella=pul(st.per==='tipo'?v.t.nome:v.chi);const base=pul(st.per==='tipo'?v.chi:v.t.nome)+data;
+    const cartella=pul(st.per==='tipo'?v.t.nome:v.chi);const base=nomeChiaroDocumento(v.d);
     for(const fid of v.d.file){const m=fileMeta(fid);if(!m)continue;const b=await leggiFile(m.hash);if(!b)continue;
-      let nome=base+'.'+(estensioneDi(m.nome)||'pdf');let n=2;while(usati.has(cartella+'/'+nome)){nome=base+' '+n+'.'+(estensioneDi(m.nome)||'pdf');n++}
-      usati.add(cartella+'/'+nome);out.push({cartella,nome,dati:b})}
+      const nome=nomeUnico(usati,cartella+'/'+base+'.'+(estensioneDi(m.nome)||'pdf')).slice(cartella.length+1);out.push({cartella,nome,dati:b})}
   }
   return out;
 }
@@ -9890,6 +9957,274 @@ async function caricaBilanci(fs){
 
 
 /* ═══════════════════════════════════════════════════════════════════
+   SEZIONE JS · COMMERCIALISTA
+   ═══════════════════════════════════════════════════════════════════ */
+// ---------------------------------------------------------------------
+// COMMERCIALISTA: il pacchetto di fine mese, con le stesse cartelle che l'azienda tiene sul disco:
+//   «9 fatture attive n 4/» e «9 fatture passive n 30/» con gli XML, «9 settembre/» con i PDF.
+// Le fatture arrivano dallo ZIP scaricato dal portale (filtrato dal primo all'ultimo del mese) o da
+// XML singoli: attive e passive si dividono da sole con la partita IVA dell'azienda, il mese lo
+// sceglie chi carica (è quello del filtro sul portale, non si indovina dalle date).
+// Prima nota e liquidazione IVA (da SimplyFatt) si caricano qui perché non stanno altrove; tutto il
+// resto si prende da dove è già (Versamenti, Bonifici, Documenti): niente si carica due volte.
+// stato.fatture[] = {id, fileId, mese:'AAAA-MM', tipo:'attiva'|'passiva', numero, data, tipoDocumento,
+//                    controparte, piva, imponibile, imposta, totale, allegati}
+// stato.commercialista['AAAA-MM'] = {primaNota:fileId, iva:fileId, altri:[fileId], esclusi:[fileId],
+//                    preparato:ISO, inviato:ISO, contenuto:[percorsi nel pacchetto]}
+// ---------------------------------------------------------------------
+const POSTI_COMMERCIALISTA=[['primaNota','Prima nota'],['iva','Liquidazione IVA']];
+// Documenti dell'archivio che vanno al commercialista se sono datati nel mese (in attesa dell'elenco
+// completo dell'azienda): polizze, bolli e verbali dei mezzi, verbali e SAL dei cantieri.
+const TIPI_DOC_COMMERCIALISTA=['polizza','mezzo_assicurazione','mezzo_bollo','mezzo_verbale','verbale_cantiere','sal_cantiere'];
+const TIPI_FATTURA={TD01:'Fattura',TD02:'Acconto su fattura',TD03:'Acconto su parcella',TD04:'Nota di credito',TD05:'Nota di debito',TD06:'Parcella',TD16:'Integrazione reverse charge',TD17:'Autofattura servizi dall’estero',TD18:'Integrazione beni intra UE',TD19:'Integrazione beni art. 17 c. 2',TD20:'Autofattura di regolarizzazione',TD21:'Autofattura per splafonamento',TD22:'Estrazione da deposito IVA',TD23:'Estrazione da deposito IVA con versamento',TD24:'Fattura differita',TD25:'Fattura differita (triangolare)',TD26:'Cessione di beni ammortizzabili',TD27:'Autoconsumo o cessione gratuita',TD28:'Acquisto da San Marino'};
+const MODI_PAGAMENTO={MP01:'Contanti',MP02:'Assegno',MP03:'Assegno circolare',MP05:'Bonifico',MP07:'Bollettino bancario',MP08:'Carta di pagamento',MP09:'RID',MP12:'RIBA',MP16:'Domiciliazione bancaria',MP19:'SEPA Direct Debit',MP21:'SEPA Direct Debit B2B',MP23:'PagoPA'};
+const NATURE_IVA={N1:'Esclusa art. 15',N2:'Non soggetta',N3:'Non imponibile',N4:'Esente',N5:'Regime del margine',N6:'Inversione contabile',N7:'IVA assolta in altro Stato UE'};
+function naturaIva(n){return n?(NATURE_IVA[n.slice(0,2)]||n)+' ('+n+')':''}
+
+// ---- lettura dell'XML FatturaPA: tutto quello che serve a mostrarla per intero ----
+// Si cammina per figli diretti con il nome locale: i tag sono senza namespace tranne la radice, e un
+// selettore per discendenti confonderebbe per esempio la Data del documento con quella dei DDT.
+function leggiFatturaXml(testo){
+  const doc=new DOMParser().parseFromString(testo,'application/xml');
+  const radice=doc.documentElement;
+  if(doc.querySelector('parsererror')||!radice||radice.localName!=='FatturaElettronica') throw new Error('non è una fattura elettronica');
+  const figli=(els,nome)=>els.flatMap(e=>Array.from(e.children).filter(c=>c.localName===nome));
+  const tutti=(el,perc)=>el?perc.split('/').reduce((a,nome)=>figli(a,nome),[el]):[];
+  const uno=(el,perc)=>tutti(el,perc)[0]||null;
+  const t=(el,perc)=>{const e=uno(el,perc);return e?e.textContent.trim():''};
+  const n=(el,perc)=>{const v=parseFloat(t(el,perc));return isNaN(v)?null:v};
+  const soggetto=el=>({
+    nome:t(el,'DatiAnagrafici/Anagrafica/Denominazione')||[t(el,'DatiAnagrafici/Anagrafica/Nome'),t(el,'DatiAnagrafici/Anagrafica/Cognome')].filter(Boolean).join(' '),
+    paese:t(el,'DatiAnagrafici/IdFiscaleIVA/IdPaese'),piva:t(el,'DatiAnagrafici/IdFiscaleIVA/IdCodice'),cf:t(el,'DatiAnagrafici/CodiceFiscale'),
+    via:[t(el,'Sede/Indirizzo'),t(el,'Sede/NumeroCivico')].filter(Boolean).join(' '),cap:t(el,'Sede/CAP'),comune:t(el,'Sede/Comune'),provincia:t(el,'Sede/Provincia'),nazione:t(el,'Sede/Nazione'),
+    email:t(el,'Contatti/Email'),telefono:t(el,'Contatti/Telefono'),rea:[t(el,'IscrizioneREA/Ufficio'),t(el,'IscrizioneREA/NumeroREA')].filter(Boolean).join('-')});
+  const testa=uno(radice,'FatturaElettronicaHeader');
+  const corpi=tutti(radice,'FatturaElettronicaBody');
+  if(!testa||!corpi.length) throw new Error('fattura senza intestazione o senza corpo');
+  const cedente=soggetto(uno(testa,'CedentePrestatore')),cessionario=soggetto(uno(testa,'CessionarioCommittente'));
+  const documenti=corpi.map(b=>{
+    const dg=uno(b,'DatiGenerali/DatiGeneraliDocumento');
+    const rif=(perc,num,data)=>tutti(b,'DatiGenerali/'+perc).map(e=>({numero:t(e,num),data:t(e,data)})).filter(x=>x.numero||x.data);
+    const riepilogo=tutti(b,'DatiBeniServizi/DatiRiepilogo').map(r=>({aliquota:n(r,'AliquotaIVA'),natura:t(r,'Natura'),imponibile:n(r,'ImponibileImporto')||0,imposta:n(r,'Imposta')||0,esigibilita:t(r,'EsigibilitaIVA'),norma:t(r,'RiferimentoNormativo')}));
+    const imponibile=arrotonda2(somma(riepilogo,r=>r.imponibile)),imposta=arrotonda2(somma(riepilogo,r=>r.imposta));
+    const totale=n(dg,'ImportoTotaleDocumento');
+    return {
+      tipoDocumento:t(dg,'TipoDocumento'),divisa:t(dg,'Divisa')||'EUR',data:t(dg,'Data'),numero:t(dg,'Numero'),
+      causale:tutti(dg,'Causale').map(e=>e.textContent.trim()).join(' '),
+      ritenute:tutti(dg,'DatiRitenuta').map(e=>({tipo:t(e,'TipoRitenuta'),importo:n(e,'ImportoRitenuta')||0,aliquota:n(e,'AliquotaRitenuta')})),
+      bollo:n(dg,'DatiBollo/ImportoBollo'),
+      casse:tutti(dg,'DatiCassaPrevidenziale').map(e=>({tipo:t(e,'TipoCassa'),importo:n(e,'ImportoContributoCassa')||0})),
+      ordini:rif('DatiOrdineAcquisto','IdDocumento','Data'),contratti:rif('DatiContratto','IdDocumento','Data'),
+      ddt:rif('DatiDDT','NumeroDDT','DataDDT'),collegate:rif('DatiFattureCollegate','IdDocumento','Data'),
+      linee:tutti(b,'DatiBeniServizi/DettaglioLinee').map(l=>({codice:t(l,'CodiceArticolo/CodiceValore'),descrizione:t(l,'Descrizione'),quantita:n(l,'Quantita'),um:t(l,'UnitaMisura'),prezzo:n(l,'PrezzoUnitario'),
+        sconti:tutti(l,'ScontoMaggiorazione').map(s=>({tipo:t(s,'Tipo'),percentuale:n(s,'Percentuale'),importo:n(s,'Importo')})),totale:n(l,'PrezzoTotale'),aliquota:n(l,'AliquotaIVA'),natura:t(l,'Natura')})),
+      riepilogo,imponibile,imposta,totale:totale!=null?totale:arrotonda2(imponibile+imposta),
+      pagamenti:tutti(b,'DatiPagamento').flatMap(p=>tutti(p,'DettaglioPagamento').map(d=>({condizioni:t(p,'CondizioniPagamento'),modalita:t(d,'ModalitaPagamento'),scadenza:t(d,'DataScadenzaPagamento'),importo:n(d,'ImportoPagamento'),iban:t(d,'IBAN'),istituto:t(d,'IstitutoFinanziario'),beneficiario:t(d,'Beneficiario')}))),
+      allegati:tutti(b,'Allegati').map(a=>({nome:t(a,'NomeAttachment'),formato:t(a,'FormatoAttachment'),descrizione:t(a,'DescrizioneAttachment'),dati:t(a,'Attachment')}))
+    };
+  });
+  return {cedente,cessionario,documenti};
+}
+// Attiva se l'abbiamo emessa noi, passiva se è intestata a noi; altrimenti non è dell'azienda.
+function versoFattura(f,piva){const p=String(piva||'').replace(/\D/g,'');if(!p)return null;if(f.cedente.piva.replace(/\D/g,'')===p)return 'attiva';if(f.cessionario.piva.replace(/\D/g,'')===p||f.cessionario.cf.replace(/\D/g,'')===p)return 'passiva';return null}
+// Nome della cartella come nelle cartelle dell'azienda: «9 fatture attive n 4»
+function cartellaFatture(mese,tipo,n){return `${+mese.slice(5)} fatture ${tipo==='attiva'?'attive':'passive'} n ${n}`}
+// Numeri delle fatture emesse che mancano nella sequenza dell'anno (solo dove il numero è leggibile)
+function numeriMancanti(numeri){const v=unici(numeri.map(x=>parseInt(String(x).replace(/^\D+/,''),10)).filter(x=>x>0)).sort((a,b)=>a-b);const out=[];for(let i=1;i<v.length;i++)for(let k=v[i-1]+1;k<v[i]&&out.length<20;k++)out.push(k);return out}
+
+// ---- dati del mese ----
+function meseCommercialista(k){return (stato.commercialista||{})[k]||{}}
+function fattureMese(k,tipo){return (stato.fatture||[]).filter(f=>f.mese===k&&(!tipo||f.tipo===tipo)).sort((a,b)=>(a.data||'')<(b.data||'')?-1:(a.data||'')>(b.data||'')?1:String(a.numero).localeCompare(String(b.numero),'it',{numeric:true}))}
+// Quello che entra nella cartella dei documenti dalle altre sezioni: F24 con scadenza nel mese,
+// Cassa Edile pagata nel mese, bonifici del mese, documenti datati nel mese dei tipi scelti.
+function documentiAltreSezioni(k){
+  const [a,m]=k.split('-').map(Number);const nel=iso=>(iso||'').startsWith(k);const out=[];
+  const metti=(fileId,fonte,href,data)=>{if(fileId&&fileMeta(fileId)&&!out.some(x=>x.fileId===fileId))out.push({fileId,fonte,href,data})};
+  for(const v of stato.versamenti||[]){
+    if(v.tipo==='f24'?v.anno===a&&v.mese===m:nel(v.dataPagamento)||(!v.dataPagamento&&nel(scadenzaVersamento(v)))) metti(v.fileId,'Versamenti',v.tipo==='f24'?'versamenti/f24':'versamenti/cassa',v.dataPagamento||scadenzaVersamento(v));
+  }
+  for(const b of stato.bonifici||[]) if(nel(b.data)) metti(b.fileId,'Bonifici','versamenti/bonifici',b.data);
+  for(const d of stato.documenti) if(TIPI_DOC_COMMERCIALISTA.includes(d.tipoId)&&nel(d.dataEmissione)) for(const f of d.file||[]) metti(f,'Documenti','documenti?doc='+d.id,d.dataEmissione);
+  return out.sort((x,y)=>(x.data||'')<(y.data||'')?-1:1);
+}
+// Tutti i file della cartella documenti, con il nome che avranno nel pacchetto
+function documentiMese(k){
+  const c=meseCommercialista(k);const esclusi=new Set(c.esclusi||[]);
+  const propri=[...POSTI_COMMERCIALISTA.map(([p,t])=>c[p]?{fileId:c[p],fonte:t,posto:p}:null).filter(Boolean),...(c.altri||[]).filter(fileMeta).map(id=>({fileId:id,fonte:'Caricato qui',posto:'altri'}))];
+  return [...propri,...documentiAltreSezioni(k)].filter(x=>fileMeta(x.fileId)).map(x=>Object.assign(x,{incluso:!esclusi.has(x.fileId),nome:nomeChiaroFile(x.fileId)}));
+}
+function mesiCommercialista(){
+  const d=new Date();const out=new Set();for(let i=0;i<13;i++){const x=new Date(d.getFullYear(),d.getMonth()-i,1);out.add(chiaveMese(x.getFullYear(),x.getMonth()+1))}
+  for(const f of stato.fatture||[])out.add(f.mese);for(const k of Object.keys(stato.commercialista||{}))out.add(k);
+  return [...out].sort().reverse();
+}
+function meseScelto(r){const p=mesePrecedente(new Date().getFullYear(),new Date().getMonth()+1);return r.id&&/^\d{4}-\d\d$/.test(r.id)?r.id:ui.filtri.commercialista||chiaveMese(p.anno,p.mese)}
+
+VISTE.commercialista=function(r){
+  const k=meseScelto(r);const [a,m]=k.split('-').map(Number);ui.filtri.commercialista=k;
+  const att=fattureMese(k,'attiva'),pas=fattureMese(k,'passiva'),docs=documentiMese(k),c=meseCommercialista(k);
+  const mancaPosto=POSTI_COMMERCIALISTA.filter(([p])=>!c[p]);
+  const buchi=numeriMancanti((stato.fatture||[]).filter(f=>f.tipo==='attiva'&&f.mese.slice(0,4)===String(a)&&f.tipoDocumento!=='TD04').map(f=>f.numero));
+  const note=fattureMese(k).filter(f=>f.tipoDocumento==='TD04').length;
+  const tot=ff=>somma(ff,f=>(f.tipoDocumento==='TD04'?-1:1)*(+f.totale||0));
+  const riquadro=(titolo,valore,sotto,cls)=>html`<div class="scheda"><div class="occhiello">${titolo}</div><div class="grande-numero ${cls||''}">${valore}</div><div class="piccolo silenzioso">${sotto}</div></div>`;
+  const tabFatture=(ff,tipo)=>ff.length?html`<div class="tabella-scorri"><table class="tabella densa"><thead><tr><th>Numero</th><th>Data</th><th>${tipo==='attiva'?'Cliente':'Fornitore'}</th><th>Documento</th><th class="num">Imponibile</th><th class="num">Totale</th><th></th></tr></thead><tbody>
+    ${ff.map(f=>html`<tr class="cliccabile" data-azione="fattura-apri" data-id="${f.id}" title="Apri la fattura"><td><b>${f.numero}</b></td><td>${fData(f.data)}</td><td class="taglia" style="max-width:260px">${f.controparte}</td><td>${f.tipoDocumento==='TD01'?'':html`<span class="pillola ${f.tipoDocumento==='TD04'?'scadenza':'neutro'}">${TIPI_FATTURA[f.tipoDocumento]||f.tipoDocumento}</span>`}${f.allegati?html` <span title="Con il PDF del ${tipo==='attiva'?'programma di fatturazione':'fornitore'}">${icona('pdf','piccola')}</span>`:''}</td><td class="num">${fEuro(f.imponibile)}</td><td class="num"><b>${fEuro(f.totale)}</b></td><td><button class="pulsante piccolo discreto icona" data-azione="fattura-togli" data-id="${f.id}" title="Togli dal mese">${icona('chiudi','piccola')}</button></td></tr>`)}
+  </tbody></table></div>`:html`<p class="piccolo silenzioso">Nessuna fattura ${tipo==='attiva'?'emessa':'ricevuta'} caricata per ${nomeMese(m)}.</p>`;
+  const cellaPosto=(p,t)=>{const id=c[p];return html`<li><span class="spazio"><b>${t}</b><br><span class="piccolo silenzioso">${id?nomeChiaroFile(id):'da SimplyFatt · non ancora caricata'}</span></span>${id?html`<button class="pulsante piccolo" data-azione="file-apri" data-id="${id}">${icona('pdf','piccola')}Apri</button><button class="pulsante piccolo discreto icona" data-azione="comm-togli" data-mese="${k}" data-posto="${p}" data-id="${id}" title="Togli">${icona('chiudi','piccola')}</button>`:html`<button class="pulsante piccolo" data-azione="comm-carica" data-mese="${k}" data-posto="${p}">${icona('carica','piccola')}Carica</button>`}</li>`};
+  const altre=docs.filter(x=>!x.posto);
+  return html`<div class="testata"><div><div class="occhiello">Amministrazione</div><h1>Commercialista</h1><p class="sotto">Ogni mese fatture attive e passive in XML e i documenti in PDF, nelle cartelle di sempre e pronti da mandare.</p></div>
+    <div class="azioni"><button class="pulsante" data-azione="fatture-carica">${icona('carica','piccola')}Carica fatture</button><button class="pulsante primario" data-azione="comm-pacchetto" data-mese="${k}">Prepara pacchetto<span class="manopola">${icona('pacchetto','piccola')}</span></button></div></div>
+  <div class="strumenti-tabella"><select data-cambio="comm-mese" aria-label="Mese">${mesiCommercialista().map(x=>html`<option value="${x}" ${x===k?'selected':''}>${fMeseAnno(+x.slice(0,4),+x.slice(5))}</option>`)}</select>
+    ${c.inviato?html`<span class="pillola valido">${icona('ok','piccola')}mandato il ${fData(c.inviato.slice(0,10))}</span>`:c.preparato?html`<span class="pillola scadenza">pacchetto preparato il ${fData(c.preparato.slice(0,10))}, non segnato come mandato</span>`:''}
+    <span class="spazio"></span>${c.preparato?html`<button class="pulsante piccolo discreto" data-azione="comm-inviato" data-mese="${k}">${c.inviato?'Non ancora mandato':'Segna come mandato'}</button>`:''}</div>
+  ${buchi.length?html`<div class="avviso-inline attenzione">${icona('attenzione')}<div class="corpo">Fatture emesse del ${a}: nella numerazione mancano i numeri <b>${buchi.join(', ')}</b>. Forse non sono ancora state caricate.</div></div>`:''}
+  <div class="griglia tre mb">
+    ${riquadro('Fatture attive',att.length,att.length?fEuro(tot(att))+' totale documenti':'nessuna')}
+    ${riquadro('Fatture passive',pas.length,pas.length?fEuro(tot(pas))+' totale documenti'+(note?' · '+plurale(note,'nota di credito','note di credito'):''):'nessuna')}
+    ${riquadro('Documenti',docs.filter(x=>x.incluso).length,mancaPosto.length?'manca '+mancaPosto.map(([,t])=>t.toLowerCase()).join(' e '):'prima nota e IVA ci sono',mancaPosto.length?'warn-t':'')}
+  </div>
+  <div class="zona-drop piccola mb" data-azione="fatture-carica" data-drop-fatture>${icona('carica')}<div><b>Trascina qui lo ZIP delle fatture scaricato dal portale</b><br><span>O gli XML (anche firmati .p7m). Divido io attive e passive; il mese lo scegli tu, come il filtro sul portale.</span></div></div>
+  <div class="sezione-titolo">${cartellaFatture(k,'attiva',att.length)}</div>${tabFatture(att,'attiva')}
+  <div class="sezione-titolo">${cartellaFatture(k,'passiva',pas.length)}</div>${tabFatture(pas,'passiva')}
+  <div class="sezione-titolo">${m} ${nomeMese(m)} · documenti</div>
+  <div class="scheda" data-drop-commdoc="${k}"><ul class="elenco-piatto">${POSTI_COMMERCIALISTA.map(([p,t])=>cellaPosto(p,t))}</ul>
+    <div class="sezione-titolo">Dalle altre sezioni</div>
+    ${altre.length?html`<ul class="elenco-piatto">${altre.map(x=>html`<li><label class="riga stretta spazio"><input type="checkbox" data-cambio="comm-includi" data-mese="${k}" data-id="${x.fileId}" ${x.incluso?'checked':''}><span class="spazio"><b>${x.nome}</b><br><span class="piccolo silenzioso">da <a href="#/${x.href}">${x.fonte}</a></span></span></label><button class="pulsante piccolo discreto" data-azione="file-apri" data-id="${x.fileId}">Apri</button></li>`)}</ul>`:html`<p class="piccolo silenzioso">Niente per ${nomeMese(m)}: F24, Cassa Edile, bonifici, polizze e verbali compaiono qui da soli quando li carichi nelle loro sezioni.</p>`}
+    <div class="sezione-titolo">Altri file</div>
+    <ul class="elenco-piatto">${docs.filter(x=>x.posto==='altri').map(x=>html`<li><span class="spazio"><b>${x.nome}</b></span><button class="pulsante piccolo discreto" data-azione="file-apri" data-id="${x.fileId}">Apri</button><button class="pulsante piccolo discreto icona" data-azione="comm-togli" data-mese="${k}" data-posto="altri" data-id="${x.fileId}" title="Togli">${icona('chiudi','piccola')}</button></li>`)}</ul>
+    <button class="pulsante piccolo discreto mt-s" data-azione="comm-carica" data-mese="${k}" data-posto="altri">${icona('piu','piccola')}Aggiungi file che non stanno in altre sezioni</button>
+    <p class="piccolo silenzioso mt-s">Puoi trascinare i PDF su questo riquadro: prima nota e IVA le riconosco dal nome.</p></div>`;
+};
+AZIONI['comm-mese']=(d,t)=>vai('commercialista/'+t.value);
+AZIONI['comm-includi']=(d,t)=>esegui(t.checked?'Incluso nel pacchetto':'Escluso dal pacchetto',s=>{const c=assicuraMeseComm(s,d.mese);c.esclusi=(c.esclusi||[]).filter(x=>x!==d.id);if(!t.checked)c.esclusi.push(d.id)},{silenzioso:true});
+function assicuraMeseComm(s,k){s.commercialista=s.commercialista||{};return s.commercialista[k]=s.commercialista[k]||{altri:[],esclusi:[]}}
+function postoDaNome(nome){const n=normalizzaTesto(nome);return /prima nota/.test(n)?'primaNota':/(^| )(iva|liquidazione|liq)( |$)/.test(n)?'iva':'altri'}
+async function caricaDocumentiComm(k,files,posto){
+  const esiti=[];for(const f of files){const e=await acquisisciFile(f,{});esiti.push([posto||postoDaNome(f.name),e.rec.id])}
+  esegui('Caricati '+plurale(esiti.length,'documento','documenti')+' per il commercialista',s=>{const c=assicuraMeseComm(s,k);c.altri=c.altri||[];for(const [p,id] of esiti){if(p==='altri'){if(!c.altri.includes(id))c.altri.push(id)}else{if(c[p]&&c[p]!==id&&!c.altri.includes(c[p]))c.altri.push(c[p]);c[p]=id}}});
+}
+AZIONI['comm-carica']=async d=>{const fs=await scegliFile({multipli:d.posto==='altri',accetta:'.pdf,image/*,.xlsx,.xls,.csv,.doc,.docx'});if(fs.length)await caricaDocumentiComm(d.mese,fs,d.posto)};
+AZIONI['comm-togli']=async d=>{if(!(await conferma('Togliere questo file dal mese? Finisce nel cestino per 30 giorni.',{pericolo:true,ok:'Togli'})))return;esegui('Tolto dal mese',s=>{const c=assicuraMeseComm(s,d.mese);if(d.posto==='altri')c.altri=(c.altri||[]).filter(x=>x!==d.id);else c[d.posto]=null;cestinaFileOrfani(s)})};
+AZIONI['comm-inviato']=d=>esegui('Mese segnato come '+(meseCommercialista(d.mese).inviato?'non mandato':'mandato'),s=>{const c=assicuraMeseComm(s,d.mese);c.inviato=c.inviato?null:new Date().toISOString()});
+
+// ---- caricamento delle fatture ----
+async function fileFattureDa(files){ // → [{nome,bytes,testo|errore}]
+  const out=[];const aggiungi=(nome,u8)=>{try{out.push({nome,bytes:u8,testo:/\.p7m$/i.test(nome)?xmlDaP7m(u8):new TextDecoder().decode(u8)})}catch(e){out.push({nome,errore:e.message})}};
+  for(const f of files){
+    if(/\.zip$/i.test(f.name)){const zip=await leggiZip(f);for(const v of zip.voci){const nome=v.nome.split('/').pop();if(/(^|\/)__MACOSX\//.test(v.nome)||nome.startsWith('.')||!/\.(xml|p7m)$/i.test(nome))continue;aggiungi(nome,await zip.estrai(v))}}
+    else if(/\.(xml|p7m)$/i.test(f.name)) aggiungi(f.name,new Uint8Array(await leggiComeArrayBuffer(f)));
+    else out.push({nome:f.name,errore:'non è un XML né uno ZIP'});
+  }
+  return out;
+}
+AZIONI['fatture-carica']=async()=>{const fs=await scegliFile({accetta:'.zip,.xml,.p7m'});if(fs.length)await caricaFatture(fs)};
+async function caricaFatture(files){
+  let letti;try{letti=await fileFattureDa(files)}catch(e){return segnalaErrore(e,'Non sono riuscito ad aprire i file')}
+  const nuove=[],gia=[],errori=[];const chiave=f=>[f.piva,f.tipo,f.numero,f.data].join('|');
+  const esistenti=new Set((stato.fatture||[]).map(chiave));
+  for(const x of letti){
+    if(x.errore){errori.push(x.nome+': '+x.errore);continue}
+    try{
+      const f=leggiFatturaXml(x.testo);const d=f.documenti[0];const tipo=versoFattura(f,stato.azienda.piva);
+      if(!tipo){errori.push(x.nome+': non è intestata né emessa da '+(nomeImpresa(true)||'l\'azienda'));continue}
+      const contro=tipo==='attiva'?f.cessionario:f.cedente;
+      const rec={tipo,numero:d.numero,data:d.data,tipoDocumento:d.tipoDocumento,controparte:contro.nome,piva:contro.piva||contro.cf,imponibile:d.imponibile,imposta:d.imposta,totale:d.totale,allegati:d.allegati.length,nomeFile:x.nome,bytes:x.bytes};
+      if(esistenti.has(chiave(rec))||nuove.some(y=>chiave(y)===chiave(rec))){gia.push(rec);continue}
+      nuove.push(rec);
+    }catch(e){errori.push(x.nome+': '+e.message)}
+  }
+  if(!nuove.length) return informa('Nessuna fattura nuova',html`<p>${gia.length?html`${plurale(gia.length,'fattura era','fatture erano')} già caricate. `:''}${errori.length?html`${plurale(errori.length,'file non letto','file non letti')}:`:''}</p>${errori.length?html`<ul class="piccolo">${errori.slice(0,15).map(e=>html`<li>${e}</li>`)}</ul>`:''}`);
+  // mese proposto: quello che compare di più nelle date (lo ZIP del portale è filtrato per mese)
+  const conta=new Map();for(const f of nuove){const k=(f.data||'').slice(0,7);if(k)conta.set(k,(conta.get(k)||0)+1)}
+  const proposto=[...conta.entries()].sort((a,b)=>b[1]-a[1])[0]?.[0]||ui.filtri.commercialista;
+  const mesi=unici([proposto,...mesiCommercialista()]).sort().reverse();
+  const nA=nuove.filter(f=>f.tipo==='attiva').length,nP=nuove.length-nA;
+  const mese=await dialogo({titolo:'Carica fatture',largo:true,corpo:html`<p>Ho trovato <b>${plurale(nA,'fattura attiva','fatture attive')}</b> e <b>${plurale(nP,'fattura passiva','fatture passive')}</b>${gia.length?html`; ${plurale(gia.length,'era già caricata','erano già caricate')} e le salto`:''}.</p>
+    <div class="campo"><label>Mese a cui vanno (quello del filtro sul portale)</label><select name="mese">${mesi.map(x=>html`<option value="${x}" ${x===proposto?'selected':''}>${fMeseAnno(+x.slice(0,4),+x.slice(5))}</option>`)}</select></div>
+    ${errori.length?html`<details class="mt-s"><summary class="warn-t piccolo">${plurale(errori.length,'file non letto','file non letti')}</summary><ul class="piccolo">${errori.map(e=>html`<li>${e}</li>`)}</ul></details>`:''}
+    <details class="mt-s"><summary class="piccolo">Vedi l'elenco</summary><table class="tabella densa"><tbody>${nuove.map(f=>html`<tr><td>${f.tipo==='attiva'?'Attiva':'Passiva'}</td><td>${f.numero}</td><td>${fData(f.data)}</td><td class="taglia" style="max-width:240px">${f.controparte}</td><td class="num">${fEuro(f.totale)}</td></tr>`)}</tbody></table></details>`,
+    pulsanti:[{testo:'Annulla',valore:null},{testo:'Carica',classe:'primario',primario:true,fn:v=>v.querySelector('[name=mese]').value}]});
+  if(!mese) return;
+  const prog=dialogoAvanzamento('Archiviazione delle fatture');
+  try{
+    for(let i=0;i<nuove.length;i++){const f=nuove[i];await prog.aggiorna(i,nuove.length,f.nomeFile);
+      const blob=new File([f.bytes],f.nomeFile,{type:/\.p7m$/i.test(f.nomeFile)?'application/pkcs7-mime':'application/xml'});
+      f.fileId=(await salvaFile(blob,{nome:f.nomeFile},{dentroEsegui:true})).rec.id;delete f.bytes;delete f.nomeFile}
+  }finally{prog.chiudi()}
+  esegui(`Caricate ${nuove.length} fatture di ${fMeseAnno(+mese.slice(0,4),+mese.slice(5))}`,s=>{s.fatture=s.fatture||[];for(const f of nuove)s.fatture.push(Object.assign({id:nuovoId('ft'),mese},f))},{senzaRender:true});
+  vai('commercialista/'+mese);render();
+}
+AZIONI['fattura-togli']=async d=>{const f=perId('fatture',d.id);if(!f||!(await conferma(`Togliere la fattura ${f.numero} di ${f.controparte}? L'XML resta nel cestino per 30 giorni.`,{pericolo:true,ok:'Togli'})))return;esegui('Tolta fattura '+f.numero,s=>{s.fatture=s.fatture.filter(x=>x.id!==f.id);cestinaFileOrfani(s)})};
+
+// ---- la fattura da leggere: impaginata dall'app, con PDF e stampa dall'anteprima ----
+async function fatturaLetta(f){const b=await leggiFile(f.fileId);if(!b)throw new Error('file della fattura non trovato nell\'archivio');const u8=new Uint8Array(await leggiComeArrayBuffer(b));return leggiFatturaXml(/\.p7m$/i.test((fileMeta(f.fileId)||{}).nome||'')?xmlDaP7m(u8):new TextDecoder().decode(u8))}
+function docFattura(x,nomeFile){
+  const imp=v=>v==null?'':h(fNum(v,2));
+  const sogg=(et,s)=>`<div class="fatt-sogg"><span class="et">${h(et)}</span><b>${h(s.nome)}</b><br>${h(s.via)}<br>${h([s.cap,s.comune,s.provincia?'('+s.provincia+')':''].filter(Boolean).join(' '))}${s.nazione&&s.nazione!=='IT'?' '+h(s.nazione):''}<br>${s.piva?'P.IVA '+h(s.paese+s.piva):''}${s.cf&&s.cf!==s.piva?(s.piva?' · ':'')+'C.F. '+h(s.cf):''}${s.email?'<br>'+h(s.email):''}</div>`;
+  const blocchi=[];
+  x.documenti.forEach((d,i)=>{
+    const tipo=TIPI_FATTURA[d.tipoDocumento]||d.tipoDocumento;
+    const rif=unici([...d.ordini.map(o=>'Ordine '+o.numero+(o.data?' del '+fData(o.data):'')),...d.contratti.map(o=>'Contratto '+o.numero+(o.data?' del '+fData(o.data):'')),...d.ddt.map(o=>'DDT '+o.numero+(o.data?' del '+fData(o.data):'')),...d.collegate.map(o=>'Rif. fattura '+o.numero+(o.data?' del '+fData(o.data):''))]); // lo stesso DDT si ripete per ogni riga che richiama
+    blocchi.push({html:`<div class="fatt-testa ${i?'nuova':''}"><div><div class="fatt-tipo">${h(tipo)}</div><div class="fatt-num">N. <b>${h(d.numero)}</b> del <b>${h(fData(d.data))}</b></div></div><div class="fatt-totale"><span class="et">Totale documento</span><b>${h(fEuro(d.totale))}</b></div></div>
+      <div class="fatt-soggetti">${sogg('Fornitore',x.cedente)}${sogg('Cliente',x.cessionario)}</div>${rif.length||d.causale?`<p class="fatt-rif">${rif.map(h).join(' · ')}${d.causale?(rif.length?'<br>':'')+h(d.causale):''}</p>`:''}`,tieniConSuccessivo:true});
+    // colonne che nessuna riga usa (spesso U.M. e sconto) non si stampano
+    const col=[['Descrizione','',l=>(l.codice?'<span class="mini">'+h(l.codice)+'</span> ':'')+h(l.descrizione).replace(/\n/g,'<br>')],
+      ['Q.tà','num',l=>l.quantita!=null?h(fNum(l.quantita,Number.isInteger(l.quantita)?0:2)):''],['U.M.','',l=>h(l.um)],
+      ['Prezzo','num',l=>l.prezzo!=null?h(fNum(l.prezzo,2)):''],['Sconto','num',l=>l.sconti.map(s=>(s.tipo==='MG'?'+':'-')+(s.percentuale!=null?fNum(s.percentuale,2)+'%':fNum(s.importo||0,2))).map(h).join(' ')],
+      ['Importo','num',l=>imp(l.totale)],['IVA','num',l=>l.natura?h(l.natura):l.aliquota!=null?h(fNum(l.aliquota,0))+'%':'']].filter(([,,f],i)=>i===0||d.linee.some(l=>f(l)));
+    blocchi.push(`<table class="fatt-righe"><thead><tr>${col.map(([t,c])=>`<th class="${c}">${t}</th>`).join('')}</tr></thead><tbody>${d.linee.map(l=>`<tr>${col.map(([,c,f])=>`<td class="${c}">${f(l)}</td>`).join('')}</tr>`).join('')||`<tr><td colspan="${col.length}" class="mini">Nessuna riga.</td></tr>`}</tbody></table>`);
+    const rit=somma(d.ritenute,r=>r.importo),cassa=somma(d.casse,c=>c.importo);
+    const netto=arrotonda2(d.totale-rit);
+    blocchi.push(`<div class="fatt-fondo"><table class="fatt-iva"><thead><tr><th>Aliquota</th><th class="num">Imponibile</th><th class="num">Imposta</th><th>Note</th></tr></thead><tbody>${d.riepilogo.map(r=>`<tr><td>${r.natura?h(naturaIva(r.natura)):h(fNum(r.aliquota||0,0))+'%'}</td><td class="num">${imp(r.imponibile)}</td><td class="num">${imp(r.imposta)}</td><td class="mini">${h([r.esigibilita==='S'?'Scissione dei pagamenti':r.esigibilita==='D'?'Esigibilità differita':'',r.norma].filter(Boolean).join(' · '))}</td></tr>`).join('')}</tbody></table>
+      <table class="fatt-tot"><tbody><tr><td>Imponibile</td><td class="num">${h(fEuro(d.imponibile))}</td></tr><tr><td>IVA</td><td class="num">${h(fEuro(d.imposta))}</td></tr>${cassa?`<tr><td>Cassa previdenziale</td><td class="num">${h(fEuro(cassa))}</td></tr>`:''}${d.bollo?`<tr><td>Bollo</td><td class="num">${h(fEuro(d.bollo))}</td></tr>`:''}<tr class="totale"><td>Totale documento</td><td class="num">${h(fEuro(d.totale))}</td></tr>${rit?`<tr><td>Ritenuta d'acconto</td><td class="num">-${h(fEuro(rit))}</td></tr><tr class="totale"><td>Netto a pagare</td><td class="num">${h(fEuro(netto))}</td></tr>`:''}</tbody></table></div>`);
+    if(d.pagamenti.length) blocchi.push(`<table class="fatt-pag"><thead><tr><th>Pagamento</th><th>Scadenza</th><th class="num">Importo</th><th>Coordinate</th></tr></thead><tbody>${d.pagamenti.map(p=>`<tr><td>${h(MODI_PAGAMENTO[p.modalita]||p.modalita)}${p.condizioni==='TP01'?' <span class="mini">(a rate)</span>':''}</td><td>${p.scadenza?h(fData(p.scadenza)):''}</td><td class="num">${imp(p.importo)}</td><td>${p.iban?'IBAN '+h(p.iban):''}${p.istituto?(p.iban?'<br>':'')+'<span class="mini">'+h(p.istituto)+'</span>':''}${p.beneficiario?'<br><span class="mini">a '+h(p.beneficiario)+'</span>':''}</td></tr>`).join('')}</tbody></table>`);
+    if(d.allegati.length) blocchi.push(`<p class="fatt-nota">Allegati nel file: ${d.allegati.map(a=>h(a.nome||'senza nome')).join(', ')}</p>`);
+  });
+  blocchi.push(`<p class="fatt-nota">Copia di cortesia letta dal file «${h(nomeFile||'')}». Ha valore fiscale solo il file XML trasmesso tramite il Sistema di Interscambio.</p>`);
+  const d0=x.documenti[0];
+  return {titolo:nomeChiaro([TIPI_FATTURA[d0.tipoDocumento]||'Fattura',d0.numero,(versoFattura(x,stato.azienda.piva)==='attiva'?x.cessionario:x.cedente).nome,dataNomeFile(d0.data)]),cartaIntestata:false,classe:'fatt',blocchi};
+}
+AZIONI['fattura-apri']=async d=>{
+  const f=perId('fatture',d.id);if(!f)return;
+  let x;try{x=await fatturaLetta(f)}catch(e){return segnalaErrore(e,'Non riesco a leggere la fattura')}
+  const allegati=x.documenti.flatMap(dd=>dd.allegati).filter(a=>a.dati&&(/pdf/i.test(a.formato)||/\.pdf$/i.test(a.nome)));
+  const doc=docFattura(x,(fileMeta(f.fileId)||{}).nome);
+  anteprimaStampa({titolo:doc.titolo,doc,registra:false,alMontaggio:ov=>{
+    const comandi=ov.querySelector('.comandi');if(!comandi)return;
+    const agg=(testo,ico,fn)=>{const b=creaEl(html`<button class="pulsante piccolo">${icona(ico,'piccola')}${testo}</button>`);b.onclick=fn;comandi.insertBefore(b,comandi.querySelector('[data-scarica-pdf]'))};
+    // il PDF allegato si apre subito al clic: un'attesa prima di window.open farebbe bloccare la finestra
+    allegati.forEach((a,i)=>agg(allegati.length>1?'Originale '+(i+1):'PDF originale','pdf',()=>{try{const bin=atob(a.dati.replace(/\s+/g,''));const u8=Uint8Array.from(bin,c=>c.charCodeAt(0));const u=URL.createObjectURL(new Blob([u8],{type:'application/pdf'}));if(!window.open(u,'_blank'))scaricaBlob(new Blob([u8],{type:'application/pdf'}),a.nome||doc.titolo+'.pdf');setTimeout(()=>URL.revokeObjectURL(u),120000)}catch(e){segnalaErrore(e,'Allegato non leggibile')}}));
+    agg('XML','file',async()=>{const b=await leggiFile(f.fileId);if(b)scaricaBlob(b,(fileMeta(f.fileId)||{}).nome||'fattura.xml')});
+  }});
+};
+
+// ---- il pacchetto ----
+AZIONI['comm-pacchetto']=async d=>{
+  const k=d.mese;const [a,m]=k.split('-').map(Number);
+  const att=fattureMese(k,'attiva'),pas=fattureMese(k,'passiva'),docs=documentiMese(k).filter(x=>x.incluso);
+  const manca=[!att.length&&'fatture attive',!pas.length&&'fatture passive',...POSTI_COMMERCIALISTA.filter(([p])=>!meseCommercialista(k)[p]).map(([,t])=>t.toLowerCase())].filter(Boolean);
+  if(manca.length&&!(await conferma(`Per ${fMeseAnno(a,m)} mancano: ${manca.join(', ')}. Preparo lo stesso il pacchetto?`,{ok:'Prepara lo stesso'})))return;
+  const radice=pulisciNomeFile((nomeImpresa(true)||'Documenti')+' '+nomeMese(m)+' '+a);
+  const cA=cartellaFatture(k,'attiva',att.length),cP=cartellaFatture(k,'passiva',pas.length),cD=m+' '+nomeMese(m);
+  const voci=[],usati=new Set(),contenuto=[];
+  const prog=dialogoAvanzamento('Preparazione del pacchetto',{annullabile:true});
+  try{
+    const tutti=[...att.map(f=>[cA,f.fileId,(fileMeta(f.fileId)||{}).nome]),...pas.map(f=>[cP,f.fileId,(fileMeta(f.fileId)||{}).nome]),...docs.map(x=>[cD,x.fileId,x.nome])];
+    for(const c of [cA,cP,cD]) voci.push({nome:radice+'/'+c+'/',dati:''}); // le tre cartelle ci sono sempre, anche vuote
+    for(let i=0;i<tutti.length;i++){
+      if(prog.annullato)return prog.chiudi();const [cart,id,nome]=tutti[i];await prog.aggiorna(i,tutti.length,nome);
+      const b=await leggiFile(id);if(!b)continue;const p=nomeUnico(usati,cart+'/'+nome);voci.push({nome:radice+'/'+p,dati:b});contenuto.push(p);
+    }
+    const blob=await creaZip(voci);prog.chiudi();
+    esegui('Pacchetto per il commercialista di '+fMeseAnno(a,m),s=>{const c=assicuraMeseComm(s,k);c.preparato=new Date().toISOString();c.contenuto=contenuto},{senzaRender:true,silenzioso:true});
+    await condividiOScarica(blob,radice+'.zip',{testo:'Documenti di '+fMeseAnno(a,m)});
+    render();
+  }catch(e){prog.chiudi();segnalaErrore(e,'Pacchetto non preparato')}
+};
+
+
+/* ═══════════════════════════════════════════════════════════════════
    SEZIONE JS · ISA
    ═══════════════════════════════════════════════════════════════════ */
 // ---------------------------------------------------------------------
@@ -10199,8 +10534,8 @@ AZIONI['pagamenti-pacchetto']=async d=>{
   const dest=await dialogoModulo('Pacchetto pagamenti · '+fMeseAnno(anno,mese),[{nome:'destinatario',etichetta:'Destinatario',obbligatorio:true},{nome:'mezzo',etichetta:'Mezzo',tipo:'select',vuoto:false,opzioni:[{v:'mail',t:'Mail'},{v:'pec',t:'PEC'},{v:'portale',t:'Portale della committenza'},{v:'whatsapp',t:'WhatsApp'},{v:'altro',t:'Altro'}]},{nome:'note',etichetta:'Note',tipo:'textarea',largo:true}],{destinatario:nomeCliente(c.affidatariaId)||nomeCliente(c.committenteId)||'',mezzo:'mail'},{ok:'Prepara lo ZIP',intro:html`<p>Dentro: <b>${plurale(pronte.length,'documento','documenti')}</b>.${mancanti.length?html` Mancano: ${mancanti.map(v=>v.nome).join(', ')}.`:''}</p>`});
   if(!dest) return;
   const pulisci=s=>pulisciNomeFile(s).replace(/\s+/g,' ').trim();
-  const zip=[];const indice=[];
-  for(const v of pronte)for(const fid of v.file){const m=fileMeta(fid);if(!m)continue;const b=await leggiFile(m.hash);if(!b)continue;const nome=v.cartella+'/'+pulisci(v.nome)+'.'+(estensioneDi(m.nome)||'pdf');zip.push({nome,dati:b});indice.push(nome)}
+  const zip=[];const indice=[];const usatiZip=new Set();
+  for(const v of pronte)for(const fid of v.file){const m=fileMeta(fid);if(!m)continue;const b=await leggiFile(m.hash);if(!b)continue;const nome=nomeUnico(usatiZip,v.cartella+'/'+nomeChiaroFile(fid));zip.push({nome,dati:b});indice.push(nome)}
   let txt=`PAGAMENTI DEL MESE — ${stato.azienda.ragioneSociale||''}\nCantiere: ${c.nome}\nMese: ${fMeseAnno(anno,mese)}\nPreparato il ${fData(oggi())} per ${dest.destinatario}\n\nPERSONE IN CANTIERE NEL MESE (dalle presenze)\n`+Array.from(ore.entries()).map(([pid,o])=>`  ${nomePersona(persona(pid))}: ${fOre(o)} ore`).join('\n')+`\n\nFILE\n`+indice.map(x=>'  '+x).join('\n')+(mancanti.length?`\n\nNON INCLUSI\n`+mancanti.map(v=>'  - '+v.nome+' ('+v.sotto+')').join('\n'):'')+'\n';
   zip.unshift({nome:'00 Indice.txt',dati:txt});
   const blob=await creaZip(zip);const nome=nomeFileData('Pagamenti '+nomeMese(mese)+' '+anno+' '+pulisci(c.nome),'zip');
@@ -10240,7 +10575,7 @@ function datiIniziali(soloStruttura){
     persone:[],tipiDocumento:[],documenti:[],file:[],clienti:[],professionisti:[],lavorazioni:[],cantieri:[],pos:[],
     modelli:{dichiarazioni:[],posTesto:null,posMacchine:null,posDpiDotazione:null},
     presenze:{},bustePaga:[],regoleBuste:[],listino:[],preventivi:[],movimenti:[],generati:[],cestino:[],
-    mezzi:[],fornitori:[],bonifici:[],versamenti:[],rimanenze:{},isa:{},bilanci:{},
+    mezzi:[],fornitori:[],bonifici:[],versamenti:[],rimanenze:{},isa:{},bilanci:{},fatture:[],commercialista:{},
     impostazioni:{nomeUtente:'',dispositivo:'',tema:'sistema',ultimoBackup:null,modificheDopoBackup:0,ultimaModifica:null,soglie:Object.assign({},SOGLIE_PREDEFINITE),densita:'normale',festivitaLocali:[],arrotondamento:'aziendale',compressioneImmagini:true,obiettivoKb:300,avvisaPdfMb:2,creato:new Date().toISOString()},
   };
   s.lavorazioni=LAVORAZIONI_INIZIALI.map(l=>Object.assign({},l));
