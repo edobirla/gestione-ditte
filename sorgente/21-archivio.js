@@ -68,6 +68,7 @@ function riferimentiFile(fileId){
   for(const [a,v] of Object.entries(stato.isa||{})) if(v&&v.fileId===fileId) out.push({tipo:'isa',id:a});
   for(const a of Object.keys(stato.bilanci||{})) if(fileBilancio(a).includes(fileId)) out.push({tipo:'bilancio',id:a});
   for(const f of stato.fatture||[]) if(f.fileId===fileId) out.push({tipo:'fattura',id:f.id});
+  for(const d of (stato.banca||{}).documenti||[]) if(d.fileId===fileId) out.push({tipo:'banca',id:d.id});
   for(const [k,c] of Object.entries(stato.commercialista||{})){ if(!c)continue; for(const [posto] of POSTI_COMMERCIALISTA) if(c[posto]===fileId) out.push({tipo:'commercialista',id:k,posto}); if((c.altri||[]).includes(fileId)) out.push({tipo:'commercialista',id:k,posto:'altri'}); }
   for(const c of stato.cantieri){ if(c.psc&&c.psc.fileId===fileId) out.push({tipo:'cantiere',id:c.id}); if(c.fotoId===fileId) out.push({tipo:'cantiere',id:c.id}); for(const dp of c.documentiProdotti||[]) if(dp.fileId===fileId) out.push({tipo:'cantiere',id:c.id}); }
   for(const k of Object.keys(stato.presenze||{})) for(const pid of Object.keys(stato.presenze[k].persone||{})) if(stato.presenze[k].persone[pid].foglioOreId===fileId) out.push({tipo:'presenze',id:k});
@@ -90,6 +91,7 @@ function nomeBaseChiaro(r,fileId){
   if(r.tipo==='versamento'){const v=perId('versamenti',r.id);return v?nomeChiaro([TIPI_VERSAMENTO[v.tipo],meseNomeFile(v.anno,v.mese)]):''}
   if(r.tipo==='bonifico'){const b=perId('bonifici',r.id);return b?nomeChiaro(['Bonifico',b.controparte,dataNomeFile(b.data)]):''}
   if(r.tipo==='movimento'){const m=perId('movimenti',r.id);return m?nomeChiaro([m.tipo==='nota_credito'?'Nota di credito':'Fattura',m.numero,m.controparte||nomeCliente(m.clienteId),dataNomeFile(m.data)]):''}
+  if(r.tipo==='banca'){const d=banca().documenti.find(x=>x.id===r.id);return d?nomeDocumentoBanca(d):''}
   if(r.tipo==='isa') return nomeChiaro(['ISA',r.id]);
   if(r.tipo==='bilancio'){const b=(stato.bilanci||{})[r.id]||{};const p=POSTI_BILANCIO.find(([k])=>b[k]===fileId);return nomeChiaro([p?p[1]:'Bilancio allegato',r.id])}
   if(r.tipo==='cantiere'){const c=cantiere(r.id);if(!c)return'';if(c.psc&&c.psc.fileId===fileId)return nomeChiaro(['PSC',c.nome]);if(c.fotoId===fileId)return nomeChiaro(['Foto cantiere',c.nome]);const dp=(c.documentiProdotti||[]).find(x=>x.fileId===fileId);return dp?nomeChiaro([dp.titolo||dp.tipo,c.nome,dataNomeFile(dp.data)]):''}
@@ -252,6 +254,7 @@ function pesoArchivio(){
       else if(r.tipo==='versamento'){sogg='Versamenti';tipo='F24 e Cassa Edile'}
       else if(r.tipo==='isa'){sogg='Azienda';tipo='Dichiarazione ISA'}
       else if(r.tipo==='bilancio'){sogg='Azienda';tipo='Bilancio '+r.id}
+      else if(r.tipo==='banca'){sogg='Banca';const d=banca().documenti.find(x=>x.id===r.id);tipo=d?tipoBanca(d.tipo)[1]:'Documento bancario'}
       else if(r.tipo==='fattura'){sogg='Commercialista';tipo='Fattura XML'}
       else if(r.tipo==='commercialista'){sogg='Commercialista';tipo='Documenti del mese'}
       else if(r.tipo==='cantiere'){sogg='Cantiere '+nomeCantiere(r.id);tipo='Documento di cantiere'}

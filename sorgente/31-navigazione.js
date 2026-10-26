@@ -12,6 +12,7 @@ const MENU=[
   {id:'documenti',testo:'Documenti',icona:'documenti',gruppo:'Amministrazione'},
   {id:'budget',testo:'Budget',icona:'budget',gruppo:'Amministrazione'},
   {id:'versamenti',testo:'Versamenti',icona:'bonifici',gruppo:'Amministrazione',alias:['bonifici']},
+  {id:'banca',testo:'Banca',icona:'euro',gruppo:'Amministrazione'},
   {id:'commercialista',testo:'Commercialista',icona:'cartella',gruppo:'Amministrazione'},
   {id:'fornitori',testo:'Fornitori',icona:'fornitori',gruppo:'Amministrazione'},
   {id:'fineanno',testo:'Fine anno',icona:'anno',gruppo:'Amministrazione',alias:['rimanenze']},
@@ -195,7 +196,7 @@ AZIONI['copia']=d=>copiaNegliAppunti(d.testo).then(()=>avviso('Copiato negli app
 // dragenter/dragleave da tenere in sincronia, che su Chrome si disallineava facilmente e lasciava
 // il drop "morto" nonostante il cursore mostrasse la copia.
 let zonaDropAttiva=null;
-function trovaZonaDrop(target){return target&&target.closest&&(target.closest('[data-drop-bonifico]')||target.closest('[data-drop-doc]')||target.closest('[data-drop-soggetto]')||target.closest('[data-drop-caricamento]')||target.closest('[data-drop-buste]')||target.closest('[data-drop-versamenti]')||target.closest('[data-drop-fatture]')||target.closest('[data-drop-commdoc]')||target.closest('.zona-drop'))}
+function trovaZonaDrop(target){return target&&target.closest&&(target.closest('[data-drop-bonifico]')||target.closest('[data-drop-doc]')||target.closest('[data-drop-soggetto]')||target.closest('[data-drop-caricamento]')||target.closest('[data-drop-buste]')||target.closest('[data-drop-versamenti]')||target.closest('[data-drop-fatture]')||target.closest('[data-drop-banca]')||target.closest('[data-drop-commdoc]')||target.closest('.zona-drop'))}
 function evidenziaZona(z){if(z===zonaDropAttiva)return;if(zonaDropAttiva)zonaDropAttiva.classList.remove('sopra');if(z)z.classList.add('sopra');zonaDropAttiva=z}
 // Mentre si trascina un file, le anteprime dei PDF (iframe) devono farsi da parte: un iframe è un
 // documento a sé, gli eventi di trascinamento sopra di lui non arrivano mai a questa pagina e il
@@ -229,6 +230,7 @@ window.addEventListener('drop',async e=>{
     if(z.hasAttribute('data-drop-buste')) return accodaBuste(files);
     if(z.hasAttribute('data-drop-versamenti')) return caricaVersamenti(files);
     if(z.hasAttribute('data-drop-fatture')) return caricaFatture(files);
+    if(z.hasAttribute('data-drop-banca')) return caricaBanca(files);
     if(z.dataset.dropCommdoc) return /\.(zip|xml|p7m)$/i.test(files[0].name)?caricaFatture(files):caricaDocumentiComm(z.dataset.dropCommdoc,files);
   }
   if(typeof acquisizioneRapida==='function') acquisizioneRapida(files);

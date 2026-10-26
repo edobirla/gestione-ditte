@@ -35,6 +35,7 @@ Un backup con versione precedente viene migrato all'apertura (`migrazioni` nel c
 | `isa` | `{"AAAA": {fatture:{[movimentoId]:{spec:[chiavi], comune, provincia, ambito}}, punteggio, fileId}}`: solo le classificazioni scelte a mano; il resto si calcola dai cantieri | |
 | `bilanci` | `{"AAAA": {bilancio, verbale, ricevuta: fileId, altri:[fileId], note}}`: per esercizio, bilancio con nota integrativa, verbale di assemblea e ricevuta di deposito | |
 | `fatture[]` | fatture elettroniche caricate per il commercialista: `{id, fileId, mese:'AAAA-MM', tipo:'attiva'|'passiva', numero, data, tipoDocumento:'TD01'…, controparte, piva, imponibile, imposta, totale, allegati}`. `fileId` è l'XML (o .p7m) originale; `mese` è quello scelto al caricamento (il filtro del portale), non la data della fattura | |
+| `banca` | `{conti:[{id, nome, iban, note}], documenti:[{id, contoId, tipo:'movimenti'|'estratto'|'estratto_trim'|'carta'|'riba_pagate'|'riba_emesse'|'assegno'|'bollettino'|'pagopa'|'finanziamento'|'altro', data, descrizione, importo, fileId}]}`. `data` è il giorno, o l'ultimo giorno del periodo per movimenti, estratti e carta | |
 | `commercialista` | `{"AAAA-MM": {primaNota, iva: fileId, altri:[fileId], esclusi:[fileId], preparato, inviato: ISO, contenuto:[percorsi]}}`: i file caricati solo qui e quelli presi da altre sezioni ma tolti dal pacchetto | |
 | `impostazioni` | preferenze, soglie, backup, chiave API (solo locale) | |
 | `cestino[]` | elementi eliminati recuperabili | |

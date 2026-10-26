@@ -249,6 +249,8 @@ function autoverifica(){
    t('fattura XML: ricevuta = passiva',versoFattura(x,'02188850511')==='passiva'&&versoFattura(x,'01234567897')==='attiva'&&versoFattura(x,'999')===null)}
   t('cartella fatture come in azienda',cartellaFatture('2026-09','attiva',4)==='9 fatture attive n 4');
   t('numerazione fatture: buchi',numeriMancanti(['10','11/2026','14'])+''==='12,13');
+  t('banca: date dal nome',dataBancaDaNome('2° trim.pdf','estratto conto/2025/2° trim.pdf',2026)==='2025-06-30'&&dataBancaDaNome('0715 danilo.pdf','assegni/2025/0715 danilo.pdf',2026)==='2025-07-15'&&dataBancaDaNome('150430.pdf','',2026)==='2015-04-30'&&dataBancaDaNome('7 luglio.pdf','riba/pagate/2024/7 luglio.pdf',2026)==='2024-07-31');
+  t('banca: mese più frequente nel testo',dataBancaDaTesto('01/07/2026 x 15/07/2026 y 30/06/2026 z 28/07/26')==='2026-07-28');
   t('nome chiaro: parti vuote saltate',nomeChiaro(['F24','','settembre 2026'])==='F24 - settembre 2026');
   return esiti;
 }

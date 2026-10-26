@@ -75,7 +75,7 @@ function numeriMancanti(numeri){const v=unici(numeri.map(x=>parseInt(String(x).r
 function meseCommercialista(k){return (stato.commercialista||{})[k]||{}}
 function fattureMese(k,tipo){return (stato.fatture||[]).filter(f=>f.mese===k&&(!tipo||f.tipo===tipo)).sort((a,b)=>(a.data||'')<(b.data||'')?-1:(a.data||'')>(b.data||'')?1:String(a.numero).localeCompare(String(b.numero),'it',{numeric:true}))}
 // Quello che entra nella cartella dei documenti dalle altre sezioni: F24 con scadenza nel mese,
-// Cassa Edile pagata nel mese, bonifici del mese, documenti datati nel mese dei tipi scelti.
+// Cassa Edile pagata nel mese, bonifici e documenti della banca del mese, documenti datati nel mese dei tipi scelti.
 function documentiAltreSezioni(k){
   const [a,m]=k.split('-').map(Number);const nel=iso=>(iso||'').startsWith(k);const out=[];
   const metti=(fileId,fonte,href,data)=>{if(fileId&&fileMeta(fileId)&&!out.some(x=>x.fileId===fileId))out.push({fileId,fonte,href,data})};
@@ -83,6 +83,7 @@ function documentiAltreSezioni(k){
     if(v.tipo==='f24'?v.anno===a&&v.mese===m:nel(v.dataPagamento)||(!v.dataPagamento&&nel(scadenzaVersamento(v)))) metti(v.fileId,'Versamenti',v.tipo==='f24'?'versamenti/f24':'versamenti/cassa',v.dataPagamento||scadenzaVersamento(v));
   }
   for(const b of stato.bonifici||[]) if(nel(b.data)) metti(b.fileId,'Bonifici','versamenti/bonifici',b.data);
+  for(const d of documentiBancaMese(k)) metti(d.fileId,'Banca','banca',d.data);
   for(const d of stato.documenti) if(TIPI_DOC_COMMERCIALISTA.includes(d.tipoId)&&nel(d.dataEmissione)) for(const f of d.file||[]) metti(f,'Documenti','documenti?doc='+d.id,d.dataEmissione);
   return out.sort((x,y)=>(x.data||'')<(y.data||'')?-1:1);
 }
@@ -129,7 +130,7 @@ VISTE.commercialista=function(r){
   <div class="sezione-titolo">${m} ${nomeMese(m)} · documenti</div>
   <div class="scheda" data-drop-commdoc="${k}"><ul class="elenco-piatto">${POSTI_COMMERCIALISTA.map(([p,t])=>cellaPosto(p,t))}</ul>
     <div class="sezione-titolo">Dalle altre sezioni</div>
-    ${altre.length?html`<ul class="elenco-piatto">${altre.map(x=>html`<li><label class="riga stretta spazio"><input type="checkbox" data-cambio="comm-includi" data-mese="${k}" data-id="${x.fileId}" ${x.incluso?'checked':''}><span class="spazio"><b>${x.nome}</b><br><span class="piccolo silenzioso">da <a href="#/${x.href}">${x.fonte}</a></span></span></label><button class="pulsante piccolo discreto" data-azione="file-apri" data-id="${x.fileId}">Apri</button></li>`)}</ul>`:html`<p class="piccolo silenzioso">Niente per ${nomeMese(m)}: F24, Cassa Edile, bonifici, polizze e verbali compaiono qui da soli quando li carichi nelle loro sezioni.</p>`}
+    ${altre.length?html`<ul class="elenco-piatto">${altre.map(x=>html`<li><label class="riga stretta spazio"><input type="checkbox" data-cambio="comm-includi" data-mese="${k}" data-id="${x.fileId}" ${x.incluso?'checked':''}><span class="spazio"><b>${x.nome}</b><br><span class="piccolo silenzioso">da <a href="#/${x.href}">${x.fonte}</a></span></span></label><button class="pulsante piccolo discreto" data-azione="file-apri" data-id="${x.fileId}">Apri</button></li>`)}</ul>`:html`<p class="piccolo silenzioso">Niente per ${nomeMese(m)}: F24, Cassa Edile, bonifici, documenti della banca, polizze e verbali compaiono qui da soli quando li carichi nelle loro sezioni.</p>`}
     <div class="sezione-titolo">Altri file</div>
     <ul class="elenco-piatto">${docs.filter(x=>x.posto==='altri').map(x=>html`<li><span class="spazio"><b>${x.nome}</b></span><button class="pulsante piccolo discreto" data-azione="file-apri" data-id="${x.fileId}">Apri</button><button class="pulsante piccolo discreto icona" data-azione="comm-togli" data-mese="${k}" data-posto="altri" data-id="${x.fileId}" title="Togli">${icona('chiudi','piccola')}</button></li>`)}</ul>
     <button class="pulsante piccolo discreto mt-s" data-azione="comm-carica" data-mese="${k}" data-posto="altri">${icona('piu','piccola')}Aggiungi file che non stanno in altre sezioni</button>

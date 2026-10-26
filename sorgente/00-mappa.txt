@@ -34,6 +34,7 @@ MAPPA DELLE SEZIONI
   JS    PDF-PAGINA ........... ricostruzione di una pagina PDF dentro l'app (testo e righe posizionati)
   JS    RIMANENZE ............ magazzino, lavori in corso, fatture da emettere al 31/12, PDF unico per il commercialista
   JS    ISA .............. quadri C e A dalle fatture emesse e dai cantieri; sezione «Fine anno» (ISA + rimanenze)
+  JS    BANCA ................ conti, movimenti ed estratti conto mese per mese, carta, RiBa, assegni, bollettini, PagoPA, finanziamenti
   JS    COMMERCIALISTA ....... pacchetto di fine mese: fatture XML attive/passive, prima nota e IVA, documenti presi dalle altre sezioni
   JS    VERSAMENTI ........... F24 e Cassa Edile mese per mese, lettura delle quietanze, pagamenti del mese per il SAL
   JS    ASSISTENTE ........... moduli di altre aziende: campi proposti, dati e firme da trascinare
