@@ -1,5 +1,14 @@
 [
  {
+  "versione": "1.23",
+  "data": "2026-10-26T12:21:06+01:00",
+  "commit": "6114852",
+  "novita": [
+   "Nuova sezione Commercialista e nomi dei file chiari",
+   "Handoff aggiornato"
+  ]
+ },
+ {
   "versione": "1.22",
   "data": "2026-10-23T17:59:35+02:00",
   "commit": "f292f34",
