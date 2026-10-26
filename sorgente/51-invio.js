@@ -54,16 +54,15 @@ document.addEventListener('change',e=>{const t=e.target;if(!t.dataset||!t.datase
 AZIONI['invio-tipi']=d=>{const st=statoInvio();st.tipi=d.valore==='tutti'?Object.fromEntries(stato.tipiDocumento.filter(t=>t.ambito==='persona').map(t=>[t.id,true])):{};render()};
 AZIONI['invio-persone']=d=>{const st=statoInvio();st.persone=d.valore==='tutti'?Object.fromEntries(stato.persone.filter(p=>p.attivo).map(p=>[p.id,true])):{};render()};
 AZIONI['invio-per']=d=>{statoInvio().per=d.valore;render()};
-// Percorso di ogni file dentro la cartella: «Rossi Mario/Visita medica 12-03-26.pdf» o «Visita medica/Rossi Mario 12-03-26.pdf»
+// Percorso di ogni file dentro la cartella: «Rossi Mario/Visita medica - Rossi Mario - 12-03-2026.pdf»
+// (o per tipo): il nome del file segue il criterio unico di nomeChiaroDocumento
 async function fileInvio(prog){
   const st=statoInvio();const {voci}=vociInvio();const out=[];const usati=new Set();const pul=s=>pulisciNomeFile(s);
   for(let i=0;i<voci.length;i++){
     const v=voci[i];if(prog){if(prog.annullato)return null;await prog.aggiorna(i,voci.length,v.chi+' · '+v.t.nome)}
-    const data=v.d.dataEmissione?' '+fDataBreve(v.d.dataEmissione).replace(/\//g,'-'):'';
-    const cartella=pul(st.per==='tipo'?v.t.nome:v.chi);const base=pul(st.per==='tipo'?v.chi:v.t.nome)+data;
+    const cartella=pul(st.per==='tipo'?v.t.nome:v.chi);const base=nomeChiaroDocumento(v.d);
     for(const fid of v.d.file){const m=fileMeta(fid);if(!m)continue;const b=await leggiFile(m.hash);if(!b)continue;
-      let nome=base+'.'+(estensioneDi(m.nome)||'pdf');let n=2;while(usati.has(cartella+'/'+nome)){nome=base+' '+n+'.'+(estensioneDi(m.nome)||'pdf');n++}
-      usati.add(cartella+'/'+nome);out.push({cartella,nome,dati:b})}
+      const nome=nomeUnico(usati,cartella+'/'+base+'.'+(estensioneDi(m.nome)||'pdf')).slice(cartella.length+1);out.push({cartella,nome,dati:b})}
   }
   return out;
 }

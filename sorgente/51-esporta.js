@@ -269,7 +269,7 @@ AZIONI['pacchetto-genera']=async d=>{
         if(chiavi.some(k=>usati.has(k)))continue;chiavi.forEach(k=>usati.add(k));
         const blobs=[];for(const m of metas){const b=await leggiFile(m.hash);if(b)blobs.push(new File([b],m.nome,{type:m.mime||b.type}))}
         if(!blobs.length)continue;
-        const base=pulisci(v.nome+(v.doc.dataEmissione?' '+fDataBreve(v.doc.dataEmissione).replace(/\//g,'-'):''));
+        const base=nomeChiaroDocumento(v.doc);
         if(blobs.length>1) metti(cartella,base+'.pdf',await unisciInPdf(blobs),x);
         else metti(cartella,base+'.'+(estensioneDi(blobs[0].name)||'pdf'),blobs[0],x);
       } else if(x.generati.length){

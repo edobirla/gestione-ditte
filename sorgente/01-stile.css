@@ -1090,6 +1090,26 @@ input.proposto,select.proposto{box-shadow:0 0 0 1.5px var(--accent) inset;backgr
 .doc.prev .prev-fondo .firma-acc{flex:1;text-align:center;padding-top:2mm;font-size:10pt}
 .doc.prev .prev-fondo .firma-acc .linea{border-bottom:.6pt solid #111;height:14mm}
 .doc.prev .prev-privacy{font-size:6.5pt;color:#444;margin:3mm 0 0;text-align:justify}
+.doc.fatt{font-size:9pt}
+.doc.fatt .fatt-testa{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:1.2pt solid #1F4E9C;padding:0 0 2.5mm;margin:0 0 3mm}
+.doc.fatt .fatt-testa.nuova{margin-top:8mm}
+.doc.fatt .fatt-tipo{font-size:17pt;font-weight:700;color:#1F4E9C;line-height:1.1}
+.doc.fatt .fatt-num{font-size:10.5pt;margin-top:1mm}
+.doc.fatt .fatt-totale{text-align:right}
+.doc.fatt .fatt-totale b{display:block;font-size:15pt}
+.doc.fatt .et{display:block;font-size:6.5pt;color:#1F4E9C;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.8mm}
+.doc.fatt .fatt-soggetti{display:flex;gap:4mm;margin:0 0 3mm}
+.doc.fatt .fatt-sogg{flex:1;background:#EEF3FA;border-radius:1.5mm;padding:2.5mm 3mm;line-height:1.45}
+.doc.fatt .fatt-rif{font-size:8.5pt;color:#333;margin:0 0 3mm;text-align:left}
+.doc.fatt table th{background:#DCE7F6;color:#10306B;border-color:#9DB3D6}
+.doc.fatt table td{border-color:#C9D3E3}
+.doc.fatt .mini{font-size:7.5pt;color:#555}
+.doc.fatt .fatt-fondo{display:flex;gap:4mm;align-items:flex-start}
+.doc.fatt .fatt-fondo .fatt-iva{flex:1.4}
+.doc.fatt .fatt-fondo .fatt-tot{flex:1}
+.doc.fatt .fatt-tot td{border:0;border-bottom:.4pt solid #C9D3E3;padding:1.2mm 2mm}
+.doc.fatt .fatt-tot tr.totale td{background:#1F4E9C;color:#fff;font-size:10pt}
+.doc.fatt .fatt-nota{font-size:7.5pt;color:#555;text-align:left;margin-top:2mm}
 /* Scheda ore mensile: fedele al modello aziendale (testata con titolo, riquadri, tabella a 4 colonne) */
 .carta-intestata.ore-testa{align-items:flex-start;border-bottom:1.2pt solid #111;padding-bottom:1.5mm}
 .carta-intestata.ore-testa img{height:17mm}

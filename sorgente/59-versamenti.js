@@ -174,8 +174,8 @@ AZIONI['pagamenti-pacchetto']=async d=>{
   const dest=await dialogoModulo('Pacchetto pagamenti · '+fMeseAnno(anno,mese),[{nome:'destinatario',etichetta:'Destinatario',obbligatorio:true},{nome:'mezzo',etichetta:'Mezzo',tipo:'select',vuoto:false,opzioni:[{v:'mail',t:'Mail'},{v:'pec',t:'PEC'},{v:'portale',t:'Portale della committenza'},{v:'whatsapp',t:'WhatsApp'},{v:'altro',t:'Altro'}]},{nome:'note',etichetta:'Note',tipo:'textarea',largo:true}],{destinatario:nomeCliente(c.affidatariaId)||nomeCliente(c.committenteId)||'',mezzo:'mail'},{ok:'Prepara lo ZIP',intro:html`<p>Dentro: <b>${plurale(pronte.length,'documento','documenti')}</b>.${mancanti.length?html` Mancano: ${mancanti.map(v=>v.nome).join(', ')}.`:''}</p>`});
   if(!dest) return;
   const pulisci=s=>pulisciNomeFile(s).replace(/\s+/g,' ').trim();
-  const zip=[];const indice=[];
-  for(const v of pronte)for(const fid of v.file){const m=fileMeta(fid);if(!m)continue;const b=await leggiFile(m.hash);if(!b)continue;const nome=v.cartella+'/'+pulisci(v.nome)+'.'+(estensioneDi(m.nome)||'pdf');zip.push({nome,dati:b});indice.push(nome)}
+  const zip=[];const indice=[];const usatiZip=new Set();
+  for(const v of pronte)for(const fid of v.file){const m=fileMeta(fid);if(!m)continue;const b=await leggiFile(m.hash);if(!b)continue;const nome=nomeUnico(usatiZip,v.cartella+'/'+nomeChiaroFile(fid));zip.push({nome,dati:b});indice.push(nome)}
   let txt=`PAGAMENTI DEL MESE — ${stato.azienda.ragioneSociale||''}\nCantiere: ${c.nome}\nMese: ${fMeseAnno(anno,mese)}\nPreparato il ${fData(oggi())} per ${dest.destinatario}\n\nPERSONE IN CANTIERE NEL MESE (dalle presenze)\n`+Array.from(ore.entries()).map(([pid,o])=>`  ${nomePersona(persona(pid))}: ${fOre(o)} ore`).join('\n')+`\n\nFILE\n`+indice.map(x=>'  '+x).join('\n')+(mancanti.length?`\n\nNON INCLUSI\n`+mancanti.map(v=>'  - '+v.nome+' ('+v.sotto+')').join('\n'):'')+'\n';
   zip.unshift({nome:'00 Indice.txt',dati:txt});
   const blob=await creaZip(zip);const nome=nomeFileData('Pagamenti '+nomeMese(mese)+' '+anno+' '+pulisci(c.nome),'zip');

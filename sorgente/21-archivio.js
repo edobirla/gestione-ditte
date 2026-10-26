@@ -67,11 +67,46 @@ function riferimentiFile(fileId){
   for(const v of stato.versamenti||[]) if(v.fileId===fileId) out.push({tipo:'versamento',id:v.id});
   for(const [a,v] of Object.entries(stato.isa||{})) if(v&&v.fileId===fileId) out.push({tipo:'isa',id:a});
   for(const a of Object.keys(stato.bilanci||{})) if(fileBilancio(a).includes(fileId)) out.push({tipo:'bilancio',id:a});
+  for(const f of stato.fatture||[]) if(f.fileId===fileId) out.push({tipo:'fattura',id:f.id});
+  for(const [k,c] of Object.entries(stato.commercialista||{})){ if(!c)continue; for(const [posto] of POSTI_COMMERCIALISTA) if(c[posto]===fileId) out.push({tipo:'commercialista',id:k,posto}); if((c.altri||[]).includes(fileId)) out.push({tipo:'commercialista',id:k,posto:'altri'}); }
   for(const c of stato.cantieri){ if(c.psc&&c.psc.fileId===fileId) out.push({tipo:'cantiere',id:c.id}); if(c.fotoId===fileId) out.push({tipo:'cantiere',id:c.id}); for(const dp of c.documentiProdotti||[]) if(dp.fileId===fileId) out.push({tipo:'cantiere',id:c.id}); }
   for(const k of Object.keys(stato.presenze||{})) for(const pid of Object.keys(stato.presenze[k].persone||{})) if(stato.presenze[k].persone[pid].foglioOreId===fileId) out.push({tipo:'presenze',id:k});
   for(const p of stato.persone){ if(p.fotoId===fileId||p.firmaId===fileId) out.push({tipo:'persona',id:p.id}); }
   return out;
 }
+// ---- nomi chiari: un solo criterio per ogni file che esce dall'app ----
+// «Tipo - Di chi - Quando.ext»: il tipo davanti, così in una cartella alla rinfusa i file dello stesso
+// genere stanno vicini; le parti che mancano si saltano. Documenti del giorno: gg-mm-aaaa; documenti
+// del mese: «settembre 2026». Il nome con cui il file è stato caricato resta in file[].nome (e nei
+// pacchetti degli XML delle fatture, che il commercialista riconosce dal nome dello SdI).
+function nomeChiaro(parti){return pulisciNomeFile(parti.filter(Boolean).join(' - ')).slice(0,120).trim()}
+function dataNomeFile(iso){return iso&&/^\d{4}-\d\d-\d\d/.test(iso)?iso.slice(8,10)+'-'+iso.slice(5,7)+'-'+iso.slice(0,4):''}
+function meseNomeFile(anno,mese){return anno&&mese?nomeMese(+mese)+' '+anno:''}
+function soggettoDocumento(d){return d.soggettoTipo==='persona'?nomePersona(persona(d.soggettoId)):d.soggettoTipo==='cantiere'?nomeCantiere(d.soggettoId):d.soggettoTipo==='mezzo'?nomeMezzo(perId('mezzi',d.soggettoId)).replace(/ · /g,' '):d.soggettoTipo==='cliente'?nomeCliente(d.soggettoId):''}
+function nomeChiaroDocumento(d){const t=tipoDoc(d.tipoId);const tipo=!t||/^altro_/.test(t.id)?(d.titolo||(t&&t.nome)||'Documento'):t.nome;return nomeChiaro([tipo,soggettoDocumento(d),dataNomeFile(d.dataEmissione)])}
+function nomeBaseChiaro(r,fileId){
+  if(r.tipo==='documento'){const d=perId('documenti',r.id);return d?nomeChiaroDocumento(d):''}
+  if(r.tipo==='busta'){const b=perId('bustePaga',r.id);return b?nomeChiaro(['Busta paga',nomePersona(persona(b.personaId)),meseNomeFile(b.anno,b.mese)]):''}
+  if(r.tipo==='versamento'){const v=perId('versamenti',r.id);return v?nomeChiaro([TIPI_VERSAMENTO[v.tipo],meseNomeFile(v.anno,v.mese)]):''}
+  if(r.tipo==='bonifico'){const b=perId('bonifici',r.id);return b?nomeChiaro(['Bonifico',b.controparte,dataNomeFile(b.data)]):''}
+  if(r.tipo==='movimento'){const m=perId('movimenti',r.id);return m?nomeChiaro([m.tipo==='nota_credito'?'Nota di credito':'Fattura',m.numero,m.controparte||nomeCliente(m.clienteId),dataNomeFile(m.data)]):''}
+  if(r.tipo==='isa') return nomeChiaro(['ISA',r.id]);
+  if(r.tipo==='bilancio'){const b=(stato.bilanci||{})[r.id]||{};const p=POSTI_BILANCIO.find(([k])=>b[k]===fileId);return nomeChiaro([p?p[1]:'Bilancio allegato',r.id])}
+  if(r.tipo==='cantiere'){const c=cantiere(r.id);if(!c)return'';if(c.psc&&c.psc.fileId===fileId)return nomeChiaro(['PSC',c.nome]);if(c.fotoId===fileId)return nomeChiaro(['Foto cantiere',c.nome]);const dp=(c.documentiProdotti||[]).find(x=>x.fileId===fileId);return dp?nomeChiaro([dp.titolo||dp.tipo,c.nome,dataNomeFile(dp.data)]):''}
+  if(r.tipo==='presenze'){const [a,m]=r.id.split('-');const pid=Object.keys((stato.presenze[r.id]||{}).persone||{}).find(k=>stato.presenze[r.id].persone[k].foglioOreId===fileId);return nomeChiaro(['Foglio ore',nomePersona(persona(pid)),meseNomeFile(a,m)])}
+  if(r.tipo==='persona'){const p=persona(r.id);return p?nomeChiaro([p.firmaId===fileId?'Firma':'Foto',nomePersona(p)]):''}
+  if(r.tipo==='commercialista'&&r.posto!=='altri'){const [a,m]=r.id.split('-');return nomeChiaro([(POSTI_COMMERCIALISTA.find(([k])=>k===r.posto)||[])[1],meseNomeFile(a,m)])}
+  return ''; // fatture XML e file liberi: il nome originale
+}
+function nomeChiaroFile(fileId){
+  const m=fileMeta(fileId);if(!m)return'';
+  const ref=riferimentiFile(m.id)[0];const base=ref?nomeBaseChiaro(ref,m.id):'';
+  if(!base) return m.nome;
+  const ext=estensioneDi(m.nome)||(ePdf(m.mime)?'pdf':'');
+  return base+(ext?'.'+ext:'');
+}
+// Nomi unici dentro un pacchetto: il secondo «F24 - settembre 2026.pdf» diventa «… 2.pdf»
+function nomeUnico(usati,percorso){let k=percorso,n=2;while(usati.has(k.toLowerCase())){k=percorso.replace(/(\.[^./]+)?$/,' '+n+'$1');n++}usati.add(k.toLowerCase());return k}
 // Cestino: i file senza più riferimenti restano 30 giorni, poi si eliminano davvero.
 function cestinaFileOrfani(s){
   const oggiIso=new Date().toISOString();
@@ -217,6 +252,8 @@ function pesoArchivio(){
       else if(r.tipo==='versamento'){sogg='Versamenti';tipo='F24 e Cassa Edile'}
       else if(r.tipo==='isa'){sogg='Azienda';tipo='Dichiarazione ISA'}
       else if(r.tipo==='bilancio'){sogg='Azienda';tipo='Bilancio '+r.id}
+      else if(r.tipo==='fattura'){sogg='Commercialista';tipo='Fattura XML'}
+      else if(r.tipo==='commercialista'){sogg='Commercialista';tipo='Documenti del mese'}
       else if(r.tipo==='cantiere'){sogg='Cantiere '+nomeCantiere(r.id);tipo='Documento di cantiere'}
       else if(r.tipo==='presenze'){sogg='Presenze';tipo='Foglio ore'}
       else if(r.tipo==='persona'){sogg=nomePersona(persona(r.id));tipo='Foto/firma'}
