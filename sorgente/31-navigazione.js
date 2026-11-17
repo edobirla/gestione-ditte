@@ -196,7 +196,17 @@ AZIONI['copia']=d=>copiaNegliAppunti(d.testo).then(()=>avviso('Copiato negli app
 // dragenter/dragleave da tenere in sincronia, che su Chrome si disallineava facilmente e lasciava
 // il drop "morto" nonostante il cursore mostrasse la copia.
 let zonaDropAttiva=null;
-function trovaZonaDrop(target){return target&&target.closest&&(target.closest('[data-drop-bonifico]')||target.closest('[data-drop-doc]')||target.closest('[data-drop-soggetto]')||target.closest('[data-drop-caricamento]')||target.closest('[data-drop-buste]')||target.closest('[data-drop-versamenti]')||target.closest('[data-drop-fatture]')||target.closest('[data-drop-banca]')||target.closest('[data-drop-commdoc]')||target.closest('.zona-drop'))}
+// Ogni pulsante o casella che apre la scelta dei file accetta anche il file trascinato sopra: si
+// riconosce dall'azione (la sua funzione chiama scegliFile), e al rilascio scegliFile restituisce i
+// file trascinati invece di aprire la finestra. Così la casella «settembre» della Cassa Edile carica
+// in settembre senza scrivere un gestore per ogni sezione.
+let fileDaRilascio=null;
+const azioneConFile=a=>{const f=AZIONI[a];return !!f&&/scegliFile/.test(f.toString())};
+function pulsanteDrop(target){const b=target.closest('[data-azione]');return b&&!b.disabled&&azioneConFile(b.dataset.azione)?b:null}
+window.addEventListener('pointerdown',()=>{fileDaRilascio=null},true);
+// la casella dentro una zona più grande vince (es. «Carica» della prima nota dentro il riquadro dei documenti)
+function trovaZonaDrop(target){if(!target||!target.closest)return null;const z=zonaSpecifica(target),b=pulsanteDrop(target);return b&&(!z||(z!==b&&z.contains(b)))?b:z||b}
+function zonaSpecifica(target){return target&&target.closest&&(target.closest('[data-drop-bonifico]')||target.closest('[data-drop-doc]')||target.closest('[data-drop-soggetto]')||target.closest('[data-drop-caricamento]')||target.closest('[data-drop-buste]')||target.closest('[data-drop-versamenti]')||target.closest('[data-drop-fatture]')||target.closest('[data-drop-banca]')||target.closest('[data-drop-commdoc]')||target.closest('.zona-drop'))}
 function evidenziaZona(z){if(z===zonaDropAttiva)return;if(zonaDropAttiva)zonaDropAttiva.classList.remove('sopra');if(z)z.classList.add('sopra');zonaDropAttiva=z}
 // Mentre si trascina un file, le anteprime dei PDF (iframe) devono farsi da parte: un iframe è un
 // documento a sé, gli eventi di trascinamento sopra di lui non arrivano mai a questa pagina e il
@@ -223,6 +233,9 @@ window.addEventListener('drop',async e=>{
   const files=await fileDaDrop(e.dataTransfer);
   if(!files.length) return;
   if(z){
+    // la casella del mese vince sulla zona generica che la contiene
+    const b=pulsanteDrop(e.target);
+    if(b&&z===b&&!Object.keys(z.dataset).some(k=>/^drop./.test(k))){fileDaRilascio=files;try{const r=AZIONI[b.dataset.azione](b.dataset,b,e);if(r&&r.catch)r.catch(err=>segnalaErrore(err))}catch(err){segnalaErrore(err)}return}
     if(z.dataset.dropBonifico) return allegaDistinta(z.dataset.dropBonifico,files[0]);
     if(z.dataset.dropDoc) return allegaFilesADocumento(z.dataset.dropDoc,files);
     if(z.dataset.dropSoggetto){const [tipo,id]=z.dataset.dropSoggetto.split(':');return dialogoDocumento({soggettoTipo:tipo,soggettoId:id},files)}
@@ -260,6 +273,7 @@ function leggiEntry(entry,percorso,out){
 }
 function scegliFile(opz){
   opz=opz||{};
+  if(fileDaRilascio){const fs=fileDaRilascio;fileDaRilascio=null;return Promise.resolve(opz.multipli===false?fs.slice(0,1):fs)}
   return new Promise(risolvi=>{
     const inp=el(opz.cartella?'#input-cartella-nascosto':'#input-file-nascosto');
     inp.value='';inp.multiple=opz.multipli!==false;inp.accept=opz.accetta||'';

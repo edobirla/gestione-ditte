@@ -25,7 +25,7 @@ function datiIniziali(soloStruttura){
     persone:[],tipiDocumento:[],documenti:[],file:[],clienti:[],professionisti:[],lavorazioni:[],cantieri:[],pos:[],
     modelli:{dichiarazioni:[],posTesto:null,posMacchine:null,posDpiDotazione:null},
     presenze:{},bustePaga:[],regoleBuste:[],listino:[],preventivi:[],movimenti:[],generati:[],cestino:[],
-    mezzi:[],fornitori:[],bonifici:[],versamenti:[],rimanenze:{},isa:{},bilanci:{},fatture:[],commercialista:{},banca:{conti:[],documenti:[]},
+    mezzi:[],fornitori:[],bonifici:[],versamenti:[],rimanenze:{},isa:{},bilanci:{},fatture:[],commercialista:{},moduli:[],banca:{conti:[],documenti:[]},
     impostazioni:{nomeUtente:'',dispositivo:'',tema:'sistema',ultimoBackup:null,modificheDopoBackup:0,ultimaModifica:null,soglie:Object.assign({},SOGLIE_PREDEFINITE),densita:'normale',festivitaLocali:[],arrotondamento:'aziendale',compressioneImmagini:true,obiettivoKb:300,avvisaPdfMb:2,creato:new Date().toISOString()},
   };
   s.lavorazioni=LAVORAZIONI_INIZIALI.map(l=>Object.assign({},l));
@@ -92,10 +92,10 @@ const CATEGORIE_MOVIMENTO={materiali:'Materiali',subappalto:'Subappalto',traspor
 // Durate che si scelgono su un singolo documento: la scadenza si calcola dalla data di emissione.
 // Non si applica a tutto: molti documenti hanno la scadenza stampata sopra e lì si scrive a mano.
 const DURATE_DOCUMENTO=[{v:12,t:'1 anno'},{v:24,t:'2 anni'},{v:36,t:'3 anni'},{v:60,t:'5 anni'},{v:120,t:'10 anni'},{v:6,t:'6 mesi'}];
-const CATEGORIE_TIPO_DOC={identita:'Identità',malattia:'Malattia',contratto:'Contratto',sanitario:'Sanitario',formazione:'Formazione',nomina:'Nomina',impresa:'Impresa',sicurezza:'Sicurezza',amministrativo:'Amministrativo',cantiere:'Cantiere',mezzo:'Mezzo'};
+const CATEGORIE_TIPO_DOC={identita:'Identità',malattia:'Malattia',contratto:'Contratto',sanitario:'Sanitario',formazione:'Formazione',nomina:'Nomina',impresa:'Impresa',sicurezza:'Sicurezza',amministrativo:'Amministrativo',legale:'Legale',cantiere:'Cantiere',mezzo:'Mezzo'};
 // Ordine di visualizzazione delle categorie: usato ovunque i documenti si raggruppano per
 // argomento (scheda persona, archivio generale), così le sezioni compaiono sempre nello stesso ordine.
-const ORDINE_CATEGORIE_DOC=['identita','contratto','sanitario','malattia','formazione','nomina','amministrativo','sicurezza','impresa','cantiere','mezzo'];
+const ORDINE_CATEGORIE_DOC=['identita','contratto','sanitario','malattia','formazione','nomina','amministrativo','legale','sicurezza','impresa','cantiere','mezzo'];
 
 // Catalogo tipi di documento. obbligatorio: vedi tipoApplicabile() nelle REGOLE.
 // bloccaIdoneita: se mancante/scaduto impedisce l'ingresso in cantiere; gli altri obbligatori entrano solo nella checklist.
@@ -133,6 +133,8 @@ const TIPI_DOCUMENTO_INIZIALI=[
   {id:'organico_ccnl',nome:'Organico Medio e CCNL',ambito:'azienda',validitaMesi:null,obbligatorio:'richiesta',bloccaIdoneita:false,categoria:'impresa',sinonimi:['organico medio','ccnl','dichiarazione organico']},
   {id:'verifica_funi',nome:'Verifica periodica funi e catene',ambito:'azienda',validitaMesi:null,obbligatorio:'attrezzatura',bloccaIdoneita:false,categoria:'sicurezza',note:'Se usate, secondo normativa.',sinonimi:['funi','catene','verifica funi']},
   {id:'polizza',nome:'Polizza assicurativa (RCT/RCO)',ambito:'azienda',validitaMesi:12,obbligatorio:'richiesta',bloccaIdoneita:false,categoria:'impresa',sinonimi:['polizza','assicurazione','rct','rco']},
+  {id:'alloggio_operai',nome:'Alloggio operai (affitto, utenze)',ambito:'azienda',validitaMesi:null,obbligatorio:'no',bloccaIdoneita:false,categoria:'amministrativo',note:'Contratti, ricevute d\'affitto e bollette degli alloggi degli operai: vanno al commercialista nel mese della data.',sinonimi:['alloggio','affitto','locazione','canone','appartamento operai','bolletta alloggio']},
+  {id:'pratica_legale',nome:'Pratica legale / recupero crediti',ambito:'azienda',validitaMesi:null,obbligatorio:'no',bloccaIdoneita:false,categoria:'legale',note:'Ricorso, decreto ingiuntivo, relata di notifica, contributo unificato, parcella dell\'avvocato: tutti i file della stessa causa in un solo documento, col nome della controparte nel titolo.',sinonimi:['decreto ingiuntivo','ricorso','relata di notifica','contributo unificato','avvocato','tribunale','causa','precetto','pignoramento','recupero crediti','diffida']},
   {id:'altro_azienda',nome:'Altro documento aziendale',ambito:'azienda',validitaMesi:null,obbligatorio:'no',bloccaIdoneita:false,categoria:'amministrativo',sinonimi:[]},
   {id:'psc',nome:'PSC',ambito:'cantiere',validitaMesi:null,obbligatorio:'no',bloccaIdoneita:false,categoria:'cantiere',sinonimi:['psc','piano di sicurezza e coordinamento']},
   {id:'pos',nome:'POS',ambito:'cantiere',validitaMesi:null,obbligatorio:'no',bloccaIdoneita:false,categoria:'cantiere',sinonimi:['pos','piano operativo di sicurezza']},

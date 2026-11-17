@@ -4,7 +4,7 @@
 // ---------------------------------------------------------------------
 const TIPI_MEZZO=['Furgone','Autocarro','Auto','Rimorchio','Macchina operatrice','Altro'];
 function documentoPiuCriticoMezzo(m){
-  const docs=documentiDi('mezzo',m.id).map(d=>({d,info:infoDocumento(d)}));
+  const docs=documentiDi('mezzo',m.id).filter(d=>!documentoSuperato(d)).map(d=>({d,info:infoDocumento(d)}));
   const ord=['scaduto','scadenza','pianificare','valido','riferimento'];
   docs.sort((a,b)=>ord.indexOf(a.info.stato)-ord.indexOf(b.info.stato)||(a.info.giorni||0)-(b.info.giorni||0));
   const peggio=docs[0];
@@ -29,7 +29,7 @@ AZIONI['mezzo-modifica']=d=>dialogoMezzo(perId('mezzi',d.id));
 function vistaMezzo(id){
   const m=perId('mezzi',id); if(!m) return html`<div class="vuoto">${icona('attenzione')}<h3>Mezzo non trovato</h3><a class="pulsante" href="#/mezzi">Torna all'elenco</a></div>`;
   const ling=linguettaAttiva('mezzo:'+m.id,'documenti');
-  const docs=documentiDi('mezzo',m.id);
+  const docs=documentiDi('mezzo',m.id).filter(d=>!documentoSuperato(d));
   const nDocCritici=docs.filter(d=>['scaduto','scadenza'].includes(infoDocumento(d).stato)).length;
   return html`<div class="briciole"><a href="#/mezzi">Mezzi</a> › ${nomeMezzo(m)}</div>
   <div class="testata"><div><h1>${nomeMezzo(m)}</h1><div class="sotto">${m.tipo||''}${m.assegnatoA?' · assegnato a '+nomePersona(persona(m.assegnatoA)):''}</div></div>
@@ -43,7 +43,7 @@ function schedaDocumentiMezzo(m){
   docs.sort((a,b)=>ord.indexOf(a.info.stato)-ord.indexOf(b.info.stato)||(a.info.giorni||0)-(b.info.giorni||0));
   return html`<div class="zona-drop mb" data-azione="documento-nuovo" data-soggetto-tipo="mezzo" data-soggetto-id="${m.id}" data-drop-soggetto="mezzo:${m.id}">${icona('carica')}Trascina qui una scansione o un PDF, oppure clicca per aggiungere un documento</div>
   ${tabella({id:'docmezzo',righe:docs,onRiga:r=>apriDocumento(r.d.id),classeRiga:r=>'riga-'+r.info.stato,colonne:[
-    {chiave:'tipo',titolo:'Documento',principale:true,valore:r=>r.tipo?r.tipo.nome:'',formatta:r=>html`<b>${r.tipo?r.tipo.nome:'[tipo?]'}</b>${r.d.titolo?html`<br><span class="piccolo secondario">${r.d.titolo}</span>`:''}${!(r.d.file||[]).length?html`<br><span class="piccolo da-compilare">nessun file allegato</span>`:''}`},
+    {chiave:'tipo',titolo:'Documento',principale:true,valore:r=>r.tipo?r.tipo.nome:'',formatta:r=>html`${(nd=>html`<b>${nd.nome}</b>${nd.categoria?html`<br><span class="piccolo secondario">${nd.categoria}</span>`:''}`)(nomiDocumento(r.d,r.tipo))}${!(r.d.file||[]).length?html`<br><span class="piccolo da-compilare">nessun file allegato</span>`:''}`},
     {chiave:'emissione',titolo:'Emissione',valore:r=>r.d.dataEmissione||'',formatta:r=>r.d.dataEmissione?fData(r.d.dataEmissione):html`<span class="silenzioso">—</span>`},
     {chiave:'scadenza',titolo:'Scadenza',valore:r=>r.info.data||'',formatta:r=>r.info.data?html`<span class="${r.info.stimata?'stimata':''}">${fData(r.info.data)}${r.info.stimata?' ~':''}</span>`:r.d.senzaScadenza?html`<span class="silenzioso">nessuna</span>`:daCompilare('data?')},
     {chiave:'stato',titolo:'Stato',valore:r=>ord.indexOf(r.info.stato),formatta:r=>pillolaDocumento(r.info)},

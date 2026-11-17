@@ -57,3 +57,21 @@ async function unisciInPdf(blobs){
   }
   return pdfDaImmagini(pagine);
 }
+// Testo del PDF riga per riga come lo vede l'occhio: i pezzi di testo si raggruppano per altezza sulla
+// pagina e si ordinano da sinistra a destra; uno spazio largo (una colonna di tabella) diventa « | ».
+// Serve a leggere i PSC: l'estrattore interno spezza le parole («Direttore dei l / avori») e separa
+// l'etichetta dal valore che le sta accanto nella tabella.
+async function righePdfJs(blob,maxPagine){
+  const doc=await apriPdfJs(blob);const n=Math.min(doc.numPages,maxPagine||doc.numPages);const pagine=[];
+  for(let i=1;i<=n;i++){
+    const p=await doc.getPage(i);const tc=await p.getTextContent();
+    const it=tc.items.filter(x=>x.str&&x.str.trim()).map(x=>{const [a,b,c,d,e,f]=x.transform;return {s:x.str,x:e,y:f,h:Math.hypot(c,d)||Math.hypot(a,b)||10,w:x.width||0}});
+    it.sort((a,b)=>b.y-a.y||a.x-b.x);
+    const righe=[];
+    for(const t of it){let r=null;for(let k=righe.length-1;k>=0&&k>=righe.length-4;k--){if(Math.abs(righe[k].y-t.y)<Math.max(1.5,Math.min(righe[k].h,t.h)*0.45)){r=righe[k];break}}
+      // il «grassetto finto» ripete lo stesso testo nello stesso punto: si tiene una volta sola
+      if(r){if(!r.items.some(x=>x.s===t.s&&Math.abs(x.x-t.x)<2))r.items.push(t);r.h=Math.max(r.h,t.h)}else righe.push({y:t.y,h:t.h,items:[t]})}
+    pagine.push(righe.map(r=>{r.items.sort((a,b)=>a.x-b.x);let s='',fine=null;for(const t of r.items){if(fine!==null){const gap=t.x-fine;s+=gap>r.h*1.6?' | ':gap>r.h*0.12&&!/\s$/.test(s)&&!/^\s/.test(t.s)?' ':''}s+=t.s;fine=t.x+t.w}return s.replace(/\s+/g,' ').trim()}).filter(Boolean).join('\n'));
+  }
+  return {pagine,numPagine:doc.numPages};
+}

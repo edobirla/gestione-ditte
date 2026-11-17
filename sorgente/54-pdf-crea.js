@@ -46,6 +46,8 @@ function scrittorePdf(){
     if(fit==='cover'){const s=Math.max(cw/iw,ch/ih);const sw=cw/s,sh=ch/s;g.drawImage(img,(iw-sw)/2,(ih-sh)/2,sw,sh,0,0,cw,ch)}
     else g.drawImage(img,0,0,cw,ch);
     const dati=g.getImageData(0,0,cw,ch).data;let opaca=true;for(let i=3;i<dati.length;i+=4)if(dati[i]<255){opaca=false;break}
+    // firme e timbri (trasparenti, a colori piatti): tracciato vettoriale, nitido in stampa
+    if(!opaca&&fit!=='cover'&&(VETTORI_SVG.has(img.currentSrc)||srcFirme().has(img.currentSrc))){const vet=VETTORI_SVG.get(img.currentSrc)||vettoreFirma(img,Math.max(wPt,hPt));if(vet){const ogg={vettore:vet.pdf};cacheImg.set(chiave,ogg);return Object.assign({},ogg,{dx,dy,dw:wPt,dh:hPt})}}
     let ogg;
     if(opaca){const blob=await new Promise(r=>cv.toBlob(r,'image/jpeg',0.86));ogg={w:cw,h:ch,jpeg:new Uint8Array(await blob.arrayBuffer())}}
     else{const rgbB=new Uint8Array(cw*ch*3),alfa=new Uint8Array(cw*ch);for(let i=0,j=0,k=0;i<dati.length;i+=4){rgbB[j++]=dati[i];rgbB[j++]=dati[i+1];rgbB[j++]=dati[i+2];alfa[k++]=dati[i+3]}ogg={w:cw,h:ch,rgb:await comprimiFlate(rgbB),alfa:await comprimiFlate(alfa)}}
@@ -69,7 +71,7 @@ function scrittorePdf(){
       const uguali=bw.every(b=>b===bw[0])&&lati.every(([l])=>st['border'+l+'Style']===st.borderTopStyle&&st['border'+l+'Color']===st.borderTopColor);
       if(raggio&&uguali&&bw[0]>0&&st.borderTopStyle!=='none'){const c=colore(st.borderTopColor);if(c)fondi.push(`${rgb(c,'RG')} ${n2(bw[0])} w ${rettArrotondato(x+bw[0]/2,y+bw[0]/2,w-bw[0],h-bw[0],Math.max(0,raggio-bw[0]/2))} S`)}
       else lati.forEach(([l,x1,y1,x2,y2],i)=>{const s=st['border'+l+'Style'];if(!bw[i]||s==='none'||s==='hidden')return;const c=colore(st['border'+l+'Color']);if(!c)return;const o=bw[i]/2;const d=[[0,-o],[-o,0],[0,o],[o,0]][i];const tr=s==='dotted'?`[${n2(bw[i])} ${n2(bw[i]*2)}] 0 d 1 J `:s==='dashed'?`[${n2(bw[i]*3)} ${n2(bw[i]*2)}] 0 d `:'';fondi.push(`${rgb(c,'RG')} ${n2(bw[i])} w ${tr}${n2(x1+d[0])} ${n2(y1+d[1])} m ${n2(x2+d[0])} ${n2(y2+d[1])} l S [] 0 d 0 J`)});
-      if(e.tagName==='IMG'&&e.naturalWidth){const im=await immagine(e,w,h);if(im){usate.add(immagini.find(o=>o.nome===im.nome));fondi.push(`q ${n2(im.dw)} 0 0 ${n2(im.dh)} ${n2(x+im.dx)} ${n2(y+h-im.dy-im.dh)} cm /${im.nome} Do Q`)}}
+      if(e.tagName==='IMG'&&e.naturalWidth){const im=await immagine(e,w,h);if(im&&im.vettore){fondi.push(`q ${n2(im.dw)} 0 0 ${n2(im.dh)} ${n2(x+im.dx)} ${n2(y+h-im.dy-im.dh)} cm\n${im.vettore}\nQ`)}else if(im){usate.add(immagini.find(o=>o.nome===im.nome));fondi.push(`q ${n2(im.dw)} 0 0 ${n2(im.dh)} ${n2(x+im.dx)} ${n2(y+h-im.dy-im.dh)} cm /${im.nome} Do Q`)}}
       // pallini e numeri degli elenchi, spunte delle liste .spunte (sono pseudo-elementi: non stanno nel DOM)
       if(e.tagName==='LI'){
         const fs=parseFloat(st.fontSize);const lh=st.lineHeight==='normal'?fs*1.2:parseFloat(st.lineHeight);const base=r.top+(lh-fs)/2+fs*0.8;

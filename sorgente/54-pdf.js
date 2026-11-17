@@ -346,41 +346,106 @@ function estraiTestoContenuto(c,fonts){
   return out.replace(/[ \t]+/g,' ').replace(/\n{3,}/g,'\n\n');
 }
 // ---- proposte dal testo del PSC (mai imposte) ----
+// Il testo arriva riga per riga (righePdfJs): nelle tabelle dell'anagrafica etichetta e valore stanno
+// sulla stessa riga separati da « | », oppure l'etichetta è un titolo e il nome sta nelle righe sotto
+// («Nome e cognome | Arch. …»). Provato sui PSC veri dell'archivio dell'azienda (63 piani, studi diversi).
 function proponiDatiDaPsc(testo){
-  const t=testo.replace(/\r/g,'');
-  const righe=t.split('\n').map(x=>x.replace(/\s+/g,' ').trim()).filter(Boolean);
+  const MESI='gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre';
+  const righe=String(testo||'').replace(/\r/g,'').split('\n').map(x=>x.replace(/[ \t ]+/g,' ').trim())
+    .filter(x=>x&&!/\.{5,}|…{3,}|_{6,}/.test(x)); // indice con i puntini e righe da firmare
   const out={};
-  const pulisci=v=>v.replace(/^[\s:：.\-–]+/,'').replace(/[;,.:\-–\s]+$/,'').replace(/\s{2,}/g,' ').trim();
-  const plausibile=v=>v&&v.length>=3&&v.length<=140&&/^[A-ZÀ-Ü0-9"«(]/.test(v)&&!/^(che|il|la|le|i|gli|del|della|di|da|per|con|non|sulla|sul|nel|nella|e|ed|o)\b/i.test(v);
-  // Cerca "Etichetta: valore" (anche sulla riga successiva). Senza i due punti accetta solo etichette lunghe e valori plausibili.
-  const cerca=(etichette,opz)=>{opz=opz||{};
-    for(const et of etichette){const reColon=new RegExp('^'+et+'\\s*[:：]\\s*(.*)$','i');
-      for(let i=0;i<righe.length;i++){const m=reColon.exec(righe[i]);if(m){let v=pulisci(m[1]);if(!v&&righe[i+1])v=pulisci(righe[i+1]);if(plausibile(v))return v}}}
-    if(opz.soloColon) return null;
-    for(const et of etichette){if(et.replace(/\\/g,'').length<8)continue;const re=new RegExp('^'+et+'\\s+(.*)$','i');
-      for(let i=0;i<righe.length;i++){const m=re.exec(righe[i]);if(m){const v=pulisci(m[1]);if(plausibile(v)&&!/^(è|e |sono|deve|dovrà|per |che )/i.test(m[1]))return v}}}
-    return null;};
-  out.committente=cerca(['committente','committenza','il committente']);
-  out.affidataria=cerca(['impresa affidataria','affidataria','impresa esecutrice principale','appaltatore'],{soloColon:true});
-  const ind=cerca(['indirizzo del cantiere','ubicazione del cantiere','indirizzo cantiere','cantiere sito in','ubicazione','indirizzo']);
-  if(ind){out.indirizzo=ind;const capM=/\b(\d{5})\b/.exec(ind);if(capM)out.cap=capM[1];const cm=/(?:\d{5}\s+)?([A-ZÀ-Ü][a-zà-ü']+(?:\s+[A-ZÀ-Ü][a-zà-ü']+)*)\s*\(([A-Z]{2})\)/.exec(ind);if(cm){out.comune=cm[1];out.provincia=cm[2]}}
-  if(!out.comune){const c=cerca(['comune'],{soloColon:true});if(c&&c.length<40){const cm=/^([^(]+?)\s*(?:\(([A-Z]{2})\))?$/.exec(c);if(cm){out.comune=cm[1].trim();if(cm[2])out.provincia=cm[2]}}}
-  if(!out.comune){const m=/\bComune di ([A-ZÀ-Ü][a-zà-ü']+(?:[ \t]+[A-ZÀ-Ü][a-zà-ü']+){0,2})[ \t]*(?:\(([A-Z]{2})\))?/.exec(t);if(m){out.comune=m[1];if(m[2])out.provincia=m[2]}}
-  if(!out.cap){const c=cerca(['cap','c\\.a\\.p\\.'],{soloColon:true});if(c&&/^\d{5}/.test(c))out.cap=c.slice(0,5)}
-  out.progettista=cerca(['progettista','progettazione architettonica','progettista architettonico']);
-  out.direttoreLavori=cerca(['direttore dei lavori','direzione lavori','direttore lavori','d\\.l\\.']);
-  out.cse=cerca(['coordinatore per la sicurezza in fase di esecuzione','coordinatore in fase di esecuzione','coordinatore per l\'esecuzione','coordinatore della sicurezza in fase di esecuzione','coordinatore per la sicurezza in fase di progettazione ed esecuzione','coordinatore sicurezza esecuzione','cse','c\\.s\\.e\\.']);
-  out.csp=cerca(['coordinatore per la sicurezza in fase di progettazione','coordinatore in fase di progettazione','coordinatore per la progettazione','coordinatore sicurezza progettazione','csp','c\\.s\\.p\\.']);
-  if(!out.csp&&out.cse&&/progettazione ed? esecuzione|progettazione e esecuzione/i.test(t))out.csp=out.cse;
-  const dm=/(?:revisione|data|emesso|emissione)\s*[:：]?\s*(\d{1,2}[\/.-]\d{1,2}[\/.-]\d{2,4}|(?:gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)\s+\d{4})/i.exec(t);
-  if(dm){const d=interpretaData(dm[1]);if(d)out.dataPsc=d;else{const mm=/(gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)\s+(\d{4})/i.exec(dm[1]);if(mm)out.dataPsc=mm[2]+'-'+pad2(NOMI_MESI.indexOf(mm[1].toLowerCase())+1)+'-01'}}
-  out.redattore=cerca(['redatto da','il coordinatore','redattore'],{soloColon:true});
-  out.descrizione=cerca(['oggetto dei lavori','oggetto dell\'appalto','oggetto dell\'intervento','descrizione dell\'opera','descrizione sintetica dell\'opera','natura dell\'opera','oggetto'],{soloColon:true});
-  // CIG 10 caratteri, CUP 15: almeno una cifra, così una parola qualsiasi dopo "CIG" non passa
-  const cig=/\bC\.?\s?I\.?\s?G\.?\s*(?:n\.?|n°|nr\.?)?\s*[:：]?\s*((?=[A-Z]*\d)[A-Z0-9]{10})\b/i.exec(t);if(cig)out.cig=cig[1].toUpperCase();
-  const cup=/\bC\.?\s?U\.?\s?P\.?\s*(?:n\.?|n°|nr\.?)?\s*[:：]?\s*((?=[A-Z]*\d)[A-Z0-9]{15})\b/i.exec(t);if(cup)out.cup=cup[1].toUpperCase();
-  const imp=/importo\s+(?:complessivo\s+)?(?:presunto\s+)?(?:dei\s+|del\s+|delle\s+)?(?:lavori|appalto|opere)[^\d€\n]{0,60}(?:€|euro)?\s*(\d{1,3}(?:\.\d{3})+(?:,\d{2})?|\d+,\d{2})/i.exec(t);if(imp){const n=leggiNumero(imp[1]);if(n>=1000)out.importoLavori=n}
-  for(const [k,et] of [['dataInizio',['data presunta di inizio lavori','data presunta inizio lavori','data di inizio dei lavori','data di inizio lavori','inizio lavori']],['dataFine',['data presunta di fine lavori','data presunta fine lavori','data di fine dei lavori','data di fine lavori','fine lavori']]]){const v=cerca(et,{soloColon:true});const d=v&&interpretaData((/\d{1,2}[\/.-]\d{1,2}[\/.-]\d{2,4}/.exec(v)||[])[0]||'');if(d)out[k]=d}
-  for(const k of Object.keys(out)){if(!out[k]||(typeof out[k]==='string'&&out[k].length>140))delete out[k]}
+  const pulisci=v=>String(v||'').replace(/^[\s:：|.\-–—_]+/,'').replace(/[\s:：|;,.\-–—_]+$/,'').replace(/\s*\|\s*/g,' ').replace(/\s{2,}/g,' ').trim();
+  const RE_SOTTO=/^(?:nome\s+e\s+cognome|cognome\s+e\s+nome|nominativo(?:\s+o\s+ragione\s+sociale)?|ragione\s+sociale|denominazione|nome|ditta|soggetto|studio|societ[aà]|tecnico|professionista)\b\s*[:：|]?\s*/i;
+  const RE_RECAPITO=/^(?:indirizzo|citt[aà]|comune|via|tel|telefono|fax|cell|e-?mail|mail|pec|c\.?\s?f\.?|cod(?:ice)?\.?\s*fisc|p\.?\s?iva|partita|qualifica|sede|recapit|ordine|iscri|albo|n\.\s|cap\b|prov)/i;
+  const prosa=v=>/\b(dovr[aà]|deve|devono|provveder|sar[aà]n?n?o?|nominat[oa]|incaricat|ai sensi|art\.|d\.?lgs|comma|affinch|qualora|ovvero|nonch[eé]|il quale|la quale|che\s)\b/i.test(v);
+  const RE_FIGURA=/^(?:\d+(?:\.\d+)*\s*[-.)]?\s*)?(?:il\s+|la\s+|dati\s+)?(committent|responsabile\s+dei\s+lavori|progettist|direttore\s+(?:dei\s+)?lavori|direzione\s+(?:dei\s+)?lavori|coordinatore|c\.?\s?s\.?\s?[pe]\.?\b|impresa|appaltator|ente\s+appaltante|stazione\s+appaltante|indirizzo|ubicazione|data|importo|durata)/i;
+  // valori: persona (con titolo o 2-5 parole maiuscole) o società
+  const TITOLI='(?:arch|ing|geom|dott|dr|per\\.?\\s*ind|p\\.?\\s*i|ingegnere|architetto|geometra|perito(?:\\s+edile|\\s+industriale)?|avv|prof)\\.?';
+  const RE_SOC=/\b(s\.?\s?r\.?\s?l\.?s?|s\.?\s?p\.?\s?a\.?|s\.?\s?n\.?\s?c\.?|s\.?\s?a\.?\s?s\.?|soc\.?\s*coop|cooperativa|consorzio|societ[aà]|s\.?\s?c\.?\s?a\.?\s?r\.?\s?l|onlus|fondazione|comune di|provincia di|regione|universit[aà]|azienda|ministero|istituto|asl|usl|condominio|parrocchia|diocesi|banca|immobiliare|group|holding)\b/i;
+  // parole che stanno nei titoli dei capitoli, non nei nomi di persone o di ditte
+  const RE_NON_NOME=/\b(coordinat\w*|sicurezza|piano|progett(?:o|azione)|relazione|indice|dati|identificativ\w*|imprese|fase|decreto|legislativo|d\.?\s?lgs|esecutivo|identificazione|descrizione|oggetto|committent\w*|nominare|definire|pag\.?|manutenzione|resp\.?|tecnico|operativo|cantiere|tavola|edizione|allegat\w*|elaborat\w*|sommario|capitolo|premessa|revisione|documento|cognome|nominativo|figure|ruolo|firma|timbro|sezione|scheda|elenco|lavoratori|appalto|opere|intervento|stima|costi|planimetria|cronoprogramma|organizzazione|prescrizioni|rischi|misure|direzione|dispositivi|protezione|collettiva|architettonic\w*|fascicolo|p\.?s\.?c|ordine|universit\w*|direttore|lavori)\b|^(?:loc\.?|localit\w*|via|viale|piazza|strada|corso)\b|[:(_]/i;
+  const tagliaRecapiti=v=>pulisci(String(v).replace(/\bpag\.?\s*\d+\s*\/\s*\d+/ig,'').replace(/-{3,}.*$/,'').replace(/\(\s*c\.?\s?f\.?.*$/i,'').replace(/\s+r\.?\s?u\.?\s?p\.?\b.*$/i,'').replace(/\s+\d{3,}[\d\s\/.]*.*$/,'').split(/[-–—]\s*(?=via\b|viale\b|piazza\b|loc\.?\b)/i)[0].split(/\s+(?:[-–—,]\s*)?(?:con\s+sede|sede\s+(?:legale|in)|residente|domiciliat|via\s|v\.le|viale|piazza|p\.zza|loc\.|localit[aà]|corso|c\.f\.|cod\.?\s*fisc|codice\s+fiscale|p\.?\s?iva|partita\s+iva|tel\.?|telefono|cell|fax|e-?mail|pec|iscritt|nato\s+a|legalmente|in\s+persona|rappresentat|n\.\s*\d)\b/i)[0].split(/\s+[-–—]\s+(?=\d|[A-Z][a-z]+\s*\()/)[0]);
+  const persona=v=>{v=tagliaRecapiti(String(v).split(/\s*\(/)[0]).split(/\s[-–—]\s|,\s/)[0].replace(/^(?:sig\.?r?a?\.?|signor[ae]?)\s+/i,'').trim();if(!v||v.length<5||v.length>70||prosa(v)||/\d/.test(v)||RE_NON_NOME.test(v)||/^(?:e|ed|di|del|della|il|la)\s/i.test(v))return null;
+    const senzaTitoli=v.replace(new RegExp('\\b'+TITOLI+'(?=\\s|$)','ig'),'').trim();if(!/[A-Za-zÀ-ÿ]{3,}/.test(senzaTitoli))return null;
+    if(new RegExp('^'+TITOLI+'\\s','i').test(v)||RE_SOC.test(v))return v;
+    const w=v.split(' ');if(w.length>=2&&w.length<=6&&w.every(x=>/^[A-ZÀ-Ü][A-Za-zÀ-ÿ'’.\-]*$/.test(x)||/^(?:de|di|del|della|da|dal|van|von|e)$/i.test(x)))return v;return null};
+  const societa=v=>{v=tagliaRecapiti(String(v).split(/\s[–—]\s/)[0]).split(/\s+[A-Za-zà-ü]+\s*:/)[0].trim();if(/^[(a-z]/.test(v)||/[_:]/.test(v)||/\b(rev|revisione|data|pag|persona\s+di|coordinamento|scuola|redattore|descrizione|progetto|individuazione|soggetti|architettonic\w*)\b/i.test(v)||/^[A-ZÀ-Ü' ]+\([A-Z]{2}\)$/.test(v))return null;if(!v||v.length<3||v.length>90||prosa(v)||/^\d|^(?:via|viale|piazza|loc)\b/i.test(v)||/^(?:s\.?\s?[rp]\.?\s?[la]\.?|soc\.?)$/i.test(v)||/\b(coordinat\w*|sicurezza|piano|progettazione|relazione|indice|oggetto|committent\w*|tavola|edizione|allegat\w*|elaborat\w*|sommario|capitolo|premessa|cantiere|nominare|definire)\b/i.test(v))return null;return v};
+  const etichettaVuota=v=>!v||/^[:：|\-–\s]*$/.test(v);
+  // trova le righe che cominciano con l'etichetta e prende il valore accanto o sotto
+  const cerca=(reEt,tipo,opz)=>{opz=opz||{};const val=tipo==='persona'?persona:tipo==='societa'?societa:x=>{x=pulisci(x);return x&&x.length<=160&&!prosa(x)?x:null};
+    for(let i=0;i<righe.length;i++){
+      const r=righe[i];const m=reEt.exec(r);if(!m||m.index>(opz.ovunque?200:4))continue;
+      if(opz.escludi&&opz.escludi.test(r))continue;
+      let resto=r.slice(m.index+m[0].length);
+      // l'etichetta deve finire lì: «Committente: X», «Committente | X», «COMMITTENTE» da solo; non «committente o il responsabile …»
+      if(!etichettaVuota(resto)&&!/^\s*(?:\d\s*)?[:：|(]/.test(resto)&&!/^\s+[A-ZÀ-Ü"«]/.test(resto))continue;
+      resto=resto.replace(/^\s*\d\s*(?=[:：|])/,'').replace(/^\s*\([^)]*\)\s*/,'');
+      const sub=pulisci(resto).replace(RE_SOTTO,'');
+      if(sub){const v=val(sub);if(v)return v;if(r.length>60&&!/\|/.test(r))continue}
+      // sotto: «Nome e cognome | X» o direttamente il nome; ci si ferma alla figura successiva
+      for(let k=i+1;k<righe.length&&k<=i+6;k++){const s=righe[k];
+        if(RE_SOTTO.test(s)){const v=val(pulisci(s.replace(RE_SOTTO,'')));if(v)return v;continue}
+        if(RE_RECAPITO.test(s))continue;
+        if(RE_FIGURA.test(s)&&!opz.valoreFigura)break;
+        if(s.length>120)break;
+        const v=val(s);if(v)return v;
+      }
+    }
+    return null};
+  const CO='coordinatore\\s+(?:per\\s+la\\s+|della\\s+|alla\\s+|in\\s+materia\\s+di\\s+)?(?:sicurezza\\s+)?(?:e\\s+(?:la\\s+)?salute\\s+)?(?:in\\s+|nella\\s+|per\\s+la\\s+|per\\s+l[\'’]\\s*|della\\s+)?(?:fase\\s+(?:di\\s+|della\\s+)?)?';
+  const ambedue=new RegExp('^(?:\\d[\\d.]*\\s*)?(?:il\\s+)?(?:'+CO+'progettazione\\s+(?:ed?|&|\\/)\\s*(?:in\\s+fase\\s+di\\s+)?esecuzione|c\\.?\\s?s\\.?\\s?p\\.?\\s*(?:ed?|\\/|-)\\s*c\\.?\\s?s\\.?\\s?e\\.?)(?:\\s+dei\\s+lavori|\\s+\\(c\\.?s\\.?[pe]\\.?\\))?','i');
+  const both=cerca(ambedue,'persona');if(both){out.csp=both;out.cse=both}
+  out.cse=out.cse||cerca(new RegExp('^(?:\\d[\\d.]*\\s*)?(?:il\\s+)?(?:'+CO+'(?:esecuzione|realizzazione)(?:\\s+dei\\s+lavori|\\s+dell[\'’]\\s*opera)?|c\\.?\\s?s\\.?\\s?e\\.?(?![a-z]))(?:\\s*\\(c\\.?s\\.?e\\.?\\))?','i'),'persona');
+  out.csp=out.csp||cerca(new RegExp('^(?:\\d[\\d.]*\\s*)?(?:il\\s+)?(?:'+CO+'progettazione(?:\\s+dei\\s+lavori|\\s+dell[\'’]\\s*opera)?|c\\.?\\s?s\\.?\\s?p\\.?(?![a-z]))(?:\\s*\\(c\\.?s\\.?p\\.?\\))?','i'),'persona');
+  if(!out.csp&&out.cse&&righe.some(r=>/progettazione\s+(?:ed?|&|\/)\s*(?:in\s+fase\s+di\s+)?esecuzione/i.test(r)))out.csp=out.cse;
+  out.direttoreLavori=cerca(/^(?:\d[\d.]*\s*)?(?:il\s+)?(?:progettista\s*(?:e|\/)\s*)?(?:direttore|direzione)\s+(?:dei\s+)?lavori(?:\s+(?:architettonic[io]|generale|opere\s+edili|edile))?|^d\.\s?l\.(?=\s*[:|])/i,'persona',{escludi:/strutturale|impiant|tecnico|operativ|cantiere/i});
+  out.progettista=cerca(/^(?:\d[\d.]*\s*)?(?:il\s+)?(?:progettist[ai](?:\s*\/\s*direttore\s+dei\s+lavori)?(?:\s+(?:architettonic[oi]|generale|opere\s+edili|edile|dell[\'’]\s*opera))?|progettazione\s+architettonica|progetto\s+architettonico)/i,'persona',{escludi:/strutturale|impiant|termotecnic|elettric|antincendio|acustic|geolog/i})
+    ||cerca(/^(?:\d[\d.]*\s*)?(?:il\s+)?progettist[ai]/i,'persona');
+  out.committente=cerca(/^(?:\d[\d.]*\s*)?(?:dati\s+(?:del\s+)?)?(?:il\s+)?(?:committent[ei](?:\s*\d)?|committenza|ente\s+appaltante|stazione\s+appaltante|propriet[aà])(?:\s+dei\s+lavori)?/i,'societa',{escludi:/tipo\s+di\s+committen|responsabile\s+dei\s+lavori\s+e/i});
+  out.affidataria=cerca(/^(?:\d[\d.]*\s*)?(?:l[\'’]\s*)?(?:impresa\s+(?:affidataria|appaltatrice|aggiudicataria|principale|generale)|appaltatore|general\s+contractor|impresa\s+esecutrice\s+principale)/i,'societa');
+  if(out.affidataria&&!RE_SOC.test(out.affidataria))delete out.affidataria;
+  if(out.committente&&/^(?:privat[ao]|pubblic[ao])$/i.test(out.committente))delete out.committente;
+  // indirizzo del cantiere: sulla riga, oppure «Via/Località | …» e «Città/Comune | …» sotto
+  const reInd=/^(?:\d[\d.]*\s*)?(?:indirizzo|ubicazione|localizzazione|luogo|sede|ubicato\s+in|sito\s+in)\s+(?:del\s+|dell[\'’]\s*)?(?:cantiere|lavori|opera|intervento|area)|^(?:\d[\d.]*\s*)?(?:cantiere\s+(?:sito\s+)?in|cantiere(?=\s*[:|])|ubicazione(?=\s*[:|])|localit[aà]\s+(?:del\s+)?cantiere)/i;
+  for(let i=0;i<righe.length&&!out.indirizzo;i++){const m=reInd.exec(righe[i]);if(!m||m.index>4)continue;let v=pulisci(righe[i].slice(m[0].length));const extra=[];
+    for(let k=i+1;k<righe.length&&k<=i+4;k++){const s=righe[k];const mm=/^(via|localit[aà]|indirizzo|citt[aà]|comune|frazione|cap|provincia|prov\.?)\b\s*[:：|]?\s*(.*)$/i.exec(s);if(!mm)break;const x=pulisci(mm[2]);if(x)extra.push(x)}
+    if((!v||v.length<4)&&extra.length)v=extra.join(', ');else if(v&&extra.length&&!/\d{5}|\([A-Z]{2}\)|comune/i.test(v))v=v+', '+extra.filter(x=>!v.includes(x)).join(', ');
+    const indOk=x=>x&&x.length>=4&&x.length<=160&&!prosa(x)&&/^[A-ZÀ-Üa-z0-9"«]/.test(x)&&/\b(via|v\.le|viale|piazza|p\.?\s?zz?a|loc\.?|localit[aà]|corso|strada|largo|vicolo|frazione|fraz\.|comune|zona|area|s\.?s\.|s\.?p\.|borgo|podere|contrada)\b|\d{5}|\([A-Z]{2}\)/i.test(x)&&!/^(?:di|del|della|e|ed|il|la|degli|delle|dei)\b/i.test(x);
+    const pulInd=x=>{if(!x)return null;x=x.replace(/^(?:ubicazione|indirizzo(?:\s+(?:del\s+)?cantiere)?|via\s*\/\s*piazza|localit[aà])\s*[:：|]?\s*/i,'').split(/\s+committente\b/i)[0].trim();if(/committente/i.test(x)||(/^[a-z]/.test(x)&&!/^(via|viale|piazza|loc|localit|corso|strada|largo|frazione)\b/i.test(x)))return null;return indOk(x)?x:null};
+    v=pulInd(v)||pulInd(pulisci(righe[i+1]||''));
+    if(v)out.indirizzo=v.replace(/^il\s+cantiere\s+[eè]\s+sito\s+in\s+/i,'')}
+  if(out.indirizzo){const ind=out.indirizzo;const capM=/\b(\d{5})\b/.exec(ind);if(capM)out.cap=capM[1];
+    const pr=/\(\s*([A-Z]{2})\s*\)|\b([A-Z]{2})\s*$/.exec(ind);if(pr)out.provincia=pr[1]||pr[2];
+    const W="(?:d['’])?[A-ZÀ-Ü][A-Za-zà-ü'’]+",P='(?:di|del|della|in|sul|sulla|val|de|dei|delle|al|a|d[\'’]\\w+)';
+    const com=/comune\s+di\s+([A-ZÀ-Üa-zà-ü'’ ]+?)(?=\s*(?:\(|,|-|–|$|\d))/i.exec(ind)||new RegExp('(?:\\d{5}\\s+)('+W+'(?:\\s+(?:'+W+'|'+P+'))*)').exec(ind)||new RegExp('('+W+'(?:\\s+(?:'+W+'|'+P+'))*)\\s*(?:\\d{5}\\s*)?\\(\\s*[A-Za-z]{2,}\\s*\\)').exec(ind)||new RegExp('(?:[-–,]\\s*)('+W+'(?:\\s+(?:'+W+'|'+P+'))*)\\s*(?:\\d{5})?\\s*$').exec(ind);
+    if(com){const c=com[1].trim().split(/\s+/).slice(-5).join(' ');if(c.length>=3&&!/^(via|loc|localit|piazza|viale|corso|strada|area|zona)\b/i.test(c))out.comune=c.toLowerCase().replace(/(^|[\s'’-])([a-zà-ü])/g,(x,a,b)=>a+b.toUpperCase()).replace(/\b(Di|Del|Della|In|Sul|Sulla|De|Dei|Delle|Al|A)\b/g,x=>x.toLowerCase()).replace(/^./,x=>x.toUpperCase())}}
+  if(!out.comune){for(const r of righe.slice(0,400)){const m=/^(?:comune|citt[aà])\s*[:：|]\s*([A-ZÀ-Üa-zà-ü'’ ]{3,40}?)\s*(?:\(([A-Z]{2})\))?$/i.exec(r);if(m){out.comune=m[1].trim().toLowerCase().replace(/(^|[\s'’-])([a-zà-ü])/g,(x,a,b)=>a+b.toUpperCase()).replace(/\b(Di|Del|Della|In|Sul|Sulla)\b/g,x=>x.toLowerCase());if(m[2])out.provincia=m[2];break}}}
+  // date
+  const data=v=>{if(!v)return null;let m=/(\d{1,2})\s*[\/.\-]\s*(\d{1,2})\s*[\/.\-]\s*(\d{2,4})/.exec(v);if(m){const a=m[3].length===2?'20'+m[3]:m[3];const d=a+'-'+pad2(+m[2])+'-'+pad2(+m[1]);return +m[2]>=1&&+m[2]<=12&&+m[1]>=1&&+m[1]<=31?d:null}
+    m=new RegExp('(\\d{1,2})?\\s*(?:°)?\\s*('+MESI+')\\s+(\\d{4})','i').exec(v);if(m)return m[3]+'-'+pad2(MESI.split('|').indexOf(m[2].toLowerCase())+1)+'-'+pad2(+(m[1]||1));return null};
+  const cercaData=re=>{for(let i=0;i<righe.length;i++){const m=re.exec(righe[i]);if(!m||m.index>4)continue;const d=data(righe[i].slice(m.index+m[0].length))||data(righe[i+1]||'');if(d)return d}return null};
+  out.dataInizio=cercaData(/(?:data\s+(?:presunta\s+)?(?:di\s+)?inizio(?:\s+dei)?\s+lavori|inizio\s+(?:dei\s+)?lavori)(?:\s*\(?\s*presunt[ao]\s*\)?)?/i);
+  out.dataFine=cercaData(/(?:data\s+(?:presunta\s+)?(?:di\s+)?fine(?:\s+dei)?\s+lavori|fine\s+(?:presunta\s+)?(?:dei\s+)?lavori|ultimazione\s+(?:dei\s+)?lavori)(?:\s*\(?\s*presunt[ao]\s*\)?)?/i);
+  if(out.dataInizio&&!out.dataFine){for(const r of righe){const m=/^durata\b[^|:]*[:|]?\s*(?:presunta\s*)?(?:dei\s+lavori\s*)?[:|]?\s*(\d{1,4})\s*(?:gg|giorni)\b/i.exec(r);if(m){const d=new Date(out.dataInizio+'T12:00:00');d.setDate(d.getDate()+ +m[1]);out.dataFine=d.toISOString().slice(0,10);break}}}
+  // data del PSC: «Rev. 0 del …», «data: …», o la data in copertina
+  const prime=righe.slice(0,80);
+  const legge=/d\.?\s?lgs|\bd\.?i\.?\s+del|interministeriale|allegat|decreto|legge|\bl\.\s?\d|n\.\s?81|testo\s+unico|\bart\.|g\.?u\.|gazzetta|circolare|d\.?p\.?r|d\.?m\./i;
+  for(const r of prime){if(legge.test(r))continue;const m=/(?:rev(?:isione)?\.?\s*(?:n\.?\s*)?\d*\s*(?:del|-|:)|\bdata\s*(?:di\s+)?(?:emissione|redazione|revisione)?\s*[:|]|emess[oa]\s+il|redatto\s+il)\s*(.{6,30})/i.exec(r);const d=m&&data(m[1]);if(d){out.dataPsc=d;break}}
+  if(!out.dataPsc){for(const r of prime){if(/inizio|fine|durata|nato|nata/i.test(r)||legge.test(r))continue;const d=data(r);if(d&&+d.slice(0,4)>=2000){out.dataPsc=d;break}}}
+  out.redattore=out.csp||null;
+  out.descrizione=cerca(/^(?:\d[\d.]*\s*)?(?:oggetto\s+(?:dei\s+lavori|dell[\'’]\s*appalto|dell[\'’]\s*intervento|del\s+progetto)|descrizione\s+(?:sintetica\s+)?dell[\'’]\s*(?:opera|intervento)|natura\s+dell[\'’]\s*opera|oggetto|lavori\s+di)(?=\s*[:|])/i,'testo');
+  const testoT=righe.join('\n');
+  const cig=/\bC\.?\s?I\.?\s?G\.?\s*(?:n\.?|n°|nr\.?)?\s*[:：|]?\s*((?=[A-Z]*\d)[A-Z0-9]{10})\b/i.exec(testoT);if(cig)out.cig=cig[1].toUpperCase();
+  const cup=/\bC\.?\s?U\.?\s?P\.?\s*(?:n\.?|n°|nr\.?)?\s*[:：|]?\s*((?=[A-Z]*\d)[A-Z0-9]{15})\b/i.exec(testoT);if(cup)out.cup=cup[1].toUpperCase();
+  for(const r of righe){const m=/^(?:\d[\d.]*\s*)?importo\s+(?:complessivo\s+|totale\s+|presunto\s+)*(?:dei\s+|del\s+|delle\s+)?(?:lavori|appalto|opere)?[^\d€|:]{0,40}[:|]?\s*(?:€|euro)?\s*(\d{1,3}(?:\.\d{3})+(?:,\d{2})?|\d+,\d{2})/i.exec(r);if(m){const n=leggiNumero(m[1]);if(n>=1000){out.importoLavori=n;break}}}
+  // nel campo indirizzo va solo la via: comune, CAP e provincia hanno i loro campi
+  if(out.indirizzo&&out.comune){const esc=x=>x.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');let v=out.indirizzo.replace(new RegExp('(?:comune\\s+di\\s+)?'+esc(out.comune),'i'),'').replace(/\b\d{5}\b/,'').replace(/\(\s*[A-Za-z]{2,}\s*\)/,'').replace(/\s*[,–—-]\s*(?=[,–—-]|$)/g,'').replace(/^[\s,–—-]+|[\s,–—-]+$/g,'').replace(/\s{2,}/g,' ').trim();if(v.length>=3)out.indirizzo=v}
+  for(const k of Object.keys(out)){if(out[k]==null||out[k]===''||(typeof out[k]==='string'&&out[k].length>160))delete out[k]}
   return out;
+}
+// Il testo del PSC per le proposte: righe ricomposte con pdf.js sulle prime 40 pagine (l'anagrafica
+// sta sempre all'inizio); se pdf.js non riesce, l'estrattore interno.
+async function testoPsc(blob,avanza){
+  try{const r=await righePdfJs(blob,40);const t=r.pagine.join('\n');if(t.replace(/\s/g,'').length>=200)return t}catch(e){}
+  try{return (await estraiTestoPdf(blob,avanza)).testo||''}catch(e){return ''}
 }

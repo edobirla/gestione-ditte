@@ -130,6 +130,11 @@ document.addEventListener('click',e=>{
 
 // ---- moduli (form) ----
 // campi: [{nome, etichetta, tipo:'testo|numero|data|select|textarea|spunta|email|tel|euro|ore', opzioni:[{v,t}], obbligatorio, aiuto, largo, valida(v)->errore|null, sola}]
+// targhe, codici fiscali, partite IVA, IBAN, CIG e CUP si scrivono sempre in maiuscolo, anche se il campo non lo dice
+const RE_CAMPO_MAIUSCOLO=/(^|\.)(targa|cf|codiceFiscale|piva|partitaIva|iban|cig|cup)$/i;
+function campoMaiuscolo(c){return c.maiuscolo||RE_CAMPO_MAIUSCOLO.test(c.nome||'')}
+// mentre si scrive: il valore diventa maiuscolo subito (non solo a vista), il cursore resta dov'è
+document.addEventListener('input',e=>{const t=e.target;if(!t||!t.matches||!t.matches('input[data-maiuscolo]'))return;const v=t.value,u=v.toUpperCase();if(v===u)return;const a=t.selectionStart,b=t.selectionEnd;t.value=u;try{t.setSelectionRange(a,b)}catch(err){}});
 function modulo(campi,valori,opz){
   valori=valori||{};opz=opz||{};
   return html`<div class="campi ${opz.classe||''}">${campi.map(c=>{
@@ -148,7 +153,7 @@ function modulo(campi,valori,opz){
       case 'mese': input=html`<input type="month" id="${idc}" name="${c.nome}" value="${v||''}" ${c.sola?'disabled':''}>`; break;
       case 'chip': input=html`<div class="chip-lista" data-chip="${c.nome}">${(c.opzioni||[]).map(o=>{const on=(v||[]).includes(o.v);return html`<label class="chip ${on?'attiva':''}"><input type="checkbox" name="${c.nome}" value="${o.v}" ${on?'checked':''}>${o.t}</label>`})}</div>`; break;
       case 'radio': input=html`<div class="scelta-lista">${(c.opzioni||[]).map(o=>html`<label class="${String(o.v)===String(v)?'attiva':''}"><input type="radio" name="${c.nome}" value="${o.v}" ${String(o.v)===String(v)?'checked':''}><span>${o.t}${o.desc?html`<div class="desc">${o.desc}</div>`:''}</span></label>`)}</div>`; break;
-      default: input=html`<input type="${c.tipo==='email'?'email':c.tipo==='tel'?'tel':c.tipo==='url'?'url':c.tipo==='password'?'password':'text'}" id="${idc}" name="${c.nome}" value="${v==null?'':v}" ${c.sola?'disabled':''} placeholder="${c.segnaposto||''}" ${c.lista?html`list="${c.lista}"`:''} ${c.maiuscolo?'style="text-transform:uppercase"':''} autocomplete="off">`;
+      default: input=html`<input type="${c.tipo==='email'?'email':c.tipo==='tel'?'tel':c.tipo==='url'?'url':c.tipo==='password'?'password':'text'}" id="${idc}" name="${c.nome}" value="${v==null?'':v}" ${c.sola?'disabled':''} placeholder="${c.segnaposto||''}" ${c.lista?html`list="${c.lista}"`:''} ${campoMaiuscolo(c)?grezzo('data-maiuscolo autocapitalize="characters" style="text-transform:uppercase"'):''} autocomplete="off">`;
     }
     return html`<div class="campo ${c.largo?'largo':''}" data-campo="${c.nome}">${c.tipo==='spunta'?'':html`<label for="${idc}">${c.etichetta}${c.obbligatorio?html` <span class="obbl">*</span>`:''}</label>`}${input}${c.aiuto?html`<div class="aiuto">${c.aiuto}</div>`:''}<div class="errore nascosto"></div></div>`;
   })}</div>`;
@@ -168,7 +173,7 @@ function leggiModulo(radice,campi){
     else if(c.tipo==='spunta') v=elc.checked;
     else if(c.tipo==='numero'||c.tipo==='euro'||c.tipo==='ore'){const raw=elc.value.trim();v=raw===''?null:leggiNumero(raw);if(raw!==''&&v===null)errori.push({campo:c.nome,errore:'Numero non valido'})}
     else v=elc.value;
-    if(typeof v==='string'){v=v.trim();if(c.maiuscolo)v=v.toUpperCase();if(v==='')v=c.tipo==='select'?null:'';}
+    if(typeof v==='string'){v=v.trim();if(campoMaiuscolo(c))v=v.toUpperCase();if(v==='')v=c.tipo==='select'?null:'';}
     if(c.obbligatorio&&(v===null||v===undefined||v===''||(Array.isArray(v)&&!v.length))) errori.push({campo:c.nome,errore:'Campo obbligatorio'});
     else if(c.valida&&v!==null&&v!==undefined&&v!==''){const err=c.valida(v,valori);if(err)errori.push({campo:c.nome,errore:err})}
     scriviPercorso(valori,c.nome,v);

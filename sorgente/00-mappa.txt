@@ -37,6 +37,7 @@ MAPPA DELLE SEZIONI
   JS    BANCA ................ conti, movimenti ed estratti conto mese per mese, carta, RiBa, assegni, bollettini, PagoPA, finanziamenti
   JS    COMMERCIALISTA ....... pacchetto di fine mese: fatture XML attive/passive, prima nota e IVA, documenti presi dalle altre sezioni
   JS    VERSAMENTI ........... F24 e Cassa Edile mese per mese, lettura delle quietanze, pagamenti del mese per il SAL
+  JS    MODULI ............... moduli Word dei committenti: puntini riconosciuti e riempiti, foglio modificabile su carta intestata
   JS    ASSISTENTE ........... moduli di altre aziende: campi proposti, dati e firme da trascinare
   JS    DATI ................. datiIniziali(): i dati reali di partenza dell'azienda
   JS    IMMAGINI ............. logo, firme, immagini del modello POS (base64)

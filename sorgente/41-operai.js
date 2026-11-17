@@ -30,6 +30,9 @@ function nomeSoggettoDoc(d){
   if(d.soggettoTipo==='mezzo') return 'Mezzo '+nomeMezzo(perId('mezzi',d.soggettoId));
   return '';
 }
+// Nome da mostrare: se il documento ha un suo nome (titolo) diverso dal tipo, quello va in grande e il
+// tipo sotto, come categoria; altrimenti il tipo.
+function nomiDocumento(d,t){const tn=t?t.nome:'[tipo?]';const ti=d&&d.titolo&&normalizzaTesto(d.titolo)!==normalizzaTesto(tn)?d.titolo:'';return ti?{nome:ti,categoria:tn}:{nome:tn,categoria:''}}
 function hrefSoggettoDoc(d){return d.soggettoTipo==='persona'?'#/operai/'+d.soggettoId:d.soggettoTipo==='cantiere'?'#/cantieri/'+d.soggettoId:d.soggettoTipo==='cliente'?'#/clienti/'+d.soggettoId:d.soggettoTipo==='mezzo'?'#/mezzi/'+d.soggettoId:'#/impostazioni'}
 // Riepilogo scadenze su tutte le persone attive (che vanno in cantiere) e sull'azienda
 function riepilogoScadenze(){
@@ -41,12 +44,13 @@ function riepilogoScadenze(){
       if(det.stato==='mancante'&&p.inCantiere!==false) mancanti.push({persona:p,tipo:det.tipo,nome:det.nome,bloccante:!!det.tipo.bloccaIdoneita});
     }
     for(const d of documentiPersona(p.id)){
+      if(documentoSuperato(d)) continue; // rinnovato: conta solo il nuovo
       const info=infoDocumento(d);
       righe.push({doc:d,info,soggetto:nomePersona(p),persona:p,tipo:tipoDoc(d.tipoId)});
     }
   }
-  for(const d of documentiAzienda()){righe.push({doc:d,info:infoDocumento(d),soggetto:stato.azienda.ragioneSociale,persona:null,tipo:tipoDoc(d.tipoId)})}
-  for(const m of stato.mezzi){for(const d of documentiDi('mezzo',m.id)){righe.push({doc:d,info:infoDocumento(d),soggetto:'Mezzo '+nomeMezzo(m),persona:null,tipo:tipoDoc(d.tipoId)})}}
+  for(const d of documentiAzienda()){if(!documentoSuperato(d))righe.push({doc:d,info:infoDocumento(d),soggetto:stato.azienda.ragioneSociale,persona:null,tipo:tipoDoc(d.tipoId)})}
+  for(const m of stato.mezzi){for(const d of documentiDi('mezzo',m.id)){if(!documentoSuperato(d))righe.push({doc:d,info:infoDocumento(d),soggetto:'Mezzo '+nomeMezzo(m),persona:null,tipo:tipoDoc(d.tipoId)})}}
   const conData=righe.filter(r=>r.info.data);
   // Un documento facoltativo (es. tessera sanitaria) non deve creare allarmi: resta comunque
   // visibile con il suo stato reale accanto al documento, nella scheda del soggetto.
@@ -284,9 +288,9 @@ function vistaPersona(id,r){
 function rigaDocumento(r){
   const t=r.tipo;const d=r.d;const info=r.info;const fr=d?frazioneDoc(d,info):null;
   const manca=!d;const file=d?(d.file||[]).length:0;
-  const sotto=manca?'manca: '+(r.motivo||'da caricare'):[d.titolo,d.ente,t&&t.periodo&&d.dataFine?'dal '+fData(d.dataEmissione)+' al '+fData(d.dataFine):'',t&&t.annuale?'anno '+(d.anno||'?'):'',file?'':'nessun file allegato'].filter(Boolean).join(' · ')||(file===1?'1 file':file+' file');
+  const nd=nomiDocumento(d,t);const sotto=manca?'manca: '+(r.motivo||'da caricare'):[nd.categoria,d.ente,t&&t.periodo&&d.dataFine?'dal '+fData(d.dataEmissione)+' al '+fData(d.dataFine):'',t&&t.annuale?'anno '+(d.anno||'?'):'',file?'':'nessun file allegato'].filter(Boolean).join(' · ')||(file===1?'1 file':file+' file');
   const tag=manca?html`<span class="pillola scaduto">manca</span>`:info.data&&!(t&&(t.periodo||t.annuale))?html`<span class="pillola ${info.silenziato?'neutro':info.stato==='scaduto'?'scaduto':info.stato==='scadenza'?'scadenza':'valido'}" title="${quandoScade(info)}">${fData(info.data)}</span>`:html`<span class="pillola neutro">${t&&t.annuale?'annuale':t&&t.periodo?'periodo':'non scade'}</span>`;
-  return html`<li ${manca?html`data-azione="documento-nuovo" data-soggetto-tipo="persona" data-soggetto-id="${r.pid}" data-tipo-id="${t?t.id:''}"`:html`data-azione="doc-apri" data-id="${d.id}"`}><span class="icona-doc ${manca?'vuota':''}">${icona(manca?'piu':ICONA_CATEGORIA[(t&&t.categoria)||'amministrativo']||'documenti','piccola')}</span><div class="testo-doc"><b>${t?t.nome:'[tipo?]'}</b><span class="${manca||!file?'bad-t':''}">${sotto}</span></div><div class="barra-doc">${fr!=null?html`<div class="traccia"><i class="${info.stato==='scaduto'?'tardi':info.stato==='scadenza'?'presto':''}" style="width:${Math.max(3,fr*100)}%"></i></div>`:''}</div><div class="data-doc">${tag}</div>${icona('destra','piccola va')}</li>`;
+  return html`<li ${manca?html`data-azione="documento-nuovo" data-soggetto-tipo="persona" data-soggetto-id="${r.pid}" data-tipo-id="${t?t.id:''}"`:html`data-azione="doc-apri" data-id="${d.id}"`}><span class="icona-doc ${manca?'vuota':''}">${icona(manca?'piu':ICONA_CATEGORIA[(t&&t.categoria)||'amministrativo']||'documenti','piccola')}</span><div class="testo-doc"><b>${manca?(t?t.nome:'[tipo?]'):nd.nome}</b><span class="${manca||!file?'bad-t':''}">${sotto}</span></div><div class="barra-doc">${fr!=null?html`<div class="traccia"><i class="${info.stato==='scaduto'?'tardi':info.stato==='scadenza'?'presto':''}" style="width:${Math.max(3,fr*100)}%"></i></div>`:''}</div><div class="data-doc">${tag}</div>${icona('destra','piccola va')}</li>`;
 }
 function schedaPanoramicaPersona(p,idn){
   const docs=documentiPersona(p.id).filter(d=>!documentoSuperato(d)).map(d=>({d,info:infoDocumento(d),tipo:tipoDoc(d.tipoId),pid:p.id}));
@@ -512,7 +516,7 @@ function vistaScadenzario(r){
   const visibili=filtro==='tutti'?conData:filtro==='critici'?conData.filter(x=>['scaduto','scadenza','pianificare'].includes(x.info.stato)):conData.filter(x=>x.info.stato===filtro);
   const barra=x=>{const fr=frazioneDoc(x.doc,x.info);return fr!=null?html`<div class="traccia"><i class="${x.info.stato==='scaduto'?'tardi':x.info.stato==='scadenza'?'presto':''}" style="width:${Math.max(3,fr*100)}%"></i></div>`:''};
   const chi=x=>x.doc.soggettoTipo==='persona'&&persona(x.doc.soggettoId)?html`<span class="chi">${avatar(persona(x.doc.soggettoId),'mini')}<span>${x.soggetto}</span></span>`:x.soggetto;
-  const nomeDoc=x=>html`<b>${x.tipo?x.tipo.nome:'Documento'}</b>${x.doc.titolo?html` <span class="piccolo silenzioso">${x.doc.titolo}</span>`:''}${(x.doc.file||[]).length?'':html` <span class="pillola scaduto">senza file</span>`}`;
+  const nomeDoc=x=>html`${(nd=>html`<b>${nd.nome}</b>${nd.categoria?html` <span class="piccolo silenzioso">${nd.categoria}</span>`:''}`)(nomiDocumento(x.doc,x.tipo))}${(x.doc.file||[]).length?'':html` <span class="pillola scaduto">senza file</span>`}`;
   return html`<div class="testata"><div><div class="occhiello">Squadra</div><h1>Scadenzario</h1><p class="sotto">Tutti i documenti con una scadenza, dal più urgente. Clicca una riga per aprirlo, rinnovarlo o sostituirlo.</p></div>
   <div class="azioni"><button class="pulsante" data-azione="stampa-scadenzario">${icona('stampa','piccola')}Stampa</button><button class="pulsante" data-azione="esporta-scadenzario-md">${icona('scarica','piccola')}Markdown</button><button class="pulsante" data-azione="esporta-scadenzario-csv">${icona('scarica','piccola')}CSV</button></div></div>
   <div class="griglia quattro mb">

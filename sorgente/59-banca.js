@@ -60,7 +60,7 @@ VISTE.banca=function(r){
   const anno=+(ui.filtri.bancaAnno||new Date().getFullYear());
   const anni=unici([new Date().getFullYear(),...B.documenti.map(d=>+(d.data||'').slice(0,4)).filter(Boolean)]).sort((a,b)=>b-a);
   const ora=new Date().getFullYear()*100+new Date().getMonth()+1;
-  const casella=(docs,m,vuota)=>{const fut=anno*100+m>ora;if(docs.length){const d=docs[0];return html`<button class="casella-v ok" data-azione="file-apri" data-id="${d.fileId}" title="${nomeDocumentoBanca(d)}"><b>${docs.length>1?plurale(docs.length,'file','file'):tipoBanca(d.tipo)[0]==='estratto_trim'?'trimestrale':tipoBanca(d.tipo)[1].split(' ')[0]}</b><span>apri</span></button>`}return html`<button class="casella-v ${fut?'futuro':vuota}" ${fut?'disabled':''} data-azione="banca-carica"><b>${fut?'':'—'}</b><span>${fut?'':'carica'}</span></button>`};
+  const casella=(docs,m,vuota,conto,tipo)=>{const fut=anno*100+m>ora;if(docs.length){const d=docs[0];return html`<button class="casella-v ok" data-azione="file-apri" data-id="${d.fileId}" title="${nomeDocumentoBanca(d)}"><b>${docs.length>1?plurale(docs.length,'file','file'):tipoBanca(d.tipo)[0]==='estratto_trim'?'trimestrale':tipoBanca(d.tipo)[1].split(' ')[0]}</b><span>apri</span></button>`}return html`<button class="casella-v ${fut?'futuro':vuota}" ${fut?'disabled':''} data-azione="banca-carica" data-data="${fineMese(anno,m)}" data-conto="${conto||''}" data-tipo="${tipo||''}"><b>${fut?'':'—'}</b><span>${fut?'':'carica'}</span></button>`};
   const delMese=(m,filtro)=>B.documenti.filter(d=>(d.data||'').startsWith(anno+'-'+pad2(m))&&filtro(d));
   const conti=B.conti.length?B.conti:[{id:'',nome:'Conto'}];
   const col=conti.length+2;
@@ -69,7 +69,7 @@ VISTE.banca=function(r){
   ${B.conti.length?'':html`<div class="avviso-inline info">${icona('info')}<div class="corpo">Aggiungi i conti dell'azienda con «Nuovo conto»: così movimenti ed estratti hanno ciascuno la sua colonna.</div></div>`}
   <div class="tabella-scorri"><div class="griglia-versamenti" style="grid-template-columns:90px repeat(${col},minmax(110px,1fr))"><span></span>${conti.map(c=>html`<span class="tv">${c.nome}</span>`)}<span class="tv">Carta di credito</span><span class="tv">Altri documenti</span>
     ${NOMI_MESI.map((nm,i)=>{const m=i+1;const altri=delMese(m,d=>!TIPI_CONTO.includes(d.tipo)&&d.tipo!=='carta');
-      return html`<span class="mv">${capitalizza(nm)}</span>${conti.map(c=>casella(B.documenti.filter(d=>TIPI_CONTO.includes(d.tipo)&&(d.contoId||'')===c.id&&(d.data||'').startsWith(anno+'-'+pad2(m))||d.tipo==='estratto_trim'&&(d.contoId||'')===c.id&&(d.data||'').startsWith(String(anno))&&Math.ceil(+d.data.slice(5,7)/3)===Math.ceil(m/3)),m,'manca'))}${casella(delMese(m,d=>d.tipo==='carta'),m,'futuro')}<a class="casella-v ${altri.length?'ok':'futuro'}" href="#/banca/documenti"><b>${altri.length?plurale(altri.length,'file','file'):''}</b><span>${altri.length?unici(altri.map(d=>tipoBanca(d.tipo)[1])).join(', '):''}</span></a>`})}</div></div>
+      return html`<span class="mv">${capitalizza(nm)}</span>${conti.map(c=>casella(B.documenti.filter(d=>TIPI_CONTO.includes(d.tipo)&&(d.contoId||'')===c.id&&(d.data||'').startsWith(anno+'-'+pad2(m))||d.tipo==='estratto_trim'&&(d.contoId||'')===c.id&&(d.data||'').startsWith(String(anno))&&Math.ceil(+d.data.slice(5,7)/3)===Math.ceil(m/3)),m,'manca',c.id,'movimenti'))}${casella(delMese(m,d=>d.tipo==='carta'),m,'futuro','','carta')}<a class="casella-v ${altri.length?'ok':'futuro'}" href="#/banca/documenti"><b>${altri.length?plurale(altri.length,'file','file'):''}</b><span>${altri.length?unici(altri.map(d=>tipoBanca(d.tipo)[1])).join(', '):''}</span></a>`})}</div></div>
   <p class="piccolo silenzioso mt-s">Un estratto trimestrale copre i tre mesi del trimestre. Le caselle vuote dei conti aprono il caricamento.</p>`;
 };
 AZIONI['banca-anno']=(d,t)=>{ui.filtri.bancaAnno=t.value;render()};
@@ -82,15 +82,15 @@ AZIONI['banca-conto']=async d=>{
   if(!v)return;v.iban=ibanCompatto(v.iban)||null;
   esegui(c?'Modificato conto '+v.nome:'Nuovo conto '+v.nome,s=>{const b=assicuraBanca(s);if(c)Object.assign(b.conti.find(x=>x.id===c.id),v);else b.conti.push(Object.assign({id:nuovoId('cc')},v))});
 };
-AZIONI['banca-carica']=async()=>{const fs=await scegliFile({accetta:'.pdf,image/*,.csv,.xls,.xlsx'});if(fs.length)await caricaBanca(fs)};
+AZIONI['banca-carica']=async d=>{const fs=await scegliFile({accetta:'.pdf,image/*,.csv,.xls,.xlsx'});if(fs.length)await caricaBanca(fs,d&&d.data?{data:d.data,contoId:d.conto,tipo:d.tipo}:null)};
 const campiDocBanca=()=>[{nome:'tipo',etichetta:'Tipo',tipo:'select',vuoto:false,opzioni:TIPI_BANCA.map(([v,t])=>({v,t}))},{nome:'contoId',etichetta:'Conto',tipo:'select',vuotoTesto:'nessuno',opzioni:banca().conti.map(c=>({v:c.id,t:c.nome}))},{nome:'data',etichetta:'Data (per i periodi: l\'ultimo giorno)',tipo:'data',obbligatorio:true},{nome:'descrizione',etichetta:'Descrizione (a chi, per cosa)'},{nome:'importo',etichetta:'Importo',tipo:'euro'}];
-async function caricaBanca(files){
+async function caricaBanca(files,casella){
   const prog=dialogoAvanzamento('Lettura dei documenti',{testo:'Leggo i PDF…'});
   const righe=[];const annoCorr=new Date().getFullYear();
   for(let i=0;i<files.length;i++){const f=files[i];await prog.aggiorna(i,files.length,f.name);const perc=(f.webkitRelativePath||f.percorso||'')+'/'+f.name;
     let testo='';if(!dataBancaDaNome(f.name,perc,null)&&ePdf(f.type,f.name)){try{testo=(await estraiTestoPdf(f)).testo||''}catch(e){}}
     const tipo=tipoBancaDaNome(perc)||'movimenti';
-    righe.push({i,f,tipo,contoId:contoDaNome(perc),data:dataBancaDaNome(f.name,perc,annoCorr)||dataBancaDaTesto(testo)||oggi(),descrizione:descrizioneBancaDaNome(f.name)})}
+    righe.push({i,f,tipo,contoId:contoDaNome(perc),data:dataBancaDaNome(f.name,perc,annoCorr)||dataBancaDaTesto(testo)||oggi(),descrizione:descrizioneBancaDaNome(f.name)});if(casella){const r=righe[righe.length-1];r.data=casella.data;if(casella.tipo&&!(casella.tipo==='movimenti'&&TIPI_CONTO.includes(r.tipo)))r.tipo=casella.tipo;if(casella.contoId)r.contoId=casella.contoId}}
   prog.chiudi();
   const opz=(lista,val)=>lista.map(([v,t])=>html`<option value="${v}" ${v===val?'selected':''}>${t}</option>`);
   const ok=await dialogo({titolo:plurale(righe.length,'documento della banca','documenti della banca'),largo:true,corpo:html`<p class="piccolo secondario">Controlla tipo, conto e data: li ho proposti dal nome del file e dal testo. Per movimenti ed estratti la data è l'ultimo giorno del periodo.</p>

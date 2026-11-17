@@ -38,7 +38,7 @@ VISTE.versamenti=function(r){
   const anno=+(r.query.anno||ui.filtri.versamentiAnno||new Date().getFullYear());
   const anni=unici([new Date().getFullYear(),...stato.versamenti.map(v=>v.anno)]).sort((a,b)=>b-a);
   const etichetta={ok:'pagato',presto:'da pagare',tardi:'scaduto',manca:'non caricato',futuro:''};
-  const cella=(tipo,m)=>{const c=statoCasella(tipo,anno,m);return html`<button class="casella-v ${c.stato}" ${c.v?html`data-azione="versamento-apri" data-id="${c.v.id}"`:c.stato==='futuro'?'disabled':html`data-azione="versamenti-carica"`} title="${c.v?'Apri':'Scadenza '+fData(c.scadenza)}"><b>${c.v?(c.v.importo===0&&c.v.voci&&c.v.voci.credito?'Compensato':c.v.importo!=null?fEuro(c.v.importo,0):'importo da scrivere'):c.stato==='futuro'?'':tipo==='f24'?'F24':'Cassa Edile'}</b><span>${c.v?(c.v.dataPagamento?'pagato il '+fDataBreve(c.v.dataPagamento):'pagato'):etichetta[c.stato]+(c.stato==='presto'?' entro il '+fDataBreve(c.scadenza):'')}</span></button>`};
+  const cella=(tipo,m)=>{const c=statoCasella(tipo,anno,m);return html`<button class="casella-v ${c.stato}" ${c.v?html`data-azione="versamento-apri" data-id="${c.v.id}"`:c.stato==='futuro'?'disabled':html`data-azione="versamenti-carica" data-tipo="${tipo}" data-anno="${anno}" data-mese="${m}"`} title="${c.v?'Apri':'Scadenza '+fData(c.scadenza)}"><b>${c.v?(c.v.importo===0&&c.v.voci&&c.v.voci.credito?'Compensato':c.v.importo!=null?fEuro(c.v.importo,0):'importo da scrivere'):c.stato==='futuro'?'':tipo==='f24'?'F24':'Cassa Edile'}</b><span>${c.v?(c.v.dataPagamento?'pagato il '+fDataBreve(c.v.dataPagamento):'pagato'):etichetta[c.stato]+(c.stato==='presto'?' entro il '+fDataBreve(c.scadenza):'')}</span></button>`};
   const buste=m=>{const n=stato.bustePaga.filter(b=>b.anno===anno&&b.mese===m).length;const lav=meseP(anno,m)?Object.keys(meseP(anno,m).persone).length:0;const fut=anno*100+m>new Date().getFullYear()*100+new Date().getMonth()+1;return html`<a class="casella-v ${n?'ok':fut||!lav?'futuro':'manca'}" href="#/documenti/buste"><b>${n?plurale(n,'busta','buste'):fut?'':'—'}</b><span>${n?'archiviate':lav&&!fut?'da caricare':''}</span></a>`};
   // stipendi: i bonifici fatti nel mese dopo a persone dell'anagrafica
   const nomi=new Set(stato.persone.map(p=>normalizzaTesto(nomePersona(p))));
@@ -100,12 +100,13 @@ async function leggiVersamento(file){
   return out;
 }
 function arrotonda2(n){return Math.round(n*100)/100}
-AZIONI['versamenti-carica']=async()=>{const fs=await scegliFile({accetta:'.pdf,image/*'});if(fs.length)caricaVersamenti(fs)};
+AZIONI['versamenti-carica']=async d=>{const fs=await scegliFile({accetta:'.pdf,image/*'});if(fs.length)caricaVersamenti(fs,d&&d.tipo?{tipo:d.tipo,anno:+d.anno,mese:+d.mese}:null)};
 // uno o tanti file: si leggono tutti, poi una tabella da controllare e si archiviano insieme
-async function caricaVersamenti(files){
+// casella: se il file arriva dalla casella di un mese, tipo e mese sono quelli della casella
+async function caricaVersamenti(files,casella){
   const prog=dialogoAvanzamento('Lettura dei versamenti',{testo:'Leggo i PDF…'});
   const letti=[];
-  for(let i=0;i<files.length;i++){await prog.aggiorna(i,files.length,files[i].name);letti.push(await leggiVersamento(files[i]))}
+  for(let i=0;i<files.length;i++){await prog.aggiorna(i,files.length,files[i].name);const x=await leggiVersamento(files[i]);if(casella){Object.assign(x,casella);x.trovato.push('messo in '+fMeseAnno(casella.anno,casella.mese)+' (dalla casella)')}letti.push(x)}
   prog.chiudi();
   const anni=unici([new Date().getFullYear()-1,new Date().getFullYear(),...letti.map(x=>x.anno).filter(Boolean)]).sort();
   const corpo=html`<p class="secondario piccolo">Controlla tipo, mese e importo: quello che ho trovato è già scritto. ${letti.some(x=>x.importo==null)?'Le scansioni senza testo vanno completate a mano.':''}</p>

@@ -12,9 +12,13 @@
 //                    preparato:ISO, inviato:ISO, contenuto:[percorsi nel pacchetto]}
 // ---------------------------------------------------------------------
 const POSTI_COMMERCIALISTA=[['primaNota','Prima nota'],['iva','Liquidazione IVA']];
-// Documenti dell'archivio che vanno al commercialista se sono datati nel mese (in attesa dell'elenco
-// completo dell'azienda): polizze, bolli e verbali dei mezzi, verbali e SAL dei cantieri.
-const TIPI_DOC_COMMERCIALISTA=['polizza','mezzo_assicurazione','mezzo_bollo','mezzo_verbale','verbale_cantiere','sal_cantiere'];
+// Documenti che vanno al commercialista oltre alle fatture (elenco dell'azienda, 17/11/2026):
+// assicurazioni, bolli, estratti conto della banca e della carta, movimenti del mese, stipendi,
+// multe, alloggi degli operai, pratiche legali. F24 e Cassa Edile NO: li paga e li tiene lui.
+// Gli stipendi sono quelli pagati nel mese: a novembre parte ottobre, con gli stipendi di settembre
+// pagati a ottobre (si guarda la data del bonifico, non il mese della busta).
+const TIPI_DOC_COMMERCIALISTA={polizza:'Assicurazione',mezzo_assicurazione:'Assicurazione',mezzo_bollo:'Bollo',mezzo_verbale:'Multa',alloggio_operai:'Alloggio operai',pratica_legale:'Pratica legale'};
+const RE_STIPENDIO=/stipend|retribuz|busta paga|compenso ammin|salari|tfr/i;
 const TIPI_FATTURA={TD01:'Fattura',TD02:'Acconto su fattura',TD03:'Acconto su parcella',TD04:'Nota di credito',TD05:'Nota di debito',TD06:'Parcella',TD16:'Integrazione reverse charge',TD17:'Autofattura servizi dall’estero',TD18:'Integrazione beni intra UE',TD19:'Integrazione beni art. 17 c. 2',TD20:'Autofattura di regolarizzazione',TD21:'Autofattura per splafonamento',TD22:'Estrazione da deposito IVA',TD23:'Estrazione da deposito IVA con versamento',TD24:'Fattura differita',TD25:'Fattura differita (triangolare)',TD26:'Cessione di beni ammortizzabili',TD27:'Autoconsumo o cessione gratuita',TD28:'Acquisto da San Marino'};
 const MODI_PAGAMENTO={MP01:'Contanti',MP02:'Assegno',MP03:'Assegno circolare',MP05:'Bonifico',MP07:'Bollettino bancario',MP08:'Carta di pagamento',MP09:'RID',MP12:'RIBA',MP16:'Domiciliazione bancaria',MP19:'SEPA Direct Debit',MP21:'SEPA Direct Debit B2B',MP23:'PagoPA'};
 const NATURE_IVA={N1:'Esclusa art. 15',N2:'Non soggetta',N3:'Non imponibile',N4:'Esente',N5:'Regime del margine',N6:'Inversione contabile',N7:'IVA assolta in altro Stato UE'};
@@ -77,15 +81,13 @@ function fattureMese(k,tipo){return (stato.fatture||[]).filter(f=>f.mese===k&&(!
 // Quello che entra nella cartella dei documenti dalle altre sezioni: F24 con scadenza nel mese,
 // Cassa Edile pagata nel mese, bonifici e documenti della banca del mese, documenti datati nel mese dei tipi scelti.
 function documentiAltreSezioni(k){
-  const [a,m]=k.split('-').map(Number);const nel=iso=>(iso||'').startsWith(k);const out=[];
-  const metti=(fileId,fonte,href,data)=>{if(fileId&&fileMeta(fileId)&&!out.some(x=>x.fileId===fileId))out.push({fileId,fonte,href,data})};
-  for(const v of stato.versamenti||[]){
-    if(v.tipo==='f24'?v.anno===a&&v.mese===m:nel(v.dataPagamento)||(!v.dataPagamento&&nel(scadenzaVersamento(v)))) metti(v.fileId,'Versamenti',v.tipo==='f24'?'versamenti/f24':'versamenti/cassa',v.dataPagamento||scadenzaVersamento(v));
-  }
-  for(const b of stato.bonifici||[]) if(nel(b.data)) metti(b.fileId,'Bonifici','versamenti/bonifici',b.data);
-  for(const d of documentiBancaMese(k)) metti(d.fileId,'Banca','banca',d.data);
-  for(const d of stato.documenti) if(TIPI_DOC_COMMERCIALISTA.includes(d.tipoId)&&nel(d.dataEmissione)) for(const f of d.file||[]) metti(f,'Documenti','documenti?doc='+d.id,d.dataEmissione);
-  return out.sort((x,y)=>(x.data||'')<(y.data||'')?-1:1);
+  const nel=iso=>(iso||'').startsWith(k);const out=[];
+  const metti=(fileId,fonte,href,data,categoria)=>{if(fileId&&fileMeta(fileId)&&!out.some(x=>x.fileId===fileId))out.push({fileId,fonte,href,data,categoria})};
+  const nomi=new Set(stato.persone.map(p=>normalizzaTesto(nomePersona(p))));
+  for(const b of stato.bonifici||[]) if(nel(b.data)&&(RE_STIPENDIO.test(b.causale||'')||nomi.has(normalizzaTesto(b.controparte||'')))) metti(b.fileId,'Bonifici','versamenti/bonifici',b.data,'Stipendi');
+  for(const d of documentiBancaMese(k)) metti(d.fileId,'Banca','banca',d.data,tipoBanca(d.tipo)[1]);
+  for(const d of stato.documenti) if(TIPI_DOC_COMMERCIALISTA[d.tipoId]&&nel(d.dataEmissione)) for(const f of d.file||[]) metti(f,'Documenti','documenti?doc='+d.id,d.dataEmissione,TIPI_DOC_COMMERCIALISTA[d.tipoId]);
+  return out.sort((x,y)=>(x.categoria||'').localeCompare(y.categoria||'')||((x.data||'')<(y.data||'')?-1:1));
 }
 // Tutti i file della cartella documenti, con il nome che avranno nel pacchetto
 function documentiMese(k){
@@ -130,7 +132,7 @@ VISTE.commercialista=function(r){
   <div class="sezione-titolo">${m} ${nomeMese(m)} · documenti</div>
   <div class="scheda" data-drop-commdoc="${k}"><ul class="elenco-piatto">${POSTI_COMMERCIALISTA.map(([p,t])=>cellaPosto(p,t))}</ul>
     <div class="sezione-titolo">Dalle altre sezioni</div>
-    ${altre.length?html`<ul class="elenco-piatto">${altre.map(x=>html`<li><label class="riga stretta spazio"><input type="checkbox" data-cambio="comm-includi" data-mese="${k}" data-id="${x.fileId}" ${x.incluso?'checked':''}><span class="spazio"><b>${x.nome}</b><br><span class="piccolo silenzioso">da <a href="#/${x.href}">${x.fonte}</a></span></span></label><button class="pulsante piccolo discreto" data-azione="file-apri" data-id="${x.fileId}">Apri</button></li>`)}</ul>`:html`<p class="piccolo silenzioso">Niente per ${nomeMese(m)}: F24, Cassa Edile, bonifici, documenti della banca, polizze e verbali compaiono qui da soli quando li carichi nelle loro sezioni.</p>`}
+    ${altre.length?html`<ul class="elenco-piatto">${altre.map(x=>html`<li><label class="riga stretta spazio"><input type="checkbox" data-cambio="comm-includi" data-mese="${k}" data-id="${x.fileId}" ${x.incluso?'checked':''}><span class="spazio"><b>${x.nome}</b><br><span class="piccolo silenzioso"><b>${x.categoria||''}</b> · da <a href="#/${x.href}">${x.fonte}</a></span></span></label><button class="pulsante piccolo discreto" data-azione="file-apri" data-id="${x.fileId}">Apri</button></li>`)}</ul>`:html`<p class="piccolo silenzioso">Niente per ${nomeMese(m)}: stipendi pagati, movimenti ed estratti della banca e della carta, assicurazioni, bolli, multe, alloggi degli operai e pratiche legali compaiono qui da soli quando li carichi nelle loro sezioni (F24 e Cassa Edile non vanno).</p>`}
     <div class="sezione-titolo">Altri file</div>
     <ul class="elenco-piatto">${docs.filter(x=>x.posto==='altri').map(x=>html`<li><span class="spazio"><b>${x.nome}</b></span><button class="pulsante piccolo discreto" data-azione="file-apri" data-id="${x.fileId}">Apri</button><button class="pulsante piccolo discreto icona" data-azione="comm-togli" data-mese="${k}" data-posto="altri" data-id="${x.fileId}" title="Togli">${icona('chiudi','piccola')}</button></li>`)}</ul>
     <button class="pulsante piccolo discreto mt-s" data-azione="comm-carica" data-mese="${k}" data-posto="altri">${icona('piu','piccola')}Aggiungi file che non stanno in altre sezioni</button>

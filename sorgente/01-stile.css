@@ -650,6 +650,11 @@ tr.riga-segnata>td{background:color-mix(in srgb,var(--warn-soft) 55%,transparent
 .barra-anteprima{display:flex;align-items:center;gap:4px;flex:none}
 .barra-anteprima .nome-anteprima{margin-right:auto;font-size:11.5px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .foglio-anteprima{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;overflow:auto}
+.lettore-pdf{overflow:auto;display:block;padding:8px;background:var(--sunk)}
+.lettore-pdf .pagina-pdf{position:relative;width:100%;max-width:900px;margin:0 auto 10px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.lettore-pdf .pagina-pdf canvas{position:absolute;inset:0;width:100%;height:100%}
+.lettore-pdf .pagina-pdf span{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:#999;font-size:12px}
+.foglio-anteprima .lettore-pdf{align-self:stretch}
 .foglio-anteprima .anteprima-doc{width:100%;height:100%;min-height:0;max-height:none;border-radius:6px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.08),0 12px 40px -12px rgba(0,0,0,.25)}
 .foglio-anteprima .anteprima-img{max-width:100%;max-height:100%;border-radius:6px;box-shadow:0 1px 2px rgba(0,0,0,.08),0 16px 40px -14px rgba(0,0,0,.3);transition:transform .4s var(--ease);background:#fff}
 .foglio-anteprima .anteprima-img.grande{max-width:none;max-height:none;width:160%}
@@ -1228,3 +1233,26 @@ select.stato-rapido.inviato{background:var(--giallo-chiaro);border-color:var(--g
   #stampa .pagina.orizzontale{height:209.5mm}
   .anteprima-stampa{display:none!important}
 }
+
+/* moduli Word dei committenti: il foglio come verrà stampato */
+.foglio-modulo-scorri{overflow:auto;padding:12px 0}
+.foglio-modulo{width:210mm;max-width:100%;min-height:297mm;margin:0 auto;background:#fff;color:#111;padding:14mm 18mm 20mm;box-shadow:0 1px 3px rgba(0,0,0,.12),0 18px 50px -20px rgba(0,0,0,.35);border-radius:4px;font-size:11pt;line-height:1.45}
+.foglio-modulo .carta-intestata{margin-bottom:8mm}
+.corpo-modulo{outline:none;min-height:200mm}
+.corpo-modulo p,.modulo-stampa p{margin:0 0 .45em}
+.corpo-modulo .centro,.modulo-stampa .centro{text-align:center}.corpo-modulo .destra,.modulo-stampa .destra{text-align:right}.corpo-modulo .giust,.modulo-stampa .giust{text-align:justify}
+.corpo-modulo h3,.modulo-stampa h3{font-size:12pt;margin:.6em 0 .4em}
+.tab-mod{width:100%;border-collapse:collapse;margin:.4em 0}.tab-mod td{border:1px solid #999;padding:3px 6px;vertical-align:top}.tab-mod td p{margin:0}
+.campo-mod{background:#fff2a8;border-bottom:1px dashed #b38f00;border-radius:2px;padding:0 2px;cursor:pointer;color:#5c4a00}
+.campo-mod[data-pieno]{background:#e3f4e6;border-bottom-color:#2f8a46;color:#111}
+.campo-mod[data-pieno="firma"]{background:none;border:0;display:inline-block}
+.casella-mod{cursor:pointer;font-size:1.1em}
+img.firma-mod{height:24mm;max-width:70mm;object-fit:contain;vertical-align:middle}
+.titolo-modulo{outline:none;border-bottom:1px dashed transparent}.titolo-modulo:focus{border-bottom-color:var(--bordo,#ccc)}
+.menu-campo-mod{position:fixed;z-index:3000;width:360px;max-height:380px;display:flex;flex-direction:column;padding:10px;box-shadow:0 12px 40px -10px rgba(0,0,0,.35)}
+.menu-campo-mod input{width:100%;margin-bottom:6px}
+.menu-campo-mod .voci-campo{overflow:auto;flex:1;min-height:0}
+.voce-campo{display:block;width:100%;text-align:left;border:0;background:none;padding:5px 6px;border-radius:6px;cursor:pointer;color:inherit;font:inherit}
+.voce-campo:hover{background:var(--sunk,#f2f2f2)}.voce-campo b{display:block;font-size:12px}.voce-campo span{font-size:12px;opacity:.75}
+@media print{.campo-mod{background:none!important;border:0!important;color:inherit!important}}
+.modulo-stampa p.vuota-mod{line-height:.6;margin:0 0 .3em}
