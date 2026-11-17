@@ -1,8 +1,15 @@
 {
- "versione": "1.25",
- "impronta": "3752b76314",
- "data": "2026-11-17T20:48:00+01:00",
+ "versione": "1.26",
+ "impronta": "1746cc0a74",
+ "data": "2026-11-17T23:46:59+01:00",
  "storico": [
+  {
+   "versione": "1.26",
+   "data": "2026-11-17T23:46:59+01:00",
+   "novita": [
+    "Nelle tabelle da controllare tipo, mese e anno non sono più tagliati"
+   ]
+  },
   {
    "versione": "1.25",
    "data": "2026-11-17T20:48:00+01:00",
@@ -103,14 +110,6 @@
    "novita": [
     "Dichiarazione di conformità di macchine, attrezzature e opere provvisionali",
     "Dichiarazione dell'organico medio annuo e nomine riconosciute nella checklist"
-   ]
-  },
-  {
-   "versione": "1.11",
-   "data": "2026-10-23T15:11:58+02:00",
-   "novita": [
-    "Nomine anche ristampando un POS già fatto",
-    "Stampa in PDF da Safari senza pagine bianche"
    ]
   }
  ]

@@ -1323,6 +1323,9 @@ img.firma-mod{height:24mm;max-width:70mm;object-fit:contain;vertical-align:middl
 .voce-campo:hover{background:var(--sunk,#f2f2f2)}.voce-campo b{display:block;font-size:12px}.voce-campo span{font-size:12px;opacity:.75}
 @media print{.campo-mod{background:none!important;border:0!important;color:inherit!important}}
 .modulo-stampa p.vuota-mod{line-height:.6;margin:0 0 .3em}
+/* nelle tabelle da controllare (versamenti, banca…) menu e date non si stringono: «Cassa Edile», «Settembre», «2026» per intero */
+.tabella td select,.tabella td input[type=date]{width:auto;min-width:max-content}
+.tabella td select{padding-right:30px}
 
 </style>
 </head>
@@ -3363,8 +3366,8 @@ function scegliFile(opz){
 // L'app lo controlla all'avvio, ogni mezz'ora e quando torna in primo piano: se è diversa avvisa,
 // e «Aggiorna ora» scarica la pagina nuova scavalcando le copie del browser. I dati non si toccano.
 // ---------------------------------------------------------------------
-const VERSIONE_APP='3752b76314';   // impronta del contenuto: dice se è cambiato qualcosa
-const NUMERO_VERSIONE='1.25'; // il numero per le persone: 1.0, 1.1…
+const VERSIONE_APP='1746cc0a74';   // impronta del contenuto: dice se è cambiato qualcosa
+const NUMERO_VERSIONE='1.26'; // il numero per le persone: 1.0, 1.1…
 function appPubblicata(){return location.protocol==='https:'}
 async function controllaAggiornamento(manuale){
   if(!appPubblicata()){if(manuale)avviso('Il controllo funziona sull\'app pubblicata, non su questa copia locale');return null}
