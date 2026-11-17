@@ -1,5 +1,13 @@
 [
  {
+  "versione": "1.25",
+  "data": "2026-11-17T20:48:00+01:00",
+  "commit": "6e69185",
+  "novita": [
+   "Trascinamento ovunque, firma vettoriale, moduli Word, PSC letti meglio"
+  ]
+ },
+ {
   "versione": "1.24",
   "data": "2026-10-26T12:56:41+01:00",
   "commit": "50c3fc9",
