@@ -1,5 +1,13 @@
 [
  {
+  "versione": "1.26",
+  "data": "2026-11-17T23:46:59+01:00",
+  "commit": "9fb707f",
+  "novita": [
+   "Nelle tabelle da controllare tipo, mese e anno non sono più tagliati"
+  ]
+ },
+ {
   "versione": "1.25",
   "data": "2026-11-17T20:48:00+01:00",
   "commit": "6e69185",
