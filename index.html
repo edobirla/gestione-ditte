@@ -50,6 +50,7 @@ MAPPA DELLE SEZIONI
   JS    BANCA ................ conti, movimenti ed estratti conto mese per mese, carta, RiBa, assegni, bollettini, PagoPA, finanziamenti
   JS    COMMERCIALISTA ....... pacchetto di fine mese: fatture XML attive/passive, prima nota e IVA, documenti presi dalle altre sezioni
   JS    VERSAMENTI ........... F24 e Cassa Edile mese per mese, lettura delle quietanze, pagamenti del mese per il SAL
+  JS    MODULI ............... moduli Word dei committenti: puntini riconosciuti e riempiti, foglio modificabile su carta intestata
   JS    ASSISTENTE ........... moduli di altre aziende: campi proposti, dati e firme da trascinare
   JS    DATI ................. datiIniziali(): i dati reali di partenza dell'azienda
   JS    IMMAGINI ............. logo, firme, immagini del modello POS (base64)
@@ -716,6 +717,11 @@ tr.riga-segnata>td{background:color-mix(in srgb,var(--warn-soft) 55%,transparent
 .barra-anteprima{display:flex;align-items:center;gap:4px;flex:none}
 .barra-anteprima .nome-anteprima{margin-right:auto;font-size:11.5px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .foglio-anteprima{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;overflow:auto}
+.lettore-pdf{overflow:auto;display:block;padding:8px;background:var(--sunk)}
+.lettore-pdf .pagina-pdf{position:relative;width:100%;max-width:900px;margin:0 auto 10px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.lettore-pdf .pagina-pdf canvas{position:absolute;inset:0;width:100%;height:100%}
+.lettore-pdf .pagina-pdf span{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:#999;font-size:12px}
+.foglio-anteprima .lettore-pdf{align-self:stretch}
 .foglio-anteprima .anteprima-doc{width:100%;height:100%;min-height:0;max-height:none;border-radius:6px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.08),0 12px 40px -12px rgba(0,0,0,.25)}
 .foglio-anteprima .anteprima-img{max-width:100%;max-height:100%;border-radius:6px;box-shadow:0 1px 2px rgba(0,0,0,.08),0 16px 40px -14px rgba(0,0,0,.3);transition:transform .4s var(--ease);background:#fff}
 .foglio-anteprima .anteprima-img.grande{max-width:none;max-height:none;width:160%}
@@ -1294,6 +1300,29 @@ select.stato-rapido.inviato{background:var(--giallo-chiaro);border-color:var(--g
   #stampa .pagina.orizzontale{height:209.5mm}
   .anteprima-stampa{display:none!important}
 }
+
+/* moduli Word dei committenti: il foglio come verrà stampato */
+.foglio-modulo-scorri{overflow:auto;padding:12px 0}
+.foglio-modulo{width:210mm;max-width:100%;min-height:297mm;margin:0 auto;background:#fff;color:#111;padding:14mm 18mm 20mm;box-shadow:0 1px 3px rgba(0,0,0,.12),0 18px 50px -20px rgba(0,0,0,.35);border-radius:4px;font-size:11pt;line-height:1.45}
+.foglio-modulo .carta-intestata{margin-bottom:8mm}
+.corpo-modulo{outline:none;min-height:200mm}
+.corpo-modulo p,.modulo-stampa p{margin:0 0 .45em}
+.corpo-modulo .centro,.modulo-stampa .centro{text-align:center}.corpo-modulo .destra,.modulo-stampa .destra{text-align:right}.corpo-modulo .giust,.modulo-stampa .giust{text-align:justify}
+.corpo-modulo h3,.modulo-stampa h3{font-size:12pt;margin:.6em 0 .4em}
+.tab-mod{width:100%;border-collapse:collapse;margin:.4em 0}.tab-mod td{border:1px solid #999;padding:3px 6px;vertical-align:top}.tab-mod td p{margin:0}
+.campo-mod{background:#fff2a8;border-bottom:1px dashed #b38f00;border-radius:2px;padding:0 2px;cursor:pointer;color:#5c4a00}
+.campo-mod[data-pieno]{background:#e3f4e6;border-bottom-color:#2f8a46;color:#111}
+.campo-mod[data-pieno="firma"]{background:none;border:0;display:inline-block}
+.casella-mod{cursor:pointer;font-size:1.1em}
+img.firma-mod{height:24mm;max-width:70mm;object-fit:contain;vertical-align:middle}
+.titolo-modulo{outline:none;border-bottom:1px dashed transparent}.titolo-modulo:focus{border-bottom-color:var(--bordo,#ccc)}
+.menu-campo-mod{position:fixed;z-index:3000;width:360px;max-height:380px;display:flex;flex-direction:column;padding:10px;box-shadow:0 12px 40px -10px rgba(0,0,0,.35)}
+.menu-campo-mod input{width:100%;margin-bottom:6px}
+.menu-campo-mod .voci-campo{overflow:auto;flex:1;min-height:0}
+.voce-campo{display:block;width:100%;text-align:left;border:0;background:none;padding:5px 6px;border-radius:6px;cursor:pointer;color:inherit;font:inherit}
+.voce-campo:hover{background:var(--sunk,#f2f2f2)}.voce-campo b{display:block;font-size:12px}.voce-campo span{font-size:12px;opacity:.75}
+@media print{.campo-mod{background:none!important;border:0!important;color:inherit!important}}
+.modulo-stampa p.vuota-mod{line-height:.6;margin:0 0 .3em}
 
 </style>
 </head>
@@ -2850,6 +2879,11 @@ document.addEventListener('click',e=>{
 
 // ---- moduli (form) ----
 // campi: [{nome, etichetta, tipo:'testo|numero|data|select|textarea|spunta|email|tel|euro|ore', opzioni:[{v,t}], obbligatorio, aiuto, largo, valida(v)->errore|null, sola}]
+// targhe, codici fiscali, partite IVA, IBAN, CIG e CUP si scrivono sempre in maiuscolo, anche se il campo non lo dice
+const RE_CAMPO_MAIUSCOLO=/(^|\.)(targa|cf|codiceFiscale|piva|partitaIva|iban|cig|cup)$/i;
+function campoMaiuscolo(c){return c.maiuscolo||RE_CAMPO_MAIUSCOLO.test(c.nome||'')}
+// mentre si scrive: il valore diventa maiuscolo subito (non solo a vista), il cursore resta dov'è
+document.addEventListener('input',e=>{const t=e.target;if(!t||!t.matches||!t.matches('input[data-maiuscolo]'))return;const v=t.value,u=v.toUpperCase();if(v===u)return;const a=t.selectionStart,b=t.selectionEnd;t.value=u;try{t.setSelectionRange(a,b)}catch(err){}});
 function modulo(campi,valori,opz){
   valori=valori||{};opz=opz||{};
   return html`<div class="campi ${opz.classe||''}">${campi.map(c=>{
@@ -2868,7 +2902,7 @@ function modulo(campi,valori,opz){
       case 'mese': input=html`<input type="month" id="${idc}" name="${c.nome}" value="${v||''}" ${c.sola?'disabled':''}>`; break;
       case 'chip': input=html`<div class="chip-lista" data-chip="${c.nome}">${(c.opzioni||[]).map(o=>{const on=(v||[]).includes(o.v);return html`<label class="chip ${on?'attiva':''}"><input type="checkbox" name="${c.nome}" value="${o.v}" ${on?'checked':''}>${o.t}</label>`})}</div>`; break;
       case 'radio': input=html`<div class="scelta-lista">${(c.opzioni||[]).map(o=>html`<label class="${String(o.v)===String(v)?'attiva':''}"><input type="radio" name="${c.nome}" value="${o.v}" ${String(o.v)===String(v)?'checked':''}><span>${o.t}${o.desc?html`<div class="desc">${o.desc}</div>`:''}</span></label>`)}</div>`; break;
-      default: input=html`<input type="${c.tipo==='email'?'email':c.tipo==='tel'?'tel':c.tipo==='url'?'url':c.tipo==='password'?'password':'text'}" id="${idc}" name="${c.nome}" value="${v==null?'':v}" ${c.sola?'disabled':''} placeholder="${c.segnaposto||''}" ${c.lista?html`list="${c.lista}"`:''} ${c.maiuscolo?'style="text-transform:uppercase"':''} autocomplete="off">`;
+      default: input=html`<input type="${c.tipo==='email'?'email':c.tipo==='tel'?'tel':c.tipo==='url'?'url':c.tipo==='password'?'password':'text'}" id="${idc}" name="${c.nome}" value="${v==null?'':v}" ${c.sola?'disabled':''} placeholder="${c.segnaposto||''}" ${c.lista?html`list="${c.lista}"`:''} ${campoMaiuscolo(c)?grezzo('data-maiuscolo autocapitalize="characters" style="text-transform:uppercase"'):''} autocomplete="off">`;
     }
     return html`<div class="campo ${c.largo?'largo':''}" data-campo="${c.nome}">${c.tipo==='spunta'?'':html`<label for="${idc}">${c.etichetta}${c.obbligatorio?html` <span class="obbl">*</span>`:''}</label>`}${input}${c.aiuto?html`<div class="aiuto">${c.aiuto}</div>`:''}<div class="errore nascosto"></div></div>`;
   })}</div>`;
@@ -2888,7 +2922,7 @@ function leggiModulo(radice,campi){
     else if(c.tipo==='spunta') v=elc.checked;
     else if(c.tipo==='numero'||c.tipo==='euro'||c.tipo==='ore'){const raw=elc.value.trim();v=raw===''?null:leggiNumero(raw);if(raw!==''&&v===null)errori.push({campo:c.nome,errore:'Numero non valido'})}
     else v=elc.value;
-    if(typeof v==='string'){v=v.trim();if(c.maiuscolo)v=v.toUpperCase();if(v==='')v=c.tipo==='select'?null:'';}
+    if(typeof v==='string'){v=v.trim();if(campoMaiuscolo(c))v=v.toUpperCase();if(v==='')v=c.tipo==='select'?null:'';}
     if(c.obbligatorio&&(v===null||v===undefined||v===''||(Array.isArray(v)&&!v.length))) errori.push({campo:c.nome,errore:'Campo obbligatorio'});
     else if(c.valida&&v!==null&&v!==undefined&&v!==''){const err=c.valida(v,valori);if(err)errori.push({campo:c.nome,errore:err})}
     scriviPercorso(valori,c.nome,v);
@@ -3233,7 +3267,17 @@ AZIONI['copia']=d=>copiaNegliAppunti(d.testo).then(()=>avviso('Copiato negli app
 // dragenter/dragleave da tenere in sincronia, che su Chrome si disallineava facilmente e lasciava
 // il drop "morto" nonostante il cursore mostrasse la copia.
 let zonaDropAttiva=null;
-function trovaZonaDrop(target){return target&&target.closest&&(target.closest('[data-drop-bonifico]')||target.closest('[data-drop-doc]')||target.closest('[data-drop-soggetto]')||target.closest('[data-drop-caricamento]')||target.closest('[data-drop-buste]')||target.closest('[data-drop-versamenti]')||target.closest('[data-drop-fatture]')||target.closest('[data-drop-banca]')||target.closest('[data-drop-commdoc]')||target.closest('.zona-drop'))}
+// Ogni pulsante o casella che apre la scelta dei file accetta anche il file trascinato sopra: si
+// riconosce dall'azione (la sua funzione chiama scegliFile), e al rilascio scegliFile restituisce i
+// file trascinati invece di aprire la finestra. Così la casella «settembre» della Cassa Edile carica
+// in settembre senza scrivere un gestore per ogni sezione.
+let fileDaRilascio=null;
+const azioneConFile=a=>{const f=AZIONI[a];return !!f&&/scegliFile/.test(f.toString())};
+function pulsanteDrop(target){const b=target.closest('[data-azione]');return b&&!b.disabled&&azioneConFile(b.dataset.azione)?b:null}
+window.addEventListener('pointerdown',()=>{fileDaRilascio=null},true);
+// la casella dentro una zona più grande vince (es. «Carica» della prima nota dentro il riquadro dei documenti)
+function trovaZonaDrop(target){if(!target||!target.closest)return null;const z=zonaSpecifica(target),b=pulsanteDrop(target);return b&&(!z||(z!==b&&z.contains(b)))?b:z||b}
+function zonaSpecifica(target){return target&&target.closest&&(target.closest('[data-drop-bonifico]')||target.closest('[data-drop-doc]')||target.closest('[data-drop-soggetto]')||target.closest('[data-drop-caricamento]')||target.closest('[data-drop-buste]')||target.closest('[data-drop-versamenti]')||target.closest('[data-drop-fatture]')||target.closest('[data-drop-banca]')||target.closest('[data-drop-commdoc]')||target.closest('.zona-drop'))}
 function evidenziaZona(z){if(z===zonaDropAttiva)return;if(zonaDropAttiva)zonaDropAttiva.classList.remove('sopra');if(z)z.classList.add('sopra');zonaDropAttiva=z}
 // Mentre si trascina un file, le anteprime dei PDF (iframe) devono farsi da parte: un iframe è un
 // documento a sé, gli eventi di trascinamento sopra di lui non arrivano mai a questa pagina e il
@@ -3260,6 +3304,9 @@ window.addEventListener('drop',async e=>{
   const files=await fileDaDrop(e.dataTransfer);
   if(!files.length) return;
   if(z){
+    // la casella del mese vince sulla zona generica che la contiene
+    const b=pulsanteDrop(e.target);
+    if(b&&z===b&&!Object.keys(z.dataset).some(k=>/^drop./.test(k))){fileDaRilascio=files;try{const r=AZIONI[b.dataset.azione](b.dataset,b,e);if(r&&r.catch)r.catch(err=>segnalaErrore(err))}catch(err){segnalaErrore(err)}return}
     if(z.dataset.dropBonifico) return allegaDistinta(z.dataset.dropBonifico,files[0]);
     if(z.dataset.dropDoc) return allegaFilesADocumento(z.dataset.dropDoc,files);
     if(z.dataset.dropSoggetto){const [tipo,id]=z.dataset.dropSoggetto.split(':');return dialogoDocumento({soggettoTipo:tipo,soggettoId:id},files)}
@@ -3297,6 +3344,7 @@ function leggiEntry(entry,percorso,out){
 }
 function scegliFile(opz){
   opz=opz||{};
+  if(fileDaRilascio){const fs=fileDaRilascio;fileDaRilascio=null;return Promise.resolve(opz.multipli===false?fs.slice(0,1):fs)}
   return new Promise(risolvi=>{
     const inp=el(opz.cartella?'#input-cartella-nascosto':'#input-file-nascosto');
     inp.value='';inp.multiple=opz.multipli!==false;inp.accept=opz.accetta||'';
@@ -3315,8 +3363,8 @@ function scegliFile(opz){
 // L'app lo controlla all'avvio, ogni mezz'ora e quando torna in primo piano: se è diversa avvisa,
 // e «Aggiorna ora» scarica la pagina nuova scavalcando le copie del browser. I dati non si toccano.
 // ---------------------------------------------------------------------
-const VERSIONE_APP='4329f5525f';   // impronta del contenuto: dice se è cambiato qualcosa
-const NUMERO_VERSIONE='1.24'; // il numero per le persone: 1.0, 1.1…
+const VERSIONE_APP='3752b76314';   // impronta del contenuto: dice se è cambiato qualcosa
+const NUMERO_VERSIONE='1.25'; // il numero per le persone: 1.0, 1.1…
 function appPubblicata(){return location.protocol==='https:'}
 async function controllaAggiornamento(manuale){
   if(!appPubblicata()){if(manuale)avviso('Il controllo funziona sull\'app pubblicata, non su questa copia locale');return null}
@@ -3535,6 +3583,9 @@ function nomeSoggettoDoc(d){
   if(d.soggettoTipo==='mezzo') return 'Mezzo '+nomeMezzo(perId('mezzi',d.soggettoId));
   return '';
 }
+// Nome da mostrare: se il documento ha un suo nome (titolo) diverso dal tipo, quello va in grande e il
+// tipo sotto, come categoria; altrimenti il tipo.
+function nomiDocumento(d,t){const tn=t?t.nome:'[tipo?]';const ti=d&&d.titolo&&normalizzaTesto(d.titolo)!==normalizzaTesto(tn)?d.titolo:'';return ti?{nome:ti,categoria:tn}:{nome:tn,categoria:''}}
 function hrefSoggettoDoc(d){return d.soggettoTipo==='persona'?'#/operai/'+d.soggettoId:d.soggettoTipo==='cantiere'?'#/cantieri/'+d.soggettoId:d.soggettoTipo==='cliente'?'#/clienti/'+d.soggettoId:d.soggettoTipo==='mezzo'?'#/mezzi/'+d.soggettoId:'#/impostazioni'}
 // Riepilogo scadenze su tutte le persone attive (che vanno in cantiere) e sull'azienda
 function riepilogoScadenze(){
@@ -3546,12 +3597,13 @@ function riepilogoScadenze(){
       if(det.stato==='mancante'&&p.inCantiere!==false) mancanti.push({persona:p,tipo:det.tipo,nome:det.nome,bloccante:!!det.tipo.bloccaIdoneita});
     }
     for(const d of documentiPersona(p.id)){
+      if(documentoSuperato(d)) continue; // rinnovato: conta solo il nuovo
       const info=infoDocumento(d);
       righe.push({doc:d,info,soggetto:nomePersona(p),persona:p,tipo:tipoDoc(d.tipoId)});
     }
   }
-  for(const d of documentiAzienda()){righe.push({doc:d,info:infoDocumento(d),soggetto:stato.azienda.ragioneSociale,persona:null,tipo:tipoDoc(d.tipoId)})}
-  for(const m of stato.mezzi){for(const d of documentiDi('mezzo',m.id)){righe.push({doc:d,info:infoDocumento(d),soggetto:'Mezzo '+nomeMezzo(m),persona:null,tipo:tipoDoc(d.tipoId)})}}
+  for(const d of documentiAzienda()){if(!documentoSuperato(d))righe.push({doc:d,info:infoDocumento(d),soggetto:stato.azienda.ragioneSociale,persona:null,tipo:tipoDoc(d.tipoId)})}
+  for(const m of stato.mezzi){for(const d of documentiDi('mezzo',m.id)){if(!documentoSuperato(d))righe.push({doc:d,info:infoDocumento(d),soggetto:'Mezzo '+nomeMezzo(m),persona:null,tipo:tipoDoc(d.tipoId)})}}
   const conData=righe.filter(r=>r.info.data);
   // Un documento facoltativo (es. tessera sanitaria) non deve creare allarmi: resta comunque
   // visibile con il suo stato reale accanto al documento, nella scheda del soggetto.
@@ -3789,9 +3841,9 @@ function vistaPersona(id,r){
 function rigaDocumento(r){
   const t=r.tipo;const d=r.d;const info=r.info;const fr=d?frazioneDoc(d,info):null;
   const manca=!d;const file=d?(d.file||[]).length:0;
-  const sotto=manca?'manca: '+(r.motivo||'da caricare'):[d.titolo,d.ente,t&&t.periodo&&d.dataFine?'dal '+fData(d.dataEmissione)+' al '+fData(d.dataFine):'',t&&t.annuale?'anno '+(d.anno||'?'):'',file?'':'nessun file allegato'].filter(Boolean).join(' · ')||(file===1?'1 file':file+' file');
+  const nd=nomiDocumento(d,t);const sotto=manca?'manca: '+(r.motivo||'da caricare'):[nd.categoria,d.ente,t&&t.periodo&&d.dataFine?'dal '+fData(d.dataEmissione)+' al '+fData(d.dataFine):'',t&&t.annuale?'anno '+(d.anno||'?'):'',file?'':'nessun file allegato'].filter(Boolean).join(' · ')||(file===1?'1 file':file+' file');
   const tag=manca?html`<span class="pillola scaduto">manca</span>`:info.data&&!(t&&(t.periodo||t.annuale))?html`<span class="pillola ${info.silenziato?'neutro':info.stato==='scaduto'?'scaduto':info.stato==='scadenza'?'scadenza':'valido'}" title="${quandoScade(info)}">${fData(info.data)}</span>`:html`<span class="pillola neutro">${t&&t.annuale?'annuale':t&&t.periodo?'periodo':'non scade'}</span>`;
-  return html`<li ${manca?html`data-azione="documento-nuovo" data-soggetto-tipo="persona" data-soggetto-id="${r.pid}" data-tipo-id="${t?t.id:''}"`:html`data-azione="doc-apri" data-id="${d.id}"`}><span class="icona-doc ${manca?'vuota':''}">${icona(manca?'piu':ICONA_CATEGORIA[(t&&t.categoria)||'amministrativo']||'documenti','piccola')}</span><div class="testo-doc"><b>${t?t.nome:'[tipo?]'}</b><span class="${manca||!file?'bad-t':''}">${sotto}</span></div><div class="barra-doc">${fr!=null?html`<div class="traccia"><i class="${info.stato==='scaduto'?'tardi':info.stato==='scadenza'?'presto':''}" style="width:${Math.max(3,fr*100)}%"></i></div>`:''}</div><div class="data-doc">${tag}</div>${icona('destra','piccola va')}</li>`;
+  return html`<li ${manca?html`data-azione="documento-nuovo" data-soggetto-tipo="persona" data-soggetto-id="${r.pid}" data-tipo-id="${t?t.id:''}"`:html`data-azione="doc-apri" data-id="${d.id}"`}><span class="icona-doc ${manca?'vuota':''}">${icona(manca?'piu':ICONA_CATEGORIA[(t&&t.categoria)||'amministrativo']||'documenti','piccola')}</span><div class="testo-doc"><b>${manca?(t?t.nome:'[tipo?]'):nd.nome}</b><span class="${manca||!file?'bad-t':''}">${sotto}</span></div><div class="barra-doc">${fr!=null?html`<div class="traccia"><i class="${info.stato==='scaduto'?'tardi':info.stato==='scadenza'?'presto':''}" style="width:${Math.max(3,fr*100)}%"></i></div>`:''}</div><div class="data-doc">${tag}</div>${icona('destra','piccola va')}</li>`;
 }
 function schedaPanoramicaPersona(p,idn){
   const docs=documentiPersona(p.id).filter(d=>!documentoSuperato(d)).map(d=>({d,info:infoDocumento(d),tipo:tipoDoc(d.tipoId),pid:p.id}));
@@ -4017,7 +4069,7 @@ function vistaScadenzario(r){
   const visibili=filtro==='tutti'?conData:filtro==='critici'?conData.filter(x=>['scaduto','scadenza','pianificare'].includes(x.info.stato)):conData.filter(x=>x.info.stato===filtro);
   const barra=x=>{const fr=frazioneDoc(x.doc,x.info);return fr!=null?html`<div class="traccia"><i class="${x.info.stato==='scaduto'?'tardi':x.info.stato==='scadenza'?'presto':''}" style="width:${Math.max(3,fr*100)}%"></i></div>`:''};
   const chi=x=>x.doc.soggettoTipo==='persona'&&persona(x.doc.soggettoId)?html`<span class="chi">${avatar(persona(x.doc.soggettoId),'mini')}<span>${x.soggetto}</span></span>`:x.soggetto;
-  const nomeDoc=x=>html`<b>${x.tipo?x.tipo.nome:'Documento'}</b>${x.doc.titolo?html` <span class="piccolo silenzioso">${x.doc.titolo}</span>`:''}${(x.doc.file||[]).length?'':html` <span class="pillola scaduto">senza file</span>`}`;
+  const nomeDoc=x=>html`${(nd=>html`<b>${nd.nome}</b>${nd.categoria?html` <span class="piccolo silenzioso">${nd.categoria}</span>`:''}`)(nomiDocumento(x.doc,x.tipo))}${(x.doc.file||[]).length?'':html` <span class="pillola scaduto">senza file</span>`}`;
   return html`<div class="testata"><div><div class="occhiello">Squadra</div><h1>Scadenzario</h1><p class="sotto">Tutti i documenti con una scadenza, dal più urgente. Clicca una riga per aprirlo, rinnovarlo o sostituirlo.</p></div>
   <div class="azioni"><button class="pulsante" data-azione="stampa-scadenzario">${icona('stampa','piccola')}Stampa</button><button class="pulsante" data-azione="esporta-scadenzario-md">${icona('scarica','piccola')}Markdown</button><button class="pulsante" data-azione="esporta-scadenzario-csv">${icona('scarica','piccola')}CSV</button></div></div>
   <div class="griglia quattro mb">
@@ -4264,11 +4316,11 @@ function schedaCantiereDocumenti(c){
       ${posGen.map(p=>html`<li>${icona('scudo')}<span class="spazio"><b>POS revisione ${p.revisione}</b> <span class="secondario piccolo">emesso ${fData(p.dataEmissione)}${p.dataRevisione&&p.dataRevisione!==p.dataEmissione?' · rev. '+fData(p.dataRevisione):''} · ${p.lavorazioni.length} lavorazioni · ${p.operai.length} operai</span></span><button class="pulsante piccolo" data-azione="pos-ristampa" data-id="${p.id}">${icona('stampa','piccola')}Stampa</button><button class="pulsante piccolo" data-azione="pos-nuova-revisione" data-id="${p.id}">${icona('aggiorna','piccola')}Nuova revisione</button><button class="pulsante piccolo icona pericolo" data-azione="pos-elimina" data-id="${p.id}" title="Elimina questo POS" aria-label="Elimina questo POS">${icona('elimina','piccola')}</button></li>`)}
       ${prodotti.filter(d=>d.tipo==='POS').map(d=>html`<li>${icona('scudo')}<span class="spazio"><b>${d.titolo}</b> <span class="secondario piccolo">${d.dataEmissione?'emesso '+fData(d.dataEmissione)+' · ':''}${d.data?'rev. '+fData(d.data):''}</span>${d.note?html`<br><span class="piccolo secondario">${d.note}</span>`:''}</span>${d.fileId?html`<button class="pulsante piccolo" data-azione="file-apri" data-id="${d.fileId}">${icona('occhio','piccola')}Apri</button>`:html`<button class="pulsante piccolo" data-azione="cantiere-prodotto-file" data-id="${c.id}" data-prod="${d.id}">${icona('carica','piccola')}Allega file</button>`}<button class="pulsante piccolo icona pericolo" data-azione="cantiere-prodotto-elimina" data-id="${c.id}" data-prod="${d.id}" title="Elimina questo POS" aria-label="Elimina questo POS">${icona('elimina','piccola')}</button></li>`)}
     </ul></div>
-  <div class="scheda"><h3>${icona('firma')}Dichiarazioni e altri documenti prodotti <span class="azioni"><button class="pulsante piccolo" data-azione="nomine-rifai" data-id="${c.id}" title="Nomina del preposto e degli addetti antincendio e primo soccorso, già firmate">${icona('firma','piccola')}Rifai le nomine</button><button class="pulsante piccolo" data-azione="dichiarazione-compila" data-cantiere="${c.id}">${icona('piu','piccola')}Compila dichiarazione</button><button class="pulsante piccolo" data-azione="cantiere-prodotto-nuovo" data-id="${c.id}">${icona('allega','piccola')}Registra documento</button></span></h3>
+  <div class="scheda"><h3>${icona('firma')}Dichiarazioni e altri documenti prodotti <span class="azioni"><button class="pulsante piccolo" data-azione="nomine-rifai" data-id="${c.id}" title="Nomina del preposto e degli addetti antincendio e primo soccorso, già firmate">${icona('firma','piccola')}Rifai le nomine</button><button class="pulsante piccolo" data-azione="dichiarazione-compila" data-cantiere="${c.id}">${icona('piu','piccola')}Compila dichiarazione</button><button class="pulsante piccolo" data-azione="modulo-carica" data-cantiere="${c.id}" title="Il modulo Word mandato dal committente: lo compilo sulla carta intestata">${icona('carica','piccola')}Modulo Word del committente</button><button class="pulsante piccolo" data-azione="cantiere-prodotto-nuovo" data-id="${c.id}">${icona('allega','piccola')}Registra documento</button></span></h3>
     ${prodotti.filter(d=>d.tipo!=='POS').length?html`<ul class="elenco-piatto">${prodotti.filter(d=>d.tipo!=='POS').map(d=>html`<li>${icona(d.tipo==='Dichiarazione'?'firma':'file')}<span class="spazio"><b>${d.titolo}</b> <span class="secondario piccolo">${d.tipo} · ${fData(d.data)}${d.revisione?' · rev. '+d.revisione:''}</span>${d.note?html`<br><span class="piccolo secondario">${d.note}</span>`:''}</span>${d.generatoId?html`<button class="pulsante piccolo" data-azione="generato-ristampa" data-id="${d.generatoId}">${icona('stampa','piccola')}Ristampa</button>`:''}${d.fileId?html`<button class="pulsante piccolo" data-azione="file-apri" data-id="${d.fileId}">${icona('occhio','piccola')}Apri</button>`:d.generatoId?'':html`<button class="pulsante piccolo" data-azione="cantiere-prodotto-file" data-id="${c.id}" data-prod="${d.id}">${icona('carica','piccola')}Allega</button>`}<button class="pulsante piccolo icona pericolo" data-azione="cantiere-prodotto-elimina" data-id="${c.id}" data-prod="${d.id}" aria-label="Elimina">${icona('elimina','piccola')}</button></li>`)}</ul>`:html`<p class="secondario">Nessuna dichiarazione ancora. Compilale dai modelli: si riempiono con i dati di questo cantiere.</p>`}</div>
   <div class="scheda"><h3>${icona('documenti')}Documenti archiviati del cantiere <span class="azioni"><button class="pulsante piccolo" data-azione="documento-nuovo" data-soggetto-tipo="cantiere" data-soggetto-id="${c.id}">${icona('piu','piccola')}Aggiungi</button></span></h3>
     <div class="zona-drop mb" data-azione="documento-nuovo" data-soggetto-tipo="cantiere" data-soggetto-id="${c.id}" data-drop-soggetto="cantiere:${c.id}">${icona('carica')}Trascina qui i documenti ricevuti per questo cantiere</div>
-    ${docsCant.length?tabella({righe:docsCant,onRiga:d=>apriDocumento(d.id),colonne:[{chiave:'t',titolo:'Documento',principale:true,formatta:d=>html`<b>${(tipoDoc(d.tipoId)||{}).nome||''}</b>${d.titolo?html`<br><span class="piccolo secondario">${d.titolo}</span>`:''}`},{chiave:'d',titolo:'Data',formatta:d=>fData(d.dataEmissione)},{chiave:'f',titolo:'File',formatta:d=>(d.file||[]).length?icona('allega','piccola'):''}]}):''}</div>`;
+    ${docsCant.length?tabella({righe:docsCant,onRiga:d=>apriDocumento(d.id),colonne:[{chiave:'t',titolo:'Documento',principale:true,formatta:d=>{const nd=nomiDocumento(d,tipoDoc(d.tipoId));return html`<b>${nd.nome}</b>${nd.categoria?html`<br><span class="piccolo secondario">${nd.categoria}</span>`:''}`}},{chiave:'d',titolo:'Data',formatta:d=>fData(d.dataEmissione)},{chiave:'f',titolo:'File',formatta:d=>(d.file||[]).length?icona('allega','piccola'):''}]}):''}</div>`;
 }
 // ---- foglio di apertura cantiere (denuncia ASL) ----
 // Serve quando il cantiere dura più di 14 giorni o i lavori superano 70.000 €
@@ -4423,7 +4475,7 @@ async function compilaDalPsc(velo){
   const fs=await scegliFile({multipli:false,accetta:'.pdf'});if(!fs.length)return null;
   const es=await acquisisciFile(fs[0],{});
   const prog=dialogoAvanzamento('Lettura del PSC',{testo:'Estraggo il testo dal PDF…'});
-  let testo='';try{testo=(await estraiTestoPdf(fs[0],(i,n)=>prog.aggiorna(i,n,'pagina '+i+' di '+n))).testo||''}catch(e){}finally{prog.chiudi()}
+  let testo='';try{testo=await testoPsc(fs[0],(i,n)=>prog.aggiorna(i,n,'pagina '+i+' di '+n))}catch(e){}finally{prog.chiudi()}
   const leggibile=testo.replace(/\s/g,'').length>=200;const prop=leggibile?proponiDatiDaPsc(testo):{};
   const mappa={committente:'committenteId',affidataria:'affidatariaId',descrizione:'descrizione',indirizzo:'indirizzo.via',comune:'indirizzo.comune',provincia:'indirizzo.provincia',cap:'indirizzo.cap',cig:'cig',cup:'cup',progettista:'progettistaId',direttoreLavori:'direttoreLavoriId',cse:'cseId',csp:'cspId',dataInizio:'dataInizio',dataFine:'dataFine',importoLavori:'denuncia.importoComplessivo',dataPsc:'psc.data',redattore:'psc.redattore'};
   const messi=[],saltati=[];
@@ -4968,7 +5020,9 @@ async function apriTrascrizione(anno,mese,pid){
   const n=giorniNelMese(anno,mese);const fest=festivitaAnno(anno,stato.impostazioni.festivitaLocali);
   const righe=Array.from({length:n},(_,i)=>{const g=i+1;const iso=k+'-'+pad2(g);const gs=giornoSettimana(anno,mese,g);const c=mp.giorni[String(g)]||{};const v=valoreCella(c);return {g,gs,we:gs===0||gs===6,fest:fest.has(iso),ore:v==null?'':typeof v==='number'?fOre(v):v,cantiere:c.cantiere||'',committente:c.committente||'',trasferta:c.trasferta||'',incerto:(mp.incerti||[]).includes(g)}});
   const st=!!p.soloTrasferte;
+  const calc0=calcolaMesePersona(mp,p);const impIniziale=calc0.importo!=null?fNum(calc0.importo,2):'';
   const corpo=html`<div class="riga mb-s ripeti"><span>Ripeti la riga <b data-rip-g>—</b> (la riga in cui ti trovi) fino al giorno</span><input type="number" min="1" max="${n}" data-rip-fino style="width:70px" placeholder="${n}"><button type="button" class="pulsante piccolo" data-rip>Compila uguale</button><span class="piccolo secondario">salta sabato e domenica, nelle festività scrive FS</span></div><label class="campo-nota"><span class="piccolo secondario">Note per il commercialista (compaiono in rosso nella scheda stampata; le note automatiche su assenze e festività pagate si aggiungono da sole)</span><textarea data-nota rows="2" style="width:100%">${mp.note||''}</textarea></label><div class="trascrizione"><div class="griglia-t"><table><thead><tr><th>G</th>${st?html`<th>Località trasferta</th>`:html`<th>Ore/cod.</th><th>Cantiere</th><th>Committente</th><th title="Da ricontrollare">?</th>`}</tr></thead><tbody>${righe.map(r=>html`<tr class="${r.we?'fine-settimana':''} ${r.fest?'festivo':''}" data-g="${r.g}"><td><b>${r.g}</b> <span class="piccolo">${NOMI_GIORNI_BREVI[r.gs]}</span></td>${r.we?html`<td colspan="${st?1:4}" class="piccolo secondario">fine settimana: non si compila</td>`:st?html`<td><input type="text" data-tr="trasferta" data-g="${r.g}" value="${r.trasferta}" style="width:100%"></td>`:html`<td><input type="text" data-tr="ore" data-g="${r.g}" value="${r.ore}" style="width:64px;text-align:center" placeholder="${r.fest?'FS':'8'}"></td><td><input type="text" data-tr="cantiere" data-g="${r.g}" value="${r.cantiere}"></td><td><input type="text" data-tr="committente" data-g="${r.g}" value="${r.committente}"></td><td><input type="checkbox" data-tr="incerto" data-g="${r.g}" ${r.incerto?'checked':''} aria-label="Da ricontrollare"></td>`}</tr>`)}</tbody></table></div></div>
+  <div class="riga mt-s importo-mese"><label class="riga stretta"><b>Importo del mese</b> <input type="text" inputmode="decimal" class="num-input" data-importo value="${impIniziale}" style="width:120px"> €</label><span class="piccolo secondario">${mp.importoForzato?'scritto a mano: svuotalo per tornare al calcolo dalle ore':'calcolato dalle ore: scrivi un altro importo e resta quello'}</span></div>
   <div class="riga mt-s piccolo secondario"><span><span class="kbd">Invio</span> giù nella stessa colonna · <span class="kbd">Tab</span> a destra · <span class="kbd">⌘D</span> copia dalla riga sopra · <span class="kbd">⌘↓</span> riempi in giù fino a fine mese · <span class="kbd">?</span> segna da ricontrollare</span></div>`;
   const ris=await dialogo({titolo:'Compila · '+nomePersona(p)+' · '+fMeseAnno(anno,mese),enorme:true,corpo,senzaFocus:true,valoreEscape:null,pulsanti:[{testo:'Annulla',valore:null},{testo:'Applica',classe:'primario',primario:true,fn:v=>leggiTrascrizione(v)}],alMontaggio:v=>{
     const primo=v.querySelector('input[data-tr="ore"],input[data-tr="trasferta"]');if(primo)primo.focus();
@@ -5002,6 +5056,8 @@ async function apriTrascrizione(anno,mese,pid){
   const errori=[];
   esegui('Compilazione '+nomePersona(p)+' '+fMeseAnno(anno,mese),s=>{
     const x=assicuraMesePersona(s,anno,mese,pid);const vecchi=x.giorni;x.giorni={};x.incerti=[];if(ris.note!==undefined)x.note=ris.note;
+    // importo: cambiato a mano → resta quello; svuotato → torna al calcolo dalle ore
+    if(ris.importo!==undefined&&ris.importo!==impIniziale){const nv=leggiNumero(ris.importo);if(ris.importo===''||nv===null){x.importoForzato=false;x.importoManuale=null}else{x.importoForzato=true;x.importoManuale=nv}}
     for(const r of ris.righe){const c={};const tv=st?r.trasferta:((vecchi[String(r.g)]||{}).trasferta);if(tv)c.trasferta=tv;if(r.ore){const cod=r.ore.toUpperCase();if(CODICI_ASSENZA[cod]){if(cod==='FS'&&!fest.has(k+'-'+pad2(r.g))){errori.push('giorno '+r.g+': FS non ammesso (non è festività)');}else c.codice=cod}else{const nn=leggiNumero(r.ore);if(nn===null||nn<0||nn>24)errori.push('giorno '+r.g+': valore «'+r.ore+'» non valido');else c.ore=nn}}
       if(r.cantiere)c.cantiere=nomeCantiereCanonico(r.cantiere);if(r.committente)c.committente=r.committente;else if(c.cantiere){const pr=committenteProposto(c.cantiere);if(pr)c.committente=pr}
       if(Object.keys(c).length)x.giorni[String(r.g)]=c;if(r.incerto)x.incerti.push(r.g)}
@@ -5011,7 +5067,7 @@ async function apriTrascrizione(anno,mese,pid){
 function leggiTrascrizione(v){
   const righe={};
   for(const i of tutti('input[data-tr]',v)){const g=+i.dataset.g;righe[g]=righe[g]||{g};righe[g][i.dataset.tr]=i.type==='checkbox'?i.checked:i.value.trim()}
-  const nota=v.querySelector('[data-nota]');return {righe:Object.values(righe),note:nota?nota.value.trim():undefined};
+  const nota=v.querySelector('[data-nota]');const imp=v.querySelector('[data-importo]');return {righe:Object.values(righe),note:nota?nota.value.trim():undefined,importo:imp?imp.value.trim():undefined};
 }
 // ---- uscite ----
 AZIONI['presenze-uscite']=async d=>{
@@ -5059,8 +5115,13 @@ function documentoSuperato(d){
   if(d.sostituitoDa) return true;
   // Ripiego per chi non è mai passato dal "Rinnovo" (es. un secondo documento caricato a mano):
   // se ha una data di emissione e ne esiste un altro dello stesso tipo/soggetto più recente.
-  if(!d.dataEmissione) return false;
-  return stato.documenti.some(x=>x!==d&&x.tipoId===d.tipoId&&x.soggettoTipo===d.soggettoTipo&&x.soggettoId===d.soggettoId&&x.dataEmissione&&x.dataEmissione>d.dataEmissione);
+  // Rinnovo fatto da qualsiasi parte (scheda, archivio, caricamento rapido): basta che esista un
+  // altro documento dello stesso tipo e soggetto emesso dopo, o che scade dopo.
+  const gemelli=stato.documenti.filter(x=>x!==d&&x.tipoId===d.tipoId&&x.soggettoTipo===d.soggettoTipo&&x.soggettoId===d.soggettoId);
+  if(!gemelli.length) return false;
+  if(d.dataEmissione&&gemelli.some(x=>x.dataEmissione&&x.dataEmissione>d.dataEmissione)) return true;
+  const sc=infoDocumento(d).data;
+  return !!sc&&gemelli.some(x=>{const y=infoDocumento(x).data;return y&&y>sc});
 }
 function documentoArchiviato(d){
   if(d.soggettoTipo==='persona'){const p=persona(d.soggettoId);if(p&&!p.attivo)return true}
@@ -5086,7 +5147,7 @@ function vistaArchivio(){
   docs.sort((a,b)=>ord.indexOf(a.info.silenziato?'riferimento':a.info.stato)-ord.indexOf(b.info.silenziato?'riferimento':b.info.stato)||(a.info.giorni==null?99999:a.info.giorni)-(b.info.giorni==null?99999:b.info.giorni));
   const chiDi=d=>{if(d.soggettoTipo==='persona'){const p=persona(d.soggettoId);return p?html`<span class="chi">${avatar(p,'mini')}<span>${nomePersona(p)}</span></span>`:'—'}if(d.soggettoTipo==='cantiere'){const c=cantiere(d.soggettoId);return c?html`<span class="cantiere-tag ${coloreCantiere(c)}">${c.nome}</span>`:'—'}return html`<span>${nomeSoggettoDoc(d)}</span>`};
   return html`<div class="strumenti-tabella"><input type="search" placeholder="Cerca per nome, persona, tipo, note" value="${f.cerca||''}" data-cambio="filtro-archivio" data-campo="cerca" aria-label="Cerca documenti">${sel('soggetto',soggetti,f.soggetto,'Tutti i soggetti')}${sel('tipo',stato.tipiDocumento.map(t=>({v:t.id,t:t.nome})),f.tipo,'Tutti i tipi')}${sel('anno',anni.map(a=>({v:a,t:a})),f.anno,'Anno')}<div class="gruppo-pulsanti"><button class="pulsante ${f.critici?'':'attivo'}" data-azione="filtro-archivio-critici" data-valore="">Tutti</button><button class="pulsante ${f.critici?'attivo':''}" data-azione="filtro-archivio-critici" data-valore="1">Da sistemare</button></div>${pulsanteCancellaFiltri(filtroAttivo,'filtro-archivio-reset')}<span class="spazio"></span>${archiviati?html`<label class="spunta piccolo" title="Documenti di persone cessate, cantieri chiusi e documenti rinnovati (sostituiti da uno più recente dello stesso tipo)"><input type="checkbox" data-cambio="filtro-archivio-archiviati" ${f.archiviati?'checked':''}> Archiviati (${archiviati})</label>`:''}</div>
-  ${docs.length?html`<div class="guscio"><div class="scheda scheda-tabella"><table class="tabella"><thead><tr><th>Documento</th><th>Di chi</th><th class="nascondi-telefono">Scadenza</th><th class="nascondi-telefono"></th><th>Stato</th><th class="num nascondi-telefono">File</th></tr></thead><tbody>${docs.map(x=>{const fr=frazioneDoc(x.d,x.info);const nf=(x.d.file||[]).length;return html`<tr class="cliccabile" data-azione="doc-apri" data-id="${x.d.id}"><td><span class="chi"><span class="icona-tipo">${icona(ICONA_CATEGORIA[(x.tipo&&x.tipo.categoria)||'amministrativo']||'documenti','piccola')}</span><span><b>${x.tipo?x.tipo.nome:'[tipo?]'}</b>${x.d.titolo?html`<span>${x.d.titolo}</span>`:''}</span></span></td><td>${chiDi(x.d)}</td><td class="nascondi-telefono num">${x.info.data?html`<span class="${x.info.stimata?'stimata':''}">${fData(x.info.data)}</span>`:html`<span class="silenzioso">—</span>`}</td><td class="nascondi-telefono" style="width:150px">${fr!=null?html`<div class="traccia" style="height:4px"><i class="${x.info.stato==='scaduto'?'tardi':x.info.stato==='scadenza'?'presto':''}" style="width:${Math.max(3,fr*100)}%"></i></div>`:''}</td><td>${pillolaDocumento(x.info,{breve:true})}</td><td class="num nascondi-telefono">${nf?html`<span class="silenzioso">${icona('allega','piccola')} ${nf}</span>`:html`<span class="bad-t piccolo" style="white-space:nowrap">nessun file</span>`}</td></tr>`})}</tbody></table></div></div>`
+  ${docs.length?html`<div class="guscio"><div class="scheda scheda-tabella"><table class="tabella"><thead><tr><th>Documento</th><th>Di chi</th><th class="nascondi-telefono">Scadenza</th><th class="nascondi-telefono"></th><th>Stato</th><th class="num nascondi-telefono">File</th></tr></thead><tbody>${docs.map(x=>{const fr=frazioneDoc(x.d,x.info);const nf=(x.d.file||[]).length;return html`<tr class="cliccabile" data-azione="doc-apri" data-id="${x.d.id}"><td><span class="chi"><span class="icona-tipo">${icona(ICONA_CATEGORIA[(x.tipo&&x.tipo.categoria)||'amministrativo']||'documenti','piccola')}</span><span>${(nd=>html`<b>${nd.nome}</b>${nd.categoria?html`<span>${nd.categoria}</span>`:''}`)(nomiDocumento(x.d,x.tipo))}</span></span></td><td>${chiDi(x.d)}</td><td class="nascondi-telefono num">${x.info.data?html`<span class="${x.info.stimata?'stimata':''}">${fData(x.info.data)}</span>`:html`<span class="silenzioso">—</span>`}</td><td class="nascondi-telefono" style="width:150px">${fr!=null?html`<div class="traccia" style="height:4px"><i class="${x.info.stato==='scaduto'?'tardi':x.info.stato==='scadenza'?'presto':''}" style="width:${Math.max(3,fr*100)}%"></i></div>`:''}</td><td>${pillolaDocumento(x.info,{breve:true})}</td><td class="num nascondi-telefono">${nf?html`<span class="silenzioso">${icona('allega','piccola')} ${nf}</span>`:html`<span class="bad-t piccolo" style="white-space:nowrap">nessun file</span>`}</td></tr>`})}</tbody></table></div></div>`
     :vuoto({icona:'documenti',titolo:'Nessun documento con questi filtri',testo:'Prova ad allargare i filtri o carica un documento.'})}`;
 }
 AZIONI['filtro-archivio-critici']=d=>{ui.filtri.archivio=Object.assign({},ui.filtri.archivio,{critici:d.valore});render()};
@@ -5101,16 +5162,14 @@ async function htmlAnteprimaFile(fileId,pagina){
   const u=await urlFile(m.hash); if(!u) return html`<div class="anteprima-nessuna">${icona('attenzione')} Il contenuto di «${m.nome}» non è nell'archivio del browser (forse manca dal backup ripristinato).</div>`;
   const frammento=pagina?'#page='+pagina+'&toolbar=0&navpanes=0':'#toolbar=0&navpanes=0';
   if(eImmagine(m.mime,m.nome)) return html`<img class="anteprima-img" src="${u}" alt="${m.nome}" data-azione="immagine-zoom" data-src="${u}">`;
-  if(ePdf(m.mime,m.nome)){
-    if(eIos()) return html`<div class="anteprima-nessuna">${icona('pdf')}<p>Su iPhone e iPad l'anteprima incorporata mostra solo la prima pagina.</p><a class="pulsante primario" href="${u}${frammento}" target="_blank" rel="noopener">Apri a schermo intero</a><div class="mt"><iframe class="anteprima-doc" src="${u}${frammento}" title="${m.nome}" style="min-height:40vh"></iframe></div></div>`;
-    return html`<iframe class="anteprima-doc" src="${u}${frammento}&statusbar=0" title="${m.nome}"></iframe>`;
-  }
+  // PDF: tutte le pagine una sotto l'altra, si scorre (niente pagine da scegliere); si monta da sola
+  if(ePdf(m.mime,m.nome)) return html`<div class="anteprima-doc lettore-pdf" data-lettore-pdf="${m.id}" data-pagina="${pagina||''}"><div class="anteprima-nessuna">Apro il PDF…</div></div>`;
   return html`<div class="anteprima-nessuna">${icona('file')}<p>Anteprima non disponibile per questo tipo di file (${m.mime||estensioneDi(m.nome)}).</p><button class="pulsante" data-azione="file-scarica" data-id="${m.id}">${icona('scarica')}Scarica</button></div>`;
 }
 // anteprima con la sua barra: nome del file, ingrandisci, ruota, a tutto schermo; più file = miniature per passare dall'uno all'altro
 async function anteprimaConBarra(files,attivo){
   const m=fileMeta(attivo)||files[0];if(!m)return '';const img=eImmagine(m.mime,m.nome);
-  return html`<div class="barra-anteprima"><span class="nome-anteprima" title="${m.nome}">${m.nome} · ${fPeso(m.dimensione)}</span>${img?html`<button class="pulsante discreto icona piccolo" data-azione="anteprima-ingrandisci" title="Ingrandisci">${icona('zoom-piu','piccola')}</button><button class="pulsante discreto icona piccolo" data-azione="anteprima-ruota" title="Ruota">${icona('aggiorna','piccola')}</button>`:''}${img||ePdf(m.mime,m.nome)?html`<button class="pulsante piccolo" data-azione="file-firma" data-id="${m.id}" title="Metti una firma o il timbro su questo file, e scrivi dove serve">${icona('firma','piccola')}Firma</button>`:''}<button class="pulsante discreto icona piccolo" data-azione="file-apri" data-id="${m.id}" title="A tutto schermo">${icona('occhio','piccola')}</button></div>
+  return html`<div class="barra-anteprima"><span class="nome-anteprima" title="${m.nome}">${m.nome} · ${fPeso(m.dimensione)}</span>${img?html`<button class="pulsante discreto icona piccolo" data-azione="anteprima-ingrandisci" title="Ingrandisci">${icona('zoom-piu','piccola')}</button><button class="pulsante discreto icona piccolo" data-azione="anteprima-ruota" title="Ruota">${icona('aggiorna','piccola')}</button>`:''}${img||ePdf(m.mime,m.nome)?html`<button class="pulsante piccolo" data-azione="file-stampa" data-id="${m.id}" title="Stampa tutto il documento">${icona('stampa','piccola')}Stampa</button>`:''}${img||ePdf(m.mime,m.nome)?html`<button class="pulsante piccolo" data-azione="file-firma" data-id="${m.id}" title="Metti una firma o il timbro su questo file, e scrivi dove serve">${icona('firma','piccola')}Firma</button>`:''}<button class="pulsante discreto icona piccolo" data-azione="file-apri" data-id="${m.id}" title="A tutto schermo">${icona('occhio','piccola')}</button></div>
   <div class="foglio-anteprima">${await htmlAnteprimaFile(m.id)}</div>
   ${files.length>1?html`<div class="miniature">${files.map(f=>html`<button class="${f.id===m.id?'attiva':''}" data-azione="doc-anteprima-file" data-id="${f.id}" data-files="${files.map(x=>x.id).join(',')}" title="${f.nome}">${icona(ePdf(f.mime,f.nome)?'pdf':'immagine','piccola')}<span>${tronca(f.nome.replace(/\.[^.]+$/,''),14)}</span></button>`)}</div>`:''}`;
 }
@@ -5125,7 +5184,44 @@ AZIONI['file-firma']=async d=>{
 AZIONI['anteprima-ingrandisci']=()=>{const i=el('#pannello .foglio-anteprima img');if(i)i.classList.toggle('grande')};
 AZIONI['anteprima-ruota']=()=>{const i=el('#pannello .foglio-anteprima img');if(i){const r=((+i.dataset.r||0)+90)%360;i.dataset.r=r;i.style.transform='rotate('+r+'deg)'}};
 AZIONI['immagine-zoom']=d=>{dialogo({titolo:'Immagine',enorme:true,corpo:html`<img src="${d.src}" style="max-height:calc(100dvh - 160px);margin:0 auto;object-fit:contain">`,pulsanti:[{testo:'Chiudi',valore:true}]})};
-AZIONI['file-apri']=async d=>{const m=fileMeta(d.id);if(!m)return avviso('File non trovato',{tipo:'errore'});apriPannello({titolo:nomeChiaroFile(m.id),sottotitolo:nomeChiaroFile(m.id)!==m.nome?h('caricato come «'+m.nome+'»'):'',largo:true,pieno:true,corpo:html`<div class="anteprima-nessuna">Caricamento…</div>`,piede:html`<button class="pulsante" data-azione="file-scarica" data-id="${m.id}">${icona('scarica')}Scarica</button><button class="pulsante" data-azione="file-condividi" data-id="${m.id}">${icona('condividi')}Condividi</button><span class="spazio"></span><span class="piccolo secondario">${fPeso(m.dimensione)}${m.compresso?' · compresso da '+fPeso(m.dimensioneOriginale):''}</span>`});const a=await htmlAnteprimaFile(m.id);const c=el('#pannello .corpo');if(c)c.innerHTML=a};
+// ---- lettore PDF a scorrimento (pdf.js) e stampa di tutto il documento ----
+async function montaLettorePdf(box){
+  box.dataset.montato='1';const m=fileMeta(box.dataset.lettorePdf);const b=m&&await leggiFile(m.hash);
+  if(!b){box.innerHTML='<div class="anteprima-nessuna">Contenuto non disponibile</div>';return}
+  let doc;try{doc=await apriPdfJs(b)}catch(e){const u=await urlFile(m.hash);box.outerHTML=`<iframe class="anteprima-doc" src="${u}#toolbar=0" title="${h(m.nome)}"></iframe>`;return}
+  const p1=(await doc.getPage(1)).getViewport({scale:1});
+  box.innerHTML=Array.from({length:doc.numPages},(_,i)=>`<div class="pagina-pdf" data-i="${i}" style="aspect-ratio:${p1.width}/${p1.height}"><span>${i+1} / ${doc.numPages}</span></div>`).join('');
+  const disegna=async el_=>{if(el_.dataset.fatta)return;el_.dataset.fatta='1';const pg=await doc.getPage(+el_.dataset.i+1);const v1=pg.getViewport({scale:1});
+    el_.style.aspectRatio=v1.width+'/'+v1.height;const sc=Math.min(4,(el_.clientWidth||700)*(window.devicePixelRatio||1)/v1.width);const v=pg.getViewport({scale:sc});
+    const c=document.createElement('canvas');c.width=Math.ceil(v.width);c.height=Math.ceil(v.height);await pg.render({canvasContext:c.getContext('2d'),viewport:v}).promise;el_.appendChild(c)};
+  const oss=new IntersectionObserver(vv=>vv.forEach(x=>{if(x.isIntersecting)disegna(x.target).catch(()=>{})}),{root:box,rootMargin:'600px 0px'});
+  box.querySelectorAll('.pagina-pdf').forEach(x=>oss.observe(x));
+  const pag=+box.dataset.pagina;if(pag>1){const x=box.querySelector(`.pagina-pdf[data-i="${pag-1}"]`);if(x)x.scrollIntoView()}
+}
+new MutationObserver(()=>{for(const b of document.querySelectorAll('[data-lettore-pdf]:not([data-montato])'))montaLettorePdf(b).catch(e=>segnalaErrore(e,'PDF non leggibile'))}).observe(document.documentElement,{childList:true,subtree:true});
+// Stampa di tutto il PDF: ogni pagina a 300 dpi in una pagina di stampa (la stampa del lettore del
+// browser dentro l'app stampava solo la pagina visibile)
+async function stampaPdf(fileId){
+  const m=fileMeta(fileId);const b=m&&await leggiFile(m.hash);if(!b)return avviso('Contenuto non disponibile',{tipo:'errore'});
+  if(eImmagine(m.mime,m.nome)){const u=await urlFile(m.hash);return stampaImmagini([{src:u,w:0,h:0}],m.nome)}
+  const prog=dialogoAvanzamento('Preparo la stampa',{testo:'Disegno le pagine…'});const pagine=[];
+  try{const doc=await apriPdfJs(b);for(let i=0;i<doc.numPages;i++){await prog.aggiorna(i,doc.numPages,'pagina '+(i+1));const pg=await doc.getPage(i+1);const v1=pg.getViewport({scale:1});const v=pg.getViewport({scale:300/72});
+    const c=document.createElement('canvas');c.width=Math.ceil(v.width);c.height=Math.ceil(v.height);const g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,c.width,c.height);await pg.render({canvasContext:g,viewport:v}).promise;
+    pagine.push({src:URL.createObjectURL(await new Promise(r=>c.toBlob(r,'image/png'))),w:v1.width,h:v1.height})}}
+  finally{prog.chiudi()}
+  stampaImmagini(pagine,m.nome);
+}
+function stampaImmagini(pagine,titolo){
+  const f=document.createElement('iframe');f.style.cssText='position:fixed;right:0;bottom:0;width:0;height:0;border:0';document.body.appendChild(f);
+  const d=f.contentDocument;const p0=pagine[0]||{};const oriz=p0.w>p0.h;
+  d.open();d.write(`<!doctype html><html><head><title>${h(titolo||'')}</title><style>@page{size:${p0.w?(oriz?'A4 landscape':'A4'):'auto'};margin:0}html,body{margin:0;padding:0}img{display:block;width:100%;height:auto;max-height:100vh;object-fit:contain;break-after:page;page-break-after:always}img:last-child{break-after:auto;page-break-after:auto}</style></head><body>${pagine.map(x=>`<img src="${x.src}">`).join('')}</body></html>`);d.close();
+  const vai_=()=>{try{f.contentWindow.focus();f.contentWindow.print()}finally{setTimeout(()=>{f.remove();pagine.forEach(x=>{if(String(x.src).startsWith('blob:')&&x.w)URL.revokeObjectURL(x.src)})},60000)}};
+  const imgs=Array.from(d.images);Promise.all(imgs.map(i=>i.complete?0:new Promise(r=>{i.onload=i.onerror=r}))).then(vai_);
+}
+AZIONI['file-stampa']=d=>stampaPdf(d.id);
+// ⌘P con un PDF aperto stampa il PDF intero, non la pagina dell'app
+window.addEventListener('keydown',e=>{if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='p'){const b=document.querySelector('#pannello.aperto [data-lettore-pdf],.dialogo [data-lettore-pdf]')||document.querySelector('[data-lettore-pdf]');if(b&&b.offsetParent){e.preventDefault();stampaPdf(b.dataset.lettorePdf)}}},true);
+AZIONI['file-apri']=async d=>{const m=fileMeta(d.id);if(!m)return avviso('File non trovato',{tipo:'errore'});apriPannello({titolo:nomeChiaroFile(m.id),sottotitolo:nomeChiaroFile(m.id)!==m.nome?h('caricato come «'+m.nome+'»'):'',largo:true,pieno:true,corpo:html`<div class="anteprima-nessuna">Caricamento…</div>`,piede:html`${ePdf(m.mime,m.nome)||eImmagine(m.mime,m.nome)?html`<button class="pulsante" data-azione="file-stampa" data-id="${m.id}">${icona('stampa')}Stampa</button>`:''}<button class="pulsante" data-azione="file-scarica" data-id="${m.id}">${icona('scarica')}Scarica</button><button class="pulsante" data-azione="file-condividi" data-id="${m.id}">${icona('condividi')}Condividi</button><span class="spazio"></span><span class="piccolo secondario">${fPeso(m.dimensione)}${m.compresso?' · compresso da '+fPeso(m.dimensioneOriginale):''}</span>`});const a=await htmlAnteprimaFile(m.id);const c=el('#pannello .corpo');if(c)c.innerHTML=a};
 AZIONI['file-scarica']=async d=>{const m=fileMeta(d.id);const b=await leggiFile(m.hash);if(!b)return avviso('Contenuto non disponibile',{tipo:'errore'});scaricaBlob(b,nomeChiaroFile(m.id))};
 AZIONI['file-condividi']=async d=>{const m=fileMeta(d.id);const b=await leggiFile(m.hash);if(!b)return avviso('Contenuto non disponibile',{tipo:'errore'});condividiOScarica(b,nomeChiaroFile(m.id))};
 
@@ -5163,7 +5259,7 @@ async function apriDocumento(docId){
     ${precedenti.length?html`<div class="sezione-titolo">Storico</div><ul class="storico-doc"><li class="attuale"><i></i><div><b>${t?t.nome:'Documento'} del ${fData(d.dataEmissione)||'—'}</b><span>quello in vigore</span></div></li>${precedenti.map(v=>html`<li><i></i><div><b>${fData(v.dataEmissione)||'senza data'}</b><span>sostituito${v.dataScadenza?' · scadeva il '+fData(v.dataScadenza):''}</span></div><button class="pulsante discreto piccolo" data-azione="doc-apri" data-id="${v.id}">Apri</button></li>`)}</ul>`:''}`;
   const rinnovabile=!!(info.data||info.stato==='mancante')&&!successivo;
   const sogg=d.soggettoTipo==='persona'?persona(d.soggettoId):null;
-  apriPannello({titolo:t?t.nome:'Documento',icona:ICONA_CATEGORIA[(t&&t.categoria)||'amministrativo']||'documenti',sottotitolo:html`${sogg?avatar(sogg,'mini'):''}<a href="${hrefSoggettoDoc(d)}">${nomeSoggettoDoc(d)}</a>`,largo:!!files.length,affiancato:!!files.length,corpo:meta,anteprima:files.length?'anteprima-doc':null,
+  apriPannello({titolo:nomiDocumento(d,t).nome,icona:ICONA_CATEGORIA[(t&&t.categoria)||'amministrativo']||'documenti',sottotitolo:html`${sogg?avatar(sogg,'mini'):''}<a href="${hrefSoggettoDoc(d)}">${nomeSoggettoDoc(d)}</a>`,largo:!!files.length,affiancato:!!files.length,corpo:meta,anteprima:files.length?'anteprima-doc':null,
     azioni:html`${d.firmato?html`<span class="pillola valido">${icona('firma','piccola')}Firmato il ${fData(d.firmato)}</span> `:''}${pillolaDocumento(info)}`,
     piede:html`${rinnovabile?html`<button class="pulsante primario" data-azione="documento-rinnova" data-id="${d.id}" title="Carica il documento nuovo: questo passa nello storico">${icona('aggiorna','piccola')}Rinnova con un documento nuovo</button>`:''}<button class="pulsante ${rinnovabile?'':'primario'}" data-azione="documento-modifica" data-id="${d.id}">${icona('modifica','piccola')}Modifica</button>${files.length?html`<button class="pulsante discreto" data-azione="file-condividi" data-id="${files[0].id}">${icona('condividi','piccola')}Condividi</button>`:''}${rinnovabile?html`<button class="pulsante discreto" data-azione="documento-duplica" data-id="${d.id}" title="Rinnovo senza scansione: stesso tipo e soggetto, date nuove">Rinnovo senza file</button>`:''}<span class="spazio"></span><button class="pulsante discreto pericolo" data-azione="documento-elimina" data-id="${d.id}">${icona('elimina','piccola')}Elimina</button>`});
   if(files.length){const a=await anteprimaConBarra(files,files[0].id);const c=el('#anteprima-doc');if(c)c.innerHTML=a}
@@ -5781,10 +5877,11 @@ AZIONI['busta-elimina']=async d=>{if(!(await conferma('Eliminare questa busta pa
 // ---- modelli ----
 function vistaModelli(r){
   const sotto=ui.filtri.modelli||'dichiarazioni';
-  return html`${linguette('modelli',[{id:'dichiarazioni',testo:'Dichiarazioni'},{id:'pos',testo:'Testo POS'},{id:'carta',testo:'Carta intestata e firme'}],sotto)}
+  return html`${linguette('modelli',[{id:'dichiarazioni',testo:'Dichiarazioni'},{id:'committente',testo:'Moduli dei committenti',contatore:(stato.moduli||[]).length||null},{id:'pos',testo:'Testo POS'},{id:'carta',testo:'Carta intestata e firme'}],sotto)}
   ${sotto==='dichiarazioni'?(()=>{const q=normalizzaTesto(ui.filtri.cercaModelli||'');const mm=stato.modelli.dichiarazioni.filter(m=>!q||normalizzaTesto(m.nome).includes(q));
     return html`<div class="strumenti-tabella"><input type="search" placeholder="Cerca un modello" value="${ui.filtri.cercaModelli||''}" data-cambio="filtro-modelli-cerca" aria-label="Cerca modello"><span class="piccolo secondario">«Compila» la prepara in pochi secondi con i dati dell'azienda e, se scegli un cantiere, anche i suoi.</span><span class="spazio"></span><button class="pulsante" data-azione="modello-nuovo">${icona('piu','piccola')}Nuovo modello</button></div>
     ${mm.length?html`<div class="griglia-modelli">${mm.map(m=>html`<div class="modello"><span class="icona-modello">${icona('firma','piccola')}</span><b>${m.nome}</b><span class="desc-modello">${[m.cartaIntestata?'Carta intestata':'',m.timbro?'timbro':'',m.firma?'firma '+(m.firmatario?'— '+m.firmatario.toLowerCase():''):''].filter(Boolean).join(', ')||'Testo libero'}${m.soloConSubappalto?' · solo con subappalto':''}</span><div class="azioni-modello"><button class="pulsante piccolo primario" data-azione="dichiarazione-compila" data-modello="${m.id}">Compila</button><button class="pulsante piccolo discreto" data-azione="modello-modifica" data-id="${m.id}">Modifica testo</button></div></div>`)}</div>`:vuoto({icona:'firma',titolo:'Nessun modello trovato',testo:'Prova un altro termine di ricerca.'})}`})():''}
+  ${sotto==='committente'?vistaModuliCommittente():''}
   ${sotto==='pos'?vistaModelloPos():''}
   ${sotto==='carta'?html`<div class="griglia due"><div class="scheda"><h3>Carta intestata</h3><p class="secondario piccolo">Righe di testo accanto al logo, su ogni pagina dei documenti.</p><ol>${(stato.azienda.cartaIntestata.righe||[]).map(x=>html`<li>${x}</li>`)}</ol><button class="pulsante" data-azione="carta-modifica">${icona('modifica')}Modifica righe</button>
     <div class="mt"><div class="etichetta-campo">Logo</div><div class="mt-s"><img src="${immagineAzienda('logo')}" alt="Logo" style="height:60px"></div><div class="mt-s"><button class="pulsante piccolo" data-azione="immagine-sostituisci" data-chiave="logo">${icona('carica','piccola')}Sostituisci</button>${stato.azienda.img_logo?html` <button class="pulsante piccolo" data-azione="immagine-ripristina" data-chiave="logo">Originale</button>`:''}</div></div></div>
@@ -6629,7 +6726,7 @@ AZIONI['sys-azzera']=async()=>{
 // ---------------------------------------------------------------------
 const TIPI_MEZZO=['Furgone','Autocarro','Auto','Rimorchio','Macchina operatrice','Altro'];
 function documentoPiuCriticoMezzo(m){
-  const docs=documentiDi('mezzo',m.id).map(d=>({d,info:infoDocumento(d)}));
+  const docs=documentiDi('mezzo',m.id).filter(d=>!documentoSuperato(d)).map(d=>({d,info:infoDocumento(d)}));
   const ord=['scaduto','scadenza','pianificare','valido','riferimento'];
   docs.sort((a,b)=>ord.indexOf(a.info.stato)-ord.indexOf(b.info.stato)||(a.info.giorni||0)-(b.info.giorni||0));
   const peggio=docs[0];
@@ -6654,7 +6751,7 @@ AZIONI['mezzo-modifica']=d=>dialogoMezzo(perId('mezzi',d.id));
 function vistaMezzo(id){
   const m=perId('mezzi',id); if(!m) return html`<div class="vuoto">${icona('attenzione')}<h3>Mezzo non trovato</h3><a class="pulsante" href="#/mezzi">Torna all'elenco</a></div>`;
   const ling=linguettaAttiva('mezzo:'+m.id,'documenti');
-  const docs=documentiDi('mezzo',m.id);
+  const docs=documentiDi('mezzo',m.id).filter(d=>!documentoSuperato(d));
   const nDocCritici=docs.filter(d=>['scaduto','scadenza'].includes(infoDocumento(d).stato)).length;
   return html`<div class="briciole"><a href="#/mezzi">Mezzi</a> › ${nomeMezzo(m)}</div>
   <div class="testata"><div><h1>${nomeMezzo(m)}</h1><div class="sotto">${m.tipo||''}${m.assegnatoA?' · assegnato a '+nomePersona(persona(m.assegnatoA)):''}</div></div>
@@ -6668,7 +6765,7 @@ function schedaDocumentiMezzo(m){
   docs.sort((a,b)=>ord.indexOf(a.info.stato)-ord.indexOf(b.info.stato)||(a.info.giorni||0)-(b.info.giorni||0));
   return html`<div class="zona-drop mb" data-azione="documento-nuovo" data-soggetto-tipo="mezzo" data-soggetto-id="${m.id}" data-drop-soggetto="mezzo:${m.id}">${icona('carica')}Trascina qui una scansione o un PDF, oppure clicca per aggiungere un documento</div>
   ${tabella({id:'docmezzo',righe:docs,onRiga:r=>apriDocumento(r.d.id),classeRiga:r=>'riga-'+r.info.stato,colonne:[
-    {chiave:'tipo',titolo:'Documento',principale:true,valore:r=>r.tipo?r.tipo.nome:'',formatta:r=>html`<b>${r.tipo?r.tipo.nome:'[tipo?]'}</b>${r.d.titolo?html`<br><span class="piccolo secondario">${r.d.titolo}</span>`:''}${!(r.d.file||[]).length?html`<br><span class="piccolo da-compilare">nessun file allegato</span>`:''}`},
+    {chiave:'tipo',titolo:'Documento',principale:true,valore:r=>r.tipo?r.tipo.nome:'',formatta:r=>html`${(nd=>html`<b>${nd.nome}</b>${nd.categoria?html`<br><span class="piccolo secondario">${nd.categoria}</span>`:''}`)(nomiDocumento(r.d,r.tipo))}${!(r.d.file||[]).length?html`<br><span class="piccolo da-compilare">nessun file allegato</span>`:''}`},
     {chiave:'emissione',titolo:'Emissione',valore:r=>r.d.dataEmissione||'',formatta:r=>r.d.dataEmissione?fData(r.d.dataEmissione):html`<span class="silenzioso">—</span>`},
     {chiave:'scadenza',titolo:'Scadenza',valore:r=>r.info.data||'',formatta:r=>r.info.data?html`<span class="${r.info.stimata?'stimata':''}">${fData(r.info.data)}${r.info.stimata?' ~':''}</span>`:r.d.senzaScadenza?html`<span class="silenzioso">nessuna</span>`:daCompilare('data?')},
     {chiave:'stato',titolo:'Stato',valore:r=>ord.indexOf(r.info.stato),formatta:r=>pillolaDocumento(r.info)},
@@ -6843,7 +6940,7 @@ function anteprimaStampa(opz){
   let pagine=opz.pagineHtml||impagina(opz.doc);
   const oriz=opz.orientamento==='orizzontale'||(opz.doc&&opz.doc.orientamento==='orizzontale');
   const segnaposti=[];const re=/\[DA COMPILARE[^\]]*\]/g;pagine.forEach((p,i)=>{const t=p.replace(/<[^>]+>/g,' ');let m;while((m=re.exec(t))){const ctx=t.slice(Math.max(0,m.index-70),m.index+m[0].length+40).replace(/\s+/g,' ').trim();segnaposti.push({pagina:i+1,frase:'…'+ctx+'…'})}});
-  const cont=el('#stampa');cont.innerHTML=risolviImmagini(pagine.join(''));
+  const cont=el('#stampa');cont.innerHTML=risolviImmagini(pagine.join(''));setTimeout(()=>vettorializzaFirmeIn(cont),0);
   const stile=el('#stile-stampa')||creaEl('<style id="stile-stampa"></style>');stile.textContent=`@media print{@page{size:A4 ${oriz?'landscape':'portrait'};margin:0}}`;document.head.appendChild(stile);
   if(!opz.giaRegistrato&&opz.registra!==false){const g={id:nuovoId('g'),titolo:opz.titolo,quando:new Date().toISOString(),pagine,orientamento:oriz?'orizzontale':'verticale',riferimento:opz.riferimento||''};esegui('Generato: '+opz.titolo,s=>{s.generati.push(g);if(s.generati.length>200)s.generati.shift();if(opz.dopoRegistrazione)opz.dopoRegistrazione(s,g)},{senzaRender:true,silenzioso:true});opz.generatoId=g.id}
   const overlay=creaEl(html`<div class="anteprima-stampa" role="dialog" aria-label="Anteprima di stampa"><div class="comandi"><button class="pulsante icona" data-chiudi-anteprima aria-label="Chiudi">${icona('chiudi')}</button><h2>${opz.titolo}</h2><span class="piccolo secondario">${pagine.length} ${pagine.length===1?'pagina':'pagine'} · A4 ${oriz?'orizzontale':'verticale'}</span><button class="pulsante piccolo icona" data-zoom="-" aria-label="Riduci">${icona('zoom-meno')}</button><button class="pulsante piccolo icona" data-zoom="+" aria-label="Ingrandisci">${icona('zoom-piu')}</button>${opz.azioniExtra?grezzo(opz.azioniExtra):''}<button class="pulsante" data-scarica-pdf>${icona('pdf')}Scarica PDF</button><button class="pulsante primario" data-stampa>${icona('stampa')}Stampa</button></div>${segnaposti.length?html`<div class="segnaposto-lista">${icona('attenzione')} <b>${segnaposti.length} segnaposto da compilare</b>: ${segnaposti.slice(0,6).map(s=>html`<span title="${s.frase}">pag. ${s.pagina}</span>`).reduce((a,b)=>html`${a} · ${b}`)}${segnaposti.length>6?' …':''} <button class="pulsante piccolo" data-segnaposti>Elenco</button></div>`:''}<div class="fogli"><div class="zoom-contenitore">${grezzo(risolviImmagini(pagine.join('')))}</div></div></div>`);
@@ -6858,6 +6955,7 @@ function anteprimaStampa(opz){
   overlay.querySelector('[data-scarica-pdf]').onclick=async e=>{const b=e.currentTarget;b.disabled=true;try{const pdf=await pdfDaPagine(pagine);await condividiOScarica(pdf,pulisciNomeFile(opz.titolo||'Documento')+'.pdf',{testo:opz.titolo})}catch(err){segnalaErrore(err,'PDF non creato')}finally{b.disabled=false}};
   overlay.querySelector('[data-stampa]').onclick=()=>{ if(eIos()) avviso('Su iPad e iPhone: Condividi → Stampa, oppure Condividi → Salva su File come PDF',{durata:6000}); setTimeout(()=>window.print(),50); };
   const bs=overlay.querySelector('[data-segnaposti]');if(bs)bs.onclick=()=>informa('Segnaposto non compilati',html`<p>Ogni voce mostra la frase che contiene il segnaposto, così sai dove intervenire.</p><ol>${segnaposti.map(s=>html`<li><b>Pag. ${s.pagina}</b>: ${s.frase}</li>`)}</ol>`);
+  setTimeout(()=>vettorializzaFirmeIn(overlay),0);
   if(opz.alMontaggio)opz.alMontaggio(overlay);
   return {pagine,chiudi,generatoId:opz.generatoId};
 }
@@ -7939,12 +8037,14 @@ const TITOLI_DPI_POS={'Casco':['casco'],'Guanti':['guanti','guanti_chimici','gua
 const ELENCO_MACCHINE_POS=[['Aspirapolvere',[1,2,3,4,5,6,7]],['Betoniera',[1,2,5]],['Piastra vibrante',[1]],['Sega circolare',[3,4,6]],['Monospazzole',[2,5]],['Motosega',[3,4]],['Pompa per massetti',[1]],['Pompa per massetti in cls cellulare',[1]],['Martello elettrico',[1,2,5]],['Flessibili',[1,2,3,4,5,6,7]],['Pistola sparachiodi',[3,4,6]],['Livella laser',[1,2,3,4,5,6,7]],['Autocarro con gru',[1,2,3,4,5,6,7]],['Attrezzatura minuta',[1,2,3,4,5,6,7]],['Spianatrice massetti',[1]],['Taglia Piastrelle',[2,5,6]]];
 const DPI_DOTAZIONE_POS=[['Tuta lavoro',null],['Scarpe antinfortunistiche',null],['Guanti',null],['Occhiali di protezione',null],['Mascherine antipolvere',null],['Otoprotettori',null],['Casco',null],['Cinture di sicurezza',[4,7]],['Ginocchiere',null]];
 
+const TITOLI_SEZIONI_POS={premessa:'Premessa',premessa_uso:'Utilizzo e consultazione',premessa_revisione:'Revisione del piano',descrizione_opera:'Descrizione dell’opera e lavorazioni',anagrafica:'Anagrafica del cantiere',figure:'Figure del cantiere e della sicurezza',dati_impresa:'Dati dell’impresa',dati_impresa_esecutrice:'Impresa esecutrice',mansioni:'Compiti per la sicurezza delle figure nominate',organizzazione:'Organizzazione del cantiere',misure_prevenzione:'Principali misure di prevenzione',formazione:'Formazione',sorveglianza:'Sorveglianza sanitaria',dpi:'Dispositivi di protezione individuale',segnaletica:'Segnaletica di sicurezza',pronto_soccorso:'Pronto soccorso',numeri_utili:'Indirizzi e numeri utili',presidi:'Presidi sanitari',valutazione_rischi:'Valutazione dei rischi',metodologia:'Metodologia adottata',analisi_lavorazioni:'Analisi delle lavorazioni',rumore:'Esito della valutazione di rumore e vibrazioni',sostanze:'Sostanze e preparati pericolosi',macchine:'Macchine e attrezzature',conclusioni:'Conclusioni e firme'};
+function titoloSezionePos(s){return TITOLI_SEZIONI_POS[s.id]||capitalizza(String(s.titolo).toLowerCase())}
 function vistaPosWizard(c,r){
   if(!c) return html`<div class="vuoto">${icona('attenzione')}<h3>Cantiere non trovato</h3></div>`;
   let w=ui.posWizard;
   if(!w||w.cantiereId!==c.id){
     const ultimo=stato.pos.filter(p=>p.cantiereId===c.id).sort((a,b)=>b.revisione-a.revisione)[0];
-    w=ui.posWizard={cantiereId:c.id,passo:1,dati:{operai:ultimo?ultimo.operai.slice():(c.operai||[]).slice(),prepostoId:ultimo?ultimo.prepostoId:c.prepostoId,lavorazioni:[],tipi:ultimo&&ultimo.tipi?ultimo.tipi.slice():(c.tipi||(ultimo?TIPI_LAVORAZIONE.filter(t=>ultimo.lavorazioni.includes(t.cat)).map(t=>t.id):tipiCantiere(c).map(t=>t.id))).slice(),uominiGiorno:c.uominiGiorno,dataInizio:c.dataInizio,dataFine:c.dataFine,orari:c.orari,importo:c.importoContratto,tipoAppalto:ultimo?ultimo.tipoAppalto:'esecutrice',organizzazione:ultimo?ultimo.organizzazione:'nonRealizzata',revisione:ultimo?ultimo.revisione+1:0,dataEmissione:ultimo?ultimo.dataEmissione:oggi(),dataRevisione:oggi(),descrizioneRevisione:ultimo?'':'Emissione iniziale',revisioniPrecedenti:ultimo?[...(ultimo.revisioni||[])]:[],psc:{}}};
+    w=ui.posWizard={cantiereId:c.id,passo:1,dati:{operai:ultimo?ultimo.operai.slice():(c.operai||[]).slice(),prepostoId:ultimo?ultimo.prepostoId:c.prepostoId,lavorazioni:[],tipi:ultimo&&ultimo.tipi?ultimo.tipi.slice():(c.tipi||(ultimo?TIPI_LAVORAZIONE.filter(t=>ultimo.lavorazioni.includes(t.cat)).map(t=>t.id):tipiCantiere(c).map(t=>t.id))).slice(),uominiGiorno:c.uominiGiorno,dataInizio:c.dataInizio,dataFine:c.dataFine,orari:c.orari,importo:c.importoContratto,tipoAppalto:ultimo?ultimo.tipoAppalto:'esecutrice',organizzazione:ultimo?ultimo.organizzazione:'nonRealizzata',revisione:ultimo?ultimo.revisione+1:0,dataEmissione:ultimo?ultimo.dataEmissione:oggi(),dataRevisione:oggi(),descrizioneRevisione:ultimo?'':'Emissione iniziale',revisioniPrecedenti:ultimo?[...(ultimo.revisioni||[])]:[],aggiunte:ultimo&&ultimo.aggiunte?clona(ultimo.aggiunte):[],psc:{}}};
     if(r.query.da){const p=perId('pos',r.query.da);if(p){w.dati.revisione=p.revisione+1;w.dati.revisioniPrecedenti=[...(p.revisioni||[]),{n:p.revisione,data:p.dataRevisione||p.dataEmissione,descrizione:p.descrizioneRevisione}];w.dati.dataEmissione=p.dataEmissione}}
   }
   const passi=['PSC','Dati del cantiere','Operai','Preposto','Lavorazioni','Figure','Anteprima'];
@@ -7965,6 +8065,7 @@ function leggiPassoCorrente(){
   if(w.passo===3){d.operai=tutti('[name=operai]:checked',box).map(x=>x.value)}
   if(w.passo===4){const p=box.querySelector('[name=prepostoId]:checked');d.prepostoId=p?p.value:null}
   if(w.passo===5){d.tipi=tutti('[name=tipi]:checked',box).map(x=>x.value)}
+  if(w.passo===7){d.aggiunte=tutti('[data-aggiunta]',box).map(r=>({dove:r.querySelector('[name=ag_dove]').value,quando:r.querySelector('[name=ag_quando]').value,testo:r.querySelector('[name=ag_testo]').value.trim()})).filter(a=>a.testo)}
 }
 AZIONI['pos-annulla']=()=>{const w=ui.posWizard;ui.posWizard=null;vai('cantieri/'+(w?w.cantiereId:''))};
 AZIONI['pos-vai-passo']=d=>{leggiPassoCorrente();const w=ui.posWizard;const n=+d.passo;if(n>w.passo){const err=validaPasso(w);if(err)return avviso(err,{tipo:'errore'})}w.passo=n;render()};
@@ -8005,7 +8106,7 @@ AZIONI['pos-psc-estrai']=async d=>{
   const c=cantiere(d.id);const w=ui.posWizard;leggiPassoCorrente();
   const b=await leggiFile((fileMeta(c.psc.fileId)||{}).hash);if(!b)return avviso('PSC non trovato nell\'archivio',{tipo:'errore'});
   const prog=dialogoAvanzamento('Lettura del PSC',{testo:'Estraggo il testo dal PDF…'});
-  let testo='';try{testo=(await estraiTestoPdf(b,(i,n)=>prog.aggiorna(i,n,'pagina '+i+' di '+n))).testo}catch(e){prog.chiudi();w.pscEsito={tipo:'attenzione',testo:'Non sono riuscito a leggere il PDF ('+(e.message||e)+'): compila i dati a mano.'};render();return}
+  let testo='';try{testo=await testoPsc(b,(i,n)=>prog.aggiorna(i,n,'pagina '+i+' di '+n))}catch(e){prog.chiudi();w.pscEsito={tipo:'attenzione',testo:'Non sono riuscito a leggere il PDF ('+(e.message||e)+'): compila i dati a mano.'};render();return}
   prog.chiudi();
   if(!testo||testo.replace(/\s/g,'').length<200){w.pscEsito={tipo:'attenzione',testo:'Il PDF non ha un livello di testo leggibile (probabilmente è una scansione): compila i dati a mano.'};render();return}
   const prop=proponiDatiDaPsc(testo);
@@ -8050,13 +8151,22 @@ function posPasso7(c,w){
     <div class="sezione-titolo">Operai (${d.operai.length})</div><p>${d.operai.map(id=>nomePersona(persona(id))).join(', ')} · preposto <b>${nomePersona(persona(d.prepostoId))}</b></p></div>
     <div><div class="sezione-titolo">Figure</div>${figure.map(x=>html`<div class="figura-riga"><span class="ruolo">${x.f.ruolo}</span><span>${x.t?x.t.nome:'—'}</span><span></span></div>`)}
     <div class="sezione-titolo">Revisione</div><p>Rev. ${d.revisione} · emissione ${fData(d.dataEmissione)}${d.revisione?' · revisione '+fData(d.dataRevisione)+' — '+(d.descrizioneRevisione||daCompilare('descrizione')):''}</p></div></div>
+  <div class="sezione-titolo mt">Diciture aggiunte</div>
+  <p class="piccolo secondario">Quando la committenza o il CSE chiede di aggiungere una frase in un capitolo, scrivila qui: finisce nel POS all'inizio o in fondo al capitolo scelto, con lo stesso stile del testo. Resta anche nelle revisioni successive.</p>
+  <div id="pos-aggiunte">${(d.aggiunte||[]).map(rigaAggiuntaPos).join('')}</div>
+  <button class="pulsante piccolo" data-azione="pos-aggiunta-nuova">${icona('piu','piccola')}Aggiungi una dicitura</button>
   <div class="avviso-inline info mt">${icona('info')}<div class="corpo">Alla generazione il POS resta nel cantiere con la sua revisione e la sua data, ristampabile identico. Prima di consegnare, l'anteprima elenca ogni segnaposto rimasto con la frase che lo contiene.</div></div>`;
 }
+// capitoli del POS dove si può aggiungere una dicitura: quelli del testo standard (più copertina e fine)
+function capitoliPos(){const out=[['inizio','Dopo l’indice, prima del primo capitolo']];for(const s of posTestoCorrente().sezioni){if(s.id==='revisioni'||s.id==='indice')continue;out.push([s.id,(s.livello===1?'':'— ')+titoloSezionePos(s)])}out.push(['fine','In fondo al documento']);return out}
+function rigaAggiuntaPos(a){a=a||{dove:'inizio',quando:'fine',testo:''};return html`<div class="scheda mb-s" data-aggiunta><div class="campi"><div class="campo"><label>Capitolo</label><select name="ag_dove">${capitoliPos().map(([v,t])=>html`<option value="${v}" ${a.dove===v?'selected':''}>${t}</option>`)}</select></div><div class="campo"><label>Posizione</label><select name="ag_quando"><option value="inizio" ${a.quando==='inizio'?'selected':''}>all'inizio del capitolo</option><option value="fine" ${a.quando!=='inizio'?'selected':''}>in fondo al capitolo</option></select></div><div class="campo largo"><label>Testo (una riga vuota separa i paragrafi)</label><textarea name="ag_testo" rows="3">${a.testo}</textarea></div></div><button class="pulsante piccolo discreto" data-azione="pos-aggiunta-togli">${icona('chiudi','piccola')}Togli</button></div>`}
+AZIONI['pos-aggiunta-nuova']=()=>{const box=el('#pos-aggiunte');if(box)box.insertAdjacentHTML('beforeend',String(rigaAggiuntaPos()));const t=box&&box.lastElementChild&&box.lastElementChild.querySelector('textarea');if(t)t.focus()};
+AZIONI['pos-aggiunta-togli']=(d,t)=>{const r=t.closest('[data-aggiunta]');if(r)r.remove()};
 AZIONI['pos-genera']=async()=>{
   leggiPassoCorrente();const w=ui.posWizard;const err=validaPasso(w);if(err)return avviso(err,{tipo:'errore'});
   salvaPassoNelCantiere(w);
   const c=cantiere(w.cantiereId);const d=w.dati;
-  const pos={id:nuovoId('pos'),cantiereId:c.id,revisione:d.revisione,dataEmissione:d.dataEmissione,dataRevisione:d.revisione?d.dataRevisione:d.dataEmissione,descrizioneRevisione:d.revisione?d.descrizioneRevisione:'Emissione iniziale',revisioni:d.revisioniPrecedenti||[],lavorazioni:unici(TIPI_LAVORAZIONE.filter(t=>d.tipi.includes(t.id)).map(t=>t.cat)),tipi:d.tipi.slice(),operai:d.operai.slice(),prepostoId:d.prepostoId,uominiGiorno:d.uominiGiorno,tipoAppalto:d.tipoAppalto,organizzazione:d.organizzazione,generato:new Date().toISOString(),generatoId:null};
+  const pos={id:nuovoId('pos'),cantiereId:c.id,revisione:d.revisione,dataEmissione:d.dataEmissione,dataRevisione:d.revisione?d.dataRevisione:d.dataEmissione,descrizioneRevisione:d.revisione?d.descrizioneRevisione:'Emissione iniziale',revisioni:d.revisioniPrecedenti||[],lavorazioni:unici(TIPI_LAVORAZIONE.filter(t=>d.tipi.includes(t.id)).map(t=>t.cat)),tipi:d.tipi.slice(),operai:d.operai.slice(),prepostoId:d.prepostoId,uominiGiorno:d.uominiGiorno,tipoAppalto:d.tipoAppalto,organizzazione:d.organizzazione,aggiunte:(d.aggiunte||[]).slice(),generato:new Date().toISOString(),generatoId:null};
   // le nomine si impaginano prima di aprire l'anteprima del POS (usano lo stesso spazio di stampa)
   const nomine=generaNomineCantiere(c.id,pos.revisione?pos.dataRevisione:pos.dataEmissione);
   const doc=docPos(pos,c);
@@ -8120,7 +8230,7 @@ function docPos(pos,c){
     if(s.id==='metodologia'&&conScheda.length)corpo.push({id:'rumore',livello:2,titolo:'Rumore e vibrazioni',blocchi:[]});
     if(s.id==='macchine'&&conScheda.length)corpo.push({id:'sostanze',livello:1,titolo:'Sostanze e preparati pericolosi',blocchi:[]})}
   for(const s of corpo){if(s.livello===1){n1++;n2=0;numeri[s.id]=String(n1)}else{n2++;numeri[s.id]=n1+'.'+n2}}
-  const TITOLI={premessa:'Premessa',premessa_uso:'Utilizzo e consultazione',premessa_revisione:'Revisione del piano',descrizione_opera:'Descrizione dell’opera e lavorazioni',anagrafica:'Anagrafica del cantiere',figure:'Figure del cantiere e della sicurezza',dati_impresa:'Dati dell’impresa',dati_impresa_esecutrice:'Impresa esecutrice',mansioni:'Compiti per la sicurezza delle figure nominate',organizzazione:'Organizzazione del cantiere',misure_prevenzione:'Principali misure di prevenzione',formazione:'Formazione',sorveglianza:'Sorveglianza sanitaria',dpi:'Dispositivi di protezione individuale',segnaletica:'Segnaletica di sicurezza',pronto_soccorso:'Pronto soccorso',numeri_utili:'Indirizzi e numeri utili',presidi:'Presidi sanitari',valutazione_rischi:'Valutazione dei rischi',metodologia:'Metodologia adottata',analisi_lavorazioni:'Analisi delle lavorazioni',rumore:'Esito della valutazione di rumore e vibrazioni',sostanze:'Sostanze e preparati pericolosi',macchine:'Macchine e attrezzature',conclusioni:'Conclusioni e firme'};
+  const TITOLI=TITOLI_SEZIONI_POS;
   const titolo=s=>TITOLI[s.id]||capitalizza(String(s.titolo).toLowerCase());
   const indice=[];let k=0;const segna=()=>'i'+(k++);
   for(const s of corpo){const id=segna();s._ind=id;indice.push({n:numeri[s.id],t:titolo(s),l:s.livello,id});
@@ -8158,7 +8268,7 @@ function docPos(pos,c){
       case 'tabella_revisioni': { const righe=[{n:'00',data:dataE,d:'Emissione iniziale'},...(pos.revisioni||[]).map(r=>({n:pad2(r.n),data:fData(r.data),d:r.descrizione})),...(pos.revisione>0?[{n:pad2(pos.revisione),data:dataR,d:pos.descrizioneRevisione||''}]:[])]; return `<table><thead><tr><th style="width:14mm">Rev.</th><th style="width:28mm">Data</th><th>Descrizione Modifiche</th></tr></thead><tbody>${righe.map(r=>`<tr><td>${h(r.n)}</td><td>${h(r.data)}</td><td>${r.d?h(r.d):DC('descrizione revisione')}</td></tr>`).join('')}</tbody></table>`; }
       case 'indice': return `<div>${indice.map(x=>`<div class="indice-voce ${x.l===2?'l2':''}"><span>${x.n?x.n+'. ':''}${h(x.t)}</span></div>`).join('')}</div>`;
       case 'tabella_anagrafica': return `<table><tbody><tr><th style="width:45mm">Indirizzo</th><td colspan="3">${v(c.indirizzo.via,'indirizzo')}</td></tr><tr><th>Comune</th><td>${v(c.indirizzo.comune,'comune')}${c.indirizzo.provincia?' ('+h(c.indirizzo.provincia)+')':''}</td><th style="width:20mm">CAP</th><td>${v(c.indirizzo.cap,'CAP')}</td></tr><tr><th>Inizio lavori</th><td colspan="3">${c.dataInizio?h(fData(c.dataInizio)):DC('inizio lavori')}</td></tr><tr><th>Fine lavori</th><td colspan="3">${c.dataFine?h(fData(c.dataFine)):DC('fine lavori')}</td></tr><tr><th>Entità presunta uomini/giorno</th><td colspan="3">${v(pos.uominiGiorno,'uomini/giorno')}</td></tr>${c.orari?`<tr><th>Orari di lavoro</th><td colspan="3">${h(c.orari)}</td></tr>`:''}${c.cig||c.cup?`<tr><th>CIG / CUP</th><td colspan="3">${h([c.cig,c.cup].filter(Boolean).join(' · '))}</td></tr>`:''}</tbody></table>`;
-      case 'tabella_figure': { const ord=[FIGURE_CANTIERE[1],FIGURE_CANTIERE[0],FIGURE_CANTIERE[2],FIGURE_CANTIERE[3],FIGURE_CANTIERE[4],FIGURE_CANTIERE[5]]; return `<table><tbody>${ord.map(f=>{const t=testoFigura(c,f);const etic={affidatariaId:'Impresa Affidataria',committenteId:'Committente',progettistaId:'Progettista',direttoreLavoriId:'Direttore dei lavori',cseId:'Resp. Sic. in fase esecuzione',cspId:'Resp. Sic. in fase progettazione'}[f.chiave];return `<tr><th style="width:52mm">${h(etic)}</th><td style="padding:2mm 3mm">${t?'<p class="sx" style="margin:0"><b>'+h(t.nome)+'</b></p>'+t.righe.map(r=>'<p class="sx" style="margin:0">'+h(r)+'</p>').join(''):'<span class="silenzioso">—</span>'}</td></tr>`}).join('')}</tbody></table>`; }
+      case 'tabella_figure': { const ord=[FIGURE_CANTIERE[1],FIGURE_CANTIERE[0],FIGURE_CANTIERE[2],FIGURE_CANTIERE[3],FIGURE_CANTIERE[5],FIGURE_CANTIERE[4]]; return `<table><tbody>${ord.map(f=>{const t=testoFigura(c,f);const etic={affidatariaId:'Impresa Affidataria',committenteId:'Committente',progettistaId:'Progettista',direttoreLavoriId:'Direttore dei lavori',cseId:'CSE (Coordinatore per la sicurezza in fase di esecuzione)',cspId:'CSP (Coordinatore per la sicurezza in fase di progettazione)'}[f.chiave];return `<tr><th style="width:52mm">${h(etic)}</th><td style="padding:2mm 3mm">${t?'<p class="sx" style="margin:0"><b>'+h(t.nome)+'</b></p>'+t.righe.map(r=>'<p class="sx" style="margin:0">'+h(r)+'</p>').join(''):'<span class="silenzioso">—</span>'}</td></tr>`}).join('')}</tbody></table>`; }
       case 'tabella_affidataria_esecutrice': return `<table style="width:80mm"><tbody><tr><td style="width:8mm;text-align:center">${pos.tipoAppalto==='diretto'?'X':''}</td><td>AFFIDATARIA</td><td style="width:8mm;text-align:center">${pos.tipoAppalto!=='diretto'?'X':''}</td><td>ESECUTRICE</td></tr></tbody></table>`;
       case 'tabella_dati_impresa': return `<table><tbody><tr><th style="width:55mm">RAGIONE SOCIALE</th><td>${h(a.ragioneSociale)}</td></tr><tr><th rowspan="4">SEDE LEGALE</th><td>Indirizzo: ${h(indirizzoTesto(a.indirizzo))}</td></tr><tr><td>Cell. ${h(a.cellulare||'')}</td></tr><tr><td>Tel/Fax: ${h(a.telefono||'')}${a.fax?' / '+h(a.fax):''}</td></tr><tr><td>E-mail: ${h(a.email||'')}${a.pec?' · PEC: '+h(a.pec):''}</td></tr><tr><th rowspan="4">SEDE OPERATIVA</th><td>Indirizzo: ${h(indirizzoTesto(a.indirizzo))}</td></tr><tr><td>Tel. ${h(a.telefono||'')}</td></tr><tr><td>Fax ${h(a.fax||'')}</td></tr><tr><td>E-mail: ${h(a.email||'')}</td></tr><tr><th rowspan="3">POSIZIONI ASSICURATIVE / PREVIDENZIALI</th><td>INAIL: ${v(a.inail,'INAIL')}</td></tr><tr><td>INPS: ${v(a.inps,'INPS')}</td></tr><tr><td>Cassa Edile: ${v(a.cassaEdile,'Cassa Edile')}</td></tr><tr><th>SETTORE PRODUTTIVO</th><td>Edilizia</td></tr><tr><th>CONTRATTO COLLETTIVO NAZIONALE</th><td>Industria</td></tr><tr><th>PARTITA IVA</th><td>${h(a.piva)}</td></tr><tr><th>ANNO INIZIO ATTIVITÀ</th><td>${a.dataCostituzione?h(a.dataCostituzione.slice(0,4)):DC('anno')}</td></tr><tr><th>NOTE</th><td>Patente a crediti ${a.patenteCrediti&&a.patenteCrediti.codice?h(a.patenteCrediti.codice):DC('patente')} · REA ${h(a.rea||'')}</td></tr></tbody></table>`;
       case 'tabella_datore': return `<table><tbody><tr><th style="width:55mm">DATORE DI LAVORO</th><td>${h(nomeLeg)}</td></tr></tbody></table>`;
@@ -8182,19 +8292,28 @@ function docPos(pos,c){
       default: return `<p class="da-compilare">[blocco dinamico sconosciuto: ${h(nome)}]</p>`;
     }
   };
+  // diciture chieste dalla committenza: paragrafi normali, all'inizio o in fondo al capitolo scelto
+  const aggiunte=(dove,quando)=>(pos.aggiunte||[]).filter(x=>x.dove===dove&&(quando==null||(x.quando||'fine')===quando)).flatMap(x=>String(x.testo).split(/\n\s*\n/).map(t=>t.trim()).filter(Boolean).map(t=>`<p class="sx aggiunta-pos">${h(t).replace(/\n/g,'<br>')}</p>`));
+  blocchi.push(...aggiunte('inizio'));
   for(const s of corpo){
+    let finCap=[];(()=>{
     const liv=s.livello===1?'h2':'h3';
     blocchi.push({html:`<${liv} data-ind="${s._ind}"><span class="num">${numeri[s.id]}</span>${h(titolo(s))}</${liv}>`,tieniConSuccessivo:true,nuovaPagina:['analisi_lavorazioni','macchine'].includes(s.id)});
-    if(s.id==='descrizione_opera'){blocchi.push(`<p>L’impresa esegue nel cantiere le seguenti lavorazioni:</p>`,tipi.length?`<ul class="spunte">${tipi.map(t=>`<li><b>${h(t.nome)}</b>${SCHEDE_TIPO[t.id]?': '+h(SCHEDE_TIPO[t.id].descrizione.charAt(0).toLowerCase()+SCHEDE_TIPO[t.id].descrizione.slice(1)):''}</li>`).join('')}</ul>`:`<p>${DC('lavorazioni')}</p>`);continue}
-    if(s.id==='misure_prevenzione'){const nt=Object.fromEntries(Object.entries(TAG_MISURE_POS).map(([k,x])=>[normalizzaTesto(k),x]));blocchi.push(...renderBlocchiPos(filtraParagrafi(s.blocchi,t=>{const tag=nt[normalizzaTesto(t)];return tag===undefined?true:(tuttiTag||tags.has(tag))}),dinamico));continue}
+    blocchi.push(...aggiunte(s.id,'inizio'));finCap=aggiunte(s.id,'fine');
+    if(s.id==='descrizione_opera'){blocchi.push(`<p>L’impresa esegue nel cantiere le seguenti lavorazioni:</p>`,tipi.length?`<ul class="spunte">${tipi.map(t=>`<li><b>${h(t.nome)}</b>${SCHEDE_TIPO[t.id]?': '+h(SCHEDE_TIPO[t.id].descrizione.charAt(0).toLowerCase()+SCHEDE_TIPO[t.id].descrizione.slice(1)):''}</li>`).join('')}</ul>`:`<p>${DC('lavorazioni')}</p>`);return}
+    if(s.id==='misure_prevenzione'){const nt=Object.fromEntries(Object.entries(TAG_MISURE_POS).map(([k,x])=>[normalizzaTesto(k),x]));blocchi.push(...renderBlocchiPos(filtraParagrafi(s.blocchi,t=>{const tag=nt[normalizzaTesto(t)];return tag===undefined?true:(tuttiTag||tags.has(tag))}),dinamico));return}
     if(s.id==='dpi'){blocchi.push(`<p>I dispositivi di protezione individuale elencati di seguito sono stati scelti in base alle lavorazioni e alle attrezzature previste in questo cantiere. Ogni lavoratore li riceve in dotazione personale, è formato e addestrato al loro corretto utilizzo ed è tenuto a conservarli in buono stato.</p>`,tabellaDpi());
-      const titoliDpi=Object.entries(TITOLI_DPI_POS);blocchi.push(...renderBlocchiPos(filtraParagrafi(s.blocchi.filter(b=>!(b.t==='dinamico'&&b.nome==='tabella_dpi_dotazione')),t=>{const m=titoliDpi.find(([k])=>normalizzaTesto(t).startsWith(normalizzaTesto(k)));return m?m[1].some(d=>dpiUsati.includes(d)):null}),dinamico));continue}
-    if(s.id==='rumore'){blocchi.push(`<p>Fasce di esposizione giornaliera al rumore (D.Lgs. 81/2008, Titolo VIII, Capo II) e alle vibrazioni trasmesse al sistema mano-braccio (Capo III) dei lavoratori addetti a ciascuna lavorazione, come risultano dalla valutazione dei rischi dell’impresa.</p>`,`<table class="tab-pos"><thead><tr><th>Lavorazione</th><th>Rumore (L<sub>EX,8h</sub>)</th><th>Vibrazioni mano-braccio (A(8))</th></tr></thead><tbody>${conScheda.map(t=>{const S=SCHEDE_TIPO[t.id];return `<tr><td>${h(t.nome)}</td><td>${h(RUMORE_POS[S.rumore]||'')}</td><td>${h(VIBRAZIONI_POS[S.vibrazioni]||'')}</td></tr>`}).join('')}</tbody></table>`);continue}
-    if(s.id==='sostanze'){const ids=unici(conScheda.flatMap(t=>SCHEDE_TIPO[t.id].sostanze||[]));blocchi.push(ids.length?`<p>Elenco delle sostanze e dei preparati pericolosi usati nel cantiere (Allegato XV, punto 3.2.1, lettera h). Le schede di sicurezza dei prodotti sono disponibili in cantiere; i lavoratori sono informati sui pericoli e sulle misure indicate nelle schede, che vanno sempre rispettate.</p>`:`<p>Nelle lavorazioni previste non si usano sostanze o preparati classificati pericolosi.</p>`);if(ids.length)blocchi.push(`<table class="tab-pos"><thead><tr><th style="width:52mm">Sostanza o preparato</th><th>Pericoli principali</th><th style="width:40mm">Usato per</th></tr></thead><tbody>${ids.map(id=>`<tr><td><b>${h(SOSTANZE_POS[id].nome)}</b></td><td>${h(SOSTANZE_POS[id].pericoli)}</td><td>${h(conScheda.filter(t=>(SCHEDE_TIPO[t.id].sostanze||[]).includes(id)).map(t=>t.breve).join(', '))}</td></tr>`).join('')}</tbody></table>`);continue}
+      const titoliDpi=Object.entries(TITOLI_DPI_POS);blocchi.push(...renderBlocchiPos(filtraParagrafi(s.blocchi.filter(b=>!(b.t==='dinamico'&&b.nome==='tabella_dpi_dotazione')),t=>{const m=titoliDpi.find(([k])=>normalizzaTesto(t).startsWith(normalizzaTesto(k)));return m?m[1].some(d=>dpiUsati.includes(d)):null}),dinamico));return}
+    if(s.id==='rumore'){blocchi.push(`<p>Fasce di esposizione giornaliera al rumore (D.Lgs. 81/2008, Titolo VIII, Capo II) e alle vibrazioni trasmesse al sistema mano-braccio (Capo III) dei lavoratori addetti a ciascuna lavorazione, come risultano dalla valutazione dei rischi dell’impresa.</p>`,`<table class="tab-pos"><thead><tr><th>Lavorazione</th><th>Rumore (L<sub>EX,8h</sub>)</th><th>Vibrazioni mano-braccio (A(8))</th></tr></thead><tbody>${conScheda.map(t=>{const S=SCHEDE_TIPO[t.id];return `<tr><td>${h(t.nome)}</td><td>${h(RUMORE_POS[S.rumore]||'')}</td><td>${h(VIBRAZIONI_POS[S.vibrazioni]||'')}</td></tr>`}).join('')}</tbody></table>`);return}
+    if(s.id==='sostanze'){const ids=unici(conScheda.flatMap(t=>SCHEDE_TIPO[t.id].sostanze||[]));blocchi.push(ids.length?`<p>Elenco delle sostanze e dei preparati pericolosi usati nel cantiere (Allegato XV, punto 3.2.1, lettera h). Le schede di sicurezza dei prodotti sono disponibili in cantiere; i lavoratori sono informati sui pericoli e sulle misure indicate nelle schede, che vanno sempre rispettate.</p>`:`<p>Nelle lavorazioni previste non si usano sostanze o preparati classificati pericolosi.</p>`);if(ids.length)blocchi.push(`<table class="tab-pos"><thead><tr><th style="width:52mm">Sostanza o preparato</th><th>Pericoli principali</th><th style="width:40mm">Usato per</th></tr></thead><tbody>${ids.map(id=>`<tr><td><b>${h(SOSTANZE_POS[id].nome)}</b></td><td>${h(SOSTANZE_POS[id].pericoli)}</td><td>${h(conScheda.filter(t=>(SCHEDE_TIPO[t.id].sostanze||[]).includes(id)).map(t=>t.breve).join(', '))}</td></tr>`).join('')}</tbody></table>`);return}
     blocchi.push(...renderBlocchiPos(s.blocchi,dinamico));
     if(s.id==='analisi_lavorazioni'){blocchi.push(`<p>Per ciascuna lavorazione sono riportate le fasi di lavoro, le attrezzature utilizzate, la valutazione dei rischi secondo il metodo descritto al paragrafo ${numeri.metodologia||''} (R = D × P), le misure di prevenzione e protezione e i dispositivi di protezione individuale.</p>`);for(const t of conScheda)blocchi.push(...schedaTipo(t));for(const sc of schedeLav){blocchi.push({html:`<div class="scheda-titolo" data-ind="${sc._ind}">${h(sc.titolo)}</div>`,tieniConSuccessivo:true});blocchi.push(...renderBlocchiPos(sc.blocchi,dinamico))}if(!tipi.length)blocchi.push(`<p>${DC('nessuna lavorazione selezionata')}</p>`)}
     if(s.id==='macchine'){for(const x of attrezzature)blocchi.push(...schedaAttr(x));for(const m of macch){blocchi.push({html:`<div class="scheda-titolo" data-ind="${m._ind}">${h(m.titolo)}</div>`,tieniConSuccessivo:true});blocchi.push(...renderBlocchiPos(m.blocchi,dinamico))}}
+
+    })();
+    blocchi.push(...finCap);
   }
+  blocchi.push(...aggiunte('fine'));
   return {titolo:'POS '+c.nome,orientamento:'verticale',intestazione:testataPos,pie,blocchi,classe:'pos'};
 }
 
@@ -8343,6 +8462,8 @@ function scrittorePdf(){
     if(fit==='cover'){const s=Math.max(cw/iw,ch/ih);const sw=cw/s,sh=ch/s;g.drawImage(img,(iw-sw)/2,(ih-sh)/2,sw,sh,0,0,cw,ch)}
     else g.drawImage(img,0,0,cw,ch);
     const dati=g.getImageData(0,0,cw,ch).data;let opaca=true;for(let i=3;i<dati.length;i+=4)if(dati[i]<255){opaca=false;break}
+    // firme e timbri (trasparenti, a colori piatti): tracciato vettoriale, nitido in stampa
+    if(!opaca&&fit!=='cover'&&(VETTORI_SVG.has(img.currentSrc)||srcFirme().has(img.currentSrc))){const vet=VETTORI_SVG.get(img.currentSrc)||vettoreFirma(img,Math.max(wPt,hPt));if(vet){const ogg={vettore:vet.pdf};cacheImg.set(chiave,ogg);return Object.assign({},ogg,{dx,dy,dw:wPt,dh:hPt})}}
     let ogg;
     if(opaca){const blob=await new Promise(r=>cv.toBlob(r,'image/jpeg',0.86));ogg={w:cw,h:ch,jpeg:new Uint8Array(await blob.arrayBuffer())}}
     else{const rgbB=new Uint8Array(cw*ch*3),alfa=new Uint8Array(cw*ch);for(let i=0,j=0,k=0;i<dati.length;i+=4){rgbB[j++]=dati[i];rgbB[j++]=dati[i+1];rgbB[j++]=dati[i+2];alfa[k++]=dati[i+3]}ogg={w:cw,h:ch,rgb:await comprimiFlate(rgbB),alfa:await comprimiFlate(alfa)}}
@@ -8366,7 +8487,7 @@ function scrittorePdf(){
       const uguali=bw.every(b=>b===bw[0])&&lati.every(([l])=>st['border'+l+'Style']===st.borderTopStyle&&st['border'+l+'Color']===st.borderTopColor);
       if(raggio&&uguali&&bw[0]>0&&st.borderTopStyle!=='none'){const c=colore(st.borderTopColor);if(c)fondi.push(`${rgb(c,'RG')} ${n2(bw[0])} w ${rettArrotondato(x+bw[0]/2,y+bw[0]/2,w-bw[0],h-bw[0],Math.max(0,raggio-bw[0]/2))} S`)}
       else lati.forEach(([l,x1,y1,x2,y2],i)=>{const s=st['border'+l+'Style'];if(!bw[i]||s==='none'||s==='hidden')return;const c=colore(st['border'+l+'Color']);if(!c)return;const o=bw[i]/2;const d=[[0,-o],[-o,0],[0,o],[o,0]][i];const tr=s==='dotted'?`[${n2(bw[i])} ${n2(bw[i]*2)}] 0 d 1 J `:s==='dashed'?`[${n2(bw[i]*3)} ${n2(bw[i]*2)}] 0 d `:'';fondi.push(`${rgb(c,'RG')} ${n2(bw[i])} w ${tr}${n2(x1+d[0])} ${n2(y1+d[1])} m ${n2(x2+d[0])} ${n2(y2+d[1])} l S [] 0 d 0 J`)});
-      if(e.tagName==='IMG'&&e.naturalWidth){const im=await immagine(e,w,h);if(im){usate.add(immagini.find(o=>o.nome===im.nome));fondi.push(`q ${n2(im.dw)} 0 0 ${n2(im.dh)} ${n2(x+im.dx)} ${n2(y+h-im.dy-im.dh)} cm /${im.nome} Do Q`)}}
+      if(e.tagName==='IMG'&&e.naturalWidth){const im=await immagine(e,w,h);if(im&&im.vettore){fondi.push(`q ${n2(im.dw)} 0 0 ${n2(im.dh)} ${n2(x+im.dx)} ${n2(y+h-im.dy-im.dh)} cm\n${im.vettore}\nQ`)}else if(im){usate.add(immagini.find(o=>o.nome===im.nome));fondi.push(`q ${n2(im.dw)} 0 0 ${n2(im.dh)} ${n2(x+im.dx)} ${n2(y+h-im.dy-im.dh)} cm /${im.nome} Do Q`)}}
       // pallini e numeri degli elenchi, spunte delle liste .spunte (sono pseudo-elementi: non stanno nel DOM)
       if(e.tagName==='LI'){
         const fs=parseFloat(st.fontSize);const lh=st.lineHeight==='normal'?fs*1.2:parseFloat(st.lineHeight);const base=r.top+(lh-fs)/2+fs*0.8;
@@ -8458,6 +8579,8 @@ async function disegnoOggettiPdf(oggetti,w,h){
     if(o.t==='firma'&&o.src){
       const im=await caricaImmagine(await (await fetch(o.src)).blob());
       const s=Math.min(o.w/im.width,o.h/im.height);const dw=im.width*s,dh=im.height*s;
+      const vet=vettoreFirma(im,Math.max(dw,dh));
+      if(vet){righe.push(`q ${n2(dw)} 0 0 ${n2(dh)} ${n2(o.x+(o.w-dw)/2)} ${n2(h-o.y-(o.h+dh)/2)} cm\n${vet.pdf}\nQ`);continue}
       const {cw,ch,dati}=firmaNitida(im,Math.max(dw,dh));const rgb=new Uint8Array(cw*ch*3),alfa=new Uint8Array(cw*ch);
       for(let i=0,j=0,k=0;i<dati.length;i+=4){rgb[j++]=dati[i];rgb[j++]=dati[i+1];rgb[j++]=dati[i+2];alfa[k++]=dati[i+3]}
       const nome='S'+(immagini.length+1);immagini.push({nome,w:cw,h:ch,rgb:await comprimiFlate(rgb),alfa:await comprimiFlate(alfa)});
@@ -8469,8 +8592,8 @@ async function disegnoOggettiPdf(oggetti,w,h){
 // Firme e timbri caricati spesso sono piccoli (poche centinaia di pixel): stampati o ingranditi escono sfocati
 // e a scalini. Si portano a 600 dpi della misura in cui vanno sul foglio e si ripulisce il bordo della
 // trasparenza (sfocatura leggera + curva a S), come si fa per vettorializzare un tratto: bordi netti e lisci.
-function firmaNitida(im,latoPt){
-  const lato=Math.max(im.width,im.height);const f=Math.max(1,Math.min(8,latoPt/72*600/lato,3000/lato));
+function firmaNitida(im,latoPt,maxLato){
+  const lato=Math.max(im.width,im.height);const f=Math.max(1,Math.min(8,latoPt/72*600/lato,(maxLato||3000)/lato));
   const cw=Math.max(1,Math.round(im.width*f)),ch=Math.max(1,Math.round(im.height*f));
   const c=document.createElement('canvas');c.width=cw;c.height=ch;const g=c.getContext('2d');g.imageSmoothingQuality='high';g.drawImage(im,0,0,cw,ch);
   const dati=g.getImageData(0,0,cw,ch).data;if(f<1.5)return {cw,ch,dati};
@@ -8481,6 +8604,99 @@ function firmaNitida(im,latoPt){
   for(let i=0;i<a.length;i++){let t=(a[i]/255-0.3)/0.4;t=t<0?0:t>1?1:t;dati[i*4+3]=Math.round(255*t*t*(3-2*t))}
   return {cw,ch,dati};
 }
+// ---- firme e timbri vettoriali ----
+// Una firma caricata è un'immagine di poche centinaia di pixel: stampata, anche ingrandita bene, resta
+// sfocata. Qui si ridisegna come vettore: si ingrandisce con il bordo ripulito (firmaNitida), si dividono
+// i colori in pochi strati (inchiostro, colore del logo, bianco), e il contorno di ogni strato si ricalca
+// con i quadrati marcianti (bordo interpolato al decimo di pixel) e si semplifica. Il risultato è un
+// tracciato PDF/SVG: nitido a qualsiasi stampante. Se l'immagine non è a colori piatti (foto, sfumature)
+// la funzione rinuncia e resta l'immagine.
+const cacheVettori=new Map();
+const VETTORI_SVG=new Map(); // data URL dell'SVG → vettore, per riconoscerlo quando si fa il PDF
+// le immagini che sono firme o timbri: quelle dell'azienda e quelle delle persone
+function srcFirme(){const out=new Set();for(const k of ['firmaTimbro','timbro','firmaLegale','firmaRls','firmaRspp'])if(immagineAzienda(k))out.add(immagineAzienda(k));
+  for(const k of Object.keys(stato.azienda))if(/^img_.*(firma|timbro)/i.test(k)&&stato.azienda[k])out.add(stato.azienda[k]);for(const p of stato.persone)if(p.firmaImg)out.add(p.firmaImg);return out}
+// Nell'anteprima e nella stampa le firme diventano SVG (lo storico dei documenti resta con le immagini)
+async function vettorializzaFirmeIn(radice){
+  const firme=srcFirme();
+  for(const img of Array.from(radice.querySelectorAll('img'))){const src=img.getAttribute('src');if(!firme.has(src))continue;
+    try{if(!img.complete||!img.naturalWidth)await new Promise(r=>{img.onload=img.onerror=r});const vet=vettoreFirma(img,0);if(!vet)continue;
+      const url='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(vet.svg);VETTORI_SVG.set(url,vet);img.src=url}catch(e){}}
+}
+function vettoreFirma(im,latoPt){
+  const chiave=(im.currentSrc||im.src||'').slice(-200)+'|'+(im.naturalWidth||im.width)+'x'+(im.naturalHeight||im.height);
+  if(cacheVettori.has(chiave))return cacheVettori.get(chiave);
+  let out=null;try{out=tracciaFirma(im,latoPt)}catch(e){console.warn('vettore firma',e)}
+  cacheVettori.set(chiave,out);return out;
+}
+function tracciaFirma(im,latoPt){
+  // lavora a ~1600 px sul lato lungo: abbastanza per 600 dpi su una firma di 7 cm, ancora veloce
+  const iw=im.naturalWidth||im.width,ih=im.naturalHeight||im.height;if(!iw||!ih)return null;
+  const {cw,ch,dati}=firmaNitida(im,1600/600*72,1600);
+  const N=cw*ch;let opachi=0;for(let i=0;i<N;i++)if(dati[i*4+3]>=160)opachi++;
+  if(opachi<30||opachi>N*0.97)return null; // vuota, o senza trasparenza (non è una firma scontornata)
+  // colori: k-medie sui pixel pieni, al massimo 5 colori distinti
+  const passo=Math.max(1,Math.floor(opachi/20000));const camp=[];let c_=0;for(let i=0;i<N;i++)if(dati[i*4+3]>=160&&(c_++%passo===0))camp.push([dati[i*4],dati[i*4+1],dati[i*4+2]]);
+  const d2=(a,b)=>(a[0]-b[0])**2+(a[1]-b[1])**2+(a[2]-b[2])**2;
+  let cen=[camp[0].slice()];while(cen.length<6){let best=null,bd=0;for(const p of camp){let m=1e9;for(const c of cen)m=Math.min(m,d2(p,c));if(m>bd){bd=m;best=p}}if(bd<45*45)break;cen.push(best.slice())}
+  for(let it=0;it<8;it++){const s=cen.map(()=>[0,0,0,0]);for(const p of camp){let k=0,m=1e9;cen.forEach((c,j)=>{const d=d2(p,c);if(d<m){m=d;k=j}});s[k][0]+=p[0];s[k][1]+=p[1];s[k][2]+=p[2];s[k][3]++}cen=s.filter(x=>x[3]>camp.length*0.003).map(x=>[x[0]/x[3],x[1]/x[3],x[2]/x[3]])}
+  for(let i=0;i<cen.length;i++)for(let j=cen.length-1;j>i;j--)if(d2(cen[i],cen[j])<40*40)cen.splice(j,1);
+  if(!cen.length||cen.length>5)return null;
+  let err=0;for(const p of camp){let m=1e9;for(const c of cen)m=Math.min(m,d2(p,c));err+=Math.sqrt(m)}if(err/camp.length>24)return null; // sfumature: meglio l'immagine
+  // strati dal più chiaro al più scuro: ogni strato copre anche quelli più scuri, così fra un colore e l'altro non restano fessure
+  const lum=c=>0.3*c[0]+0.59*c[1]+0.11*c[2];cen.sort((a,b)=>lum(b)-lum(a));
+  const rango=new Uint8Array(N);for(let i=0;i<N;i++){if(!dati[i*4+3])continue;const p=[dati[i*4],dati[i*4+1],dati[i*4+2]];let k=0,m=1e9;cen.forEach((c,j)=>{const d=d2(p,c);if(d<m){m=d;k=j}});rango[i]=k}
+  // un pixel isolato dell'originale (bordo sfumato del tratto preso per un altro colore) non diventa un puntino
+  const fs=cw/iw;const minArea=Math.max(1.5,1.2*fs*fs);
+  const strati=[];
+  for(let k=0;k<cen.length;k++){
+    const F=new Float32Array(N);for(let i=0;i<N;i++)F[i]=rango[i]>=k?dati[i*4+3]/255:0;
+    const campo=k?sfocaCampo(F,cw,ch):F;
+    const anelli=quadratiMarcianti(campo,cw,ch,0.5).map(a=>semplificaAnello(a,0.35)).filter(a=>a.length>=3&&Math.abs(areaAnello(a))>(k?minArea:1.5));
+    if(anelli.length)strati.push({colore:cen[k].map(v=>Math.round(v)),anelli});
+  }
+  if(!strati.length)return null;
+  const f4=v=>(Math.round(v*10000)/10000).toString();
+  // PDF: nel quadrato unitario (y verso l'alto), da usare dentro «q w 0 0 h x y cm … Q»
+  const pdf=strati.map(s=>`${s.colore.map(v=>f4(v/255)).join(' ')} rg\n`+s.anelli.map(a=>a.map(([x,y],i)=>`${f4(x/cw)} ${f4(1-y/ch)} ${i?'l':'m'}`).join(' ')+' h').join('\n')+' f*').join('\n');
+  const f1=v=>(Math.round(v*10)/10).toString();
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${cw} ${ch}" width="${iw}" height="${ih}" preserveAspectRatio="none">${strati.map(s=>`<path fill="rgb(${s.colore.join(',')})" fill-rule="evenodd" d="${s.anelli.map(a=>'M'+a.map(([x,y])=>f1(x)+' '+f1(y)).join('L')+'Z').join('')}"/>`).join('')}</svg>`;
+  return {pdf,svg,w:cw,h:ch};
+}
+function sfocaCampo(F,w,h){const o=new Float32Array(F.length);for(let y=0;y<h;y++)for(let x=0;x<w;x++){let s=0,n=0;for(let dy=-1;dy<=1;dy++){const yy=y+dy;if(yy<0||yy>=h)continue;for(let dx=-1;dx<=1;dx++){const xx=x+dx;if(xx<0||xx>=w)continue;s+=F[yy*w+xx];n++}}o[y*w+x]=s/n}return o}
+// Contorni chiusi del campo alla soglia t, in coordinate di pixel (bordo interpolato). Il campo si
+// considera circondato da zeri, così ogni contorno si chiude.
+function quadratiMarcianti(F,w,h,t){
+  const GW=w+2,GH=h+2;const v=(i,j)=>(i<1||j<1||i>w||j>h)?0:F[(j-1)*w+(i-1)];
+  const vicini=new Map();const lega=(a,b)=>{let x=vicini.get(a);if(!x)vicini.set(a,x=[]);x.push(b);let y=vicini.get(b);if(!y)vicini.set(b,y=[]);y.push(a)};
+  const Hid=(i,j)=>(j*GW+i)*2,Vid=(i,j)=>(j*GW+i)*2+1;
+  for(let j=0;j<GH-1;j++)for(let i=0;i<GW-1;i++){
+    const a=v(i,j),b=v(i+1,j),c=v(i+1,j+1),d=v(i,j+1);
+    const caso=(a>=t?8:0)|(b>=t?4:0)|(c>=t?2:0)|(d>=t?1:0);if(caso===0||caso===15)continue;
+    const T=Hid(i,j),B=Hid(i,j+1),L=Vid(i,j),R=Vid(i+1,j);
+    switch(caso){
+      case 1:case 14:lega(L,B);break;case 2:case 13:lega(B,R);break;case 3:case 12:lega(L,R);break;
+      case 4:case 11:lega(T,R);break;case 6:case 9:lega(T,B);break;case 7:case 8:lega(L,T);break;
+      case 5:if((a+b+c+d)/4>=t){lega(L,T);lega(B,R)}else{lega(T,R);lega(L,B)}break;
+      case 10:if((a+b+c+d)/4>=t){lega(T,R);lega(L,B)}else{lega(L,T);lega(B,R)}break;
+    }
+  }
+  const punto=id=>{const e=id&1,k=id>>1,i=k%GW,j=(k-i)/GW;const a=v(i,j),b=e?v(i,j+1):v(i+1,j);const f=Math.abs(b-a)<1e-6?0.5:(t-a)/(b-a);return e?[i-0.5,j+f-0.5]:[i+f-0.5,j-0.5]};
+  const visti=new Set(),anelli=[];
+  for(const inizio of vicini.keys()){if(visti.has(inizio))continue;const anello=[];let prec=-1,cur=inizio;
+    for(let guardia=0;guardia<5e6;guardia++){visti.add(cur);anello.push(punto(cur));const nn=vicini.get(cur);const nx=nn[0]!==prec?nn[0]:nn[1];prec=cur;cur=nx;if(cur===inizio||cur===undefined||visti.has(cur))break}
+    if(anello.length>2)anelli.push(anello)}
+  return anelli;
+}
+function semplificaAnello(p,tol){
+  if(p.length<8)return p;
+  // Douglas-Peucker su una linea chiusa: si taglia nel punto più lontano dal primo
+  let far=0,fd=0;for(let i=1;i<p.length;i++){const d=(p[i][0]-p[0][0])**2+(p[i][1]-p[0][1])**2;if(d>fd){fd=d;far=i}}
+  const dp=(a)=>{const tieni=new Uint8Array(a.length);tieni[0]=tieni[a.length-1]=1;const pila=[[0,a.length-1]];while(pila.length){const [s,e]=pila.pop();const [x1,y1]=a[s],[x2,y2]=a[e];const dx=x2-x1,dy=y2-y1,L=Math.hypot(dx,dy)||1e-9;let m=-1,md=0;for(let i=s+1;i<e;i++){const d=Math.abs(dy*(a[i][0]-x1)-dx*(a[i][1]-y1))/L;if(d>md){md=d;m=i}}if(md>tol){tieni[m]=1;pila.push([s,m],[m,e])}}return a.filter((_,i)=>tieni[i])};
+  const uno=dp(p.slice(0,far+1)),due=dp(p.slice(far).concat([p[0]]));
+  return uno.concat(due.slice(1,-1));
+}
+function areaAnello(p){let s=0;for(let i=0,j=p.length-1;i<p.length;j=i++)s+=(p[j][0]+p[i][0])*(p[j][1]-p[i][1]);return s/2}
 const FONT_HELVETICA_PDF='<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>';
 const latinPdf=s=>{const b=new Uint8Array(s.length);for(let i=0;i<s.length;i++)b[i]=s.charCodeAt(i)&255;return b};
 // Firma su un PDF senza toccarne la qualità: null se non si può (protetto, ruotato, illeggibile)
@@ -8915,43 +9131,108 @@ function estraiTestoContenuto(c,fonts){
   return out.replace(/[ \t]+/g,' ').replace(/\n{3,}/g,'\n\n');
 }
 // ---- proposte dal testo del PSC (mai imposte) ----
+// Il testo arriva riga per riga (righePdfJs): nelle tabelle dell'anagrafica etichetta e valore stanno
+// sulla stessa riga separati da « | », oppure l'etichetta è un titolo e il nome sta nelle righe sotto
+// («Nome e cognome | Arch. …»). Provato sui PSC veri dell'archivio dell'azienda (63 piani, studi diversi).
 function proponiDatiDaPsc(testo){
-  const t=testo.replace(/\r/g,'');
-  const righe=t.split('\n').map(x=>x.replace(/\s+/g,' ').trim()).filter(Boolean);
+  const MESI='gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre';
+  const righe=String(testo||'').replace(/\r/g,'').split('\n').map(x=>x.replace(/[ \t ]+/g,' ').trim())
+    .filter(x=>x&&!/\.{5,}|…{3,}|_{6,}/.test(x)); // indice con i puntini e righe da firmare
   const out={};
-  const pulisci=v=>v.replace(/^[\s:：.\-–]+/,'').replace(/[;,.:\-–\s]+$/,'').replace(/\s{2,}/g,' ').trim();
-  const plausibile=v=>v&&v.length>=3&&v.length<=140&&/^[A-ZÀ-Ü0-9"«(]/.test(v)&&!/^(che|il|la|le|i|gli|del|della|di|da|per|con|non|sulla|sul|nel|nella|e|ed|o)\b/i.test(v);
-  // Cerca "Etichetta: valore" (anche sulla riga successiva). Senza i due punti accetta solo etichette lunghe e valori plausibili.
-  const cerca=(etichette,opz)=>{opz=opz||{};
-    for(const et of etichette){const reColon=new RegExp('^'+et+'\\s*[:：]\\s*(.*)$','i');
-      for(let i=0;i<righe.length;i++){const m=reColon.exec(righe[i]);if(m){let v=pulisci(m[1]);if(!v&&righe[i+1])v=pulisci(righe[i+1]);if(plausibile(v))return v}}}
-    if(opz.soloColon) return null;
-    for(const et of etichette){if(et.replace(/\\/g,'').length<8)continue;const re=new RegExp('^'+et+'\\s+(.*)$','i');
-      for(let i=0;i<righe.length;i++){const m=re.exec(righe[i]);if(m){const v=pulisci(m[1]);if(plausibile(v)&&!/^(è|e |sono|deve|dovrà|per |che )/i.test(m[1]))return v}}}
-    return null;};
-  out.committente=cerca(['committente','committenza','il committente']);
-  out.affidataria=cerca(['impresa affidataria','affidataria','impresa esecutrice principale','appaltatore'],{soloColon:true});
-  const ind=cerca(['indirizzo del cantiere','ubicazione del cantiere','indirizzo cantiere','cantiere sito in','ubicazione','indirizzo']);
-  if(ind){out.indirizzo=ind;const capM=/\b(\d{5})\b/.exec(ind);if(capM)out.cap=capM[1];const cm=/(?:\d{5}\s+)?([A-ZÀ-Ü][a-zà-ü']+(?:\s+[A-ZÀ-Ü][a-zà-ü']+)*)\s*\(([A-Z]{2})\)/.exec(ind);if(cm){out.comune=cm[1];out.provincia=cm[2]}}
-  if(!out.comune){const c=cerca(['comune'],{soloColon:true});if(c&&c.length<40){const cm=/^([^(]+?)\s*(?:\(([A-Z]{2})\))?$/.exec(c);if(cm){out.comune=cm[1].trim();if(cm[2])out.provincia=cm[2]}}}
-  if(!out.comune){const m=/\bComune di ([A-ZÀ-Ü][a-zà-ü']+(?:[ \t]+[A-ZÀ-Ü][a-zà-ü']+){0,2})[ \t]*(?:\(([A-Z]{2})\))?/.exec(t);if(m){out.comune=m[1];if(m[2])out.provincia=m[2]}}
-  if(!out.cap){const c=cerca(['cap','c\\.a\\.p\\.'],{soloColon:true});if(c&&/^\d{5}/.test(c))out.cap=c.slice(0,5)}
-  out.progettista=cerca(['progettista','progettazione architettonica','progettista architettonico']);
-  out.direttoreLavori=cerca(['direttore dei lavori','direzione lavori','direttore lavori','d\\.l\\.']);
-  out.cse=cerca(['coordinatore per la sicurezza in fase di esecuzione','coordinatore in fase di esecuzione','coordinatore per l\'esecuzione','coordinatore della sicurezza in fase di esecuzione','coordinatore per la sicurezza in fase di progettazione ed esecuzione','coordinatore sicurezza esecuzione','cse','c\\.s\\.e\\.']);
-  out.csp=cerca(['coordinatore per la sicurezza in fase di progettazione','coordinatore in fase di progettazione','coordinatore per la progettazione','coordinatore sicurezza progettazione','csp','c\\.s\\.p\\.']);
-  if(!out.csp&&out.cse&&/progettazione ed? esecuzione|progettazione e esecuzione/i.test(t))out.csp=out.cse;
-  const dm=/(?:revisione|data|emesso|emissione)\s*[:：]?\s*(\d{1,2}[\/.-]\d{1,2}[\/.-]\d{2,4}|(?:gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)\s+\d{4})/i.exec(t);
-  if(dm){const d=interpretaData(dm[1]);if(d)out.dataPsc=d;else{const mm=/(gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)\s+(\d{4})/i.exec(dm[1]);if(mm)out.dataPsc=mm[2]+'-'+pad2(NOMI_MESI.indexOf(mm[1].toLowerCase())+1)+'-01'}}
-  out.redattore=cerca(['redatto da','il coordinatore','redattore'],{soloColon:true});
-  out.descrizione=cerca(['oggetto dei lavori','oggetto dell\'appalto','oggetto dell\'intervento','descrizione dell\'opera','descrizione sintetica dell\'opera','natura dell\'opera','oggetto'],{soloColon:true});
-  // CIG 10 caratteri, CUP 15: almeno una cifra, così una parola qualsiasi dopo "CIG" non passa
-  const cig=/\bC\.?\s?I\.?\s?G\.?\s*(?:n\.?|n°|nr\.?)?\s*[:：]?\s*((?=[A-Z]*\d)[A-Z0-9]{10})\b/i.exec(t);if(cig)out.cig=cig[1].toUpperCase();
-  const cup=/\bC\.?\s?U\.?\s?P\.?\s*(?:n\.?|n°|nr\.?)?\s*[:：]?\s*((?=[A-Z]*\d)[A-Z0-9]{15})\b/i.exec(t);if(cup)out.cup=cup[1].toUpperCase();
-  const imp=/importo\s+(?:complessivo\s+)?(?:presunto\s+)?(?:dei\s+|del\s+|delle\s+)?(?:lavori|appalto|opere)[^\d€\n]{0,60}(?:€|euro)?\s*(\d{1,3}(?:\.\d{3})+(?:,\d{2})?|\d+,\d{2})/i.exec(t);if(imp){const n=leggiNumero(imp[1]);if(n>=1000)out.importoLavori=n}
-  for(const [k,et] of [['dataInizio',['data presunta di inizio lavori','data presunta inizio lavori','data di inizio dei lavori','data di inizio lavori','inizio lavori']],['dataFine',['data presunta di fine lavori','data presunta fine lavori','data di fine dei lavori','data di fine lavori','fine lavori']]]){const v=cerca(et,{soloColon:true});const d=v&&interpretaData((/\d{1,2}[\/.-]\d{1,2}[\/.-]\d{2,4}/.exec(v)||[])[0]||'');if(d)out[k]=d}
-  for(const k of Object.keys(out)){if(!out[k]||(typeof out[k]==='string'&&out[k].length>140))delete out[k]}
+  const pulisci=v=>String(v||'').replace(/^[\s:：|.\-–—_]+/,'').replace(/[\s:：|;,.\-–—_]+$/,'').replace(/\s*\|\s*/g,' ').replace(/\s{2,}/g,' ').trim();
+  const RE_SOTTO=/^(?:nome\s+e\s+cognome|cognome\s+e\s+nome|nominativo(?:\s+o\s+ragione\s+sociale)?|ragione\s+sociale|denominazione|nome|ditta|soggetto|studio|societ[aà]|tecnico|professionista)\b\s*[:：|]?\s*/i;
+  const RE_RECAPITO=/^(?:indirizzo|citt[aà]|comune|via|tel|telefono|fax|cell|e-?mail|mail|pec|c\.?\s?f\.?|cod(?:ice)?\.?\s*fisc|p\.?\s?iva|partita|qualifica|sede|recapit|ordine|iscri|albo|n\.\s|cap\b|prov)/i;
+  const prosa=v=>/\b(dovr[aà]|deve|devono|provveder|sar[aà]n?n?o?|nominat[oa]|incaricat|ai sensi|art\.|d\.?lgs|comma|affinch|qualora|ovvero|nonch[eé]|il quale|la quale|che\s)\b/i.test(v);
+  const RE_FIGURA=/^(?:\d+(?:\.\d+)*\s*[-.)]?\s*)?(?:il\s+|la\s+|dati\s+)?(committent|responsabile\s+dei\s+lavori|progettist|direttore\s+(?:dei\s+)?lavori|direzione\s+(?:dei\s+)?lavori|coordinatore|c\.?\s?s\.?\s?[pe]\.?\b|impresa|appaltator|ente\s+appaltante|stazione\s+appaltante|indirizzo|ubicazione|data|importo|durata)/i;
+  // valori: persona (con titolo o 2-5 parole maiuscole) o società
+  const TITOLI='(?:arch|ing|geom|dott|dr|per\\.?\\s*ind|p\\.?\\s*i|ingegnere|architetto|geometra|perito(?:\\s+edile|\\s+industriale)?|avv|prof)\\.?';
+  const RE_SOC=/\b(s\.?\s?r\.?\s?l\.?s?|s\.?\s?p\.?\s?a\.?|s\.?\s?n\.?\s?c\.?|s\.?\s?a\.?\s?s\.?|soc\.?\s*coop|cooperativa|consorzio|societ[aà]|s\.?\s?c\.?\s?a\.?\s?r\.?\s?l|onlus|fondazione|comune di|provincia di|regione|universit[aà]|azienda|ministero|istituto|asl|usl|condominio|parrocchia|diocesi|banca|immobiliare|group|holding)\b/i;
+  // parole che stanno nei titoli dei capitoli, non nei nomi di persone o di ditte
+  const RE_NON_NOME=/\b(coordinat\w*|sicurezza|piano|progett(?:o|azione)|relazione|indice|dati|identificativ\w*|imprese|fase|decreto|legislativo|d\.?\s?lgs|esecutivo|identificazione|descrizione|oggetto|committent\w*|nominare|definire|pag\.?|manutenzione|resp\.?|tecnico|operativo|cantiere|tavola|edizione|allegat\w*|elaborat\w*|sommario|capitolo|premessa|revisione|documento|cognome|nominativo|figure|ruolo|firma|timbro|sezione|scheda|elenco|lavoratori|appalto|opere|intervento|stima|costi|planimetria|cronoprogramma|organizzazione|prescrizioni|rischi|misure|direzione|dispositivi|protezione|collettiva|architettonic\w*|fascicolo|p\.?s\.?c|ordine|universit\w*|direttore|lavori)\b|^(?:loc\.?|localit\w*|via|viale|piazza|strada|corso)\b|[:(_]/i;
+  const tagliaRecapiti=v=>pulisci(String(v).replace(/\bpag\.?\s*\d+\s*\/\s*\d+/ig,'').replace(/-{3,}.*$/,'').replace(/\(\s*c\.?\s?f\.?.*$/i,'').replace(/\s+r\.?\s?u\.?\s?p\.?\b.*$/i,'').replace(/\s+\d{3,}[\d\s\/.]*.*$/,'').split(/[-–—]\s*(?=via\b|viale\b|piazza\b|loc\.?\b)/i)[0].split(/\s+(?:[-–—,]\s*)?(?:con\s+sede|sede\s+(?:legale|in)|residente|domiciliat|via\s|v\.le|viale|piazza|p\.zza|loc\.|localit[aà]|corso|c\.f\.|cod\.?\s*fisc|codice\s+fiscale|p\.?\s?iva|partita\s+iva|tel\.?|telefono|cell|fax|e-?mail|pec|iscritt|nato\s+a|legalmente|in\s+persona|rappresentat|n\.\s*\d)\b/i)[0].split(/\s+[-–—]\s+(?=\d|[A-Z][a-z]+\s*\()/)[0]);
+  const persona=v=>{v=tagliaRecapiti(String(v).split(/\s*\(/)[0]).split(/\s[-–—]\s|,\s/)[0].replace(/^(?:sig\.?r?a?\.?|signor[ae]?)\s+/i,'').trim();if(!v||v.length<5||v.length>70||prosa(v)||/\d/.test(v)||RE_NON_NOME.test(v)||/^(?:e|ed|di|del|della|il|la)\s/i.test(v))return null;
+    const senzaTitoli=v.replace(new RegExp('\\b'+TITOLI+'(?=\\s|$)','ig'),'').trim();if(!/[A-Za-zÀ-ÿ]{3,}/.test(senzaTitoli))return null;
+    if(new RegExp('^'+TITOLI+'\\s','i').test(v)||RE_SOC.test(v))return v;
+    const w=v.split(' ');if(w.length>=2&&w.length<=6&&w.every(x=>/^[A-ZÀ-Ü][A-Za-zÀ-ÿ'’.\-]*$/.test(x)||/^(?:de|di|del|della|da|dal|van|von|e)$/i.test(x)))return v;return null};
+  const societa=v=>{v=tagliaRecapiti(String(v).split(/\s[–—]\s/)[0]).split(/\s+[A-Za-zà-ü]+\s*:/)[0].trim();if(/^[(a-z]/.test(v)||/[_:]/.test(v)||/\b(rev|revisione|data|pag|persona\s+di|coordinamento|scuola|redattore|descrizione|progetto|individuazione|soggetti|architettonic\w*)\b/i.test(v)||/^[A-ZÀ-Ü' ]+\([A-Z]{2}\)$/.test(v))return null;if(!v||v.length<3||v.length>90||prosa(v)||/^\d|^(?:via|viale|piazza|loc)\b/i.test(v)||/^(?:s\.?\s?[rp]\.?\s?[la]\.?|soc\.?)$/i.test(v)||/\b(coordinat\w*|sicurezza|piano|progettazione|relazione|indice|oggetto|committent\w*|tavola|edizione|allegat\w*|elaborat\w*|sommario|capitolo|premessa|cantiere|nominare|definire)\b/i.test(v))return null;return v};
+  const etichettaVuota=v=>!v||/^[:：|\-–\s]*$/.test(v);
+  // trova le righe che cominciano con l'etichetta e prende il valore accanto o sotto
+  const cerca=(reEt,tipo,opz)=>{opz=opz||{};const val=tipo==='persona'?persona:tipo==='societa'?societa:x=>{x=pulisci(x);return x&&x.length<=160&&!prosa(x)?x:null};
+    for(let i=0;i<righe.length;i++){
+      const r=righe[i];const m=reEt.exec(r);if(!m||m.index>(opz.ovunque?200:4))continue;
+      if(opz.escludi&&opz.escludi.test(r))continue;
+      let resto=r.slice(m.index+m[0].length);
+      // l'etichetta deve finire lì: «Committente: X», «Committente | X», «COMMITTENTE» da solo; non «committente o il responsabile …»
+      if(!etichettaVuota(resto)&&!/^\s*(?:\d\s*)?[:：|(]/.test(resto)&&!/^\s+[A-ZÀ-Ü"«]/.test(resto))continue;
+      resto=resto.replace(/^\s*\d\s*(?=[:：|])/,'').replace(/^\s*\([^)]*\)\s*/,'');
+      const sub=pulisci(resto).replace(RE_SOTTO,'');
+      if(sub){const v=val(sub);if(v)return v;if(r.length>60&&!/\|/.test(r))continue}
+      // sotto: «Nome e cognome | X» o direttamente il nome; ci si ferma alla figura successiva
+      for(let k=i+1;k<righe.length&&k<=i+6;k++){const s=righe[k];
+        if(RE_SOTTO.test(s)){const v=val(pulisci(s.replace(RE_SOTTO,'')));if(v)return v;continue}
+        if(RE_RECAPITO.test(s))continue;
+        if(RE_FIGURA.test(s)&&!opz.valoreFigura)break;
+        if(s.length>120)break;
+        const v=val(s);if(v)return v;
+      }
+    }
+    return null};
+  const CO='coordinatore\\s+(?:per\\s+la\\s+|della\\s+|alla\\s+|in\\s+materia\\s+di\\s+)?(?:sicurezza\\s+)?(?:e\\s+(?:la\\s+)?salute\\s+)?(?:in\\s+|nella\\s+|per\\s+la\\s+|per\\s+l[\'’]\\s*|della\\s+)?(?:fase\\s+(?:di\\s+|della\\s+)?)?';
+  const ambedue=new RegExp('^(?:\\d[\\d.]*\\s*)?(?:il\\s+)?(?:'+CO+'progettazione\\s+(?:ed?|&|\\/)\\s*(?:in\\s+fase\\s+di\\s+)?esecuzione|c\\.?\\s?s\\.?\\s?p\\.?\\s*(?:ed?|\\/|-)\\s*c\\.?\\s?s\\.?\\s?e\\.?)(?:\\s+dei\\s+lavori|\\s+\\(c\\.?s\\.?[pe]\\.?\\))?','i');
+  const both=cerca(ambedue,'persona');if(both){out.csp=both;out.cse=both}
+  out.cse=out.cse||cerca(new RegExp('^(?:\\d[\\d.]*\\s*)?(?:il\\s+)?(?:'+CO+'(?:esecuzione|realizzazione)(?:\\s+dei\\s+lavori|\\s+dell[\'’]\\s*opera)?|c\\.?\\s?s\\.?\\s?e\\.?(?![a-z]))(?:\\s*\\(c\\.?s\\.?e\\.?\\))?','i'),'persona');
+  out.csp=out.csp||cerca(new RegExp('^(?:\\d[\\d.]*\\s*)?(?:il\\s+)?(?:'+CO+'progettazione(?:\\s+dei\\s+lavori|\\s+dell[\'’]\\s*opera)?|c\\.?\\s?s\\.?\\s?p\\.?(?![a-z]))(?:\\s*\\(c\\.?s\\.?p\\.?\\))?','i'),'persona');
+  if(!out.csp&&out.cse&&righe.some(r=>/progettazione\s+(?:ed?|&|\/)\s*(?:in\s+fase\s+di\s+)?esecuzione/i.test(r)))out.csp=out.cse;
+  out.direttoreLavori=cerca(/^(?:\d[\d.]*\s*)?(?:il\s+)?(?:progettista\s*(?:e|\/)\s*)?(?:direttore|direzione)\s+(?:dei\s+)?lavori(?:\s+(?:architettonic[io]|generale|opere\s+edili|edile))?|^d\.\s?l\.(?=\s*[:|])/i,'persona',{escludi:/strutturale|impiant|tecnico|operativ|cantiere/i});
+  out.progettista=cerca(/^(?:\d[\d.]*\s*)?(?:il\s+)?(?:progettist[ai](?:\s*\/\s*direttore\s+dei\s+lavori)?(?:\s+(?:architettonic[oi]|generale|opere\s+edili|edile|dell[\'’]\s*opera))?|progettazione\s+architettonica|progetto\s+architettonico)/i,'persona',{escludi:/strutturale|impiant|termotecnic|elettric|antincendio|acustic|geolog/i})
+    ||cerca(/^(?:\d[\d.]*\s*)?(?:il\s+)?progettist[ai]/i,'persona');
+  out.committente=cerca(/^(?:\d[\d.]*\s*)?(?:dati\s+(?:del\s+)?)?(?:il\s+)?(?:committent[ei](?:\s*\d)?|committenza|ente\s+appaltante|stazione\s+appaltante|propriet[aà])(?:\s+dei\s+lavori)?/i,'societa',{escludi:/tipo\s+di\s+committen|responsabile\s+dei\s+lavori\s+e/i});
+  out.affidataria=cerca(/^(?:\d[\d.]*\s*)?(?:l[\'’]\s*)?(?:impresa\s+(?:affidataria|appaltatrice|aggiudicataria|principale|generale)|appaltatore|general\s+contractor|impresa\s+esecutrice\s+principale)/i,'societa');
+  if(out.affidataria&&!RE_SOC.test(out.affidataria))delete out.affidataria;
+  if(out.committente&&/^(?:privat[ao]|pubblic[ao])$/i.test(out.committente))delete out.committente;
+  // indirizzo del cantiere: sulla riga, oppure «Via/Località | …» e «Città/Comune | …» sotto
+  const reInd=/^(?:\d[\d.]*\s*)?(?:indirizzo|ubicazione|localizzazione|luogo|sede|ubicato\s+in|sito\s+in)\s+(?:del\s+|dell[\'’]\s*)?(?:cantiere|lavori|opera|intervento|area)|^(?:\d[\d.]*\s*)?(?:cantiere\s+(?:sito\s+)?in|cantiere(?=\s*[:|])|ubicazione(?=\s*[:|])|localit[aà]\s+(?:del\s+)?cantiere)/i;
+  for(let i=0;i<righe.length&&!out.indirizzo;i++){const m=reInd.exec(righe[i]);if(!m||m.index>4)continue;let v=pulisci(righe[i].slice(m[0].length));const extra=[];
+    for(let k=i+1;k<righe.length&&k<=i+4;k++){const s=righe[k];const mm=/^(via|localit[aà]|indirizzo|citt[aà]|comune|frazione|cap|provincia|prov\.?)\b\s*[:：|]?\s*(.*)$/i.exec(s);if(!mm)break;const x=pulisci(mm[2]);if(x)extra.push(x)}
+    if((!v||v.length<4)&&extra.length)v=extra.join(', ');else if(v&&extra.length&&!/\d{5}|\([A-Z]{2}\)|comune/i.test(v))v=v+', '+extra.filter(x=>!v.includes(x)).join(', ');
+    const indOk=x=>x&&x.length>=4&&x.length<=160&&!prosa(x)&&/^[A-ZÀ-Üa-z0-9"«]/.test(x)&&/\b(via|v\.le|viale|piazza|p\.?\s?zz?a|loc\.?|localit[aà]|corso|strada|largo|vicolo|frazione|fraz\.|comune|zona|area|s\.?s\.|s\.?p\.|borgo|podere|contrada)\b|\d{5}|\([A-Z]{2}\)/i.test(x)&&!/^(?:di|del|della|e|ed|il|la|degli|delle|dei)\b/i.test(x);
+    const pulInd=x=>{if(!x)return null;x=x.replace(/^(?:ubicazione|indirizzo(?:\s+(?:del\s+)?cantiere)?|via\s*\/\s*piazza|localit[aà])\s*[:：|]?\s*/i,'').split(/\s+committente\b/i)[0].trim();if(/committente/i.test(x)||(/^[a-z]/.test(x)&&!/^(via|viale|piazza|loc|localit|corso|strada|largo|frazione)\b/i.test(x)))return null;return indOk(x)?x:null};
+    v=pulInd(v)||pulInd(pulisci(righe[i+1]||''));
+    if(v)out.indirizzo=v.replace(/^il\s+cantiere\s+[eè]\s+sito\s+in\s+/i,'')}
+  if(out.indirizzo){const ind=out.indirizzo;const capM=/\b(\d{5})\b/.exec(ind);if(capM)out.cap=capM[1];
+    const pr=/\(\s*([A-Z]{2})\s*\)|\b([A-Z]{2})\s*$/.exec(ind);if(pr)out.provincia=pr[1]||pr[2];
+    const W="(?:d['’])?[A-ZÀ-Ü][A-Za-zà-ü'’]+",P='(?:di|del|della|in|sul|sulla|val|de|dei|delle|al|a|d[\'’]\\w+)';
+    const com=/comune\s+di\s+([A-ZÀ-Üa-zà-ü'’ ]+?)(?=\s*(?:\(|,|-|–|$|\d))/i.exec(ind)||new RegExp('(?:\\d{5}\\s+)('+W+'(?:\\s+(?:'+W+'|'+P+'))*)').exec(ind)||new RegExp('('+W+'(?:\\s+(?:'+W+'|'+P+'))*)\\s*(?:\\d{5}\\s*)?\\(\\s*[A-Za-z]{2,}\\s*\\)').exec(ind)||new RegExp('(?:[-–,]\\s*)('+W+'(?:\\s+(?:'+W+'|'+P+'))*)\\s*(?:\\d{5})?\\s*$').exec(ind);
+    if(com){const c=com[1].trim().split(/\s+/).slice(-5).join(' ');if(c.length>=3&&!/^(via|loc|localit|piazza|viale|corso|strada|area|zona)\b/i.test(c))out.comune=c.toLowerCase().replace(/(^|[\s'’-])([a-zà-ü])/g,(x,a,b)=>a+b.toUpperCase()).replace(/\b(Di|Del|Della|In|Sul|Sulla|De|Dei|Delle|Al|A)\b/g,x=>x.toLowerCase()).replace(/^./,x=>x.toUpperCase())}}
+  if(!out.comune){for(const r of righe.slice(0,400)){const m=/^(?:comune|citt[aà])\s*[:：|]\s*([A-ZÀ-Üa-zà-ü'’ ]{3,40}?)\s*(?:\(([A-Z]{2})\))?$/i.exec(r);if(m){out.comune=m[1].trim().toLowerCase().replace(/(^|[\s'’-])([a-zà-ü])/g,(x,a,b)=>a+b.toUpperCase()).replace(/\b(Di|Del|Della|In|Sul|Sulla)\b/g,x=>x.toLowerCase());if(m[2])out.provincia=m[2];break}}}
+  // date
+  const data=v=>{if(!v)return null;let m=/(\d{1,2})\s*[\/.\-]\s*(\d{1,2})\s*[\/.\-]\s*(\d{2,4})/.exec(v);if(m){const a=m[3].length===2?'20'+m[3]:m[3];const d=a+'-'+pad2(+m[2])+'-'+pad2(+m[1]);return +m[2]>=1&&+m[2]<=12&&+m[1]>=1&&+m[1]<=31?d:null}
+    m=new RegExp('(\\d{1,2})?\\s*(?:°)?\\s*('+MESI+')\\s+(\\d{4})','i').exec(v);if(m)return m[3]+'-'+pad2(MESI.split('|').indexOf(m[2].toLowerCase())+1)+'-'+pad2(+(m[1]||1));return null};
+  const cercaData=re=>{for(let i=0;i<righe.length;i++){const m=re.exec(righe[i]);if(!m||m.index>4)continue;const d=data(righe[i].slice(m.index+m[0].length))||data(righe[i+1]||'');if(d)return d}return null};
+  out.dataInizio=cercaData(/(?:data\s+(?:presunta\s+)?(?:di\s+)?inizio(?:\s+dei)?\s+lavori|inizio\s+(?:dei\s+)?lavori)(?:\s*\(?\s*presunt[ao]\s*\)?)?/i);
+  out.dataFine=cercaData(/(?:data\s+(?:presunta\s+)?(?:di\s+)?fine(?:\s+dei)?\s+lavori|fine\s+(?:presunta\s+)?(?:dei\s+)?lavori|ultimazione\s+(?:dei\s+)?lavori)(?:\s*\(?\s*presunt[ao]\s*\)?)?/i);
+  if(out.dataInizio&&!out.dataFine){for(const r of righe){const m=/^durata\b[^|:]*[:|]?\s*(?:presunta\s*)?(?:dei\s+lavori\s*)?[:|]?\s*(\d{1,4})\s*(?:gg|giorni)\b/i.exec(r);if(m){const d=new Date(out.dataInizio+'T12:00:00');d.setDate(d.getDate()+ +m[1]);out.dataFine=d.toISOString().slice(0,10);break}}}
+  // data del PSC: «Rev. 0 del …», «data: …», o la data in copertina
+  const prime=righe.slice(0,80);
+  const legge=/d\.?\s?lgs|\bd\.?i\.?\s+del|interministeriale|allegat|decreto|legge|\bl\.\s?\d|n\.\s?81|testo\s+unico|\bart\.|g\.?u\.|gazzetta|circolare|d\.?p\.?r|d\.?m\./i;
+  for(const r of prime){if(legge.test(r))continue;const m=/(?:rev(?:isione)?\.?\s*(?:n\.?\s*)?\d*\s*(?:del|-|:)|\bdata\s*(?:di\s+)?(?:emissione|redazione|revisione)?\s*[:|]|emess[oa]\s+il|redatto\s+il)\s*(.{6,30})/i.exec(r);const d=m&&data(m[1]);if(d){out.dataPsc=d;break}}
+  if(!out.dataPsc){for(const r of prime){if(/inizio|fine|durata|nato|nata/i.test(r)||legge.test(r))continue;const d=data(r);if(d&&+d.slice(0,4)>=2000){out.dataPsc=d;break}}}
+  out.redattore=out.csp||null;
+  out.descrizione=cerca(/^(?:\d[\d.]*\s*)?(?:oggetto\s+(?:dei\s+lavori|dell[\'’]\s*appalto|dell[\'’]\s*intervento|del\s+progetto)|descrizione\s+(?:sintetica\s+)?dell[\'’]\s*(?:opera|intervento)|natura\s+dell[\'’]\s*opera|oggetto|lavori\s+di)(?=\s*[:|])/i,'testo');
+  const testoT=righe.join('\n');
+  const cig=/\bC\.?\s?I\.?\s?G\.?\s*(?:n\.?|n°|nr\.?)?\s*[:：|]?\s*((?=[A-Z]*\d)[A-Z0-9]{10})\b/i.exec(testoT);if(cig)out.cig=cig[1].toUpperCase();
+  const cup=/\bC\.?\s?U\.?\s?P\.?\s*(?:n\.?|n°|nr\.?)?\s*[:：|]?\s*((?=[A-Z]*\d)[A-Z0-9]{15})\b/i.exec(testoT);if(cup)out.cup=cup[1].toUpperCase();
+  for(const r of righe){const m=/^(?:\d[\d.]*\s*)?importo\s+(?:complessivo\s+|totale\s+|presunto\s+)*(?:dei\s+|del\s+|delle\s+)?(?:lavori|appalto|opere)?[^\d€|:]{0,40}[:|]?\s*(?:€|euro)?\s*(\d{1,3}(?:\.\d{3})+(?:,\d{2})?|\d+,\d{2})/i.exec(r);if(m){const n=leggiNumero(m[1]);if(n>=1000){out.importoLavori=n;break}}}
+  // nel campo indirizzo va solo la via: comune, CAP e provincia hanno i loro campi
+  if(out.indirizzo&&out.comune){const esc=x=>x.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');let v=out.indirizzo.replace(new RegExp('(?:comune\\s+di\\s+)?'+esc(out.comune),'i'),'').replace(/\b\d{5}\b/,'').replace(/\(\s*[A-Za-z]{2,}\s*\)/,'').replace(/\s*[,–—-]\s*(?=[,–—-]|$)/g,'').replace(/^[\s,–—-]+|[\s,–—-]+$/g,'').replace(/\s{2,}/g,' ').trim();if(v.length>=3)out.indirizzo=v}
+  for(const k of Object.keys(out)){if(out[k]==null||out[k]===''||(typeof out[k]==='string'&&out[k].length>160))delete out[k]}
   return out;
+}
+// Il testo del PSC per le proposte: righe ricomposte con pdf.js sulle prime 40 pagine (l'anagrafica
+// sta sempre all'inizio); se pdf.js non riesce, l'estrattore interno.
+async function testoPsc(blob,avanza){
+  try{const r=await righePdfJs(blob,40);const t=r.pagine.join('\n');if(t.replace(/\s/g,'').length>=200)return t}catch(e){}
+  try{return (await estraiTestoPdf(blob,avanza)).testo||''}catch(e){return ''}
 }
 
 
@@ -9016,6 +9297,24 @@ async function unisciInPdf(blobs){
       const dw=img.width*s,dh=img.height*s;g.drawImage(img,(W-dw)/2*sc,(H-dh)/2*sc,dw*sc,dh*sc);pagine.push({jpeg:await canvasInJpeg(c),px:c.width,py:c.height,w:W,h:H})}
   }
   return pdfDaImmagini(pagine);
+}
+// Testo del PDF riga per riga come lo vede l'occhio: i pezzi di testo si raggruppano per altezza sulla
+// pagina e si ordinano da sinistra a destra; uno spazio largo (una colonna di tabella) diventa « | ».
+// Serve a leggere i PSC: l'estrattore interno spezza le parole («Direttore dei l / avori») e separa
+// l'etichetta dal valore che le sta accanto nella tabella.
+async function righePdfJs(blob,maxPagine){
+  const doc=await apriPdfJs(blob);const n=Math.min(doc.numPages,maxPagine||doc.numPages);const pagine=[];
+  for(let i=1;i<=n;i++){
+    const p=await doc.getPage(i);const tc=await p.getTextContent();
+    const it=tc.items.filter(x=>x.str&&x.str.trim()).map(x=>{const [a,b,c,d,e,f]=x.transform;return {s:x.str,x:e,y:f,h:Math.hypot(c,d)||Math.hypot(a,b)||10,w:x.width||0}});
+    it.sort((a,b)=>b.y-a.y||a.x-b.x);
+    const righe=[];
+    for(const t of it){let r=null;for(let k=righe.length-1;k>=0&&k>=righe.length-4;k--){if(Math.abs(righe[k].y-t.y)<Math.max(1.5,Math.min(righe[k].h,t.h)*0.45)){r=righe[k];break}}
+      // il «grassetto finto» ripete lo stesso testo nello stesso punto: si tiene una volta sola
+      if(r){if(!r.items.some(x=>x.s===t.s&&Math.abs(x.x-t.x)<2))r.items.push(t);r.h=Math.max(r.h,t.h)}else righe.push({y:t.y,h:t.h,items:[t]})}
+    pagine.push(righe.map(r=>{r.items.sort((a,b)=>a.x-b.x);let s='',fine=null;for(const t of r.items){if(fine!==null){const gap=t.x-fine;s+=gap>r.h*1.6?' | ':gap>r.h*0.12&&!/\s$/.test(s)&&!/^\s/.test(t.s)?' ':''}s+=t.s;fine=t.x+t.w}return s.replace(/\s+/g,' ').trim()}).filter(Boolean).join('\n'));
+  }
+  return {pagine,numPagine:doc.numPages};
 }
 
 
@@ -9746,6 +10045,224 @@ async function esitoAssistente(file,r){
 
 
 /* ═══════════════════════════════════════════════════════════════════
+   SEZIONE JS · MODULI
+   ═══════════════════════════════════════════════════════════════════ */
+// ---------------------------------------------------------------------
+// MODULI DEL COMMITTENTE: il file Word (.docx) che manda il committente, da compilare senza averlo
+// fra i modelli. Si apre già impaginato sulla carta intestata dell'azienda; i puntini e le righe da
+// riempire diventano campi: quelli che si capiscono dal testo vicino («nato a …», «P.IVA …», «Luogo e
+// data …») si riempiono da soli con i dati dell'azienda, del legale rappresentante e del cantiere,
+// gli altri si scelgono da un elenco o si scrivono. Anche il resto del testo si corregge lì, sul foglio
+// come verrà stampato (niente graffe né segnaposto). Poi anteprima, PDF e stampa come gli altri documenti.
+// stato.moduli = [{id, titolo, nomeFile, fileId, cantiereId, html, creato, modificato}]
+// ---------------------------------------------------------------------
+const RE_PUNTINI=/(?:\.\s?){5,}|…(?:\s?…)+|…{2,}|_{4,}|-{6,}/g;
+
+// ---- dal .docx all'HTML del foglio ----
+async function docxInHtml(file){
+  const zip=await leggiZip(file);const voce=zip.voci.find(v=>v.nome==='word/document.xml');
+  if(!voce)throw new Error('non è un file Word .docx (i vecchi .doc vanno salvati come .docx da Word)');
+  const xml=new TextDecoder().decode(await zip.estrai(voce));
+  const doc=new DOMParser().parseFromString(xml,'application/xml');
+  const figli=(el,nome)=>Array.from(el.children).filter(c=>c.localName===nome);
+  const uno=(el,perc)=>{let x=el;for(const n of perc.split('/')){x=x&&figli(x,n)[0];if(!x)return null}return x};
+  const att=(el,n)=>el&&(el.getAttribute('w:'+n)||el.getAttributeNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main',n));
+  const vero=el=>!!el&&!['0','false','none'].includes(att(el,'val')||'');
+  const corsa=r=>{const rp=uno(r,'rPr');let s='';
+    for(const c of r.children){const n=c.localName;
+      if(n==='t')s+=h(c.textContent);else if(n==='tab')s+='<span class="tab-mod"> </span>';else if(n==='br'||n==='cr')s+=att(c,'type')==='page'?'':'<br>';
+      else if(n==='sym'){const ch=parseInt(att(c,'char')||'0',16);s+=[0xF0A8,0xF06F,0xF071,0xF0FE,0xF078,0xF0FD].includes(ch)?(ch===0xF0FE||ch===0xF078||ch===0xF0FD?'☒':'☐'):''}
+      else if(n==='noBreakHyphen')s+='‑'}
+    if(!s)return '';
+    if(rp){if(vero(uno(rp,'b')))s='<b>'+s+'</b>';if(vero(uno(rp,'i')))s='<i>'+s+'</i>';const u=uno(rp,'u');if(u&&att(u,'val')!=='none')s='<u>'+s+'</u>';if(vero(uno(rp,'caps')))s='<span style="text-transform:uppercase">'+s+'</span>'}
+    return s};
+  // dentro un paragrafo: corse, collegamenti, campi, caselle dei moduli di Word
+  const inline=el=>{let s='';for(const c of el.children){const n=c.localName;
+    if(n==='r')s+=corsa(c);else if(['hyperlink','ins','smartTag','fldSimple','customXml','sdtContent','sdt'].includes(n))s+=inline(n==='sdt'?(uno(c,'sdtContent')||c):c);
+    else if(n==='checkBox'){s+=vero(uno(c,'default'))?'☒':'☐'}}
+    return s};
+  const paragrafo=p=>{const pp=uno(p,'pPr');const jc=pp&&uno(pp,'jc');const al=jc?att(jc,'val'):'';const stile=pp&&uno(pp,'pStyle')?att(uno(pp,'pStyle'),'val')||'':'';
+    let s=inline(p);const elenco=pp&&uno(pp,'numPr');
+    // le caselle dei moduli (w14:checkbox) stanno in sdt dentro il paragrafo
+    const cls=[al==='center'?'centro':al==='right'||al==='end'?'destra':al==='both'||al==='distribute'?'giust':''];
+    if(/^(heading|titolo|title)/i.test(stile))return `<h3 class="${cls.join(' ')}">${s||'&nbsp;'}</h3>`;
+    if(elenco)return `<p class="voce-mod ${cls.join(' ')}">• ${s}</p>`;
+    return `<p class="${cls.join(' ')}">${s||'<br>'}</p>`};
+  const tabella=t=>{const righe=figli(t,'tr').map(tr=>{const celle=figli(tr,'tc').map(tc=>{const pr=uno(tc,'tcPr');const vm=pr&&uno(pr,'vMerge');if(vm&&att(vm,'val')!=='restart')return null;const span=pr&&uno(pr,'gridSpan')?+att(uno(pr,'gridSpan'),'val')||1:1;return `<td${span>1?` colspan="${span}"`:''}>${blocchiDi(tc)}</td>`}).filter(Boolean);return `<tr>${celle.join('')}</tr>`});return `<table class="tab-mod"><tbody>${righe.join('')}</tbody></table>`};
+  const blocchiDi=el=>{let s='';for(const c of el.children){const n=c.localName;if(n==='p')s+=paragrafo(c);else if(n==='tbl')s+=tabella(c);else if(n==='sdt')s+=blocchiDi(uno(c,'sdtContent')||c);else if(n==='customXml')s+=blocchiDi(c)}return s};
+  const body=doc.getElementsByTagNameNS('*','body')[0];if(!body)throw new Error('documento Word vuoto');
+  // le righe vuote in fondo (spesso tante) non servono
+  return blocchiDi(body).replace(/(?:<p class="\s*"><br><\/p>)+$/,'');
+}
+
+// ---- i campi: dai puntini a <span class="campo-mod"> ----
+function segnaCampi(htmlStr){
+  let n=0;
+  // solo nel testo, mai dentro i tag
+  return htmlStr.replace(/>([^<]+)</g,(m,testo)=>'>'+testo.replace(RE_PUNTINI,x=>`<span class="campo-mod" data-campo="${n++}" data-vuoto="${h(x)}">${x}</span>`)+'<')
+    .replace(/[☐☒]/g,x=>`<span class="casella-mod" data-casella>${x}</span>`);
+}
+// i dati che si possono mettere in un campo, con il nome che l'utente riconosce
+function datiModulo(c){
+  const ctx=contestoDichiarazione(c||null,{});const a=stato.azienda;const leg=legaleRappresentante();
+  const val=k=>{const t=(ctx(k)||{}).testo;return t&&!/\[DA COMPILARE/.test(t)?t:''};
+  const voci=[
+    ['Ragione sociale','azienda.ragioneSociale'],['Partita IVA','azienda.piva'],['Codice fiscale dell’impresa','azienda.cf'],['Sede (indirizzo completo)','azienda.sede'],
+    ['Comune della sede',null,a.indirizzo.comune],['Via della sede',null,a.indirizzo.via],['CAP della sede',null,a.indirizzo.cap],['Provincia della sede',null,a.indirizzo.provincia],
+    ['PEC','azienda.pec'],['Email','azienda.email'],['Telefono','azienda.telefono'],['REA','azienda.rea'],['Codice INAIL','azienda.inail'],['Matricola INPS','azienda.inps'],['Cassa Edile','azienda.cassaEdile'],['CCNL applicato','azienda.ccnl'],
+    ['Legale rappresentante','legale.nome'],['Luogo di nascita del legale rappresentante','legale.natoA'],['Data di nascita del legale rappresentante','legale.natoIl'],['Residenza del legale rappresentante','legale.residenza'],['Codice fiscale del legale rappresentante','legale.cf'],
+    ['In qualità di',null,'Legale Rappresentante'],
+    ['Cantiere','cantiere.nome'],['Indirizzo del cantiere','cantiere.indirizzo'],['Comune del cantiere','cantiere.comune'],['Lavorazioni del cantiere','cantiere.lavorazioni'],['Committente','committente.nome'],['Impresa affidataria','affidataria.nome'],['CSE','cse.nome'],
+    ['RSPP','rspp.nome'],['RLS','rls.nome'],['Medico competente','medico.nome'],['Preposto','preposto.nome'],['Organico medio','organico.medio'],
+    ['Data di oggi',null,fData(oggi())],['Luogo e data',null,[a.indirizzo.comune,fData(oggi())].filter(Boolean).join(', ')]
+  ];
+  return voci.map(([et,k,v])=>({etichetta:et,chiave:k||et,valore:k?val(k):(v||'')})).filter(x=>x.valore);
+}
+// cosa va in un campo, dal testo che lo precede nel paragrafo («nato a …» → luogo di nascita)
+const REGOLE_CAMPI=[
+  [/(?:luogo\s+e\s+data|luogo,?\s+data)\s*[:,]?\s*$/i,'Luogo e data'],
+  [/(?:\bl[iì]|\badd[iì])\s*[:,]?\s*$/i,'Data di oggi'],
+  [/\bnat[oa]\s+a\s*$/i,'Luogo di nascita del legale rappresentante'],
+  [/\bnat[oa]\s+a\s+.{0,60}?\b(?:il|in\s+data)\s*$/i,'Data di nascita del legale rappresentante'],
+  [/\b(?:residente|domiciliat[oa])\s+(?:a|in|nel\s+comune\s+di)\s*$/i,'Residenza del legale rappresentante'],
+  [/(?:sottoscritt[oa]|il\/la\s+sottoscritt[oa]|nome\s+e\s+cognome|cognome\s+e\s+nome|dichiarante|\bsig\.?(?:ra)?)\s*[:,]?\s*$/i,'Legale rappresentante'],
+  [/(?:in|nella\s+sua|nella)\s+(?:sua\s+)?qualit[aà]\s+di\s*$/i,'In qualità di'],
+  [/(?:p\.?\s?iva|partita\s+iva)\s*(?:n\.?|n°|nr\.?)?\s*[:.]?\s*$/i,'Partita IVA'],
+  [/(?:codice\s+fiscale|c\.\s?f\.?|\bcf)\s*(?:n\.?|n°)?\s*[:.]?\s*$/i,'CF'],
+  [/(?:dell['’]\s*impresa|della\s+ditta|della\s+societ[aà]|dell['’]\s*operatore\s+economico|ragione\s+sociale|denominazione|\bimpresa|\bditta|\bsociet[aà])\s*[:,]?\s*$/i,'Ragione sociale'],
+  [/con\s+sede\s+(?:legale\s+)?(?:in|a)\s*$/i,'Comune della sede'],
+  [/(?:\bvia|\bviale|\bpiazza|indirizzo)\s*[:,]?\s*$/i,'Via della sede'],
+  [/(?:\bcap|c\.a\.p\.)\s*[:.]?\s*$/i,'CAP della sede'],
+  [/(?:\bprov\.?|provincia)\s*(?:di)?\s*[:.(]?\s*$/i,'Provincia della sede'],
+  [/(?:\bpec|posta\s+elettronica\s+certificata)\s*[:.]?\s*$/i,'PEC'],
+  [/(?:e-?mail)\s*[:.]?\s*$/i,'Email'],
+  [/(?:\btel\.?|telefono|cell\.?)\s*[:.]?\s*$/i,'Telefono'],
+  [/\binail\b.{0,25}$/i,'Codice INAIL'],[/\binps\b.{0,25}$/i,'Matricola INPS'],[/cassa\s+edile.{0,25}$/i,'Cassa Edile'],[/\bccnl\b.{0,40}$/i,'CCNL applicato'],[/\b(?:rea|r\.e\.a\.)\s*(?:n\.?)?\s*[:.]?\s*$/i,'REA'],
+  [/(?:\bcantiere|lavori\s+di|appalto\s+(?:dei\s+lavori\s+)?di|opera)\s*[:,]?\s*$/i,'Cantiere'],
+  [/(?:sit[oa]\s+in|ubicat[oa]\s+in)\s*$/i,'Indirizzo del cantiere'],
+  [/committente\s*[:,]?\s*$/i,'Committente'],
+  [/\bdata\s*[:.]?\s*$/i,'Data di oggi'],
+];
+const RE_CAMPO_FIRMA=/(?:\bfirma|timbro\s+e\s+firma|il\s+dichiarante|il\s+legale\s+rappresentante|in\s+fede)\s*[:.]?\s*(?:\(.*\))?\s*$/i;
+// «Rossi Marioin qualità»: se il testo intorno è attaccato ai puntini, uno spazio
+function spaziaCampo(sp){const n=sp.nextSibling,p=sp.previousSibling;if(n&&n.nodeType===3&&/^[A-Za-zÀ-ÿ0-9]/.test(n.textContent))n.textContent=' '+n.textContent;if(p&&p.nodeType===3&&/[A-Za-zÀ-ÿ0-9]$/.test(p.textContent))p.textContent+=' '}
+function compilaCampiModulo(radice,c){
+  const dati=datiModulo(c);const per=Object.fromEntries(dati.map(d=>[d.etichetta,d.valore]));
+  let fatti=0;
+  for(const sp of Array.from(radice.querySelectorAll('.campo-mod'))){
+    if(sp.dataset.scelto)continue; // scelto o scritto a mano: non si tocca
+    const blocco=sp.closest('p,td,h3,li')||sp.parentNode;
+    // il testo prima del campo nello stesso paragrafo
+    // i puntini degli altri campi diventano spazi: «______PROV.» deve leggersi «PROV.»
+    const r=document.createRange();r.setStart(blocco,0);r.setEndBefore(sp);const tutto=r.toString().replace(/[._…\-]{3,}/g,' ').replace(/\s+/g,' ');const prima=tutto.slice(-90);
+    // dopo «residente» via, CAP, provincia e comune sono della persona, non della sede: si lasciano scegliere
+    const daPersona=/residente|domiciliat/i.test(tutto)&&!/con\s+sede/i.test(tutto.slice(tutto.search(/residente|domiciliat/i)));
+    let val=null,eti=null;
+    // «______, lì ______»: il primo è il luogo
+    const dopo=(()=>{const r2=document.createRange();r2.setStartAfter(sp);r2.setEnd(blocco,blocco.childNodes.length);return r2.toString().slice(0,12)})();
+    if(/^\s*,?\s*(?:l[iì]|add[iì])(?![a-zà-ü])/i.test(dopo)&&per['Comune della sede']){sp.textContent=per['Comune della sede'];sp.dataset.pieno='1';fatti++;continue}
+    // riga da sola sotto «Timbro e firma»: è il posto della firma
+    let sopra='';if(!prima.trim()){let x=blocco.previousElementSibling;for(let k=0;x&&k<4&&!sopra;k++,x=x.previousElementSibling)sopra=x.textContent.replace(/[._…\-]{3,}/g,' ').trim().slice(-60)}
+    if(RE_CAMPO_FIRMA.test(prima)||(sopra&&/(?:firma|timbro|l['’]\s*impresa(?:\s+\w+)?|il\s+dichiarante|legale\s+rappresentante|in\s+fede|per\s+accettazione|il\s+datore\s+di\s+lavoro)[^a-z]*$/i.test(sopra))){sp.innerHTML=`<img class="firma-mod" src="${h(immagineAzienda('firmaTimbro'))}" alt="Timbro e firma">`;sp.dataset.pieno='firma';fatti++;continue}
+    for(const [re,et] of REGOLE_CAMPI){if(!re.test(prima))continue;
+      if(daPersona&&/della sede/.test(et))break;
+      if(et==='CF'){const legale=/sottoscritt|nat[oa]\s+a|residente|\bsig/i.test(tutto)&&!/(?:impresa|ditta|societ[aà]|con\s+sede)\s+.{0,60}$/i.test(prima);eti=legale?'Codice fiscale del legale rappresentante':'Codice fiscale dell’impresa'}
+      else eti=et;val=per[eti];break}
+    if(val){sp.textContent=val;sp.dataset.pieno='1';sp.title=eti;spaziaCampo(sp);fatti++}
+  }
+  return fatti;
+}
+
+// ---- elenco nei Modelli e caricamento ----
+function vistaModuliCommittente(){
+  const mm=(stato.moduli||[]).slice().sort((a,b)=>(b.modificato||'')<(a.modificato||'')?-1:1);
+  return html`<div class="zona-drop piccola mb" data-azione="modulo-carica">${icona('carica')}<div><b>Trascina qui il modulo Word del committente</b><br><span>Il file .docx: lo metto sulla carta intestata, riempio i puntini che riconosco con i dati dell'azienda e del cantiere, il resto lo scegli o lo scrivi tu sul foglio.</span></div></div>
+  ${mm.length?html`<div class="scheda"><ul class="elenco-piatto">${mm.map(m=>html`<li class="link" data-azione="vai" data-href="modulo/${m.id}"><span class="spazio"><b>${m.titolo}</b><br><span class="piccolo silenzioso">${m.cantiereId?nomeCantiere(m.cantiereId)+' · ':''}modificato il ${fData((m.modificato||m.creato||'').slice(0,10))}</span></span>${icona('destra','piccola')}</li>`)}</ul></div>`:html`<p class="piccolo silenzioso">Nessun modulo ancora.</p>`}`;
+}
+AZIONI['modulo-carica']=async d=>{
+  const fs=await scegliFile({multipli:false,accetta:'.docx,.doc'});if(!fs.length)return;const f=fs[0];
+  if(/\.doc$/i.test(f.name))return informa('File Word vecchio (.doc)','Aprilo in Word o Pages e salvalo come .docx, poi caricalo di nuovo.');
+  let corpo;try{corpo=segnaCampi(await docxInHtml(f))}catch(e){return segnalaErrore(e,'Non riesco a leggere il file Word')}
+  const cant=d&&d.cantiere?d.cantiere:null;
+  const es=await acquisisciFile(f,{});
+  const id=nuovoId('mod');const ora=new Date().toISOString();
+  // i campi riconosciuti si riempiono subito, su un foglio di appoggio fuori dallo schermo
+  const tmp=document.createElement('div');tmp.innerHTML=corpo;tmp.style.cssText='position:absolute;left:-9999px';document.body.appendChild(tmp);
+  compilaCampiModulo(tmp,cantiere(cant));const pronto=astraiImmagini(tmp.innerHTML);tmp.remove();
+  esegui('Modulo '+f.name,s=>{s.moduli=s.moduli||[];s.moduli.push({id,titolo:f.name.replace(/\.docx$/i,''),nomeFile:f.name,fileId:es.rec.id,cantiereId:cant,html:pronto,creato:ora,modificato:ora})},{senzaRender:true});
+  vai('modulo/'+id);
+};
+
+// ---- il foglio da compilare ----
+VISTE.modulo=function(r){
+  const m=perId('moduli',r.id);if(!m)return vuoto({icona:'documenti',titolo:'Modulo non trovato',testo:'Forse è stato eliminato.'});
+  const pieni=(m.html.match(/data-pieno=/g)||[]).length,tot=(m.html.match(/class="campo-mod/g)||[]).length;
+  dopoRender(()=>montaModulo(m.id));
+  return html`<div class="briciole"><a href="#/documenti">Documenti</a> › Moduli dei committenti</div>
+  <div class="testata"><div><div class="occhiello">Modulo del committente</div><h1 class="titolo-modulo" contenteditable="true" data-titolo-modulo spellcheck="false">${m.titolo}</h1>
+    <p class="sotto">${tot?html`<b>${pieni}</b> campi su ${tot} già riempiti. Clicca un campo giallo per scegliere cosa metterci; il testo si corregge scrivendo sul foglio.`:'Nessun campo con i puntini: scrivi direttamente sul foglio.'}</p></div>
+    <div class="azioni"><select data-cambio="modulo-cantiere" data-id="${m.id}" aria-label="Cantiere"><option value="">Nessun cantiere</option>${stato.cantieri.filter(c=>!['archiviato'].includes(c.stato)).map(c=>html`<option value="${c.id}" ${c.id===m.cantiereId?'selected':''}>${c.nome}</option>`)}</select>
+    <button class="pulsante" data-azione="modulo-ricompila" data-id="${m.id}" title="Riempie di nuovo i campi che riconosco (quelli scelti a mano restano)">${icona('magia','piccola')}Riempi i campi</button>
+    <button class="pulsante" data-azione="modulo-firma" data-id="${m.id}">${icona('firma','piccola')}Timbro e firma</button>
+    <button class="pulsante primario" data-azione="modulo-anteprima" data-id="${m.id}">Anteprima, PDF e stampa<span class="manopola">${icona('stampa','piccola')}</span></button></div></div>
+  <div class="foglio-modulo-scorri"><div class="foglio-modulo">${grezzo(risolviImmagini(String(intestazioneCartaIntestata())))}<div class="corpo-modulo" contenteditable="true" spellcheck="true" data-modulo="${m.id}">${grezzo(risolviImmagini(m.html))}</div></div></div>
+  <div class="riga mt"><button class="pulsante pericolo discreto" data-azione="modulo-elimina" data-id="${m.id}">${icona('cestino','piccola')}Elimina il modulo</button><span class="spazio"></span>${m.fileId?html`<button class="pulsante discreto" data-azione="file-scarica" data-id="${m.fileId}">${icona('scarica','piccola')}Word originale</button>`:''}</div>`;
+};
+let _salvaModulo=null;
+function salvaModulo(id,subito){
+  clearTimeout(_salvaModulo);
+  const fai=()=>{const box=el(`[data-modulo="${id}"]`);if(!box)return;const t=el('[data-titolo-modulo]');
+    const htmlNuovo=astraiImmagini(box.innerHTML),titolo=t?t.textContent.trim()||'Modulo':null;const m=perId('moduli',id);if(!m||(m.html===htmlNuovo&&(!titolo||m.titolo===titolo)))return;
+    esegui('Modifica al modulo',s=>{const x=s.moduli.find(y=>y.id===id);x.html=htmlNuovo;if(titolo)x.titolo=titolo;x.modificato=new Date().toISOString()},{senzaRender:true,silenzioso:true})};
+  if(subito)fai();else _salvaModulo=setTimeout(fai,700);
+}
+function montaModulo(id){
+  const box=el(`[data-modulo="${id}"]`);if(!box||box.dataset.montato)return;box.dataset.montato='1';
+  box.addEventListener('input',()=>salvaModulo(id));
+  const tit=el('[data-titolo-modulo]');if(tit){tit.addEventListener('input',()=>salvaModulo(id));tit.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();tit.blur()}})}
+  // un campo scritto a mano resta quello: «Riempi i campi» non lo sovrascrive
+  box.addEventListener('input',e=>{const sp=window.getSelection().anchorNode;const c=sp&&(sp.nodeType===1?sp:sp.parentNode).closest&&(sp.nodeType===1?sp:sp.parentNode).closest('.campo-mod');if(c){c.dataset.scelto='1';c.dataset.pieno='1'}});
+  box.addEventListener('click',e=>{
+    const cas=e.target.closest('[data-casella]');if(cas){cas.textContent=cas.textContent==='☒'?'☐':'☒';salvaModulo(id);return}
+    const c=e.target.closest('.campo-mod');if(c)menuCampoModulo(c,id);
+  });
+}
+function menuCampoModulo(sp,id){
+  tutti('.menu-campo-mod').forEach(x=>x.remove());
+  const m=perId('moduli',id);const dati=datiModulo(cantiere(m&&m.cantiereId));
+  const menu=creaEl(html`<div class="menu-campo-mod scheda"><input type="search" placeholder="Cerca un dato o scrivi qui il testo" data-cerca-campo>
+    <div class="voci-campo">${dati.map(d=>html`<button type="button" class="voce-campo" data-v="${d.valore}"><b>${d.etichetta}</b><span>${d.valore}</span></button>`)}</div>
+    <div class="riga mt-s"><button type="button" class="pulsante piccolo" data-firma-campo>${icona('firma','piccola')}Timbro e firma</button><button type="button" class="pulsante piccolo discreto" data-puntini>Rimetti i puntini</button><span class="spazio"></span><button type="button" class="pulsante piccolo discreto" data-chiudi-campo>Chiudi</button></div></div>`);
+  document.body.appendChild(menu);
+  const rr=sp.getBoundingClientRect();menu.style.left=Math.max(8,Math.min(window.innerWidth-menu.offsetWidth-8,rr.left))+'px';menu.style.top=Math.min(window.innerHeight-menu.offsetHeight-8,rr.bottom+6)+'px';
+  const metti=(v,firma)=>{if(firma){sp.innerHTML=`<img class="firma-mod" src="${h(immagineAzienda('firmaTimbro'))}" alt="Timbro e firma">`;sp.dataset.pieno='firma'}else if(v==null){sp.textContent=sp.dataset.vuoto||'……';delete sp.dataset.pieno}else{sp.textContent=v;sp.dataset.pieno='1';spaziaCampo(sp)}sp.dataset.scelto='1';menu.remove();salvaModulo(id,true)};
+  const cerca=menu.querySelector('[data-cerca-campo]');cerca.focus();
+  cerca.addEventListener('input',()=>{const q=normalizzaTesto(cerca.value);tutti('.voce-campo',menu).forEach(b=>{b.style.display=!q||normalizzaTesto(b.textContent).includes(q)?'':'none'})});
+  cerca.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();const vis=tutti('.voce-campo',menu).filter(b=>b.style.display!=='none');if(cerca.value.trim()&&(!vis.length||vis.length===dati.length))metti(cerca.value.trim());else if(vis[0])metti(vis[0].dataset.v)}else if(e.key==='Escape')menu.remove()});
+  menu.addEventListener('click',e=>{const b=e.target.closest('.voce-campo');if(b)return metti(b.dataset.v);if(e.target.closest('[data-firma-campo]'))return metti(null,true);if(e.target.closest('[data-puntini]'))return metti(null);if(e.target.closest('[data-chiudi-campo]'))menu.remove()});
+  setTimeout(()=>document.addEventListener('pointerdown',function fuori(e){if(!menu.contains(e.target)&&e.target!==sp){menu.remove();document.removeEventListener('pointerdown',fuori,true)}},true),0);
+}
+AZIONI['modulo-cantiere']=(d,t)=>{salvaModulo(d.id,true);esegui('Cantiere del modulo',s=>{s.moduli.find(x=>x.id===d.id).cantiereId=t.value||null},{senzaRender:true,silenzioso:true});const box=el(`[data-modulo="${d.id}"]`);if(box){const n=compilaCampiModulo(box,cantiere(t.value));salvaModulo(d.id,true);avviso(n?plurale(n,'campo riempito','campi riempiti'):'Nessun campo nuovo da riempire',{silenzioso:!n})}};
+AZIONI['modulo-ricompila']=d=>{const m=perId('moduli',d.id);const box=el(`[data-modulo="${d.id}"]`);if(!m||!box)return;const n=compilaCampiModulo(box,cantiere(m.cantiereId));salvaModulo(d.id,true);avviso(n?plurale(n,'campo riempito','campi riempiti'):'Nessun campo riconosciuto: scegli tu dal menu del campo')};
+// timbro e firma in fondo, se il modulo non ha un posto per la firma
+AZIONI['modulo-firma']=d=>{const box=el(`[data-modulo="${d.id}"]`);if(!box)return;box.insertAdjacentHTML('beforeend',`<p class="destra"><span class="campo-mod" data-pieno="firma" data-scelto="1" data-vuoto="……"><img class="firma-mod" src="${h(immagineAzienda('firmaTimbro'))}" alt="Timbro e firma"></span></p>`);salvaModulo(d.id,true)};
+AZIONI['modulo-elimina']=async d=>{const m=perId('moduli',d.id);if(!m||!(await conferma(`Eliminare il modulo «${m.titolo}»? Il Word originale resta nel cestino 30 giorni.`,{pericolo:true,ok:'Elimina'})))return;esegui('Eliminato modulo',s=>{s.moduli=s.moduli.filter(x=>x.id!==m.id);cestinaFileOrfani(s)});vai('documenti')};
+// Per la stampa i campi diventano testo normale: i puntini rimasti restano puntini, da riempire a penna
+function docModulo(m){
+  const tmp=document.createElement('div');tmp.innerHTML=m.html;
+  tmp.querySelectorAll('.campo-mod,.casella-mod').forEach(sp=>{const f=document.createDocumentFragment();while(sp.firstChild)f.appendChild(sp.firstChild);sp.replaceWith(f)});
+  tmp.querySelectorAll('img.firma-mod').forEach(i=>{i.setAttribute('src','{{IMG:firmaTimbro}}');i.className='firma-mod'});
+  // le righe vuote in fondo non devono creare una pagina bianca
+  const el_=Array.from(tmp.children);while(el_.length&&!el_[el_.length-1].textContent.trim()&&!el_[el_.length-1].querySelector('img'))el_.pop();
+  // più righe vuote di fila diventano una; chi sta sopra la firma («L'impresa», «Timbro e firma») resta con lei
+  const vuoto_=x=>!x.textContent.trim()&&!x.querySelector('img');const tenuti=el_.filter((x,i)=>!(vuoto_(x)&&i>0&&vuoto_(el_[i-1])));tenuti.forEach(x=>{if(vuoto_(x))x.classList.add('vuota-mod')});
+  const blocchi=tenuti.map((x,i)=>{const dopo=tenuti.slice(i+1,i+3);return dopo.some(y=>y.querySelector('img.firma-mod'))&&!x.querySelector('img.firma-mod')?{html:x.outerHTML,tieniConSuccessivo:true}:x.outerHTML});
+  return {titolo:m.titolo,cartaIntestata:true,classe:'modulo-stampa',blocchi,pie:pieStandard(m.titolo+(m.cantiereId?' · '+nomeCantiere(m.cantiereId):''))};
+}
+AZIONI['modulo-anteprima']=d=>{salvaModulo(d.id,true);const m=perId('moduli',d.id);if(!m)return;anteprimaStampa({titolo:m.titolo,doc:docModulo(m),riferimento:m.cantiereId?nomeCantiere(m.cantiereId):''})};
+
+
+/* ═══════════════════════════════════════════════════════════════════
    SEZIONE JS · RIMANENZE
    ═══════════════════════════════════════════════════════════════════ */
 // ---------------------------------------------------------------------
@@ -9988,7 +10505,7 @@ VISTE.banca=function(r){
   const anno=+(ui.filtri.bancaAnno||new Date().getFullYear());
   const anni=unici([new Date().getFullYear(),...B.documenti.map(d=>+(d.data||'').slice(0,4)).filter(Boolean)]).sort((a,b)=>b-a);
   const ora=new Date().getFullYear()*100+new Date().getMonth()+1;
-  const casella=(docs,m,vuota)=>{const fut=anno*100+m>ora;if(docs.length){const d=docs[0];return html`<button class="casella-v ok" data-azione="file-apri" data-id="${d.fileId}" title="${nomeDocumentoBanca(d)}"><b>${docs.length>1?plurale(docs.length,'file','file'):tipoBanca(d.tipo)[0]==='estratto_trim'?'trimestrale':tipoBanca(d.tipo)[1].split(' ')[0]}</b><span>apri</span></button>`}return html`<button class="casella-v ${fut?'futuro':vuota}" ${fut?'disabled':''} data-azione="banca-carica"><b>${fut?'':'—'}</b><span>${fut?'':'carica'}</span></button>`};
+  const casella=(docs,m,vuota,conto,tipo)=>{const fut=anno*100+m>ora;if(docs.length){const d=docs[0];return html`<button class="casella-v ok" data-azione="file-apri" data-id="${d.fileId}" title="${nomeDocumentoBanca(d)}"><b>${docs.length>1?plurale(docs.length,'file','file'):tipoBanca(d.tipo)[0]==='estratto_trim'?'trimestrale':tipoBanca(d.tipo)[1].split(' ')[0]}</b><span>apri</span></button>`}return html`<button class="casella-v ${fut?'futuro':vuota}" ${fut?'disabled':''} data-azione="banca-carica" data-data="${fineMese(anno,m)}" data-conto="${conto||''}" data-tipo="${tipo||''}"><b>${fut?'':'—'}</b><span>${fut?'':'carica'}</span></button>`};
   const delMese=(m,filtro)=>B.documenti.filter(d=>(d.data||'').startsWith(anno+'-'+pad2(m))&&filtro(d));
   const conti=B.conti.length?B.conti:[{id:'',nome:'Conto'}];
   const col=conti.length+2;
@@ -9997,7 +10514,7 @@ VISTE.banca=function(r){
   ${B.conti.length?'':html`<div class="avviso-inline info">${icona('info')}<div class="corpo">Aggiungi i conti dell'azienda con «Nuovo conto»: così movimenti ed estratti hanno ciascuno la sua colonna.</div></div>`}
   <div class="tabella-scorri"><div class="griglia-versamenti" style="grid-template-columns:90px repeat(${col},minmax(110px,1fr))"><span></span>${conti.map(c=>html`<span class="tv">${c.nome}</span>`)}<span class="tv">Carta di credito</span><span class="tv">Altri documenti</span>
     ${NOMI_MESI.map((nm,i)=>{const m=i+1;const altri=delMese(m,d=>!TIPI_CONTO.includes(d.tipo)&&d.tipo!=='carta');
-      return html`<span class="mv">${capitalizza(nm)}</span>${conti.map(c=>casella(B.documenti.filter(d=>TIPI_CONTO.includes(d.tipo)&&(d.contoId||'')===c.id&&(d.data||'').startsWith(anno+'-'+pad2(m))||d.tipo==='estratto_trim'&&(d.contoId||'')===c.id&&(d.data||'').startsWith(String(anno))&&Math.ceil(+d.data.slice(5,7)/3)===Math.ceil(m/3)),m,'manca'))}${casella(delMese(m,d=>d.tipo==='carta'),m,'futuro')}<a class="casella-v ${altri.length?'ok':'futuro'}" href="#/banca/documenti"><b>${altri.length?plurale(altri.length,'file','file'):''}</b><span>${altri.length?unici(altri.map(d=>tipoBanca(d.tipo)[1])).join(', '):''}</span></a>`})}</div></div>
+      return html`<span class="mv">${capitalizza(nm)}</span>${conti.map(c=>casella(B.documenti.filter(d=>TIPI_CONTO.includes(d.tipo)&&(d.contoId||'')===c.id&&(d.data||'').startsWith(anno+'-'+pad2(m))||d.tipo==='estratto_trim'&&(d.contoId||'')===c.id&&(d.data||'').startsWith(String(anno))&&Math.ceil(+d.data.slice(5,7)/3)===Math.ceil(m/3)),m,'manca',c.id,'movimenti'))}${casella(delMese(m,d=>d.tipo==='carta'),m,'futuro','','carta')}<a class="casella-v ${altri.length?'ok':'futuro'}" href="#/banca/documenti"><b>${altri.length?plurale(altri.length,'file','file'):''}</b><span>${altri.length?unici(altri.map(d=>tipoBanca(d.tipo)[1])).join(', '):''}</span></a>`})}</div></div>
   <p class="piccolo silenzioso mt-s">Un estratto trimestrale copre i tre mesi del trimestre. Le caselle vuote dei conti aprono il caricamento.</p>`;
 };
 AZIONI['banca-anno']=(d,t)=>{ui.filtri.bancaAnno=t.value;render()};
@@ -10010,15 +10527,15 @@ AZIONI['banca-conto']=async d=>{
   if(!v)return;v.iban=ibanCompatto(v.iban)||null;
   esegui(c?'Modificato conto '+v.nome:'Nuovo conto '+v.nome,s=>{const b=assicuraBanca(s);if(c)Object.assign(b.conti.find(x=>x.id===c.id),v);else b.conti.push(Object.assign({id:nuovoId('cc')},v))});
 };
-AZIONI['banca-carica']=async()=>{const fs=await scegliFile({accetta:'.pdf,image/*,.csv,.xls,.xlsx'});if(fs.length)await caricaBanca(fs)};
+AZIONI['banca-carica']=async d=>{const fs=await scegliFile({accetta:'.pdf,image/*,.csv,.xls,.xlsx'});if(fs.length)await caricaBanca(fs,d&&d.data?{data:d.data,contoId:d.conto,tipo:d.tipo}:null)};
 const campiDocBanca=()=>[{nome:'tipo',etichetta:'Tipo',tipo:'select',vuoto:false,opzioni:TIPI_BANCA.map(([v,t])=>({v,t}))},{nome:'contoId',etichetta:'Conto',tipo:'select',vuotoTesto:'nessuno',opzioni:banca().conti.map(c=>({v:c.id,t:c.nome}))},{nome:'data',etichetta:'Data (per i periodi: l\'ultimo giorno)',tipo:'data',obbligatorio:true},{nome:'descrizione',etichetta:'Descrizione (a chi, per cosa)'},{nome:'importo',etichetta:'Importo',tipo:'euro'}];
-async function caricaBanca(files){
+async function caricaBanca(files,casella){
   const prog=dialogoAvanzamento('Lettura dei documenti',{testo:'Leggo i PDF…'});
   const righe=[];const annoCorr=new Date().getFullYear();
   for(let i=0;i<files.length;i++){const f=files[i];await prog.aggiorna(i,files.length,f.name);const perc=(f.webkitRelativePath||f.percorso||'')+'/'+f.name;
     let testo='';if(!dataBancaDaNome(f.name,perc,null)&&ePdf(f.type,f.name)){try{testo=(await estraiTestoPdf(f)).testo||''}catch(e){}}
     const tipo=tipoBancaDaNome(perc)||'movimenti';
-    righe.push({i,f,tipo,contoId:contoDaNome(perc),data:dataBancaDaNome(f.name,perc,annoCorr)||dataBancaDaTesto(testo)||oggi(),descrizione:descrizioneBancaDaNome(f.name)})}
+    righe.push({i,f,tipo,contoId:contoDaNome(perc),data:dataBancaDaNome(f.name,perc,annoCorr)||dataBancaDaTesto(testo)||oggi(),descrizione:descrizioneBancaDaNome(f.name)});if(casella){const r=righe[righe.length-1];r.data=casella.data;if(casella.tipo&&!(casella.tipo==='movimenti'&&TIPI_CONTO.includes(r.tipo)))r.tipo=casella.tipo;if(casella.contoId)r.contoId=casella.contoId}}
   prog.chiudi();
   const opz=(lista,val)=>lista.map(([v,t])=>html`<option value="${v}" ${v===val?'selected':''}>${t}</option>`);
   const ok=await dialogo({titolo:plurale(righe.length,'documento della banca','documenti della banca'),largo:true,corpo:html`<p class="piccolo secondario">Controlla tipo, conto e data: li ho proposti dal nome del file e dal testo. Per movimenti ed estratti la data è l'ultimo giorno del periodo.</p>
@@ -10094,9 +10611,13 @@ async function caricaBilanci(fs){
 //                    preparato:ISO, inviato:ISO, contenuto:[percorsi nel pacchetto]}
 // ---------------------------------------------------------------------
 const POSTI_COMMERCIALISTA=[['primaNota','Prima nota'],['iva','Liquidazione IVA']];
-// Documenti dell'archivio che vanno al commercialista se sono datati nel mese (in attesa dell'elenco
-// completo dell'azienda): polizze, bolli e verbali dei mezzi, verbali e SAL dei cantieri.
-const TIPI_DOC_COMMERCIALISTA=['polizza','mezzo_assicurazione','mezzo_bollo','mezzo_verbale','verbale_cantiere','sal_cantiere'];
+// Documenti che vanno al commercialista oltre alle fatture (elenco dell'azienda, 17/11/2026):
+// assicurazioni, bolli, estratti conto della banca e della carta, movimenti del mese, stipendi,
+// multe, alloggi degli operai, pratiche legali. F24 e Cassa Edile NO: li paga e li tiene lui.
+// Gli stipendi sono quelli pagati nel mese: a novembre parte ottobre, con gli stipendi di settembre
+// pagati a ottobre (si guarda la data del bonifico, non il mese della busta).
+const TIPI_DOC_COMMERCIALISTA={polizza:'Assicurazione',mezzo_assicurazione:'Assicurazione',mezzo_bollo:'Bollo',mezzo_verbale:'Multa',alloggio_operai:'Alloggio operai',pratica_legale:'Pratica legale'};
+const RE_STIPENDIO=/stipend|retribuz|busta paga|compenso ammin|salari|tfr/i;
 const TIPI_FATTURA={TD01:'Fattura',TD02:'Acconto su fattura',TD03:'Acconto su parcella',TD04:'Nota di credito',TD05:'Nota di debito',TD06:'Parcella',TD16:'Integrazione reverse charge',TD17:'Autofattura servizi dall’estero',TD18:'Integrazione beni intra UE',TD19:'Integrazione beni art. 17 c. 2',TD20:'Autofattura di regolarizzazione',TD21:'Autofattura per splafonamento',TD22:'Estrazione da deposito IVA',TD23:'Estrazione da deposito IVA con versamento',TD24:'Fattura differita',TD25:'Fattura differita (triangolare)',TD26:'Cessione di beni ammortizzabili',TD27:'Autoconsumo o cessione gratuita',TD28:'Acquisto da San Marino'};
 const MODI_PAGAMENTO={MP01:'Contanti',MP02:'Assegno',MP03:'Assegno circolare',MP05:'Bonifico',MP07:'Bollettino bancario',MP08:'Carta di pagamento',MP09:'RID',MP12:'RIBA',MP16:'Domiciliazione bancaria',MP19:'SEPA Direct Debit',MP21:'SEPA Direct Debit B2B',MP23:'PagoPA'};
 const NATURE_IVA={N1:'Esclusa art. 15',N2:'Non soggetta',N3:'Non imponibile',N4:'Esente',N5:'Regime del margine',N6:'Inversione contabile',N7:'IVA assolta in altro Stato UE'};
@@ -10159,15 +10680,13 @@ function fattureMese(k,tipo){return (stato.fatture||[]).filter(f=>f.mese===k&&(!
 // Quello che entra nella cartella dei documenti dalle altre sezioni: F24 con scadenza nel mese,
 // Cassa Edile pagata nel mese, bonifici e documenti della banca del mese, documenti datati nel mese dei tipi scelti.
 function documentiAltreSezioni(k){
-  const [a,m]=k.split('-').map(Number);const nel=iso=>(iso||'').startsWith(k);const out=[];
-  const metti=(fileId,fonte,href,data)=>{if(fileId&&fileMeta(fileId)&&!out.some(x=>x.fileId===fileId))out.push({fileId,fonte,href,data})};
-  for(const v of stato.versamenti||[]){
-    if(v.tipo==='f24'?v.anno===a&&v.mese===m:nel(v.dataPagamento)||(!v.dataPagamento&&nel(scadenzaVersamento(v)))) metti(v.fileId,'Versamenti',v.tipo==='f24'?'versamenti/f24':'versamenti/cassa',v.dataPagamento||scadenzaVersamento(v));
-  }
-  for(const b of stato.bonifici||[]) if(nel(b.data)) metti(b.fileId,'Bonifici','versamenti/bonifici',b.data);
-  for(const d of documentiBancaMese(k)) metti(d.fileId,'Banca','banca',d.data);
-  for(const d of stato.documenti) if(TIPI_DOC_COMMERCIALISTA.includes(d.tipoId)&&nel(d.dataEmissione)) for(const f of d.file||[]) metti(f,'Documenti','documenti?doc='+d.id,d.dataEmissione);
-  return out.sort((x,y)=>(x.data||'')<(y.data||'')?-1:1);
+  const nel=iso=>(iso||'').startsWith(k);const out=[];
+  const metti=(fileId,fonte,href,data,categoria)=>{if(fileId&&fileMeta(fileId)&&!out.some(x=>x.fileId===fileId))out.push({fileId,fonte,href,data,categoria})};
+  const nomi=new Set(stato.persone.map(p=>normalizzaTesto(nomePersona(p))));
+  for(const b of stato.bonifici||[]) if(nel(b.data)&&(RE_STIPENDIO.test(b.causale||'')||nomi.has(normalizzaTesto(b.controparte||'')))) metti(b.fileId,'Bonifici','versamenti/bonifici',b.data,'Stipendi');
+  for(const d of documentiBancaMese(k)) metti(d.fileId,'Banca','banca',d.data,tipoBanca(d.tipo)[1]);
+  for(const d of stato.documenti) if(TIPI_DOC_COMMERCIALISTA[d.tipoId]&&nel(d.dataEmissione)) for(const f of d.file||[]) metti(f,'Documenti','documenti?doc='+d.id,d.dataEmissione,TIPI_DOC_COMMERCIALISTA[d.tipoId]);
+  return out.sort((x,y)=>(x.categoria||'').localeCompare(y.categoria||'')||((x.data||'')<(y.data||'')?-1:1));
 }
 // Tutti i file della cartella documenti, con il nome che avranno nel pacchetto
 function documentiMese(k){
@@ -10212,7 +10731,7 @@ VISTE.commercialista=function(r){
   <div class="sezione-titolo">${m} ${nomeMese(m)} · documenti</div>
   <div class="scheda" data-drop-commdoc="${k}"><ul class="elenco-piatto">${POSTI_COMMERCIALISTA.map(([p,t])=>cellaPosto(p,t))}</ul>
     <div class="sezione-titolo">Dalle altre sezioni</div>
-    ${altre.length?html`<ul class="elenco-piatto">${altre.map(x=>html`<li><label class="riga stretta spazio"><input type="checkbox" data-cambio="comm-includi" data-mese="${k}" data-id="${x.fileId}" ${x.incluso?'checked':''}><span class="spazio"><b>${x.nome}</b><br><span class="piccolo silenzioso">da <a href="#/${x.href}">${x.fonte}</a></span></span></label><button class="pulsante piccolo discreto" data-azione="file-apri" data-id="${x.fileId}">Apri</button></li>`)}</ul>`:html`<p class="piccolo silenzioso">Niente per ${nomeMese(m)}: F24, Cassa Edile, bonifici, documenti della banca, polizze e verbali compaiono qui da soli quando li carichi nelle loro sezioni.</p>`}
+    ${altre.length?html`<ul class="elenco-piatto">${altre.map(x=>html`<li><label class="riga stretta spazio"><input type="checkbox" data-cambio="comm-includi" data-mese="${k}" data-id="${x.fileId}" ${x.incluso?'checked':''}><span class="spazio"><b>${x.nome}</b><br><span class="piccolo silenzioso"><b>${x.categoria||''}</b> · da <a href="#/${x.href}">${x.fonte}</a></span></span></label><button class="pulsante piccolo discreto" data-azione="file-apri" data-id="${x.fileId}">Apri</button></li>`)}</ul>`:html`<p class="piccolo silenzioso">Niente per ${nomeMese(m)}: stipendi pagati, movimenti ed estratti della banca e della carta, assicurazioni, bolli, multe, alloggi degli operai e pratiche legali compaiono qui da soli quando li carichi nelle loro sezioni (F24 e Cassa Edile non vanno).</p>`}
     <div class="sezione-titolo">Altri file</div>
     <ul class="elenco-piatto">${docs.filter(x=>x.posto==='altri').map(x=>html`<li><span class="spazio"><b>${x.nome}</b></span><button class="pulsante piccolo discreto" data-azione="file-apri" data-id="${x.fileId}">Apri</button><button class="pulsante piccolo discreto icona" data-azione="comm-togli" data-mese="${k}" data-posto="altri" data-id="${x.fileId}" title="Togli">${icona('chiudi','piccola')}</button></li>`)}</ul>
     <button class="pulsante piccolo discreto mt-s" data-azione="comm-carica" data-mese="${k}" data-posto="altri">${icona('piu','piccola')}Aggiungi file che non stanno in altre sezioni</button>
@@ -10520,7 +11039,7 @@ VISTE.versamenti=function(r){
   const anno=+(r.query.anno||ui.filtri.versamentiAnno||new Date().getFullYear());
   const anni=unici([new Date().getFullYear(),...stato.versamenti.map(v=>v.anno)]).sort((a,b)=>b-a);
   const etichetta={ok:'pagato',presto:'da pagare',tardi:'scaduto',manca:'non caricato',futuro:''};
-  const cella=(tipo,m)=>{const c=statoCasella(tipo,anno,m);return html`<button class="casella-v ${c.stato}" ${c.v?html`data-azione="versamento-apri" data-id="${c.v.id}"`:c.stato==='futuro'?'disabled':html`data-azione="versamenti-carica"`} title="${c.v?'Apri':'Scadenza '+fData(c.scadenza)}"><b>${c.v?(c.v.importo===0&&c.v.voci&&c.v.voci.credito?'Compensato':c.v.importo!=null?fEuro(c.v.importo,0):'importo da scrivere'):c.stato==='futuro'?'':tipo==='f24'?'F24':'Cassa Edile'}</b><span>${c.v?(c.v.dataPagamento?'pagato il '+fDataBreve(c.v.dataPagamento):'pagato'):etichetta[c.stato]+(c.stato==='presto'?' entro il '+fDataBreve(c.scadenza):'')}</span></button>`};
+  const cella=(tipo,m)=>{const c=statoCasella(tipo,anno,m);return html`<button class="casella-v ${c.stato}" ${c.v?html`data-azione="versamento-apri" data-id="${c.v.id}"`:c.stato==='futuro'?'disabled':html`data-azione="versamenti-carica" data-tipo="${tipo}" data-anno="${anno}" data-mese="${m}"`} title="${c.v?'Apri':'Scadenza '+fData(c.scadenza)}"><b>${c.v?(c.v.importo===0&&c.v.voci&&c.v.voci.credito?'Compensato':c.v.importo!=null?fEuro(c.v.importo,0):'importo da scrivere'):c.stato==='futuro'?'':tipo==='f24'?'F24':'Cassa Edile'}</b><span>${c.v?(c.v.dataPagamento?'pagato il '+fDataBreve(c.v.dataPagamento):'pagato'):etichetta[c.stato]+(c.stato==='presto'?' entro il '+fDataBreve(c.scadenza):'')}</span></button>`};
   const buste=m=>{const n=stato.bustePaga.filter(b=>b.anno===anno&&b.mese===m).length;const lav=meseP(anno,m)?Object.keys(meseP(anno,m).persone).length:0;const fut=anno*100+m>new Date().getFullYear()*100+new Date().getMonth()+1;return html`<a class="casella-v ${n?'ok':fut||!lav?'futuro':'manca'}" href="#/documenti/buste"><b>${n?plurale(n,'busta','buste'):fut?'':'—'}</b><span>${n?'archiviate':lav&&!fut?'da caricare':''}</span></a>`};
   // stipendi: i bonifici fatti nel mese dopo a persone dell'anagrafica
   const nomi=new Set(stato.persone.map(p=>normalizzaTesto(nomePersona(p))));
@@ -10582,12 +11101,13 @@ async function leggiVersamento(file){
   return out;
 }
 function arrotonda2(n){return Math.round(n*100)/100}
-AZIONI['versamenti-carica']=async()=>{const fs=await scegliFile({accetta:'.pdf,image/*'});if(fs.length)caricaVersamenti(fs)};
+AZIONI['versamenti-carica']=async d=>{const fs=await scegliFile({accetta:'.pdf,image/*'});if(fs.length)caricaVersamenti(fs,d&&d.tipo?{tipo:d.tipo,anno:+d.anno,mese:+d.mese}:null)};
 // uno o tanti file: si leggono tutti, poi una tabella da controllare e si archiviano insieme
-async function caricaVersamenti(files){
+// casella: se il file arriva dalla casella di un mese, tipo e mese sono quelli della casella
+async function caricaVersamenti(files,casella){
   const prog=dialogoAvanzamento('Lettura dei versamenti',{testo:'Leggo i PDF…'});
   const letti=[];
-  for(let i=0;i<files.length;i++){await prog.aggiorna(i,files.length,files[i].name);letti.push(await leggiVersamento(files[i]))}
+  for(let i=0;i<files.length;i++){await prog.aggiorna(i,files.length,files[i].name);const x=await leggiVersamento(files[i]);if(casella){Object.assign(x,casella);x.trovato.push('messo in '+fMeseAnno(casella.anno,casella.mese)+' (dalla casella)')}letti.push(x)}
   prog.chiudi();
   const anni=unici([new Date().getFullYear()-1,new Date().getFullYear(),...letti.map(x=>x.anno).filter(Boolean)]).sort();
   const corpo=html`<p class="secondario piccolo">Controlla tipo, mese e importo: quello che ho trovato è già scritto. ${letti.some(x=>x.importo==null)?'Le scansioni senza testo vanno completate a mano.':''}</p>
@@ -10697,7 +11217,7 @@ function datiIniziali(soloStruttura){
     persone:[],tipiDocumento:[],documenti:[],file:[],clienti:[],professionisti:[],lavorazioni:[],cantieri:[],pos:[],
     modelli:{dichiarazioni:[],posTesto:null,posMacchine:null,posDpiDotazione:null},
     presenze:{},bustePaga:[],regoleBuste:[],listino:[],preventivi:[],movimenti:[],generati:[],cestino:[],
-    mezzi:[],fornitori:[],bonifici:[],versamenti:[],rimanenze:{},isa:{},bilanci:{},fatture:[],commercialista:{},banca:{conti:[],documenti:[]},
+    mezzi:[],fornitori:[],bonifici:[],versamenti:[],rimanenze:{},isa:{},bilanci:{},fatture:[],commercialista:{},moduli:[],banca:{conti:[],documenti:[]},
     impostazioni:{nomeUtente:'',dispositivo:'',tema:'sistema',ultimoBackup:null,modificheDopoBackup:0,ultimaModifica:null,soglie:Object.assign({},SOGLIE_PREDEFINITE),densita:'normale',festivitaLocali:[],arrotondamento:'aziendale',compressioneImmagini:true,obiettivoKb:300,avvisaPdfMb:2,creato:new Date().toISOString()},
   };
   s.lavorazioni=LAVORAZIONI_INIZIALI.map(l=>Object.assign({},l));
@@ -10764,10 +11284,10 @@ const CATEGORIE_MOVIMENTO={materiali:'Materiali',subappalto:'Subappalto',traspor
 // Durate che si scelgono su un singolo documento: la scadenza si calcola dalla data di emissione.
 // Non si applica a tutto: molti documenti hanno la scadenza stampata sopra e lì si scrive a mano.
 const DURATE_DOCUMENTO=[{v:12,t:'1 anno'},{v:24,t:'2 anni'},{v:36,t:'3 anni'},{v:60,t:'5 anni'},{v:120,t:'10 anni'},{v:6,t:'6 mesi'}];
-const CATEGORIE_TIPO_DOC={identita:'Identità',malattia:'Malattia',contratto:'Contratto',sanitario:'Sanitario',formazione:'Formazione',nomina:'Nomina',impresa:'Impresa',sicurezza:'Sicurezza',amministrativo:'Amministrativo',cantiere:'Cantiere',mezzo:'Mezzo'};
+const CATEGORIE_TIPO_DOC={identita:'Identità',malattia:'Malattia',contratto:'Contratto',sanitario:'Sanitario',formazione:'Formazione',nomina:'Nomina',impresa:'Impresa',sicurezza:'Sicurezza',amministrativo:'Amministrativo',legale:'Legale',cantiere:'Cantiere',mezzo:'Mezzo'};
 // Ordine di visualizzazione delle categorie: usato ovunque i documenti si raggruppano per
 // argomento (scheda persona, archivio generale), così le sezioni compaiono sempre nello stesso ordine.
-const ORDINE_CATEGORIE_DOC=['identita','contratto','sanitario','malattia','formazione','nomina','amministrativo','sicurezza','impresa','cantiere','mezzo'];
+const ORDINE_CATEGORIE_DOC=['identita','contratto','sanitario','malattia','formazione','nomina','amministrativo','legale','sicurezza','impresa','cantiere','mezzo'];
 
 // Catalogo tipi di documento. obbligatorio: vedi tipoApplicabile() nelle REGOLE.
 // bloccaIdoneita: se mancante/scaduto impedisce l'ingresso in cantiere; gli altri obbligatori entrano solo nella checklist.
@@ -10805,6 +11325,8 @@ const TIPI_DOCUMENTO_INIZIALI=[
   {id:'organico_ccnl',nome:'Organico Medio e CCNL',ambito:'azienda',validitaMesi:null,obbligatorio:'richiesta',bloccaIdoneita:false,categoria:'impresa',sinonimi:['organico medio','ccnl','dichiarazione organico']},
   {id:'verifica_funi',nome:'Verifica periodica funi e catene',ambito:'azienda',validitaMesi:null,obbligatorio:'attrezzatura',bloccaIdoneita:false,categoria:'sicurezza',note:'Se usate, secondo normativa.',sinonimi:['funi','catene','verifica funi']},
   {id:'polizza',nome:'Polizza assicurativa (RCT/RCO)',ambito:'azienda',validitaMesi:12,obbligatorio:'richiesta',bloccaIdoneita:false,categoria:'impresa',sinonimi:['polizza','assicurazione','rct','rco']},
+  {id:'alloggio_operai',nome:'Alloggio operai (affitto, utenze)',ambito:'azienda',validitaMesi:null,obbligatorio:'no',bloccaIdoneita:false,categoria:'amministrativo',note:'Contratti, ricevute d\'affitto e bollette degli alloggi degli operai: vanno al commercialista nel mese della data.',sinonimi:['alloggio','affitto','locazione','canone','appartamento operai','bolletta alloggio']},
+  {id:'pratica_legale',nome:'Pratica legale / recupero crediti',ambito:'azienda',validitaMesi:null,obbligatorio:'no',bloccaIdoneita:false,categoria:'legale',note:'Ricorso, decreto ingiuntivo, relata di notifica, contributo unificato, parcella dell\'avvocato: tutti i file della stessa causa in un solo documento, col nome della controparte nel titolo.',sinonimi:['decreto ingiuntivo','ricorso','relata di notifica','contributo unificato','avvocato','tribunale','causa','precetto','pignoramento','recupero crediti','diffida']},
   {id:'altro_azienda',nome:'Altro documento aziendale',ambito:'azienda',validitaMesi:null,obbligatorio:'no',bloccaIdoneita:false,categoria:'amministrativo',sinonimi:[]},
   {id:'psc',nome:'PSC',ambito:'cantiere',validitaMesi:null,obbligatorio:'no',bloccaIdoneita:false,categoria:'cantiere',sinonimi:['psc','piano di sicurezza e coordinamento']},
   {id:'pos',nome:'POS',ambito:'cantiere',validitaMesi:null,obbligatorio:'no',bloccaIdoneita:false,categoria:'cantiere',sinonimi:['pos','piano operativo di sicurezza']},

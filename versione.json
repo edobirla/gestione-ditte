@@ -1,8 +1,15 @@
 {
- "versione": "1.24",
- "impronta": "4329f5525f",
- "data": "2026-10-26T12:56:41+01:00",
+ "versione": "1.25",
+ "impronta": "3752b76314",
+ "data": "2026-11-17T20:48:00+01:00",
  "storico": [
+  {
+   "versione": "1.25",
+   "data": "2026-11-17T20:48:00+01:00",
+   "novita": [
+    "Trascinamento ovunque, firma vettoriale, moduli Word, PSC letti meglio"
+   ]
+  },
   {
    "versione": "1.24",
    "data": "2026-10-26T12:56:41+01:00",
@@ -104,13 +111,6 @@
    "novita": [
     "Nomine anche ristampando un POS già fatto",
     "Stampa in PDF da Safari senza pagine bianche"
-   ]
-  },
-  {
-   "versione": "1.10",
-   "data": "2026-10-23T15:02:27+02:00",
-   "novita": [
-    "POS: firme solo di datore di lavoro, RSPP e RLS"
    ]
   }
  ]
